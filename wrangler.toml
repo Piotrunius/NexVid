@@ -1,0 +1,25 @@
+# Cloudflare Pages deployment configuration
+# Deploy with: npx wrangler pages deploy .vercel/output/static --project-name nexvid
+# Or use the Cloudflare Pages dashboard to connect your Git repo
+
+name = "nexvid"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Pages configuration
+pages_build_output_dir = ".vercel/output/static"
+
+# D1 Database binding (create with: npx wrangler d1 create nexvid-db)
+# Uncomment after creating the database:
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "nexvid-db"
+# database_id = "your-database-id-here"
+
+# Environment variables (secrets should be set via dashboard or CLI)
+# npx wrangler pages secret put FEBBOX_CLIENT_ID
+# npx wrangler pages secret put FEBBOX_CLIENT_SECRET
+# npx wrangler pages secret put TURNSTILE_SECRET_KEY
+
+[vars]
+NEXT_PUBLIC_TIDB_URL = "https://api.theintrodatabase.com"
