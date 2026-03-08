@@ -205,6 +205,8 @@ export interface UserSettings {
   playerVolume: number;
   skipIntro: boolean;
   skipOutro: boolean;
+  autoSkipSegments: boolean;
+  idlePauseOverlay: boolean;
   proxyUrl: string;
   febboxApiKey: string;
   introDbApiKey: string;

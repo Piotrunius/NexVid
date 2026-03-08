@@ -63,6 +63,8 @@ const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
 const KNOWN_SOURCE_ORDER = ['febbox'] as const;
+const SUBTITLE_APPEARANCE_CACHE_KEY = 'nexvid-subtitle-appearance';
+const PAUSE_IDLE_OVERLAY_MS = 10000;
 
 type NormalizedQualityEntry = {
   quality: StreamQuality;
@@ -264,7 +266,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     setAudioTracks, setActiveAudioTrack,
   } = usePlayerStore();
 
-  const { skipIntro, skipOutro, autoPlay, autoNext, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
@@ -313,8 +315,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [watchPartyForceSyncUntil, setWatchPartyForceSyncUntil] = useState(0);
   const [watchPartyNowTs, setWatchPartyNowTs] = useState(Date.now());
   const [showInfoWatchlistMenu, setShowInfoWatchlistMenu] = useState(false);
+  const [isEpisodeNavigating, setIsEpisodeNavigating] = useState(false);
+  const [showIdlePauseOverlay, setShowIdlePauseOverlay] = useState(false);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
+  const lastAutoSkippedSegmentRef = useRef('');
+  const lastAutoSkipAtRef = useRef(0);
+  const lastInteractionAtRef = useRef(Date.now());
   const attemptedAutoPlayRef = useRef(false);
   const lastProgressSaveRef = useRef(0);
   const watchPartyApplyingRemoteRef = useRef(false);
@@ -329,6 +336,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const mediaTmdbId = tmdbId || (media?.id ? String(media.id) : '');
   const infoWatchlistItem = mediaTmdbId ? getByTmdbId(mediaTmdbId) : undefined;
   const watchPartyForceSyncCooldownSec = Math.max(0, Math.ceil((watchPartyForceSyncUntil - watchPartyNowTs) / 1000));
+  const currentEpisodeInfo = mediaType === 'show'
+    ? (season?.episodes || []).find((ep) => ep.episodeNumber === episodeNum) || null
+    : null;
+  const infoSummaryText = mediaType === 'show'
+    ? (currentEpisodeInfo?.overview || media?.overview || '')
+    : (media?.overview || '');
 
   const normalizedFileQualities = useMemo(() => {
     if (!stream || stream.type !== 'file') return [] as NormalizedQualityEntry[];
@@ -450,6 +463,36 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     setEpisodePanelSeason(seasonNum);
     setEpisodePanelEpisodes(season?.episodes || []);
   }, [seasonNum, season]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const cachedRaw = localStorage.getItem(SUBTITLE_APPEARANCE_CACHE_KEY);
+      if (!cachedRaw) return;
+      const cached = JSON.parse(cachedRaw) as {
+        subFontSize?: number;
+        subColor?: string;
+        subBg?: string;
+        subVertical?: number;
+        subDelayMs?: number;
+      };
+      if (typeof cached.subFontSize === 'number') setSubFontSize(Math.max(14, Math.min(42, cached.subFontSize)));
+      if (typeof cached.subColor === 'string') setSubColor(cached.subColor);
+      if (typeof cached.subBg === 'string') setSubBg(cached.subBg);
+      if (typeof cached.subVertical === 'number') setSubVertical(Math.max(65, Math.min(106, cached.subVertical)));
+      if (typeof cached.subDelayMs === 'number') setSubDelayMs(Math.max(SUB_DELAY_MIN_MS, Math.min(SUB_DELAY_MAX_MS, cached.subDelayMs)));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(
+        SUBTITLE_APPEARANCE_CACHE_KEY,
+        JSON.stringify({ subFontSize, subColor, subBg, subVertical, subDelayMs })
+      );
+    } catch {}
+  }, [subFontSize, subColor, subBg, subVertical, subDelayMs]);
 
   // ---- Initialize HLS / Source ----
   useEffect(() => {
@@ -973,11 +1016,24 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   }, [isMuted]);
 
   const promptKey = `${seasonNum}-${episodeNum}`;
+  const effectiveSegments: MediaSegments = segments ?? {
+    intro: [],
+    recap: [],
+    credits: [],
+    preview: [],
+  };
 
   useEffect(() => {
     setShowNextPrompt(false);
     setNextCountdown(8);
+    setIsEpisodeNavigating(false);
   }, [promptKey]);
+
+  useEffect(() => {
+    if (scrapeStatus === 'loading') {
+      setIsEpisodeNavigating(false);
+    }
+  }, [scrapeStatus]);
 
   useEffect(() => {
     if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length || !duration || !currentTime) {
@@ -1008,6 +1064,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         nextPromptHandledForRef.current !== promptKey
       ) {
         nextPromptHandledForRef.current = promptKey;
+        setIsEpisodeNavigating(true);
         onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
       }
     } else {
@@ -1025,14 +1082,106 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => clearInterval(timer);
   }, [showNextPrompt, autoNext]);
 
+  useEffect(() => {
+    if (!autoSkipSegments || stream?.type === 'embed' || !duration || !currentTime) {
+      lastAutoSkippedSegmentRef.current = '';
+      return;
+    }
+
+    const timelineSegments = [
+      ...effectiveSegments.intro.map((segment, index) => ({
+        key: `intro-${index}-${segment.startMs}-${segment.endMs}`,
+        startSec: segment.startMs / 1000,
+        endSec: segment.endMs / 1000,
+      })),
+      ...effectiveSegments.recap.map((segment, index) => ({
+        key: `recap-${index}-${segment.startMs}-${segment.endMs}`,
+        startSec: segment.startMs / 1000,
+        endSec: segment.endMs / 1000,
+      })),
+      ...effectiveSegments.credits.map((segment, index) => ({
+        key: `credits-${index}-${segment.startMs}-${segment.endMs}`,
+        startSec: segment.startMs / 1000,
+        endSec: segment.endMs / 1000,
+      })),
+      ...effectiveSegments.preview.map((segment, index) => ({
+        key: `preview-${index}-${segment.startMs}-${segment.endMs}`,
+        startSec: segment.startMs / 1000,
+        endSec: segment.endMs / 1000,
+      })),
+    ];
+
+    if (introOutro?.introEnd && introOutro.introEnd > 0) {
+      timelineSegments.push({ key: `legacy-intro-${introOutro.introEnd}`, startSec: 0, endSec: introOutro.introEnd });
+    }
+    if (introOutro?.outroStart && introOutro?.outroEnd && introOutro.outroEnd > introOutro.outroStart) {
+      timelineSegments.push({
+        key: `legacy-outro-${introOutro.outroStart}-${introOutro.outroEnd}`,
+        startSec: introOutro.outroStart,
+        endSec: introOutro.outroEnd,
+      });
+    }
+
+    const activeSegment = timelineSegments.find((segment) => currentTime >= segment.startSec && currentTime < segment.endSec - 0.35);
+    if (!activeSegment) return;
+
+    const now = Date.now();
+    if (lastAutoSkippedSegmentRef.current === activeSegment.key || now - lastAutoSkipAtRef.current < 900) return;
+
+    lastAutoSkippedSegmentRef.current = activeSegment.key;
+    lastAutoSkipAtRef.current = now;
+    seek(Math.min(activeSegment.endSec + 0.1, duration));
+  }, [autoSkipSegments, stream?.type, duration, currentTime, introOutro, effectiveSegments, seek]);
+
+  useEffect(() => {
+    const markInteraction = () => {
+      lastInteractionAtRef.current = Date.now();
+      setShowIdlePauseOverlay(false);
+    };
+    window.addEventListener('mousemove', markInteraction, { passive: true });
+    window.addEventListener('mousedown', markInteraction, { passive: true });
+    window.addEventListener('touchstart', markInteraction, { passive: true });
+    window.addEventListener('keydown', markInteraction);
+    return () => {
+      window.removeEventListener('mousemove', markInteraction);
+      window.removeEventListener('mousedown', markInteraction);
+      window.removeEventListener('touchstart', markInteraction);
+      window.removeEventListener('keydown', markInteraction);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!idlePauseOverlay || stream?.type === 'embed') {
+      if (showIdlePauseOverlay) setShowIdlePauseOverlay(false);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      const video = videoRef.current;
+      if (!video || isLoading || isPlaying || !video.paused) {
+        if (showIdlePauseOverlay) setShowIdlePauseOverlay(false);
+        return;
+      }
+      if (Date.now() - lastInteractionAtRef.current >= PAUSE_IDLE_OVERLAY_MS) {
+        setShowIdlePauseOverlay(true);
+      }
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [idlePauseOverlay, stream?.type, isLoading, isPlaying, showIdlePauseOverlay]);
+
   const navigateNextEpisode = useCallback(() => {
     if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length) return;
     const nextEpisode = season.episodes.find((ep) => ep.episodeNumber === episodeNum + 1);
-    if (nextEpisode) onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
+    if (nextEpisode) {
+      setIsEpisodeNavigating(true);
+      onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
+    }
   }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
 
   const navigatePrevEpisode = useCallback(() => {
     if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length || episodeNum <= 1) return;
+    setIsEpisodeNavigating(true);
     onNavigateEpisode(seasonNum, episodeNum - 1);
   }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
 
@@ -1307,13 +1456,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     };
   }, [watchPartyRoomId, watchPartyParticipantId]);
 
-  const effectiveSegments: MediaSegments = segments ?? {
-    intro: [],
-    recap: [],
-    credits: [],
-    preview: [],
-  };
-
   const hasSkipSegments = Boolean(
     introOutro?.introEnd || introOutro?.outroEnd ||
     effectiveSegments.intro.length > 0 || effectiveSegments.credits.length > 0,
@@ -1375,7 +1517,11 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => document.removeEventListener('keydown', handleKey);
   }, [togglePlay, toggleFullscreen, skipForward, skipBackward, volume, playbackSpeed]);
 
-  const handleMouseMove = useCallback(() => { showControls(); }, []);
+  const handleMouseMove = useCallback(() => {
+    lastInteractionAtRef.current = Date.now();
+    setShowIdlePauseOverlay(false);
+    showControls();
+  }, [showControls]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -1901,12 +2047,29 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
                         <div className="min-w-0 flex-1">
                           <p className="text-[18px] font-semibold text-white">{media.title}</p>
-                          {media.tagline && <p className="mt-1 text-[13px] text-white/65">{media.tagline}</p>}
+                          {mediaType === 'show' ? (
+                            <p className="mt-1 text-[13px] text-white/65">
+                              {`Season ${seasonNum} • Episode ${episodeNum}`}
+                              {currentEpisodeInfo?.name ? ` • ${currentEpisodeInfo.name}` : ''}
+                            </p>
+                          ) : (
+                            media.tagline && <p className="mt-1 text-[13px] text-white/65">{media.tagline}</p>
+                          )}
 
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                             {media.releaseYear && (
                               <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
                                 {media.releaseYear}
+                              </span>
+                            )}
+                            {mediaType === 'show' && currentEpisodeInfo?.airDate && (
+                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                                {currentEpisodeInfo.airDate}
+                              </span>
+                            )}
+                            {mediaType === 'show' && currentEpisodeInfo?.runtime && (
+                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                                {currentEpisodeInfo.runtime} min
                               </span>
                             )}
                             {media.rating && (
@@ -1937,22 +2100,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                                 )}
                                 {infoWatchlistItem ? infoWatchlistItem.status : 'Add to List'}
                               </button>
-                              {showInfoWatchlistMenu && (
-                                <div className="absolute left-0 top-full z-20 mt-1.5 w-40 rounded-[10px] bg-black/85 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.6)]">
-                                  {(['planned', 'watching', 'completed', 'dropped', 'on-hold'] as WatchlistStatus[]).map((status) => (
-                                    <button
-                                      key={status}
-                                      onClick={() => handleInfoWatchlistAction(status)}
-                                      className={cn(
-                                        'w-full rounded-[8px] px-2.5 py-1.5 text-left text-[11px] capitalize transition-colors',
-                                        infoWatchlistItem?.status === status ? 'bg-accent/20 text-accent' : 'text-white/75 hover:bg-white/10'
-                                      )}
-                                    >
-                                      {status.replace('-', ' ')}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
                             </div>
 
                             {tmdbId && (
@@ -1982,26 +2129,32 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         </div>
                       </div>
 
-                      {media.overview && (
+                      {infoSummaryText && (
                         <div className="mt-4 rounded-[12px] bg-white/[0.03] p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
-                          <p className="text-[13px] leading-relaxed text-white/75">{media.overview}</p>
-                        </div>
-                      )}
-
-                      {media.cast && media.cast.length > 0 && (
-                        <div className="mt-4">
-                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/55">Cast</p>
-                          <div className="flex gap-2 overflow-x-auto pb-1">
-                            {media.cast.slice(0, 12).map((person) => (
-                              <div key={person.id} className="w-24 shrink-0 rounded-[12px] bg-white/[0.03] p-2 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
-                                <p className="text-[11px] font-medium text-white/85 line-clamp-1">{person.name}</p>
-                                <p className="text-[10px] text-white/45 line-clamp-1">{person.character || '—'}</p>
-                              </div>
-                            ))}
-                          </div>
+                          <p className="text-[13px] leading-relaxed text-white/75">{infoSummaryText}</p>
                         </div>
                       )}
                     </div>
+
+                    {showInfoWatchlistMenu && (
+                      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 px-4" onClick={() => setShowInfoWatchlistMenu(false)}>
+                        <div className="w-full max-w-xs rounded-[14px] bg-black/90 p-2.5 shadow-[0_16px_50px_rgba(0,0,0,0.75)]" onClick={(e) => e.stopPropagation()}>
+                          <p className="px-2 pb-1.5 text-[11px] font-semibold text-white/70">Add to List</p>
+                          {(['planned', 'watching', 'completed', 'dropped', 'on-hold'] as WatchlistStatus[]).map((status) => (
+                            <button
+                              key={status}
+                              onClick={() => handleInfoWatchlistAction(status)}
+                              className={cn(
+                                'w-full rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
+                                infoWatchlistItem?.status === status ? 'bg-accent/20 text-accent' : 'text-white/80 hover:bg-white/10'
+                              )}
+                            >
+                              {status.replace('-', ' ')}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
             )}
@@ -2177,6 +2330,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                       <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
                         <PlayerToggle label="Auto-play" checked={autoPlay} onChange={(v) => updateSettings({ autoPlay: v })} />
                         <PlayerToggle label="Auto-next" checked={autoNext} onChange={(v) => updateSettings({ autoNext: v })} />
+                        <PlayerToggle label="Auto-skip segments" checked={autoSkipSegments} onChange={(v) => updateSettings({ autoSkipSegments: v })} />
+                        <PlayerToggle label="Idle pause overlay" checked={idlePauseOverlay} onChange={(v) => updateSettings({ idlePauseOverlay: v })} />
                       </div>
                     </div>
                   )}
@@ -2530,16 +2685,19 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       {showNextPrompt && isShowWithEpisodes && (
         <div className="panel-glass absolute right-4 bottom-20 z-30 w-[320px] p-3 animate-slide-up">
           <p className="text-[13px] font-semibold text-white">Next episode ready</p>
-          <p className="text-[11px] text-white/60 mt-1">{autoNext ? `Auto-play in ${nextCountdown}s` : 'Auto-next is off'}</p>
+          <p className="text-[11px] text-white/60 mt-1">
+            {isEpisodeNavigating ? 'Loading next episode…' : autoNext ? `Auto-play in ${nextCountdown}s` : 'Auto-next is off'}
+          </p>
           <div className="mt-3 flex items-center gap-2">
             <button
               onClick={() => {
                 nextPromptHandledForRef.current = promptKey;
                 navigateNextEpisode();
               }}
-              className="rounded-[8px] bg-accent/25 px-3 py-1.5 text-[11px] font-medium text-accent hover:bg-accent/35"
+              disabled={isEpisodeNavigating}
+              className="rounded-[8px] bg-accent/25 px-3 py-1.5 text-[11px] font-medium text-accent hover:bg-accent/35 disabled:opacity-60"
             >
-              Play next now
+              {isEpisodeNavigating ? 'Loading…' : 'Play next now'}
             </button>
             {autoNext && (
               <button
@@ -2553,6 +2711,37 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 Cancel
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {showIdlePauseOverlay && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm px-5" onClick={() => setShowIdlePauseOverlay(false)}>
+          <div className="w-full max-w-xl rounded-[18px] bg-black/80 p-5 shadow-[0_20px_70px_rgba(0,0,0,0.85)]" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/55">Paused</p>
+            <p className="mt-1 text-[20px] font-semibold text-white">{title || media?.title || 'Now playing'}</p>
+            {subtitle && <p className="mt-1 text-[12px] text-white/65">{subtitle}</p>}
+            {infoSummaryText && <p className="mt-3 line-clamp-3 text-[12px] text-white/70">{infoSummaryText}</p>}
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowIdlePauseOverlay(false);
+                  videoRef.current?.play().catch(() => {});
+                }}
+                className="rounded-[10px] bg-accent/25 px-3.5 py-2 text-[12px] font-semibold text-accent hover:bg-accent/35"
+              >
+                Resume
+              </button>
+              <button
+                onClick={() => {
+                  updateSettings({ idlePauseOverlay: false });
+                  setShowIdlePauseOverlay(false);
+                }}
+                className="rounded-[10px] bg-white/10 px-3.5 py-2 text-[12px] text-white/80 hover:bg-white/20"
+              >
+                Disable overlay
+              </button>
+            </div>
           </div>
         </div>
       )}

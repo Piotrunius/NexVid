@@ -24,6 +24,7 @@ const PASSWORD_ITERATIONS = 100_000;
 const LOGIN_MAX_FAILURES = 8;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_BLOCK_MS = 30 * 60 * 1000;
+const DEFAULT_MAX_ACCOUNTS_PER_IP = 2;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
@@ -512,9 +513,9 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
     .first<{ max_accounts: number }>();
 
   const maxAccounts = Math.max(
-    1,
-    Number(ipOverride?.max_accounts || 1),
-    Number(linkedUsernameOverride?.max_accounts || 1),
+    DEFAULT_MAX_ACCOUNTS_PER_IP,
+    Number(ipOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
+    Number(linkedUsernameOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
   );
   const current = await env.DB
     .prepare('SELECT COUNT(DISTINCT user_id) AS count FROM user_identifiers WHERE identifier = ? AND id_type = ?')

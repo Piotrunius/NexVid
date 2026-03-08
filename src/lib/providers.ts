@@ -5,15 +5,15 @@
    ============================================ */
 
 import type {
-    AudioTrack,
-    FileBasedStream,
-    HlsBasedStream,
-    MediaType,
-    ScrapeProgress,
-    SourceMeta,
-    SourceResult,
-    StreamFile,
-    StreamQuality,
+  AudioTrack,
+  FileBasedStream,
+  HlsBasedStream,
+  MediaType,
+  ScrapeProgress,
+  SourceMeta,
+  SourceResult,
+  StreamFile,
+  StreamQuality,
 } from '@/types';
 
 interface ProviderConfig {
@@ -147,8 +147,15 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
     }
 
     if (data.success && data.data?.qualities?.length > 0) {
+      const incomingQualities = Array.isArray(data.data.qualities) ? data.data.qualities : [];
+      const nonOrgQualities = incomingQualities.filter((q: any) => {
+        const label = String(q?.quality || q?.label || '').trim().toLowerCase();
+        return label && !label.includes('org') && !label.includes('original');
+      });
+      const selectedQualities = nonOrgQualities.length > 0 ? nonOrgQualities : incomingQualities;
+
       const qualities: Partial<Record<StreamQuality, StreamFile>> = {};
-      for (const q of data.data.qualities) {
+      for (const q of selectedQualities) {
         const mapped = mapQuality(q.quality);
         qualities[mapped] = { type: 'mp4', url: q.url };
       }
