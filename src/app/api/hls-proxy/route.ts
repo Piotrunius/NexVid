@@ -170,10 +170,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const upstreamHeaders = {
+    const target = new URL(targetUrl);
+    const upstreamHeaders: Record<string, string> = {
       ...forwardHeaders,
+      referer: forwardHeaders.referer || `${target.origin}/`,
+      origin: forwardHeaders.origin || target.origin,
       accept: forwardHeaders.accept || '*/*',
     };
+    const rangeHeader = forwardHeaders.range || request.headers.get('range') || '';
+    if (rangeHeader) {
+      upstreamHeaders.range = rangeHeader;
+    }
 
     let upstream = await fetch(targetUrl, {
       headers: upstreamHeaders,

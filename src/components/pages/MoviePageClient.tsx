@@ -12,7 +12,7 @@ import type { MediaItem, Movie, WatchlistStatus } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function MoviePage() {
   const params = useParams();
@@ -25,6 +25,7 @@ export default function MoviePage() {
   const [showFullOverview, setShowFullOverview] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showWatchlistMenu, setShowWatchlistMenu] = useState(false);
+  const castRowRef = useRef<HTMLDivElement>(null);
 
   const { addItem, getByTmdbId, setStatus } = useWatchlistStore();
   const watchlistItem = getByTmdbId(id);
@@ -69,6 +70,13 @@ export default function MoviePage() {
   const writers = movie?.crew?.filter(c => c.job === 'Writer' || c.job === 'Screenplay') || [];
   const producers = movie?.crew?.filter(c => c.job === 'Producer') || [];
   const trailer = movie?.videos?.find(v => v.type === 'Trailer') || movie?.videos?.[0];
+
+  const scrollCast = (direction: 'left' | 'right') => {
+    const row = castRowRef.current;
+    if (!row) return;
+    const delta = Math.max(220, row.clientWidth * 0.65);
+    row.scrollBy({ left: direction === 'left' ? -delta : delta, behavior: 'smooth' });
+  };
 
   if (isLoading) {
     return (
@@ -321,10 +329,28 @@ export default function MoviePage() {
       {/* Cast Section */}
       {movie.cast && movie.cast.length > 0 && (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
-          <h2 className="text-[15px] font-semibold text-text-primary mb-4">Cast</h2>
-          <div className="flex gap-3 overflow-x-auto pb-3 scroll-row">
-            {movie.cast.slice(0, 15).map((person) => (
-              <div key={person.id} className="flex-shrink-0 w-[100px] text-center">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[15px] font-semibold text-text-primary">Cast</h2>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => scrollCast('left')}
+                aria-label="Scroll cast left"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                onClick={() => scrollCast('right')}
+                aria-label="Scroll cast right"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div ref={castRowRef} className="flex gap-3 overflow-x-auto pb-3 scroll-row">
+            {movie.cast.slice(0, 15).map((person, index) => (
+              <div key={`${person.id}-${index}`} className="flex-shrink-0 w-[100px] text-center">
                 <div className="relative h-[100px] w-[100px] rounded-full overflow-hidden mx-auto bg-[var(--bg-tertiary)] shadow-[var(--shadow-sm)]">
                   {person.profilePath ? (
                     <Image src={tmdbImage(person.profilePath, 'w185')} alt={person.name} fill sizes="100px" className="object-cover" />
@@ -366,14 +392,14 @@ export default function MoviePage() {
       {/* Recommendations */}
       {recommendations.length > 0 && (
         <div className="mt-10">
-          <MediaRow title="Recommended" items={recommendations} />
+          <MediaRow title="Recommended" items={recommendations} enableControls />
         </div>
       )}
 
       {/* Similar Movies */}
       {similar.length > 0 && (
         <div className="mt-4">
-          <MediaRow title="Similar Movies" items={similar} />
+          <MediaRow title="Similar Movies" items={similar} enableControls />
         </div>
       )}
     </div>

@@ -12,7 +12,7 @@ import type { MediaItem, Season, Show, WatchlistStatus } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function ShowPage() {
   const params = useParams();
@@ -27,6 +27,7 @@ export default function ShowPage() {
   const [showFullOverview, setShowFullOverview] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showWatchlistMenu, setShowWatchlistMenu] = useState(false);
+  const castRowRef = useRef<HTMLDivElement>(null);
 
   const { addItem, getByTmdbId, setStatus } = useWatchlistStore();
   const watchlistItem = getByTmdbId(id);
@@ -84,6 +85,23 @@ export default function ShowPage() {
 
   const creators = show?.createdBy || [];
   const trailer = show?.videos?.find(v => v.type === 'Trailer') || show?.videos?.[0];
+  const availableSeasons = (show?.seasons || []).filter((s) => s.seasonNumber > 0);
+  const useSeasonDropdown = availableSeasons.length > 8;
+  const selectedSeasonIndex = availableSeasons.findIndex((s) => s.seasonNumber === selectedSeason);
+
+  const scrollCast = (direction: 'left' | 'right') => {
+    const row = castRowRef.current;
+    if (!row) return;
+    const delta = Math.max(220, row.clientWidth * 0.65);
+    row.scrollBy({ left: direction === 'left' ? -delta : delta, behavior: 'smooth' });
+  };
+
+  const stepSeason = (direction: 'prev' | 'next') => {
+    if (selectedSeasonIndex < 0) return;
+    const targetIndex = direction === 'prev' ? selectedSeasonIndex - 1 : selectedSeasonIndex + 1;
+    if (targetIndex < 0 || targetIndex >= availableSeasons.length) return;
+    setSelectedSeason(availableSeasons[targetIndex].seasonNumber);
+  };
 
   if (isLoading || !show) {
     return (
@@ -305,10 +323,28 @@ export default function ShowPage() {
       {/* Cast Section */}
       {show.cast && show.cast.length > 0 && (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
-          <h2 className="text-[15px] font-semibold text-text-primary mb-4">Cast</h2>
-          <div className="flex gap-3 overflow-x-auto pb-3 scroll-row">
-            {show.cast.slice(0, 15).map((person) => (
-              <div key={person.id} className="flex-shrink-0 w-[100px] text-center">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[15px] font-semibold text-text-primary">Cast</h2>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => scrollCast('left')}
+                aria-label="Scroll cast left"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                onClick={() => scrollCast('right')}
+                aria-label="Scroll cast right"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div ref={castRowRef} className="flex gap-3 overflow-x-auto pb-3 scroll-row">
+            {show.cast.slice(0, 15).map((person, index) => (
+              <div key={`${person.id}-${index}`} className="flex-shrink-0 w-[100px] text-center">
                 <div className="relative h-[100px] w-[100px] rounded-full overflow-hidden mx-auto bg-[var(--bg-tertiary)] shadow-[var(--shadow-sm)]">
                   {person.profilePath ? (
                     <Image src={tmdbImage(person.profilePath, 'w185')} alt={person.name} fill sizes="100px" className="object-cover" />
@@ -329,11 +365,46 @@ export default function ShowPage() {
       {/* Season & Episode Selector */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
         <h2 className="text-[15px] font-semibold text-text-primary mb-4">Episodes</h2>
-        {/* Season Tabs – macOS segmented control */}
-        <div className="mb-5 inline-flex items-center gap-0.5 overflow-x-auto rounded-full bg-white/[0.04] backdrop-blur-2xl p-1">
-          {show.seasons
-            .filter((s) => s.seasonNumber > 0)
-            .map((s) => (
+        {useSeasonDropdown ? (
+          <div className="mb-5 flex items-center gap-2">
+            <button
+              onClick={() => stepSeason('prev')}
+              disabled={selectedSeasonIndex <= 0}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label="Previous season"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+
+            <div className="relative min-w-[220px] max-w-full">
+              <select
+                value={selectedSeason}
+                onChange={(e) => setSelectedSeason(Number(e.target.value))}
+                className="w-full appearance-none rounded-[14px] bg-white/[0.06] px-4 py-2.5 pr-10 text-[13px] font-medium text-white outline-none backdrop-blur-2xl"
+              >
+                {availableSeasons.map((s) => (
+                  <option key={s.id} value={s.seasonNumber} className="bg-[#0a0a0a]">
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/60">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
+
+            <button
+              onClick={() => stepSeason('next')}
+              disabled={selectedSeasonIndex < 0 || selectedSeasonIndex >= availableSeasons.length - 1}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label="Next season"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+        ) : (
+          <div className="mb-5 inline-flex items-center gap-0.5 overflow-x-auto rounded-full bg-white/[0.04] backdrop-blur-2xl p-1">
+            {availableSeasons.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setSelectedSeason(s.seasonNumber)}
@@ -347,13 +418,14 @@ export default function ShowPage() {
                 {s.name}
               </button>
             ))}
-        </div>
+          </div>
+        )}
 
         {/* Episode Grid */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {seasonData?.episodes?.map((ep) => (
+          {seasonData?.episodes?.map((ep, index) => (
             <Link
-              key={ep.id}
+              key={`${ep.id}-${ep.episodeNumber}-${index}`}
               href={`/watch/show/${id}?s=${selectedSeason}&e=${ep.episodeNumber}`}
               className="glass-card glass-liquid flex gap-3 p-3 group hover:border-accent/30 transition-all"
             >
@@ -386,14 +458,14 @@ export default function ShowPage() {
       {/* Recommendations */}
       {recommendations.length > 0 && (
         <div className="mt-10">
-          <MediaRow title="Recommended" items={recommendations} />
+          <MediaRow title="Recommended" items={recommendations} enableControls />
         </div>
       )}
 
       {/* Similar Shows */}
       {similar.length > 0 && (
         <div className="mt-4">
-          <MediaRow title="Similar Shows" items={similar} />
+          <MediaRow title="Similar Shows" items={similar} enableControls />
         </div>
       )}
     </div>

@@ -217,6 +217,10 @@ export interface FebBoxQuality {
   quality: string;
   name: string;
   size: string;
+  format?: string;
+  mime?: string;
+  type?: string;
+  label?: string;
 }
 
 export interface FebBoxSubtitle {
@@ -342,6 +346,35 @@ export async function febboxGetLinks(
   if (cookieHeader) headers.cookie = cookieHeader;
 
   let data: any;
+
+  const inferFormatFromUrl = (rawUrl: string): string => {
+    const url = String(rawUrl || '').toLowerCase();
+    if (!url) return '';
+    if (url.includes('.m3u8')) return 'hls';
+    if (url.includes('.mp4')) return 'mp4';
+    if (url.includes('.mkv')) return 'mkv';
+    return '';
+  };
+
+  const pickQualityUrl = (item: any, fallback: string): string => {
+    const candidates = [
+      item?.hls_url,
+      item?.play_url,
+      item?.stream_url,
+      item?.url,
+      item?.download_url,
+      item?.file_url,
+      item?.src,
+      fallback,
+    ];
+
+    for (const candidate of candidates) {
+      const value = String(candidate || '').trim();
+      if (!value) continue;
+      if (/^https?:\/\//i.test(value)) return value;
+    }
+    return '';
+  };
 
   // Preferred: public share download endpoint (works without logged-in UI cookie)
   const parseDirectSubtitles = (directData: any): FebBoxSubtitle[] => {
@@ -493,23 +526,39 @@ export async function febboxGetLinks(
     const audioTracks = parseDirectAudioTracks(directData);
 
     const mapped = qualityList
-      .map((q: any) => ({
-        url: q?.download_url || fileEntry?.download_url || '',
-        quality: q?.quality || 'ORG',
-        name: q?.quality || 'Original',
-        size: q?.file_size ? `${q.file_size}` : '',
-      }))
+      .map((q: any) => {
+        const url = pickQualityUrl(q, String(fileEntry?.download_url || ''));
+        const quality = String(q?.quality || q?.label || q?.name || 'ORG');
+        const format = String(q?.format || q?.ext || q?.type || q?.mime_type || inferFormatFromUrl(url));
+        const mime = String(q?.mime || q?.mime_type || '');
+
+        return {
+          url,
+          quality,
+          name: String(q?.name || q?.label || quality || 'Original'),
+          label: String(q?.label || q?.name || quality || 'Original'),
+          size: q?.file_size ? `${q.file_size}` : '',
+          format,
+          mime,
+          type: String(q?.type || ''),
+        };
+      })
       .filter((q: FebBoxQuality) => Boolean(q.url));
 
     if (mapped.length > 0) return { qualities: mapped, subtitles, audioTracks };
 
     if (fileEntry?.download_url) {
+      const fallbackUrl = String(fileEntry.download_url);
       return {
         qualities: [{
-          url: fileEntry.download_url,
+          url: fallbackUrl,
           quality: 'ORG',
           name: 'Original',
+          label: 'Original',
           size: fileEntry?.file_size ? `${fileEntry.file_size}` : '',
+          format: inferFormatFromUrl(fallbackUrl),
+          mime: '',
+          type: '',
         }],
         subtitles,
         audioTracks,
@@ -523,8 +572,6 @@ export async function febboxGetLinks(
     const response = await fetch(directUrl, { headers, signal: AbortSignal.timeout(10000) });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const directData = await response.json();
-    // DEBUG: Log raw FebBox file_download response to discover audio track fields
-    console.log('[FebBox] Raw file_download response:', JSON.stringify(directData, null, 2));
     const parsed = parseDirectLinks(directData);
     if (parsed.qualities.length > 0) return parsed;
   } catch {
@@ -547,10 +594,14 @@ export async function febboxGetLinks(
     if (data?.data?.list && Array.isArray(data.data.list)) {
       return {
         qualities: data.data.list.map((item: any) => ({
-          url: item.url || item.download_url || '',
-          quality: item.quality || item.resolution || 'unknown',
-          name: item.name || item.quality || 'unknown',
+          url: item.url || item.play_url || item.download_url || '',
+          quality: item.quality || item.resolution || item.label || 'unknown',
+          name: item.name || item.label || item.quality || 'unknown',
+          label: item.label || item.name || item.quality || 'unknown',
           size: item.size || '',
+          format: item.format || item.ext || item.type || inferFormatFromUrl(item.url || item.play_url || item.download_url || ''),
+          mime: item.mime || item.mime_type || '',
+          type: item.type || '',
         })),
         subtitles: [],
         audioTracks: [],
@@ -573,6 +624,10 @@ export async function febboxGetLinks(
       quality: match[2],
       name: nameMatch?.[1]?.trim() || match[2],
       size: sizeMatch?.[1]?.trim() || '',
+      label: nameMatch?.[1]?.trim() || match[2],
+      format: inferFormatFromUrl(match[1]),
+      mime: '',
+      type: '',
     });
   }
 
@@ -581,7 +636,16 @@ export async function febboxGetLinks(
     const regex2 = /data-url="([^"]+)"[^>]*data-quality="([^"]+)"/g;
     let m2;
     while ((m2 = regex2.exec(html)) !== null) {
-      results.push({ url: m2[1], quality: m2[2], name: m2[2], size: '' });
+      results.push({
+        url: m2[1],
+        quality: m2[2],
+        name: m2[2],
+        label: m2[2],
+        size: '',
+        format: inferFormatFromUrl(m2[1]),
+        mime: '',
+        type: '',
+      });
     }
   }
 
@@ -590,7 +654,16 @@ export async function febboxGetLinks(
     const linkRegex = /href="(https?:\/\/[^"]+\.(mp4|mkv|m3u8)[^"]*)"/g;
     let m3;
     while ((m3 = linkRegex.exec(html)) !== null) {
-      results.push({ url: m3[1], quality: 'unknown', name: 'Stream', size: '' });
+      results.push({
+        url: m3[1],
+        quality: 'unknown',
+        name: 'Stream',
+        label: 'Stream',
+        size: '',
+        format: inferFormatFromUrl(m3[1]),
+        mime: '',
+        type: '',
+      });
     }
   }
 

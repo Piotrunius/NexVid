@@ -9,7 +9,7 @@ import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem, WatchlistStatus } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 interface MediaCardProps {
   item: MediaItem;
@@ -87,7 +87,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
         </div>
 
         {/* Watchlist Button */}
-        <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-all duration-400 z-10">
+        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-400 z-10">
           <div className="relative">
             <button
               onClick={handleToggleMenu}
@@ -106,7 +106,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
               )}
             </button>
             {showMenu && (
-              <div className="panel-glass absolute bottom-full left-0 mb-2 w-36 p-1.5 z-20 animate-scale-in">
+              <div className="panel-glass absolute bottom-full right-0 mb-2 w-36 p-1.5 z-20 animate-scale-in">
                 {STATUSES.map((status) => (
                   <button
                     key={status}
@@ -165,30 +165,103 @@ interface MediaRowProps {
   items: MediaItem[];
   href?: string;
   showType?: boolean;
+  enableControls?: boolean;
+  seeAllAsButton?: boolean;
 }
 
-export function MediaRow({ title, items, href, showType }: MediaRowProps) {
+export function MediaRow({ title, items, href, showType, enableControls = false, seeAllAsButton = false }: MediaRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = () => {
+    if (!enableControls) return;
+    const row = rowRef.current;
+    if (!row) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+    const maxScrollLeft = row.scrollWidth - row.clientWidth;
+    setCanScrollLeft(row.scrollLeft > 4);
+    setCanScrollRight(maxScrollLeft > 4 && row.scrollLeft < maxScrollLeft - 4);
+  };
+
+  const scrollRow = (direction: 'left' | 'right') => {
+    const row = rowRef.current;
+    if (!row) return;
+    const delta = Math.max(280, row.clientWidth * 0.75);
+    row.scrollBy({ left: direction === 'left' ? -delta : delta, behavior: 'smooth' });
+  };
 
   useLayoutEffect(() => {
     if (!rowRef.current) return;
     rowRef.current.scrollTo({ left: 0, behavior: 'auto' });
+    updateScrollState();
   }, [title, items.length]);
+
+  useEffect(() => {
+    if (!enableControls) return;
+    const row = rowRef.current;
+    if (!row) return;
+
+    updateScrollState();
+    const onScroll = () => updateScrollState();
+    const onResize = () => updateScrollState();
+
+    row.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      row.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [enableControls, items.length, title]);
 
   return (
     <section className="py-8">
       <div className="mb-5 flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
         <h2 className="text-[20px] font-semibold text-white tracking-tight">{title}</h2>
-        {href && (
-          <Link href={href} className="text-[13px] font-medium text-accent/70 hover:text-accent transition-colors duration-300 flex items-center gap-1">
-            See All
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-          </Link>
-        )}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {enableControls && (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => scrollRow('left')}
+                disabled={!canScrollLeft}
+                aria-label={`Scroll ${title} left`}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                onClick={() => scrollRow('right')}
+                disabled={!canScrollRight}
+                aria-label={`Scroll ${title} right`}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          )}
+          {href && (
+            <Link
+              href={href}
+              className={cn(
+                'flex items-center gap-1 transition-all duration-300',
+                seeAllAsButton
+                  ? 'rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[12px] font-semibold text-white/85 hover:bg-white/[0.12] hover:text-white'
+                  : 'text-[13px] font-medium text-accent/70 hover:text-accent',
+              )}
+            >
+              See All
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+            </Link>
+          )}
+        </div>
       </div>
       <div ref={rowRef} className="scroll-row home-scroll-row px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
-        {items.map((item) => (
-          <MediaCard key={`${item.mediaType}-${item.id}`} item={item} showType={showType} />
+        {items.map((item, index) => (
+          <MediaCard key={`${item.mediaType}-${item.id}-${item.tmdbId}-${index}`} item={item} showType={showType} />
         ))}
       </div>
     </section>

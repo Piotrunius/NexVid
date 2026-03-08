@@ -20,6 +20,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   playerVolume: 1,
   skipIntro: true,
   skipOutro: true,
+  autoSkipSegments: false,
+  idlePauseOverlay: true,
   proxyUrl: '',
   febboxApiKey: '',
   introDbApiKey: '',
@@ -73,21 +75,19 @@ export const useSettingsStore = create<SettingsStore>()(
       },
 
       setTheme: (theme) =>
-        set((state) => ({ settings: { ...state.settings, theme } })),
+        get().updateSettings({ theme }),
 
       setAccentColor: (accentColor) =>
-        set((state) => ({ settings: { ...state.settings, accentColor } })),
+        get().updateSettings({ accentColor }),
 
       toggleGlass: () =>
-        set((state) => ({
-          settings: { ...state.settings, glassEffect: !state.settings.glassEffect },
-        })),
+        get().updateSettings({ glassEffect: !get().settings.glassEffect }),
 
       setProxyUrl: (proxyUrl) =>
-        set((state) => ({ settings: { ...state.settings, proxyUrl } })),
+        get().updateSettings({ proxyUrl }),
 
       setDefaultQuality: (defaultQuality) =>
-        set((state) => ({ settings: { ...state.settings, defaultQuality } })),
+        get().updateSettings({ defaultQuality }),
 
       toggleSource: (sourceId) =>
         set((state) => {
@@ -95,13 +95,20 @@ export const useSettingsStore = create<SettingsStore>()(
           const idx = disabled.indexOf(sourceId);
           if (idx === -1) disabled.push(sourceId);
           else disabled.splice(idx, 1);
+          if (getCloudToken()) {
+            void saveCloudSettings({ ...state.settings, disabledSources: disabled } as Record<string, unknown>).catch(() => {});
+          }
           return { settings: { ...state.settings, disabledSources: disabled } };
         }),
 
       reorderSources: (sourceIds) =>
-        set((state) => ({
-          settings: { ...state.settings, preferredSources: sourceIds },
-        })),
+        set((state) => {
+          const next = { ...state.settings, preferredSources: sourceIds };
+          if (getCloudToken()) {
+            void saveCloudSettings(next as Record<string, unknown>).catch(() => {});
+          }
+          return { settings: next };
+        }),
     }),
     {
       name: 'nexvid-settings',

@@ -210,10 +210,10 @@ export default function HomePage() {
                 </div>
               </section>
             )}
-            <MediaRow title="Trending This Week" items={trending} showType href="/browse?tab=trending" />
-            <MediaRow title="Popular Movies" items={popular} href="/browse?tab=movies" />
-            <MediaRow title="Top Rated Movies" items={topMovies} href="/browse?tab=movies" />
-            <MediaRow title="Top Rated TV Shows" items={topShows} href="/browse?tab=shows" />
+            <MediaRow title="Trending This Week" items={trending} showType href="/browse?tab=trending" enableControls seeAllAsButton />
+            <MediaRow title="Popular Movies" items={popular} href="/browse?tab=movies" enableControls seeAllAsButton />
+            <MediaRow title="Top Rated Movies" items={topMovies} href="/browse?tab=movies" enableControls seeAllAsButton />
+            <MediaRow title="Top Rated TV Shows" items={topShows} href="/browse?tab=shows" enableControls seeAllAsButton />
           </>
         )}
       </div>

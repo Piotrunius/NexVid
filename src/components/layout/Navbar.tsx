@@ -415,7 +415,7 @@ export function Navbar() {
               </button>
 
               {isProfileOpen && (
-                <div className="panel-glass absolute top-14 right-0 z-50 w-56 overflow-hidden p-2 animate-scale-in">
+                <div className="panel-glass absolute right-0 top-[calc(100%+8px)] z-50 w-56 overflow-hidden p-2 animate-scale-in">
                   <div className="mb-1 px-3 py-2.5">
                     <p className="truncate text-[13px] font-medium text-white">{user?.username}</p>
                     <p className="text-[11px] text-white/30 mt-0.5">Logged in</p>
