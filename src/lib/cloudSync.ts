@@ -252,6 +252,21 @@ export async function clearAllActiveSessions() {
   return cloudFetch<{ ok: boolean; clearedCount: number }>('/admin/sessions/clear', { method: 'POST' });
 }
 
+export async function loadAdminAuditLogs() {
+  return cloudFetch<{
+    items: {
+      id: string;
+      adminUserId: string;
+      adminUsername: string | null;
+      action: string;
+      targetType: string;
+      targetId: string | null;
+      meta: Record<string, unknown> | null;
+      createdAt: string;
+    }[];
+  }>('/admin/audit-logs', { method: 'GET' });
+}
+
 export async function updateCloudNickname(username: string) {
   return cloudFetch<{ ok: boolean; user: any }>('/user/profile', {
     method: 'PUT',
@@ -286,10 +301,10 @@ export async function createUserFeedbackThread(payload: {
   category: 'bug' | 'feedback' | 'contact' | 'feature';
   subject: string;
   message: string;
-}) {
+}, turnstileToken?: string | null) {
   return cloudFetch<{ ok: boolean; id: string }>('/user/feedback', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, turnstileToken }),
   });
 }
 

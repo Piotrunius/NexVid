@@ -7,10 +7,12 @@
 export const runtime = 'edge';
 
 import { VideoPlayer } from '@/components/player/VideoPlayer';
+import { toast } from '@/components/ui/Toaster';
 import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER, resolveFebboxToken } from '@/lib/febbox';
 import { scrapeAllSources } from '@/lib/providers';
 import type { MediaSegments } from '@/lib/tidb';
 import { getExternalIds, getMovieDetails, getSeasonDetails, getShowDetails } from '@/lib/tmdb';
+import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
@@ -140,6 +142,7 @@ export default function WatchPage() {
   const [dismissedTokenNoticeSitewide, setDismissedTokenNoticeSitewide] = useState(false);
 
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const { getByTmdbId, updateProgress } = useWatchlistStore();
   const { febboxApiKey, introDbApiKey } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -353,11 +356,16 @@ export default function WatchPage() {
   }, [sourceResults]);
 
   const applyPublicFebboxToken = useCallback(() => {
+    if (!isLoggedIn) {
+      toast('Sign in to use the public FebBox token', 'info');
+      router.push('/login');
+      return;
+    }
     if (isPublicFebboxToken(febboxApiKey)) return;
     setDismissedTokenNoticeMediaKey(currentMediaKey);
     setScrapeStatus('loading');
     updateSettings({ febboxApiKey: PUBLIC_FEBBOX_TOKEN_PLACEHOLDER });
-  }, [febboxApiKey, currentMediaKey, updateSettings]);
+  }, [isLoggedIn, febboxApiKey, currentMediaKey, updateSettings, router]);
 
   const openSettings = useCallback(() => {
     router.push('/settings');
@@ -417,13 +425,13 @@ export default function WatchPage() {
         currentSourceIndex={sourceIndex}
         onSelectSource={selectSource}
         scrapeErrorTitle={shouldShowMissingFebboxTokenPrompt ? 'No FebBox token configured' : undefined}
-        scrapeErrorDescription={shouldShowMissingFebboxTokenPrompt ? 'Playback may fail without a FebBox token. You can instantly use the public token and retry.' : undefined}
-        scrapeErrorActionLabel={shouldShowMissingFebboxTokenPrompt ? 'Use public token now' : undefined}
-        onScrapeErrorAction={shouldShowMissingFebboxTokenPrompt ? applyPublicFebboxToken : undefined}
+        scrapeErrorDescription={shouldShowMissingFebboxTokenPrompt ? 'Add your own token in settings, or sign in to use the public token.' : undefined}
+        scrapeErrorActionLabel={shouldShowMissingFebboxTokenPrompt ? (isLoggedIn ? 'Use public FebBox token' : 'Sign in to use public token') : undefined}
+        onScrapeErrorAction={shouldShowMissingFebboxTokenPrompt ? (isLoggedIn ? applyPublicFebboxToken : (() => router.push('/login'))) : undefined}
         showTokenNotice={shouldShowPersistentTokenNotice}
-        tokenNoticeText={shouldShowPersistentTokenNotice ? 'No own FebBox token in settings. Playback can still work, but usually slow and unstable. Add your own token for best quality.' : undefined}
-        tokenNoticeActionLabel={shouldShowPersistentTokenNotice ? 'Use public token now' : undefined}
-        onTokenNoticeAction={shouldShowPersistentTokenNotice ? applyPublicFebboxToken : undefined}
+        tokenNoticeText={shouldShowPersistentTokenNotice ? 'No personal FebBox token is set in settings. Add your own token, or sign in to use the public token.' : undefined}
+        tokenNoticeActionLabel={shouldShowPersistentTokenNotice ? (isLoggedIn ? 'Use public FebBox token' : 'Sign in') : undefined}
+        onTokenNoticeAction={shouldShowPersistentTokenNotice ? (isLoggedIn ? applyPublicFebboxToken : (() => router.push('/login'))) : undefined}
         tokenNoticeSettingsLabel={shouldShowPersistentTokenNotice ? 'Open settings' : undefined}
         onTokenNoticeSettings={shouldShowPersistentTokenNotice ? openSettings : undefined}
         tokenNoticeDismissLabel={shouldShowPersistentTokenNotice ? 'Dismiss for this title' : undefined}

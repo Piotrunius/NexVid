@@ -1,13 +1,14 @@
 'use client';
 
 import { toast } from '@/components/ui/Toaster';
+import { Turnstile } from '@/components/ui/Turnstile';
 import {
-  createUserFeedbackThread,
-  loadUserFeedbackMessages,
-  loadUserFeedbackThreads,
-  loadUserNotifications,
-  markUserNotificationsRead,
-  sendUserFeedbackMessage,
+    createUserFeedbackThread,
+    loadUserFeedbackMessages,
+    loadUserFeedbackThreads,
+    loadUserNotifications,
+    markUserNotificationsRead,
+    sendUserFeedbackMessage,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -43,6 +44,7 @@ const CATEGORY_OPTIONS = [
 
 export default function ContactPage() {
   const { isLoggedIn } = useAuthStore();
+  const hasTurnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const [threadIdFromQuery, setThreadIdFromQuery] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +57,7 @@ export default function ContactPage() {
   const [category, setCategory] = useState<FeedbackThread['category']>('feedback');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [feedbackTurnstileToken, setFeedbackTurnstileToken] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 
   const selectedThread = useMemo(
@@ -192,9 +195,10 @@ export default function ContactPage() {
         category,
         subject: subjectValue,
         message: messageValue,
-      });
+      }, feedbackTurnstileToken);
       setSubject('');
       setMessage('');
+      setFeedbackTurnstileToken(null);
       toast('Message sent', 'success');
       await loadThreads(false);
       if (result.id) {
@@ -251,8 +255,8 @@ export default function ContactPage() {
         <p className="mt-1 text-[13px] text-text-muted">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+      <div className="grid items-stretch gap-6 xl:grid-cols-3">
+        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4 h-full xl:min-h-[680px]">
           <h2 className="text-[15px] font-semibold text-text-primary">New message</h2>
 
           <div>
@@ -286,14 +290,16 @@ export default function ContactPage() {
             />
           </div>
 
-          <button disabled={isSubmitting} onClick={handleCreateThread} className="btn-accent w-full">
+          {hasTurnstile && <Turnstile onVerify={setFeedbackTurnstileToken} />}
+
+          <button disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)} onClick={handleCreateThread} className="btn-accent w-full">
             Send message
           </button>
         </section>
 
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2">
-          <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-2 max-h-[560px] overflow-auto backdrop-blur-sm">
+        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2 h-full xl:min-h-[680px]">
+          <div className="grid h-full gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-2 h-[70vh] min-h-[420px] max-h-[680px] overflow-auto backdrop-blur-sm">
               <p className="px-2 py-1 text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Your threads</p>
               {isLoading ? (
                 <p className="px-2 py-4 text-[13px] text-text-muted">Loading...</p>
