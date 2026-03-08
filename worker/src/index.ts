@@ -291,6 +291,18 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              PRIMARY KEY (type, value)
            )`
         ),
+        env.DB.prepare(
+          `CREATE TABLE IF NOT EXISTS admin_audit_logs (
+             id TEXT PRIMARY KEY,
+             admin_user_id TEXT NOT NULL,
+             action TEXT NOT NULL,
+             target_type TEXT NOT NULL,
+             target_id TEXT,
+             meta_json TEXT,
+             created_at TEXT NOT NULL
+           )`
+        ),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC)'),
       ]);
 
       try {
@@ -1397,7 +1409,12 @@ async function handleUserFeedback(request: Request, env: Env): Promise<Response>
   }
 
   if (request.method === 'POST') {
-    const body = await readJson<{ category?: string; subject?: string; message?: string }>(request);
+    const body = await readJson<{ category?: string; subject?: string; message?: string; turnstileToken?: string }>(request);
+    const turnstileToken = (body.turnstileToken || '').trim();
+    if ((env.TURNSTILE_SECRET_KEY || '').trim()) {
+      const verified = await verifyTurnstileToken(request, env, turnstileToken);
+      if (!verified) return json(request, env, { error: 'Captcha verification failed' }, 403);
+    }
     const category = sanitizeFeedbackCategory(body.category);
     const subject = sanitizeFeedbackSubject(body.subject);
     const message = sanitizeFeedbackMessage(body.message);
@@ -2193,6 +2210,68 @@ async function handleAdminSessions(request: Request, env: Env): Promise<Response
   });
 }
 
+async function handleAdminAuditLogs(request: Request, env: Env): Promise<Response> {
+  const session = await requireAdmin(request, env);
+  if (session instanceof Response) return session;
+
+  await ensureSecurityTables(env);
+
+  if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+
+  const rows = await env.DB.prepare(
+    `SELECT id, admin_user_id, action, target_type, target_id, meta_json, created_at
+     FROM admin_audit_logs
+     ORDER BY datetime(created_at) DESC
+     LIMIT 300`
+  ).all<{
+    id: string;
+    admin_user_id: string;
+    action: string;
+    target_type: string;
+    target_id: string | null;
+    meta_json: string | null;
+    created_at: string;
+  }>();
+
+  const adminIds = Array.from(new Set((rows.results || []).map((row) => row.admin_user_id))).filter(Boolean);
+  let usernamesById = new Map<string, string>();
+
+  if (adminIds.length > 0) {
+    const placeholders = adminIds.map(() => '?').join(', ');
+    const users = await env.DB.prepare(
+      `SELECT id, username
+       FROM users
+       WHERE id IN (${placeholders})`
+    ).bind(...adminIds).all<{ id: string; username: string }>();
+
+    usernamesById = new Map((users.results || []).map((item) => [item.id, item.username]));
+  }
+
+  return json(request, env, {
+    items: (rows.results || []).map((row) => {
+      let meta: Record<string, unknown> | null = null;
+      if (row.meta_json) {
+        try {
+          meta = JSON.parse(row.meta_json);
+        } catch {
+          meta = null;
+        }
+      }
+
+      return {
+        id: row.id,
+        adminUserId: row.admin_user_id,
+        adminUsername: usernamesById.get(row.admin_user_id) || null,
+        action: row.action,
+        targetType: row.target_type,
+        targetId: row.target_id,
+        meta,
+        createdAt: row.created_at,
+      };
+    }),
+  });
+}
+
 async function handleAdminFeedback(request: Request, env: Env): Promise<Response> {
   const session = await requireAdmin(request, env);
   if (session instanceof Response) return session;
@@ -2773,6 +2852,9 @@ export default {
         case '/admin/sessions/clear':
           if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminSessions(request, env);
+        case '/admin/audit-logs':
+          if (!['GET'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAdminAuditLogs(request, env);
         case '/admin/users':
           if (!['GET', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminUsers(request, env);

@@ -12,6 +12,7 @@ import {
     grantAdminPermission,
     loadAdminAccountLimits,
     loadAdminAnnouncements,
+    loadAdminAuditLogs,
     loadAdminBans,
     loadAdminFeedbackMessages,
     loadAdminFeedbackThreads,
@@ -101,6 +102,17 @@ type AdminFeedbackMessage = {
   createdAt: string;
 };
 
+type AdminAuditLogItem = {
+  id: string;
+  adminUserId: string;
+  adminUsername: string | null;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  meta: Record<string, unknown> | null;
+  createdAt: string;
+};
+
 const ANNOUNCEMENT_MAX_CHARS = 260;
 
 export default function AdminPage() {
@@ -118,6 +130,7 @@ export default function AdminPage() {
   const [grantUsername, setGrantUsername] = useState('');
   const [grantExpiresDays, setGrantExpiresDays] = useState(0);
   const [feedbackThreads, setFeedbackThreads] = useState<AdminFeedbackThread[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLogItem[]>([]);
   const [selectedFeedbackThreadId, setSelectedFeedbackThreadId] = useState<string | null>(null);
   const [feedbackMessages, setFeedbackMessages] = useState<AdminFeedbackMessage[]>([]);
   const [selectedFeedbackThreadMeta, setSelectedFeedbackThreadMeta] = useState<{ status: 'open' | 'answered' | 'closed'; closedExpiresAt?: string; closedRemainingMs?: number } | null>(null);
@@ -173,6 +186,12 @@ export default function AdminPage() {
       ? 'text-[12px]'
       : 'text-[13px]';
 
+  const formatAuditMeta = (meta: Record<string, unknown> | null) => {
+    if (!meta) return '-';
+    const text = JSON.stringify(meta);
+    return text.length > 140 ? `${text.slice(0, 140)}...` : text;
+  };
+
   const formatRemaining = (milliseconds?: number) => {
     if (!milliseconds || milliseconds <= 0) return 'less than 1 hour';
     const totalMinutes = Math.ceil(milliseconds / (1000 * 60));
@@ -190,7 +209,7 @@ export default function AdminPage() {
 
     setIsLoading(true);
     try {
-      const [overview, bansRes, annRes, limitRes, usersRes, feedbackRes, grantsRes] = await Promise.all([
+      const [overview, bansRes, annRes, limitRes, usersRes, feedbackRes, grantsRes, auditRes] = await Promise.all([
         loadAdminOverview(),
         loadAdminBans(),
         loadAdminAnnouncements(),
@@ -198,6 +217,7 @@ export default function AdminPage() {
         loadAdminUsers(),
         loadAdminFeedbackThreads(),
         loadAdminGrantList(),
+        loadAdminAuditLogs(),
       ]);
 
       setStats(overview.stats);
@@ -206,6 +226,7 @@ export default function AdminPage() {
       setAccountLimits(limitRes.items || []);
       setAdminUsers(usersRes.items || []);
       setAdminGrants(grantsRes.items || []);
+      setAuditLogs(auditRes.items || []);
       const nextFeedbackThreads = feedbackRes.items || [];
       setFeedbackThreads(nextFeedbackThreads);
       if (!selectedFeedbackThreadId || !nextFeedbackThreads.some((item) => item.id === selectedFeedbackThreadId)) {
@@ -890,14 +911,49 @@ export default function AdminPage() {
         </div>
       </section>
 
+      <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
+        <h2 className="text-[15px] font-semibold text-text-primary">Audit log</h2>
+        <p className="text-[11px] text-text-muted">Latest admin actions recorded by backend.</p>
+        <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
+          {isLoading ? (
+            <p className="p-3 text-[13px] text-text-muted">Loading...</p>
+          ) : auditLogs.length === 0 ? (
+            <p className="p-3 text-[13px] text-text-muted">No audit entries yet.</p>
+          ) : (
+            <table className="w-full text-[13px]">
+              <thead className="bg-[var(--bg-glass-light)]">
+                <tr className="text-left text-[11px] text-text-muted">
+                  <th className="px-3 py-2 font-medium">Time</th>
+                  <th className="px-3 py-2 font-medium">Admin</th>
+                  <th className="px-3 py-2 font-medium">Action</th>
+                  <th className="px-3 py-2 font-medium">Target</th>
+                  <th className="px-3 py-2 font-medium">Meta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditLogs.map((item) => (
+                  <tr key={item.id} className="border-t border-[var(--border)]">
+                    <td className="px-3 py-2 text-text-muted whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</td>
+                    <td className="px-3 py-2 text-text-primary">{item.adminUsername || item.adminUserId.slice(0, 12)}</td>
+                    <td className="px-3 py-2 text-text-muted">{item.action}</td>
+                    <td className="px-3 py-2 text-text-muted break-all">{item.targetType}:{item.targetId || '-'}</td>
+                    <td className="px-3 py-2 text-text-muted break-all">{formatAuditMeta(item.meta)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
+
       <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
         <div>
           <h2 className="text-[15px] font-semibold text-text-primary">Feedback inbox</h2>
           <p className="text-[11px] text-text-muted">User bug reports, contact messages and feature requests. Replies here notify only the thread owner.</p>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-          <div className="max-h-[580px] overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] p-2 backdrop-blur-sm">
+        <div className="grid items-stretch gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="h-[72vh] min-h-[460px] max-h-[760px] overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] p-2 backdrop-blur-sm">
             {isLoading ? (
               <p className="px-2 py-4 text-[13px] text-text-muted">Loading...</p>
             ) : sortedFeedbackThreads.length === 0 ? (

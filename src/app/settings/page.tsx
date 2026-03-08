@@ -308,22 +308,25 @@ export default function SettingsPage() {
                 onContextMenu={(event) => { if (publicTokenActive) event.preventDefault(); }}
               />
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                <p className="text-[11px] text-text-muted">Use a public FebBox token. Very low speed and may fail.</p>
-                {!publicTokenActive ? (
+                <p className="text-[11px] text-text-muted">Public FebBox token is available only for signed-in users. It is very slow and may be unstable.</p>
+                {isLoggedIn && !publicTokenActive ? (
                   <button
-                    onClick={() => { store.updateSettings({ febboxApiKey: PUBLIC_FEBBOX_TOKEN_PLACEHOLDER }); toast('Public FebBox token filled in (very low speed, may not work)', 'info'); }}
+                    onClick={() => {
+                      store.updateSettings({ febboxApiKey: PUBLIC_FEBBOX_TOKEN_PLACEHOLDER });
+                      toast('Public FebBox token enabled (slow and potentially unstable)', 'info');
+                    }}
                     className="btn-glass mt-2 w-full text-[12px]"
                   >
                     Use public FebBox token
                   </button>
-                ) : (
+                ) : isLoggedIn && publicTokenActive ? (
                   <button
                     onClick={() => { store.updateSettings({ febboxApiKey: '' }); toast('Public token cleared', 'info'); }}
                     className="btn-glass mt-2 w-full text-[12px]"
                   >
                     Clear public token
                   </button>
-                )}
+                ) : null}
               </div>
 
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
