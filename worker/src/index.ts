@@ -17,6 +17,7 @@ export interface Env {
   EMAIL_FROM?: string;
   RESEND_API_KEY?: string;
   BREVO_API_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 const PASSWORD_ITERATIONS = 100_000;
@@ -202,6 +203,35 @@ function getClientIp(request: Request): string {
   const forwarded = request.headers.get('X-Forwarded-For');
   if (forwarded) return forwarded.split(',')[0].trim();
   return 'unknown';
+}
+
+async function verifyTurnstileToken(request: Request, env: Env, token: string): Promise<boolean> {
+  const secret = (env.TURNSTILE_SECRET_KEY || '').trim();
+  if (!secret) return true;
+  if (!token || token.trim().length === 0) return false;
+
+  try {
+    const formData = new URLSearchParams();
+    formData.set('secret', secret);
+    formData.set('response', token.trim());
+
+    const ip = getClientIp(request);
+    if (ip && ip !== 'unknown') {
+      formData.set('remoteip', ip);
+    }
+
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString(),
+    });
+
+    if (!res.ok) return false;
+    const data = await res.json<any>().catch(() => null);
+    return Boolean(data?.success);
+  } catch {
+    return false;
+  }
 }
 
 let securityTablesInit: Promise<void> | null = null;
@@ -767,10 +797,16 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
 }
 
 async function handleRegister(request: Request, env: Env): Promise<Response> {
-  const body = await readJson<{ username?: string; password?: string }>(request);
+  const body = await readJson<{ username?: string; password?: string; turnstileToken?: string }>(request);
   const username = (body.username || '').trim();
   const normalizedUsername = normalizeUsername(username);
   const password = body.password || '';
+  const turnstileToken = (body.turnstileToken || '').trim();
+
+  if ((env.TURNSTILE_SECRET_KEY || '').trim()) {
+    const verified = await verifyTurnstileToken(request, env, turnstileToken);
+    if (!verified) return json(request, env, { error: 'Captcha verification failed' }, 403);
+  }
 
   if (!isValidUsername(username) || password.length < 6) {
     return json(request, env, { error: 'Invalid username or password (nickname: 2-24 chars, letters/numbers/._-)' }, 400);
@@ -836,10 +872,16 @@ async function handleResendVerification(request: Request, env: Env): Promise<Res
 }
 
 async function handleLogin(request: Request, env: Env): Promise<Response> {
-  const body = await readJson<{ username?: string; password?: string }>(request);
+  const body = await readJson<{ username?: string; password?: string; turnstileToken?: string }>(request);
   const username = (body.username || '').trim();
   const normalizedUsername = normalizeUsername(username);
   const password = body.password || '';
+  const turnstileToken = (body.turnstileToken || '').trim();
+
+  if ((env.TURNSTILE_SECRET_KEY || '').trim()) {
+    const verified = await verifyTurnstileToken(request, env, turnstileToken);
+    if (!verified) return json(request, env, { error: 'Captcha verification failed' }, 403);
+  }
 
   if (!username || !password) {
     return json(request, env, { error: 'Missing nickname or password' }, 400);
