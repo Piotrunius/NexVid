@@ -1,0 +1,147 @@
+/* ============================================
+   Privacy Policy
+   ============================================ */
+
+export const metadata = { title: 'Privacy Policy - NexVid' };
+
+export default function PrivacyPage() {
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-24">
+      <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Privacy Policy</h1>
+      <p className="mt-2 text-[13px] text-text-muted">Last updated: {new Date().toLocaleDateString()}</p>
+
+      <div className="mt-8 space-y-6 text-text-secondary text-[13px] leading-relaxed">
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">1. Overview</h2>
+          <p>
+            NexVid is designed to work primarily with data stored locally in your browser.
+            If backend login/cloud sync is enabled for this deployment, selected account data is also processed
+            by the configured backend API.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">2. Data We Process</h2>
+          <p>
+            By default, data is stored in your browser&apos;s <code className="text-accent">localStorage</code>.
+            If cloud auth is enabled, the backend stores only data necessary to run account, security, and moderation features.
+          </p>
+          <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
+            <li>Account data: nickname, password hash, account creation date</li>
+            <li>Session data: authentication tokens and token expiry data</li>
+            <li>App data: settings, watchlist, playback-related preferences</li>
+            <li>Security data: hashed anti-abuse identifiers (e.g. hashed IP/fingerprint signals)</li>
+            <li>Moderation/admin data: bans, audit logs, security events, timestamps</li>
+          </ul>
+          <p className="mt-2">
+            We do not require email verification to use accounts in the current deployment.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">3. Purposes and Legal Basis (GDPR)</h2>
+          <p>
+            We process data for: (a) account login/session handling, (b) app functionality and optional sync,
+            and (c) security and abuse prevention.
+          </p>
+          <p className="mt-2">
+            The legal basis is generally:
+          </p>
+          <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
+            <li><strong>Article 6(1)(b) GDPR</strong> (performance of a contract) for account/service operation</li>
+            <li><strong>Article 6(1)(f) GDPR</strong> (legitimate interest) for security, anti-abuse and moderation</li>
+          </ul>
+          <p className="mt-2">
+            Where local browser storage is strictly necessary for requested functionality, it is used on that basis.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">4. Optional Cloud Sync</h2>
+          <p>
+            If <code className="text-accent">NEXT_PUBLIC_API_URL</code> is configured and you use backend login,
+            NexVid can sync data with that backend. In that mode, data may be transmitted to endpoints such as
+            <code className="text-accent"> /auth/me</code>, <code className="text-accent"> /user/profile</code>,
+            <code className="text-accent"> /user/settings</code>, and <code className="text-accent"> /user/watchlist</code>.
+          </p>
+          <p className="mt-2">
+            This deployment may be self-hosted or operated by a third party. Data retention, geographic location,
+            and infrastructure controls for synced data depend on that backend operator.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">5. Third-Party Services</h2>
+          <p>NexVid may connect to external services needed to render content and metadata:</p>
+          <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
+            <li><strong>TMDB API</strong> &mdash; movie/show metadata, posters, and search data</li>
+            <li><strong>FebBox</strong> &mdash; streaming source/provider integration used by resolver flows</li>
+            <li><strong>TheIntroDB</strong> &mdash; optional intro/outro segment metadata (skip-intro/skip-outro features)</li>
+          </ul>
+          <p className="mt-2">
+            These services operate under their own privacy policies and terms. We recommend reviewing
+            the policies for TMDB, FebBox, and TheIntroDB directly if you use features that rely on them.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">6. Cookies and Local Storage</h2>
+          <p>
+            NexVid uses only technically necessary client-side storage (primarily <code className="text-accent">localStorage</code>)
+            and authentication/session mechanisms required to operate the service. We do not use advertising or tracking cookies.
+          </p>
+          <p className="mt-2">
+            If non-essential analytics or marketing cookies are introduced in a future release,
+            this policy and consent flow will be updated accordingly.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">7. Retention</h2>
+          <p>
+            We keep data only as long as needed for account operation, service reliability, and abuse prevention.
+            Retention may vary by data type (e.g., session records vs. moderation logs) and may be adjusted
+            where required by law or security obligations.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">8. Analytics</h2>
+          <p>
+            This deployment does not use behavioral advertising trackers.
+            If operational telemetry is enabled by the infrastructure provider, it is used for reliability/security,
+            not ad profiling.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">9. Your Rights (EU/EEA)</h2>
+          <p>
+            Subject to applicable law, you may request access, rectification, erasure, restriction, objection,
+            and data portability where relevant. You may also object to processing based on legitimate interest.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">10. Your Control</h2>
+          <p>
+            You can delete all stored data at any time by clearing your browser&apos;s localStorage,
+            or by using the &ldquo;Clear Everything&rdquo; option in the Settings page.
+          </p>
+          <p className="mt-2">
+            For this deployment, data stored on our backend (Cloudflare D1) is deleted only when
+            you use &ldquo;Clear Everything&rdquo; while logged into your account.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">11. Contact</h2>
+          <p>
+            For privacy requests related to this deployment (including account deletion or access request),
+            contact the service operator using the support/contact channel provided in this deployment.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
