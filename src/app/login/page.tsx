@@ -42,8 +42,8 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       if (hasBackendConfigured) {
-        if (mode === 'login') await loginWithBackend(username, password);
-        else await registerWithBackend(username, password);
+        if (mode === 'login') await loginWithBackend(username, password, turnstileToken);
+        else await registerWithBackend(username, password, turnstileToken);
       } else {
         if (mode === 'login') loginLocal(username);
         else registerLocal(username);

@@ -21,8 +21,8 @@ interface AuthStore {
   logout: () => void;
 
   // Backend auth (optional)
-  loginWithBackend: (username: string, password: string) => Promise<void>;
-  registerWithBackend: (username: string, password: string) => Promise<void>;
+  loginWithBackend: (username: string, password: string, turnstileToken?: string | null) => Promise<void>;
+  registerWithBackend: (username: string, password: string, turnstileToken?: string | null) => Promise<void>;
   hydrateBackendSession: () => Promise<void>;
   updateNicknameWithBackend: (username: string) => Promise<void>;
 
@@ -98,7 +98,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ user: null, isLoggedIn: false, authToken: '' });
       },
 
-      loginWithBackend: async (username: string, password: string) => {
+      loginWithBackend: async (username: string, password: string, turnstileToken?: string | null) => {
         set({ isLoading: true });
         try {
           const apiUrl = getCloudApiUrl();
@@ -106,7 +106,7 @@ export const useAuthStore = create<AuthStore>()(
           const res = await fetch(`${apiUrl}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username, password, turnstileToken }),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || 'Login failed');
@@ -118,7 +118,7 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      registerWithBackend: async (username: string, password: string) => {
+      registerWithBackend: async (username: string, password: string, turnstileToken?: string | null) => {
         set({ isLoading: true });
         try {
           const apiUrl = getCloudApiUrl();
@@ -126,7 +126,7 @@ export const useAuthStore = create<AuthStore>()(
           const res = await fetch(`${apiUrl}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username, password, turnstileToken }),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || 'Registration failed');
