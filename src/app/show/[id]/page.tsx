@@ -16,10 +16,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   try {
     const show = await getShowDetails(id);
-    const title = show.releaseYear
-      ? `${show.title} (${show.releaseYear}) | NexVid`
-      : `${show.title} | NexVid`;
-    const description = (show.overview || 'Watch show details, episodes, cast, and recommendations on NexVid.').slice(0, 160);
+    const releaseSuffix = show.releaseYear ? ` (${show.releaseYear})` : '';
+    const title = `Watch - ${show.title}${releaseSuffix} free on NexVid`;
+    const description = (show.overview || `Watch ${show.title} online free on NexVid. Explore episodes, cast, and recommendations.`).slice(0, 160);
     const imagePath = show.backdropPath || show.posterPath;
 
     return {
@@ -46,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   } catch {
     return {
-      title: 'Show | NexVid',
+      title: 'Watch TV Shows free on NexVid',
       description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
       alternates: {
         canonical: `/show/${id}`,

@@ -57,9 +57,10 @@ export async function GET(request: NextRequest) {
     }, { status: 400 });
   }
 
-  // UI cookie can come from client settings header or server env
+  // UI cookie can come from client settings header, query param, or server env
+  const queryToken = searchParams.get('febboxToken') || '';
   const headerCookie = request.headers.get('x-febbox-cookie') || '';
-  const uiCookie = headerCookie || process.env.FEBBOX_UI_COOKIE || '';
+  const uiCookie = (queryToken || headerCookie || process.env.FEBBOX_UI_COOKIE || '').trim().replace(/^["']|["']$/g, '');
 
   try {
     if (!tryFebbox) {

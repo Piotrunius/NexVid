@@ -6,16 +6,20 @@
 'use client';
 
 import { getCloudToken, hasCloudBackend, loadCloudSettings, loadCloudWatchlist } from '@/lib/cloudSync';
+import { toast } from '@/components/ui/Toaster';
 import { useAuthStore } from '@/stores/auth';
 import { DEFAULT_SETTINGS, useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
-import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme, accentColor, customAccentHex, glassEffect } = useSettingsStore((s) => s.settings);
   const setAllSettings = useSettingsStore((s) => s.setAllSettings);
   const setItems = useWatchlistStore((s) => s.setItems);
-  const hydrateBackendSession = useAuthStore((s) => s.hydrateBackendSession);
+  const { user, isLoggedIn, hydrateBackendSession } = useAuthStore();
+  const pathname = usePathname();
+  const lastToastAtRef = useRef(0);
 
   const normalizeHex = (value: string): string | null => {
     const raw = String(value || '').trim();
@@ -103,6 +107,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [setAllSettings, setItems, hydrateBackendSession]);
+
+  useEffect(() => {
+    if (isLoggedIn && user?.requiresPasswordChange && pathname !== '/settings') {
+      const now = Date.now();
+      // Show every 30s if still not changed
+      if (now - lastToastAtRef.current > 30000) {
+        toast('Action Required: Please change your temporary password in Settings.', 'warning');
+        lastToastAtRef.current = now;
+      }
+    }
+  }, [isLoggedIn, user?.requiresPasswordChange, pathname]);
 
   return <>{children}</>;
 }

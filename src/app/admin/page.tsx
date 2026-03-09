@@ -1,6 +1,7 @@
 'use client';
 
 import { toast } from '@/components/ui/Toaster';
+import { cn } from '@/lib/utils';
 import {
     banAdminTarget,
     clearAllActiveSessions,
@@ -21,6 +22,7 @@ import {
     loadAdminUsers,
     lookupAdminAccounts,
     replyAdminFeedbackThread,
+    resetUserPassword,
     revokeAdminPermission,
     setAdminAccountLimit,
     unbanAdminTarget,
@@ -74,6 +76,7 @@ type AdminUserItem = {
 type AdminGrantItem = {
   userId: string;
   username: string;
+  role: string;
   grantedBy: string | null;
   expiresAt: string | null;
   createdAt: string;
@@ -115,19 +118,40 @@ type AdminAuditLogItem = {
 
 const ANNOUNCEMENT_MAX_CHARS = 260;
 
+type FebboxTokenItem = {
+  token: string;
+  label: string;
+  is_active: number;
+  is_banned: number;
+  usage_count: number;
+  error_count: number;
+  last_used_at: string | null;
+  created_at: string;
+};
+
 export default function AdminPage() {
   const { user, isLoggedIn, logout } = useAuthStore();
-  const isAdmin = Boolean(user?.isAdmin);
+  
+  const userRole = user?.role || (user?.isAdmin ? 'admin' : null);
+  const isModerator = userRole === 'moderator';
+  const isAdminRole = userRole === 'admin';
+  const isOwner = userRole === 'owner';
+  const hasAdminPanelAccess = isLoggedIn && (isModerator || isAdminRole || isOwner);
+
+  const canManageModeration = isOwner || isAdminRole;
+  const canManageAdmins = isOwner || isAdminRole;
+  const canManageSystem = isOwner;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [stats, setStats] = useState({ users: 0, activeSessions: 0, bannedUsernames: 0, bannedIps: 0, activeAnnouncements: 0 });
+  const [stats, setStats] = useState({ users: 0, activeSessions: 0, banned: 0, activeAnnouncements: 0, activeUsers: 0, activeGuests: 0 });
   const [bans, setBans] = useState<BannedItem[]>([]);
   const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
   const [accountLimits, setAccountLimits] = useState<AccountLimitItem[]>([]);
   const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>([]);
   const [adminGrants, setAdminGrants] = useState<AdminGrantItem[]>([]);
   const [grantUsername, setGrantUsername] = useState('');
+  const [grantRole, setGrantRole] = useState<'moderator' | 'admin' | 'owner'>('moderator');
   const [grantExpiresDays, setGrantExpiresDays] = useState(0);
   const [feedbackThreads, setFeedbackThreads] = useState<AdminFeedbackThread[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogItem[]>([]);
@@ -154,7 +178,19 @@ export default function AdminPage() {
   const [linkLabel, setLinkLabel] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  const canManage = isLoggedIn && isAdmin;
+  const canManage = hasAdminPanelAccess;
+
+  useEffect(() => {
+    if (!selectedFeedbackThreadId || !canManage) return;
+
+    const pollInterval = setInterval(() => {
+      loadAdminFeedbackMessages(selectedFeedbackThreadId)
+        .then(res => setFeedbackMessages(res.items || []))
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [selectedFeedbackThreadId, canManage]);
 
   const sortedAnnouncements = useMemo(
     () => [...announcements].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
@@ -209,38 +245,47 @@ export default function AdminPage() {
 
     setIsLoading(true);
     try {
-      const [overview, bansRes, annRes, limitRes, usersRes, feedbackRes, grantsRes, auditRes] = await Promise.all([
-        loadAdminOverview(),
-        loadAdminBans(),
-        loadAdminAnnouncements(),
-        loadAdminAccountLimits(),
+      const overview = await loadAdminOverview();
+      setStats(overview.stats);
+
+      const promises: Promise<any>[] = [
         loadAdminUsers(),
         loadAdminFeedbackThreads(),
-        loadAdminGrantList(),
-        loadAdminAuditLogs(),
-      ]);
+      ];
 
-      setStats(overview.stats);
-      setBans(bansRes.items || []);
-      setAnnouncements(annRes.items || []);
-      setAccountLimits(limitRes.items || []);
-      setAdminUsers(usersRes.items || []);
-      setAdminGrants(grantsRes.items || []);
-      setAuditLogs(auditRes.items || []);
-      const nextFeedbackThreads = feedbackRes.items || [];
-      setFeedbackThreads(nextFeedbackThreads);
-      if (!selectedFeedbackThreadId || !nextFeedbackThreads.some((item) => item.id === selectedFeedbackThreadId)) {
-        setSelectedFeedbackThreadId(nextFeedbackThreads[0]?.id || null);
+      if (canManageModeration) {
+        promises.push(loadAdminBans());
+        promises.push(loadAdminAnnouncements());
+        promises.push(loadAdminAccountLimits());
+        promises.push(loadAdminAuditLogs());
       }
-      if (selectedFeedbackThreadId) {
-        const selected = nextFeedbackThreads.find((item) => item.id === selectedFeedbackThreadId);
-        if (selected) {
-          setSelectedFeedbackThreadMeta({
-            status: selected.status,
-            closedExpiresAt: selected.closedExpiresAt,
-            closedRemainingMs: selected.closedRemainingMs,
-          });
+      
+      if (canManageAdmins) {
+        promises.push(loadAdminGrantList());
+      }
+
+      const results = await Promise.all(promises);
+      
+      setAdminUsers(results[0].items || []);
+      const nextFeedbackThreads = results[1].items || [];
+      setFeedbackThreads(nextFeedbackThreads);
+
+      if (canManageModeration) {
+        setBans(results[2].items || []);
+        setAnnouncements(results[3].items || []);
+        setAccountLimits(results[4].items || []);
+        setAuditLogs(results[5].items || []);
+      }
+
+      if (canManageAdmins) {
+        const grantIndex = canManageModeration ? 6 : 2;
+        if (results[grantIndex]) {
+          setAdminGrants(results[grantIndex].items || []);
         }
+      }
+
+      if (!selectedFeedbackThreadId || !nextFeedbackThreads.some((item: any) => item.id === selectedFeedbackThreadId)) {
+        setSelectedFeedbackThreadId(nextFeedbackThreads[0]?.id || null);
       }
     } catch (error: any) {
       toast(error?.message || 'Failed to load admin data', 'error');
@@ -314,12 +359,13 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteUserData = async () => {
+  const handleDeleteUser = async () => {
     const username = deleteUsername.trim();
     if (!username) {
       toast('Enter nickname', 'error');
       return;
     }
+    if (!confirm('This action cannot be undone. Are you sure?')) return;
 
     setIsSubmitting(true);
     try {
@@ -329,6 +375,29 @@ export default function AdminPage() {
       toast('User data deleted from D1', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to delete user data', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const username = deleteUsername.trim();
+    if (!username) {
+      toast('Enter nickname first', 'error');
+      return;
+    }
+    if (!confirm(`Reset password for ${username}? This will generate a temporary one.`)) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await resetUserPassword(username);
+      if (res.temporaryPassword) {
+        prompt('Password reset successful. Copy the temporary password:', res.temporaryPassword);
+      } else {
+        toast('Password reset, but no temp password returned.', 'warning');
+      }
+    } catch (error: any) {
+      toast(error?.message || 'Failed to reset password', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -416,11 +485,12 @@ export default function AdminPage() {
 
     setIsSubmitting(true);
     try {
-      await grantAdminPermission(username, grantExpiresDays > 0 ? grantExpiresDays : undefined);
+      await grantAdminPermission(username, grantExpiresDays > 0 ? grantExpiresDays : undefined, grantRole);
       setGrantUsername('');
       setGrantExpiresDays(0);
+      setGrantRole('moderator');
       await loadAll();
-      toast(`Admin access granted to ${username}`, 'success');
+      toast(`${grantRole} access granted to ${username}`, 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to grant admin access', 'error');
     } finally {
@@ -590,12 +660,12 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!hasAdminPanelAccess) {
     return (
       <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
         <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
           <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Access denied</h1>
-          <p className="mt-2 text-[13px] text-text-muted">This page is available only for admin accounts.</p>
+          <p className="mt-2 text-[13px] text-text-muted">This page is available only for authorized staff.</p>
         </div>
       </div>
     );
@@ -606,269 +676,289 @@ export default function AdminPage() {
       <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Admin Panel</h1>
-          <p className="mt-1 text-[13px] text-text-muted">Moderation, anti-abuse controls and account/session management.</p>
-          <p className="mt-1 text-[11px] text-accent">UI rev: 2026-03-07-admin-fix-v2</p>
+          <p className="mt-1 text-[13px] text-text-muted">Moderation and management as <span className="text-accent font-semibold">{userRole}</span>.</p>
+          <p className="mt-1 text-[11px] text-accent">UI rev: 2026-03-09-roles-v1</p>
         </div>
-        <button disabled={isSubmitting} onClick={handleClearAllSessions} className="btn-glass text-red-400">
-          Force clear all active sessions
-        </button>
+        {canManageSystem && (
+          <button disabled={isSubmitting} onClick={handleClearAllSessions} className="btn-glass text-red-400">
+            Force clear all active sessions
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Users" value={stats.users} />
-        <StatCard label="Active sessions" value={stats.activeSessions} />
-        <StatCard label="Banned nicknames" value={stats.bannedUsernames} />
-        <StatCard label="Banned IPs" value={stats.bannedIps} />
-        <StatCard label="Active announcements" value={stats.activeAnnouncements} />
+        <StatCard 
+          label="Active" 
+          value={stats.activeUsers + stats.activeGuests} 
+          isAccent 
+          subValue={`${stats.activeUsers} Users / ${stats.activeGuests} Guests`}
+        />
+        <StatCard 
+          label="Sessions" 
+          value={stats.activeSessions} 
+        />
+        <StatCard label="Banned" value={stats.banned} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4 xl:col-span-2">
-          <h2 className="text-[15px] font-semibold text-text-primary">Moderation & account controls</h2>
+      <div className="grid gap-6 xl:grid-cols-2">
+        {canManageModeration ? (
+          <>
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+              <h2 className="text-[15px] font-semibold text-text-primary">Moderation & account controls</h2>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-              <h3 className="text-[13px] font-semibold text-text-primary">Nickname / IP bans</h3>
-              <select className="input w-full" value={banType} onChange={(e) => setBanType(e.target.value as 'username' | 'ip')}>
-                <option value="username">Nickname</option>
-                <option value="ip">IP Address</option>
-              </select>
-              <input
-                className="input w-full"
-                placeholder={banType === 'ip' ? '1.2.3.4 or IPv6' : 'nickname'}
-                value={banValue}
-                onChange={(e) => setBanValue(e.target.value)}
-              />
-              <input className="input w-full" placeholder="Reason (optional)" value={banReason} onChange={(e) => setBanReason(e.target.value)} />
-              <button disabled={isSubmitting} onClick={handleBanTarget} className="btn-accent w-full">
-                Ban target
-              </button>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
+                  <h3 className="text-[13px] font-semibold text-text-primary">Nickname bans</h3>
+                  <input
+                    className="input w-full"
+                    placeholder="Enter nickname to ban"
+                    value={banValue}
+                    onChange={(e) => setBanValue(e.target.value)}
+                  />
+                  <input className="input w-full" placeholder="Reason (optional)" value={banReason} onChange={(e) => setBanReason(e.target.value)} />
+                  <button disabled={isSubmitting} onClick={handleBanTarget} className="btn-accent w-full">
+                    Ban user
+                  </button>
 
-              <div className="max-h-56 overflow-auto space-y-2 pt-1">
-                {isLoading ? (
-                  <p className="text-[13px] text-text-muted">Loading...</p>
-                ) : bans.length === 0 ? (
-                  <p className="text-[13px] text-text-muted">No bans.</p>
-                ) : (
-                  bans.map((item) => (
-                    <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2.5 flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-[12px] font-medium text-text-primary break-all">[{item.type}] {item.value}</p>
-                        <p className="text-[11px] text-text-muted">{item.reason || 'No reason provided'}</p>
-                      </div>
-                      <button
-                        className="btn-glass whitespace-nowrap"
-                        disabled={isSubmitting}
-                        onClick={() => handleUnban(item.type, item.value)}
-                      >
-                        Unban
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-              <h3 className="text-[13px] font-semibold text-text-primary">Account limit overrides</h3>
-              <select className="input w-full" value={limitType} onChange={(e) => setLimitType(e.target.value as 'username' | 'ip')}>
-                <option value="ip">IP Address</option>
-                <option value="username">Nickname</option>
-              </select>
-              <input
-                className="input w-full"
-                placeholder={limitType === 'ip' ? '1.2.3.4 or IPv6' : 'nickname'}
-                value={limitValue}
-                onChange={(e) => setLimitValue(e.target.value)}
-              />
-              <input className="input w-full" type="number" min={1} max={200} value={limitAmount} onChange={(e) => setLimitAmount(Number(e.target.value || 1))} />
-              <button disabled={isSubmitting} onClick={handleSetLimit} className="btn-accent w-full">
-                Save override
-              </button>
-
-              <div className="max-h-56 overflow-auto space-y-2 pt-1">
-                {accountLimits.length === 0 ? (
-                  <p className="text-[11px] text-text-muted">No account limit overrides.</p>
-                ) : (
-                  accountLimits.map((item) => (
-                    <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2.5 flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-[12px] font-medium text-text-primary">[{item.type}] {item.value}</p>
-                        <p className="text-[11px] text-text-muted">Max accounts: {item.maxAccounts}</p>
-                      </div>
-                      <button className="btn-glass whitespace-nowrap" disabled={isSubmitting} onClick={() => handleDeleteLimit(item.type, item.value)}>
-                        Remove
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-              <h3 className="text-[13px] font-semibold text-text-primary">Account/IP lookup</h3>
-              <p className="text-[11px] text-text-muted">Find user ID by nickname or show all nicknames linked to the same IP.</p>
-              <select className="input w-full" value={lookupType} onChange={(e) => setLookupType(e.target.value as 'username' | 'ip')}>
-                <option value="username">Nickname</option>
-                <option value="ip">IP Address</option>
-              </select>
-              <input
-                className="input w-full"
-                placeholder={lookupType === 'ip' ? '1.2.3.4 or IPv6' : 'nickname'}
-                value={lookupValue}
-                onChange={(e) => setLookupValue(e.target.value)}
-              />
-              <button disabled={isSubmitting} onClick={handleLookupAccounts} className="btn-glass w-full">
-                Check linked accounts
-              </button>
-
-              {lookupResult && (
-                <div className="rounded-[10px] p-2.5 space-y-1">
-                  <p className="text-[11px] text-text-muted break-all">Query: [{lookupResult.query.type}] {lookupResult.query.value}</p>
-                  <p className="text-[13px] font-medium text-text-primary">Accounts found: {lookupResult.accountCount}</p>
-                  {typeof lookupResult.ipGroupCount === 'number' && <p className="text-[11px] text-text-muted">Matched IP fingerprints: {lookupResult.ipGroupCount}</p>}
-                  <div className="max-h-40 overflow-auto space-y-1.5 pt-1">
-                    {lookupResult.accounts.length === 0 ? (
-                      <p className="text-[11px] text-text-muted">No linked nicknames.</p>
+                  <div className="max-h-56 overflow-auto space-y-2 pt-1">
+                    {isLoading ? (
+                      <p className="text-[13px] text-text-muted">Loading...</p>
+                    ) : bans.length === 0 ? (
+                      <p className="text-[13px] text-text-muted">No bans.</p>
                     ) : (
-                      lookupResult.accounts.map((account) => (
-                        <div key={account.id} className="rounded-[8px] bg-white/[0.03] px-2.5 py-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-[13px] font-medium text-text-primary">{account.username}</p>
-                            <button
-                              className="text-[10px] font-mono text-accent/70 hover:text-accent transition-colors"
-                              onClick={() => { navigator.clipboard.writeText(account.id); toast('User ID copied', 'success'); }}
-                              title="Click to copy full ID"
-                            >
-                              {account.id.slice(0, 12)}...
-                            </button>
+                      bans.map((item) => (
+                        <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2.5 flex items-start justify-between gap-2 bg-white/5">
+                          <div>
+                            <p className="text-[12px] font-medium text-text-primary break-all">{item.value}</p>
+                            <p className="text-[11px] text-text-muted">{item.reason || 'No reason provided'}</p>
                           </div>
-                          <p className="text-[11px] text-text-muted font-mono mt-0.5">ID: {account.id}</p>
-                          {account.lastSeenAt && <p className="text-[11px] text-text-muted mt-0.5">Last seen: {new Date(account.lastSeenAt).toLocaleString()}</p>}
+                          <button
+                            className="btn-glass whitespace-nowrap text-[11px]"
+                            disabled={isSubmitting}
+                            onClick={() => handleUnban(item.type, item.value)}
+                          >
+                            Unban
+                          </button>
                         </div>
                       ))
                     )}
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-              <h3 className="text-[13px] font-semibold text-text-primary">Delete user data by nickname</h3>
-              <p className="text-[11px] text-text-muted">Permanently removes account, settings, sessions and watchlist from D1.</p>
-              <input className="input w-full" placeholder="nickname" value={deleteUsername} onChange={(e) => setDeleteUsername(e.target.value)} />
-              <button disabled={isSubmitting} onClick={handleDeleteUserData} className="btn-glass w-full text-red-400">
-                Delete user data
+                <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm text-red-400/90 border border-red-500/10">
+                  <h3 className="text-[13px] font-semibold">Danger Zone</h3>
+                  <p className="text-[11px] text-red-400/60">Wipe user data permanently or reset account password.</p>
+                  <input className="input w-full border-red-500/20 focus:border-red-500/40" placeholder="Enter nickname" value={deleteUsername} onChange={(e) => setDeleteUsername(e.target.value)} />
+                  <div className="flex gap-2">
+                    <button disabled={isSubmitting} onClick={handleDeleteUser} className="btn-glass flex-1 text-red-400 hover:bg-red-500/10">
+                      Delete user data
+                    </button>
+                    {isOwner && (
+                      <button disabled={isSubmitting} onClick={handleResetPassword} className="btn-glass flex-1 text-amber-400 hover:bg-amber-500/10">
+                        Reset Password
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
+                  <h3 className="text-[13px] font-semibold text-text-primary">Nickname lookup</h3>
+                  <p className="text-[11px] text-text-muted">Find all accounts linked to the same fingerprints as this nickname.</p>
+                  <div className="flex gap-2">
+                    <input
+                      className="input flex-1"
+                      placeholder="nickname"
+                      value={lookupValue}
+                      onChange={(e) => setLookupValue(e.target.value)}
+                    />
+                    <button disabled={isSubmitting} onClick={handleLookupAccounts} className="btn-glass">
+                      Lookup
+                    </button>
+                  </div>
+
+                  {lookupResult && (
+                    <div className="rounded-[10px] p-2.5 space-y-1 bg-white/5">
+                      <p className="text-[13px] font-medium text-text-primary">Accounts found: {lookupResult.accountCount}</p>
+                      <div className="max-h-40 overflow-auto space-y-1.5 pt-1">
+                        {lookupResult.accounts.map((account) => (
+                          <div key={account.id} className="rounded-[8px] bg-white/5 px-2.5 py-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-[13px] font-medium text-text-primary">{account.username}</p>
+                              <p className="text-[10px] font-mono text-white/30">{account.id.slice(0, 8)}...</p>
+                            </div>
+                            {account.lastSeenAt && <p className="text-[10px] text-white/20 mt-0.5">Last seen: {new Date(account.lastSeenAt).toLocaleString()}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
+                  <h3 className="text-[13px] font-semibold text-text-primary">User account limit</h3>
+                  <p className="text-[11px] text-text-muted">Override max accounts allowed for this specific user's fingerprint.</p>
+                  <div className="grid gap-2">
+                    <input
+                      className="input w-full"
+                      placeholder="nickname"
+                      value={limitValue}
+                      onChange={(e) => setLimitValue(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <input className="input flex-1" type="number" min={1} max={200} value={limitAmount} onChange={(e) => setLimitAmount(Number(e.target.value || 1))} />
+                      <button disabled={isSubmitting} onClick={handleSetLimit} className="btn-accent">
+                        Save
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-40 overflow-auto space-y-1 pt-1">
+                    {accountLimits.map((item) => (
+                      <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2 flex items-center justify-between gap-2 bg-white/5">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium text-text-primary truncate">{item.value}</p>
+                          <p className="text-[10px] text-text-muted">Limit: {item.maxAccounts}</p>
+                        </div>
+                        <button className="btn-glass text-red-400 text-[10px]" disabled={isSubmitting} onClick={() => handleDeleteLimit(item.type, item.value)}>
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+              <h2 className="text-[15px] font-semibold text-text-primary">Create announcement</h2>
+              <textarea
+                className={`input w-full resize-none break-all whitespace-pre-wrap ${announcementFontClass}`}
+                placeholder="Write announcement message..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value.slice(0, ANNOUNCEMENT_MAX_CHARS))}
+                maxLength={ANNOUNCEMENT_MAX_CHARS}
+                rows={announcementRows}
+              />
+              <p className="text-right text-[11px] text-text-muted">{announcementLength}/{ANNOUNCEMENT_MAX_CHARS}</p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <select className="input w-full" value={announcementType} onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}>
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="update">Update</option>
+                  <option value="success">Success</option>
+                </select>
+                <label className="flex items-center gap-2 rounded-[10px] bg-[var(--bg-glass-light)] px-3 py-2 text-[13px] text-text-secondary">
+                  <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+                  Active now
+                </label>
+              </div>
+
+              <input className="input w-full" placeholder="Optional link URL (https://...)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+              <input className="input w-full" placeholder="Optional link label" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} maxLength={60} />
+
+              <button disabled={isSubmitting} onClick={handleCreateAnnouncement} className="btn-accent w-full">
+                Publish announcement
               </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
-          <h2 className="text-[15px] font-semibold text-text-primary">Create announcement</h2>
-          <textarea
-            className={`input w-full resize-none break-all whitespace-pre-wrap ${announcementFontClass}`}
-            placeholder="Write announcement message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value.slice(0, ANNOUNCEMENT_MAX_CHARS))}
-            maxLength={ANNOUNCEMENT_MAX_CHARS}
-            rows={announcementRows}
-          />
-          <p className="text-right text-[11px] text-text-muted">{announcementLength}/{ANNOUNCEMENT_MAX_CHARS}</p>
-
-          <div className="grid grid-cols-2 gap-2">
-            <select className="input w-full" value={announcementType} onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}>
-              <option value="info">Info</option>
-              <option value="warning">Warning</option>
-              <option value="update">Update</option>
-              <option value="success">Success</option>
-            </select>
-            <label className="flex items-center gap-2 rounded-[10px] bg-[var(--bg-glass-light)] px-3 py-2 text-[13px] text-text-secondary">
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-              Active now
-            </label>
-          </div>
-
-          <input className="input w-full" placeholder="Optional link URL (https://...)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
-          <input className="input w-full" placeholder="Optional link label" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} maxLength={60} />
-
-          <button disabled={isSubmitting} onClick={handleCreateAnnouncement} className="btn-accent w-full">
-            Publish announcement
-          </button>
-        </section>
+            </section>
+          </>
+        ) : (
+          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2 text-center">
+            <h2 className="text-[15px] font-semibold text-text-primary">Management restricted</h2>
+            <p className="mt-2 text-[13px] text-text-muted">Moderators have access to Users and Feedback inbox only.</p>
+          </section>
+        )}
       </div>
 
-      <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-text-primary">Admin permissions</h2>
-          <p className="text-[11px] text-text-muted">Grant or revoke admin access. Optionally set an expiration.</p>
-        </div>
+        {canManageAdmins && (
+          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+            <div>
+              <h2 className="text-[15px] font-semibold text-text-primary">Staff permissions</h2>
+              <p className="text-[11px] text-text-muted">Grant or revoke access. Admins can only grant Moderator role.</p>
+            </div>
 
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-          <input
-            className="input w-full"
-            placeholder="Nickname to grant admin"
-            value={grantUsername}
-            onChange={(e) => setGrantUsername(e.target.value)}
-          />
-          <select
-            className="input"
-            value={grantExpiresDays}
-            onChange={(e) => setGrantExpiresDays(Number(e.target.value))}
-          >
-            <option value={0}>No expiration</option>
-            <option value={1}>1 day</option>
-            <option value={7}>7 days</option>
-            <option value={30}>30 days</option>
-            <option value={90}>90 days</option>
-            <option value={365}>1 year</option>
-          </select>
-          <button disabled={isSubmitting} onClick={handleGrantAdmin} className="btn-accent whitespace-nowrap">
-            Grant admin
-          </button>
-        </div>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+              <input
+                className="input w-full"
+                placeholder="Nickname to grant access"
+                value={grantUsername}
+                onChange={(e) => setGrantUsername(e.target.value)}
+              />
+              <select
+                className="input"
+                value={grantRole}
+                onChange={(e) => setGrantRole(e.target.value as any)}
+              >
+                <option value="moderator">Moderator</option>
+                {isOwner && <option value="admin">Admin</option>}
+                {isOwner && <option value="owner">Owner</option>}
+              </select>
+              <select
+                className="input"
+                value={grantExpiresDays}
+                onChange={(e) => setGrantExpiresDays(Number(e.target.value))}
+              >
+                <option value={0}>No expiration</option>
+                <option value={1}>1 day</option>
+                <option value={7}>7 days</option>
+                <option value={30}>30 days</option>
+              </select>
+              <button disabled={isSubmitting} onClick={handleGrantAdmin} className="btn-accent whitespace-nowrap">
+                Grant access
+              </button>
+            </div>
 
-        <div className="max-h-64 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
-          {isLoading ? (
-            <p className="p-3 text-[13px] text-text-muted">Loading...</p>
-          ) : adminGrants.length === 0 ? (
-            <p className="p-3 text-[13px] text-text-muted">No admin users found.</p>
-          ) : (
-            <table className="w-full text-[13px]">
-              <thead className="bg-[var(--bg-glass-light)]">
-                <tr className="text-left text-[11px] text-text-muted">
-                  <th className="px-3 py-2 font-medium">Nick</th>
-                  <th className="px-3 py-2 font-medium">User ID</th>
-                  <th className="px-3 py-2 font-medium">Expires</th>
-                  <th className="px-3 py-2 font-medium">Granted</th>
-                  <th className="px-3 py-2 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminGrants.map((item) => (
-                  <tr key={item.userId} className="border-t border-[var(--border)]">
-                    <td className="px-3 py-2 text-text-primary">{item.username}</td>
-                    <td className="px-3 py-2 text-text-muted text-[11px] font-mono">{item.userId.slice(0, 12)}...</td>
-                    <td className="px-3 py-2 text-text-muted">
-                      {item.expiresAt ? new Date(item.expiresAt).toLocaleDateString() : 'Never'}
-                    </td>
-                    <td className="px-3 py-2 text-text-muted">{new Date(item.createdAt).toLocaleDateString()}</td>
-                    <td className="px-3 py-2">
-                      <button
-                        className="btn-glass text-red-400 text-[11px]"
-                        disabled={isSubmitting || item.userId === user?.id}
-                        onClick={() => handleRevokeAdmin(item.userId, item.username)}
-                      >
-                        {item.userId === user?.id ? 'You' : 'Revoke'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
+            <div className="max-h-64 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
+              {isLoading ? (
+                <p className="p-3 text-[13px] text-text-muted">Loading...</p>
+              ) : adminGrants.length === 0 ? (
+                <p className="p-3 text-[13px] text-text-muted">No staff found.</p>
+              ) : (
+                <table className="w-full text-[13px]">
+                  <thead className="bg-[var(--bg-glass-light)]">
+                    <tr className="text-left text-[11px] text-text-muted">
+                      <th className="px-3 py-2 font-medium">Nick</th>
+                      <th className="px-3 py-2 font-medium">Role</th>
+                      <th className="px-3 py-2 font-medium">Expires</th>
+                      <th className="px-3 py-2 font-medium">Granted</th>
+                      <th className="px-3 py-2 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminGrants.map((item) => (
+                      <tr key={item.userId} className="border-t border-[var(--border)]">
+                        <td className="px-3 py-2 text-text-primary">{item.username}</td>
+                        <td className="px-3 py-2">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            item.role === 'owner' ? 'bg-amber-500/20 text-amber-500' : 
+                            item.role === 'admin' ? 'bg-accent/20 text-accent' : 
+                            'bg-emerald-500/20 text-emerald-500'
+                          }`}>
+                            {item.role}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-text-muted">
+                          {item.expiresAt ? new Date(item.expiresAt).toLocaleDateString() : 'Never'}
+                        </td>
+                        <td className="px-3 py-2 text-text-muted">{new Date(item.createdAt).toLocaleDateString()}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            className="btn-glass text-red-400 text-[11px]"
+                            disabled={isSubmitting || item.userId === user?.id || (isAdminRole && (item.role === 'admin' || item.role === 'owner'))}
+                            onClick={() => handleRevokeAdmin(item.userId, item.username)}
+                          >
+                            {item.userId === user?.id ? 'You' : 'Revoke'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+        )}
 
       <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
         <h2 className="text-[15px] font-semibold text-text-primary">Users</h2>
@@ -911,40 +1001,42 @@ export default function AdminPage() {
         </div>
       </section>
 
-      <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
-        <h2 className="text-[15px] font-semibold text-text-primary">Audit log</h2>
-        <p className="text-[11px] text-text-muted">Latest admin actions recorded by backend.</p>
-        <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
-          {isLoading ? (
-            <p className="p-3 text-[13px] text-text-muted">Loading...</p>
-          ) : auditLogs.length === 0 ? (
-            <p className="p-3 text-[13px] text-text-muted">No audit entries yet.</p>
-          ) : (
-            <table className="w-full text-[13px]">
-              <thead className="bg-[var(--bg-glass-light)]">
-                <tr className="text-left text-[11px] text-text-muted">
-                  <th className="px-3 py-2 font-medium">Time</th>
-                  <th className="px-3 py-2 font-medium">Admin</th>
-                  <th className="px-3 py-2 font-medium">Action</th>
-                  <th className="px-3 py-2 font-medium">Target</th>
-                  <th className="px-3 py-2 font-medium">Meta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLogs.map((item) => (
-                  <tr key={item.id} className="border-t border-[var(--border)]">
-                    <td className="px-3 py-2 text-text-muted whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</td>
-                    <td className="px-3 py-2 text-text-primary">{item.adminUsername || item.adminUserId.slice(0, 12)}</td>
-                    <td className="px-3 py-2 text-text-muted">{item.action}</td>
-                    <td className="px-3 py-2 text-text-muted break-all">{item.targetType}:{item.targetId || '-'}</td>
-                    <td className="px-3 py-2 text-text-muted break-all">{formatAuditMeta(item.meta)}</td>
+      {canManageModeration && (
+        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
+          <h2 className="text-[15px] font-semibold text-text-primary">Audit log</h2>
+          <p className="text-[11px] text-text-muted">Latest admin actions recorded by backend.</p>
+          <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
+            {isLoading ? (
+              <p className="p-3 text-[13px] text-text-muted">Loading...</p>
+            ) : auditLogs.length === 0 ? (
+              <p className="p-3 text-[13px] text-text-muted">No audit entries yet.</p>
+            ) : (
+              <table className="w-full text-[13px]">
+                <thead className="bg-[var(--bg-glass-light)]">
+                  <tr className="text-left text-[11px] text-text-muted">
+                    <th className="px-3 py-2 font-medium">Time</th>
+                    <th className="px-3 py-2 font-medium">Admin</th>
+                    <th className="px-3 py-2 font-medium">Action</th>
+                    <th className="px-3 py-2 font-medium">Target</th>
+                    <th className="px-3 py-2 font-medium">Meta</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
+                </thead>
+                <tbody>
+                  {auditLogs.map((item) => (
+                    <tr key={item.id} className="border-t border-[var(--border)]">
+                      <td className="px-3 py-2 text-text-muted whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</td>
+                      <td className="px-3 py-2 text-text-primary">{item.adminUsername || item.adminUserId.slice(0, 12)}</td>
+                      <td className="px-3 py-2 text-text-muted">{item.action}</td>
+                      <td className="px-3 py-2 text-text-muted break-all">{item.targetType}:{item.targetId || '-'}</td>
+                      <td className="px-3 py-2 text-text-muted break-all">{formatAuditMeta(item.meta)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
         <div>
@@ -1048,42 +1140,45 @@ export default function AdminPage() {
         </div>
       </section>
 
-      <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
-        <h2 className="text-[15px] font-semibold text-text-primary">Announcements list</h2>
-        <div className="space-y-2">
-          {isLoading ? (
-            <p className="text-[13px] text-text-muted">Loading...</p>
-          ) : sortedAnnouncements.length === 0 ? (
-            <p className="text-[13px] text-text-muted">No announcements yet.</p>
-          ) : (
-            sortedAnnouncements.map((item) => (
-              <div key={item.id} className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between backdrop-blur-sm">
-                <div>
-                  <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary">{item.message}</p>
-                  <p className="text-[11px] text-text-muted mt-1">{item.type.toUpperCase()} • {item.isActive ? 'Active' : 'Hidden'}</p>
+      {canManageModeration && (
+        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
+          <h2 className="text-[15px] font-semibold text-text-primary">Announcements list</h2>
+          <div className="space-y-2">
+            {isLoading ? (
+              <p className="text-[13px] text-text-muted">Loading...</p>
+            ) : sortedAnnouncements.length === 0 ? (
+              <p className="text-[13px] text-text-muted">No announcements yet.</p>
+            ) : (
+              sortedAnnouncements.map((item) => (
+                <div key={item.id} className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between backdrop-blur-sm">
+                  <div>
+                    <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary">{item.message}</p>
+                    <p className="text-[11px] text-text-muted mt-1">{item.type.toUpperCase()} • {item.isActive ? 'Active' : 'Hidden'}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn-glass" disabled={isSubmitting} onClick={() => handleToggleAnnouncement(item)}>
+                      {item.isActive ? 'Hide' : 'Activate'}
+                    </button>
+                    <button className="btn-glass text-red-400" disabled={isSubmitting} onClick={() => handleDeleteAnnouncement(item.id)}>
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button className="btn-glass" disabled={isSubmitting} onClick={() => handleToggleAnnouncement(item)}>
-                    {item.isActive ? 'Hide' : 'Activate'}
-                  </button>
-                  <button className="btn-glass text-red-400" disabled={isSubmitting} onClick={() => handleDeleteAnnouncement(item.id)}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+              ))
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, isAccent, subValue }: { label: string; value: number; isAccent?: boolean; subValue?: string }) {
   return (
-    <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-4">
+    <div className={`glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-4 ${isAccent ? 'border-accent/30 shadow-[0_0_15px_var(--accent-glow)]' : ''}`}>
       <p className="text-[11px] text-text-muted">{label}</p>
-      <p className="mt-1 text-[22px] font-bold text-text-primary tracking-tight">{value}</p>
+      <p className={`mt-1 text-[22px] font-bold tracking-tight ${isAccent ? 'text-accent' : 'text-text-primary'}`}>{value}</p>
+      {subValue && <p className="mt-1 text-[10px] text-text-muted/60 font-medium">{subValue}</p>}
     </div>
   );
 }

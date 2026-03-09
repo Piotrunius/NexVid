@@ -7,7 +7,7 @@
 
 'use client';
 
-import { createWatchParty, joinWatchParty, leaveWatchParty, loadWatchPartyState, updateWatchPartyState, type WatchPartyPlaybackState, type WatchPartyRole } from '@/lib/cloudSync';
+import { createWatchParty, joinWatchParty, leaveWatchParty, loadWatchPartyState, updateWatchPartyState, loadPublicAnnouncements, reportPlayerSuccess, reportPlayerError, type WatchPartyPlaybackState, type WatchPartyRole } from '@/lib/cloudSync';
 import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER } from '@/lib/febbox';
 import type { MediaSegments } from '@/lib/tidb';
 import { submitSegment } from '@/lib/tidb';
@@ -250,6 +250,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const WATCH_PARTY_CODE_KEY = 'nexvid-watch-party-code';
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hasReportedSuccessRef = useRef(false);
   const externalAudioRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<any>(null);
@@ -313,10 +314,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [watchPartyGuestPollMs, setWatchPartyGuestPollMs] = useState(10000);
   const [watchPartyBusy, setWatchPartyBusy] = useState(false);
   const [watchPartyForceSyncUntil, setWatchPartyForceSyncUntil] = useState(0);
-  const [watchPartyNowTs, setWatchPartyNowTs] = useState(Date.now());
+  const [watchPartyNowTs, setWatchPartyNowTs] = useState(0);
+  const [watchPartyServerDiff, setWatchPartyServerDiff] = useState(0);
+  const [watchPartyLastSyncTs, setWatchPartyLastSyncTs] = useState(0);
   const [showInfoWatchlistMenu, setShowInfoWatchlistMenu] = useState(false);
   const [isEpisodeNavigating, setIsEpisodeNavigating] = useState(false);
   const [showIdlePauseOverlay, setShowIdlePauseOverlay] = useState(false);
+  const [idleSnapshot, setIdleSnapshot] = useState<string | null>(null);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
   const lastAutoSkippedSegmentRef = useRef('');
@@ -582,9 +586,24 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     setCaptions(streamCaptions);
 
     return () => {
+      // Destroy HLS instance if present
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+      // Pause and unload video element
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+      // Pause and unload external audio element
+      const audio = externalAudioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
       }
     };
   }, [stream, defaultQuality, playerVolume, playbackSpeed, autoPlay, canTryNextSource, onTryNextSource]);
@@ -875,7 +894,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         });
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
           if (data.fatal) {
+            reportPlayerError(mediaType || '', tmdbId || '', data.type, data.details || 'Fatal HLS error', false, febboxApiKey).catch(() => {});
             if (canTryNextSource && onTryNextSource && !hlsAutoSwitchAttemptedRef.current) {
+
               hlsAutoSwitchAttemptedRef.current = true;
               setError('Current source is blocked or unavailable. Switching source...');
               onTryNextSource();
@@ -930,6 +951,10 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   }, []);
   const handlePlay = useCallback(() => {
     setPlaying(true);
+    if (!hasReportedSuccessRef.current) {
+      hasReportedSuccessRef.current = true;
+      reportPlayerSuccess(febboxApiKey).catch(() => {});
+    }
     if (externalAudioRef.current && externalAudioUrl) {
       externalAudioRef.current.play().catch(() => {});
     }
@@ -970,7 +995,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       });
     }
   }, [autoPlay, initialSeekTime, isMuted, watchPartyRole]);
-  const handleError = useCallback(() => setError('Video playback error'), []);
+  const handleError = useCallback(() => {
+    setError('Video playback error');
+    const msg = videoRef.current?.error?.message || 'Unknown video error';
+    const code = String(videoRef.current?.error?.code || 'unknown');
+    reportPlayerError(mediaType || '', tmdbId || '', code, msg, false, febboxApiKey).catch(() => {});
+  }, [mediaType, tmdbId, febboxApiKey]);
 
   // ---- Controls ----
   const togglePlay = useCallback(() => {
@@ -1170,6 +1200,35 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.clearInterval(interval);
   }, [idlePauseOverlay, stream?.type, isLoading, isPlaying, showIdlePauseOverlay]);
 
+  useEffect(() => {
+    if (!showIdlePauseOverlay) {
+      setIdleSnapshot(null);
+      return;
+    }
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      const canvas = document.createElement('canvas');
+      const vw = Math.max(1, video.videoWidth || 1280);
+      const vh = Math.max(1, video.videoHeight || 720);
+      // scale down a bit for performance
+      const maxW = 1920;
+      const scale = Math.min(1, maxW / vw);
+      canvas.width = Math.max(320, Math.floor(vw * scale));
+      canvas.height = Math.max(180, Math.floor(vh * scale));
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        setIdleSnapshot(dataUrl);
+      }
+    } catch {
+      setIdleSnapshot(null);
+    }
+  }, [showIdlePauseOverlay]);
+
   const navigateNextEpisode = useCallback(() => {
     if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length) return;
     const nextEpisode = season.episodes.find((ep) => ep.episodeNumber === episodeNum + 1);
@@ -1217,31 +1276,53 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     setShowInfoWatchlistMenu(false);
   }, [media, mediaTmdbId, infoWatchlistItem, setWatchlistStatus, addItem, mediaType]);
 
-  const applyWatchPartyState = useCallback((state?: WatchPartyPlaybackState) => {
+  const applyWatchPartyState = useCallback((state?: WatchPartyPlaybackState, serverNowIso?: string) => {
     if (!state || !videoRef.current) return;
     const video = videoRef.current;
     watchPartyApplyingRemoteRef.current = true;
 
-    if (Number.isFinite(state.time) && Math.abs(video.currentTime - state.time) > 1.5) {
-      video.currentTime = state.time;
+    // Calculate server time drift compensation
+    let compensatedTime = state.time;
+    if (!state.paused && serverNowIso && state.updatedAt) {
+      const updatedAtMs = Date.parse(state.updatedAt);
+      const serverNowMs = Date.parse(serverNowIso);
+      const elapsedSinceUpdate = (serverNowMs - updatedAtMs) / 1000;
+      if (elapsedSinceUpdate > 0 && elapsedSinceUpdate < 300) {
+        compensatedTime += elapsedSinceUpdate * (state.playbackRate || 1);
+      }
     }
 
-    if (Number.isFinite(state.playbackRate) && Math.abs(video.playbackRate - state.playbackRate) > 0.01) {
-      video.playbackRate = state.playbackRate;
-      setPlaybackSpeed(state.playbackRate);
+    const drift = Math.abs(video.currentTime - compensatedTime);
+
+    // Hard sync (seek) if drift is large (> 2.5s)
+    if (drift > 2.5) {
+      video.currentTime = compensatedTime;
+    } 
+    // Soft sync (adjust playback rate) if drift is small (0.4s - 2.5s)
+    else if (!state.paused && drift > 0.4) {
+      const isAhead = video.currentTime > compensatedTime;
+      const baseRate = state.playbackRate || 1;
+      // Adjust rate by 10% to catch up or wait
+      const adjustedRate = isAhead ? Math.max(0.5, baseRate - 0.1) : Math.min(2.0, baseRate + 0.1);
+      video.playbackRate = adjustedRate;
+      setPlaybackSpeed(adjustedRate);
+    } else {
+      // Very close or paused, use original rate
+      video.playbackRate = state.playbackRate || 1;
+      setPlaybackSpeed(state.playbackRate || 1);
     }
 
     if (state.paused) {
       watchPartyForcePausedRef.current = true;
-      video.pause();
+      if (!video.paused) video.pause();
     } else {
       watchPartyForcePausedRef.current = false;
-      video.play().catch(() => {});
+      if (video.paused) video.play().catch(() => {});
     }
 
     window.setTimeout(() => {
       watchPartyApplyingRemoteRef.current = false;
-    }, 250);
+    }, 400);
   }, []);
 
   const forceSyncGuestNow = useCallback(async () => {
@@ -1366,7 +1447,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       setWatchPartySyncAt(response.updatedAt || response.state?.updatedAt || '');
       setWatchPartyGuestPollMs(response.recommendedGuestPollMs || 10000);
       setWatchPartyStatus(`Connected to ${response.roomId} (${response.hostName})`);
-      applyWatchPartyState(response.state);
+      applyWatchPartyState(response.state, response.serverNow);
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem(WATCH_PARTY_CODE_KEY);
@@ -1425,7 +1506,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
         if (response.changed && response.state) {
           setWatchPartyStatus(`Synced with ${response.hostName || 'host'}`);
-          applyWatchPartyState(response.state);
+          applyWatchPartyState(response.state, response.serverNow);
         }
       } catch {
         if (!canceled) setWatchPartyStatus('Sync warning: guest poll failed');
@@ -1441,12 +1522,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   }, [watchPartyRole, watchPartyRoomId, watchPartySyncAt, watchPartyGuestPollMs, applyWatchPartyState]);
 
   useEffect(() => {
-    if (watchPartyRole !== 'guest') return;
+    setWatchPartyNowTs(Date.now());
     const timer = window.setInterval(() => {
       setWatchPartyNowTs(Date.now());
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [watchPartyRole]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -2716,33 +2797,36 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       )}
 
       {showIdlePauseOverlay && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm px-5" onClick={() => setShowIdlePauseOverlay(false)}>
-          <div className="w-full max-w-xl rounded-[18px] bg-black/80 p-5 shadow-[0_20px_70px_rgba(0,0,0,0.85)]" onClick={(e) => e.stopPropagation()}>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/55">Paused</p>
-            <p className="mt-1 text-[20px] font-semibold text-white">{title || media?.title || 'Now playing'}</p>
-            {subtitle && <p className="mt-1 text-[12px] text-white/65">{subtitle}</p>}
-            {infoSummaryText && <p className="mt-3 line-clamp-3 text-[12px] text-white/70">{infoSummaryText}</p>}
-            <div className="mt-4 flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setShowIdlePauseOverlay(false);
-                  videoRef.current?.play().catch(() => {});
-                }}
-                className="rounded-[10px] bg-accent/25 px-3.5 py-2 text-[12px] font-semibold text-accent hover:bg-accent/35"
-              >
-                Resume
-              </button>
-              <button
-                onClick={() => {
-                  updateSettings({ idlePauseOverlay: false });
-                  setShowIdlePauseOverlay(false);
-                }}
-                className="rounded-[10px] bg-white/10 px-3.5 py-2 text-[12px] text-white/80 hover:bg-white/20"
-              >
-                Disable overlay
-              </button>
-            </div>
+        <div className="absolute inset-0 z-40 flex items-center justify-center px-5" onClick={() => setShowIdlePauseOverlay(false)}>
+          <div className="absolute inset-0">
+            {idleSnapshot ? (
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${idleSnapshot})`, filter: 'blur(6px) brightness(0.45) contrast(0.85)' }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-black/60" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
           </div>
+
+          <div className="relative w-full max-w-[1100px] p-8" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-white/60">Now Watching</p>
+            <h1 className="mt-2 text-5xl font-extrabold text-white leading-tight">{title || media?.title || 'Now playing'}</h1>
+
+            {mediaType === 'show' && (
+              <div className="mt-2 flex items-center gap-4">
+                <p className="text-[15px] font-semibold text-white/70">Season {seasonNum}</p>
+                <p className="text-[15px] text-white/80">{currentEpisodeInfo?.name ? `${currentEpisodeInfo.name}` : `Episode ${episodeNum}`}</p>
+              </div>
+            )}
+
+            {subtitle && <p className="mt-3 text-[13px] text-white/65">{subtitle}</p>}
+
+            {infoSummaryText && <p className="mt-4 max-w-[60%] line-clamp-3 text-[14px] text-white/70">{infoSummaryText}</p>}
+          </div>
+
+          <div className="absolute right-6 bottom-6 text-[12px] text-white/70">Paused</div>
         </div>
       )}
 
