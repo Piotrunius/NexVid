@@ -188,6 +188,8 @@ export interface User {
   email?: string;
   avatar?: string;
   isAdmin?: boolean;
+  role?: 'owner' | 'admin' | 'moderator' | null;
+  requiresPasswordChange?: boolean;
   createdAt: string;
   settings: UserSettings;
 }

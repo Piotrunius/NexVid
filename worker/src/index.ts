@@ -28,7 +28,7 @@ const DEFAULT_MAX_ACCOUNTS_PER_IP = 2;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, X-NexVid-Activity',
   'Access-Control-Expose-Headers': '*',
   'Access-Control-Max-Age': '86400',
 };
@@ -91,7 +91,11 @@ function isOriginAllowed(origin: string, env: Env): boolean {
 
 function getAllowedOrigin(request: Request, env: Env): string | null {
   const origin = request.headers.get('Origin');
-  if (!origin) return null;
+  if (!origin) {
+    // If no Origin (server-to-server), use the first one from our config as default
+    const allowedStr = env.ALLOWED_ORIGINS || '';
+    return allowedStr.split(',')[0].trim() || null;
+  }
   return isOriginAllowed(origin, env) ? origin : null;
 }
 
@@ -312,10 +316,11 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         // already exists on upgraded schemas
       }
 
-      // Ensure admin_users table exists with expires_at column
+      // Ensure admin_users table exists with role column
       await env.DB.prepare(
         `CREATE TABLE IF NOT EXISTS admin_users (
            user_id TEXT PRIMARY KEY,
+           role TEXT NOT NULL DEFAULT 'admin',
            granted_by TEXT,
            expires_at TEXT,
            created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -323,18 +328,192 @@ async function ensureSecurityTables(env: Env): Promise<void> {
       ).run();
 
       try {
+        await env.DB.prepare('ALTER TABLE admin_users ADD COLUMN role TEXT NOT NULL DEFAULT \'admin\'').run();
+      } catch { /* already exists */ }
+      try {
         await env.DB.prepare('ALTER TABLE admin_users ADD COLUMN granted_by TEXT').run();
       } catch { /* already exists */ }
       try {
         await env.DB.prepare('ALTER TABLE admin_users ADD COLUMN expires_at TEXT').run();
       } catch { /* already exists */ }
       try {
-        await env.DB.prepare('ALTER TABLE admin_users ADD COLUMN created_at TEXT NOT NULL DEFAULT (datetime(\'now\'))').run();
+        await env.DB.prepare('ALTER TABLE users ADD COLUMN requires_password_change INTEGER DEFAULT 0').run();
       } catch { /* already exists */ }
+
+      // Error tracking for player health
+      await env.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS player_errors (
+           id TEXT PRIMARY KEY,
+           media_type TEXT,
+           media_id TEXT,
+           error_code TEXT,
+           error_message TEXT,
+           user_agent TEXT,
+           created_at TEXT NOT NULL
+         )`
+      ).run();
+      
+      // Daily stats for success rate
+      await env.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS daily_player_stats (
+           date TEXT PRIMARY KEY,
+           attempts INTEGER DEFAULT 0,
+           successes INTEGER DEFAULT 0,
+           failures INTEGER DEFAULT 0
+         )`
+      ).run();
+
+      // Table for tracking real-time active users
+      await env.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS active_users (
+           user_id TEXT PRIMARY KEY,
+           last_seen_at TEXT NOT NULL
+         )`
+      ).run();
+      await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_active_users_last_seen ON active_users(last_seen_at)').run();
     })();
   }
 
   await securityTablesInit;
+}
+
+async function handleReportError(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+  const body = await readJson<{ mediaType: string; mediaId: string; code: string; message: string; isFebboxAuth?: boolean }>(request);
+  
+  const now = new Date().toISOString();
+  const dateKey = now.split('T')[0];
+
+  if (!body.isFebboxAuth) {
+    await env.DB.prepare(
+      `INSERT INTO player_errors (id, media_type, media_id, error_code, error_message, user_agent, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), body.mediaType, body.mediaId, body.code, body.message, request.headers.get('User-Agent') || 'unknown', now).run();
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO daily_player_stats (date, attempts, failures) VALUES (?, 1, 1)
+     ON CONFLICT(date) DO UPDATE SET attempts = attempts + 1, failures = failures + 1`
+  ).bind(dateKey).run();
+
+  return json(request, env, { ok: true });
+}
+
+async function handleReportSuccess(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+  const dateKey = new Date().toISOString().split('T')[0];
+
+  await env.DB.prepare(
+    `INSERT INTO daily_player_stats (date, attempts, successes) VALUES (?, 1, 1)
+     ON CONFLICT(date) DO UPDATE SET attempts = attempts + 1, successes = successes + 1`
+  ).bind(dateKey).run();
+
+  return json(request, env, { ok: true });
+}
+
+async function handleAdminHealth(request: Request, env: Env): Promise<Response> {
+  const session = await requireRole(request, env, ['owner', 'admin']);
+  if (session instanceof Response) return session;
+
+  const dateKey = new Date().toISOString().split('T')[0];
+  const stats = await env.DB.prepare('SELECT * FROM daily_player_stats WHERE date = ?').bind(dateKey).first<{ attempts: number; successes: number; failures: number }>();
+  
+  const recentErrors = await env.DB.prepare(
+    'SELECT * FROM player_errors ORDER BY created_at DESC LIMIT 20'
+  ).all();
+
+  return json(request, env, {
+    today: stats || { attempts: 0, successes: 0, failures: 0 },
+    errors: recentErrors.results || [],
+  });
+}
+
+async function handleAdminFebboxTokens(request: Request, env: Env): Promise<Response> {
+  const session = await requireRole(request, env, ['owner', 'admin']);
+  if (session instanceof Response) return session;
+
+  if (request.method === 'GET') {
+    const tokens = await env.DB.prepare('SELECT * FROM febbox_tokens ORDER BY created_at DESC').all();
+    return json(request, env, { items: tokens.results || [] });
+  }
+
+  if (request.method === 'POST') {
+    const body = await readJson<{ token: string; label?: string }>(request);
+    if (!body.token) return json(request, env, { error: 'Token is required' }, 400);
+    
+    await env.DB.prepare(
+      'INSERT INTO febbox_tokens (token, label, created_at) VALUES (?, ?, ?)'
+    ).bind(body.token, body.label || 'Public Token', new Date().toISOString()).run();
+    
+    return json(request, env, { ok: true });
+  }
+
+  if (request.method === 'PUT') {
+    const body = await readJson<{ token: string; isActive?: boolean; isBanned?: boolean }>(request);
+    
+    if (typeof body.isActive === 'boolean') {
+      await env.DB.prepare('UPDATE febbox_tokens SET is_active = ? WHERE token = ?').bind(body.isActive ? 1 : 0, body.token).run();
+    }
+    if (typeof body.isBanned === 'boolean') {
+      await env.DB.prepare('UPDATE febbox_tokens SET is_banned = ? WHERE token = ?').bind(body.isBanned ? 1 : 0, body.token).run();
+    }
+    
+    return json(request, env, { ok: true });
+  }
+
+  if (request.method === 'DELETE') {
+    const url = new URL(request.url);
+    const token = url.searchParams.get('token');
+    await env.DB.prepare('DELETE FROM febbox_tokens WHERE token = ?').bind(token).run();
+    return json(request, env, { ok: true });
+  }
+
+  return json(request, env, { error: 'Method not allowed' }, 405);
+}
+
+async function updateActiveUser(env: Env, request: Request, userId?: string): Promise<void> {
+  try {
+    const now = new Date().toISOString();
+    const identifier = userId || `guest_${await sha256Hex(request.headers.get('CF-Connecting-IP') || '0.0.0.0')}`;
+    
+    await env.DB.prepare(
+      'INSERT INTO active_users (user_id, last_seen_at) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at'
+    ).bind(identifier, now).run();
+  } catch {
+    // ignore
+  }
+}
+
+async function getActiveUsersCount(env: Env): Promise<{ users: number; guests: number }> {
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const rows = await env.DB.prepare(
+      'SELECT user_id FROM active_users WHERE last_seen_at > ?'
+    ).bind(fiveMinutesAgo).all<{ user_id: string }>();
+    
+    const results = rows.results || [];
+    const users = results.filter(r => !r.user_id.startsWith('guest_')).length;
+    const guests = results.filter(r => r.user_id.startsWith('guest_')).length;
+    
+    return { users, guests };
+  } catch {
+    return { users: 0, guests: 0 };
+  }
+}
+
+async function getUserRole(env: Env, userId: string): Promise<string | null> {
+  try {
+    const row = await env.DB.prepare('SELECT user_id, role, expires_at FROM admin_users WHERE user_id = ?').bind(userId).first<{ user_id: string; role: string; expires_at: string | null }>();
+    if (!row?.user_id) return null;
+    if (row.expires_at && new Date(row.expires_at) < new Date()) {
+      // Expired admin – remove entry
+      await env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(userId).run();
+      return null;
+    }
+    return row.role || 'admin';
+  } catch {
+    return null;
+  }
 }
 
 async function ensureFeedbackTables(env: Env): Promise<void> {
@@ -410,7 +589,8 @@ async function ensureWatchPartyTables(env: Env): Promise<void> {
              updated_at TEXT NOT NULL,
              expires_at TEXT NOT NULL
            )`
-        ),
+          ),
+
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_watch_party_rooms_expires ON watch_party_rooms(expires_at)'),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS watch_party_participants (
@@ -428,7 +608,6 @@ async function ensureWatchPartyTables(env: Env): Promise<void> {
       ]);
     })();
   }
-
   await watchPartyTablesInit;
 }
 
@@ -613,6 +792,8 @@ type SessionUser = {
     email?: string;
     createdAt: string;
     isAdmin: boolean;
+    role: string | null;
+    requiresPasswordChange: boolean;
   };
 };
 
@@ -772,13 +953,13 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
   if (!token) return null;
 
   const row = await env.DB.prepare(
-    `SELECT u.id, u.username, u.email, u.created_at
+    `SELECT u.id, u.username, u.email, u.created_at, u.requires_password_change
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token = ? AND s.expires_at > ?`
   )
     .bind(token, new Date().toISOString())
-    .first<{ id: string; username: string; email: string; created_at: string }>();
+    .first<{ id: string; username: string; email: string; created_at: string; requires_password_change: number }>();
 
   if (!row) return null;
 
@@ -797,14 +978,18 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
 
   await linkUserIdentifiers(env, row.id, identifiers);
 
-  const admin = await isAdminUser(env, row.id);
+  const adminRole = await getUserRole(env, row.id);
+  await updateActiveUser(env, request, row.id);
+
   return {
     token,
     user: {
       id: row.id,
       username: row.username,
       createdAt: row.created_at,
-      isAdmin: admin,
+      isAdmin: adminRole !== null,
+      role: adminRole,
+      requiresPasswordChange: Boolean(row.requires_password_change),
     },
   };
 }
@@ -871,9 +1056,33 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
       username,
       createdAt: now,
       isAdmin: false,
+      role: null,
     },
     token,
   });
+}
+
+async function handlePasswordChange(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+
+  const body = await readJson<{ currentPassword?: string; newPassword?: string }>(request);
+  const { currentPassword, newPassword } = body;
+
+  if (!currentPassword || !newPassword || newPassword.length < 6) {
+    return json(request, env, { error: 'Invalid password data' }, 400);
+  }
+
+  const row = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(session.user.id).first<{ password_hash: string }>();
+  if (!row) return json(request, env, { error: 'User not found' }, 404);
+
+  const verification = await verifyPassword(currentPassword, row.password_hash);
+  if (!verification.ok) return json(request, env, { error: 'Current password incorrect' }, 401);
+
+  const newHash = await hashPassword(newPassword);
+  await env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 0 WHERE id = ?').bind(newHash, session.user.id).run();
+
+  return json(request, env, { ok: true });
 }
 
 async function handleVerifyEmail(request: Request, env: Env): Promise<Response> {
@@ -958,14 +1167,16 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
 
   await linkUserIdentifiers(env, row.id, identifiers);
 
-  const admin = await isAdminUser(env, row.id);
+  const role = await getUserRole(env, row.id);
+  await updateActiveUser(env, request, row.id);
 
   return json(request, env, {
     user: {
       id: row.id,
       username: row.username,
       createdAt: row.created_at,
-      isAdmin: admin,
+      isAdmin: role !== null,
+      role,
     },
     token,
   });
@@ -1013,14 +1224,15 @@ async function handleProfile(request: Request, env: Env): Promise<Response> {
   }
 
   await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(username, session.user.id).run();
-  const admin = await isAdminUser(env, session.user.id);
+  const role = await getUserRole(env, session.user.id);
   return json(request, env, {
     ok: true,
     user: {
       id: session.user.id,
       username,
       createdAt: session.user.createdAt,
-      isAdmin: admin,
+      isAdmin: role !== null,
+      role,
     },
   });
 }
@@ -1255,16 +1467,9 @@ async function handleWatchPartyState(request: Request, env: Env): Promise<Respon
 
   if (!room?.id) return json(request, env, { error: 'Room not found or expired' }, 404);
 
-  if (since && room.updated_at <= since) {
-    return json(request, env, {
-      ok: true,
-      changed: false,
-      roomId,
-      updatedAt: room.updated_at,
-      participantCount: room.participant_count || 1,
-      recommendedGuestPollMs: 10000,
-    });
-  }
+  const now = new Date().toISOString();
+  const state = JSON.parse(room.state_json || '{}');
+  const isPaused = Boolean(state.paused ?? true);
 
   return json(request, env, {
     ok: true,
@@ -1277,10 +1482,11 @@ async function handleWatchPartyState(request: Request, env: Env): Promise<Respon
     season: room.season,
     episode: room.episode,
     title: room.title,
-    state: JSON.parse(room.state_json || '{}'),
+    state,
     participantCount: room.participant_count || 1,
     updatedAt: room.updated_at,
-    recommendedGuestPollMs: 10000,
+    serverNow: now,
+    recommendedGuestPollMs: isPaused ? 5000 : 2500,
   });
 }
 
@@ -1624,6 +1830,15 @@ async function requireAdmin(request: Request, env: Env): Promise<SessionUser | R
   return session;
 }
 
+async function requireRole(request: Request, env: Env, allowedRoles: string[]): Promise<SessionUser | Response> {
+  const session = await getSessionUser(request, env);
+  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+    return json(request, env, { error: 'Forbidden: Insufficient permissions' }, 403);
+  }
+  return session;
+}
+
 async function handlePublicAnnouncements(request: Request, env: Env): Promise<Response> {
   const rows = await env.DB.prepare(
     `SELECT id, message, type, link_url, link_label, updated_at
@@ -1652,26 +1867,28 @@ async function handlePublicAnnouncements(request: Request, env: Env): Promise<Re
 }
 
 async function handleAdminOverview(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
 
   await ensureSecurityTables(env);
 
-  const [users, activeSessions, bannedUsernames, bannedIps, activeAnnouncements] = await Promise.all([
+  const [users, activeSessions, bannedUsernames, bannedIps, activeAnnouncements, activeCounts] = await Promise.all([
     env.DB.prepare('SELECT COUNT(*) as count FROM users').first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?').bind(new Date().toISOString()).first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM banned_usernames').first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM banned_ip_hashes').first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM announcements WHERE is_active = 1').first<{ count: number }>(),
+    getActiveUsersCount(env),
   ]);
 
   return json(request, env, {
     stats: {
       users: users?.count || 0,
       activeSessions: activeSessions?.count || 0,
-      bannedUsernames: bannedUsernames?.count || 0,
-      bannedIps: bannedIps?.count || 0,
+      banned: (bannedUsernames?.count || 0) + (bannedIps?.count || 0),
       activeAnnouncements: activeAnnouncements?.count || 0,
+      activeUsers: activeCounts.users,
+      activeGuests: activeCounts.guests,
     },
     admin: session.user,
   });
@@ -2064,8 +2281,29 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
   return json(request, env, { error: 'Method not allowed' }, 405);
 }
 
+async function handleAdminResetPassword(request: Request, env: Env): Promise<Response> {
+  const session = await requireRole(request, env, ['owner']);
+  if (session instanceof Response) return session;
+
+  const body = await readJson<{ username: string }>(request);
+  const username = normalizeUsername(body.username || '');
+  if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
+
+  const targetUser = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
+  if (!targetUser?.id) return json(request, env, { error: 'User not found' }, 404);
+
+  // Generate 8-char temp password
+  const tempPassword = crypto.randomUUID().slice(0, 8);
+  const hash = await sha256Hex(tempPassword);
+
+  await env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 1 WHERE id = ?').bind(hash, targetUser.id).run();
+  await writeAdminAuditLog(env, session.user.id, 'reset_password', 'user', targetUser.id, { username });
+
+  return json(request, env, { ok: true, temporaryPassword: tempPassword });
+}
+
 async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
 
   if (request.method === 'GET') {
@@ -2095,6 +2333,9 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method === 'DELETE') {
+    if (session.user.role !== 'owner' && session.user.role !== 'admin') {
+      return json(request, env, { error: 'Forbidden: Insufficient permissions' }, 403);
+    }
     const url = new URL(request.url);
     const username = normalizeUsername(url.searchParams.get('username') || '');
     if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
@@ -2105,6 +2346,14 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
 
     const row = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
     if (!row?.id) return json(request, env, { error: 'User not found' }, 404);
+
+    // Hierarchy protection: Admins cannot delete other Admins or Owners
+    const targetRole = await getUserRole(env, row.id);
+    if (session.user.role === 'admin') {
+      if (targetRole === 'admin' || targetRole === 'owner') {
+        return json(request, env, { error: 'Admins cannot delete other Admins or Owners' }, 403);
+      }
+    }
 
     await env.DB.batch([
       env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(row.id),
@@ -2123,24 +2372,25 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner', 'admin']);
   if (session instanceof Response) return session;
 
   await ensureSecurityTables(env);
 
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
-      `SELECT a.user_id, u.username, a.granted_by, a.expires_at, a.created_at
+      `SELECT a.user_id, u.username, a.role, a.granted_by, a.expires_at, a.created_at
        FROM admin_users a
        LEFT JOIN users u ON u.id = a.user_id
        ORDER BY a.created_at DESC
        LIMIT 100`
-    ).all<{ user_id: string; username: string | null; granted_by: string | null; expires_at: string | null; created_at: string }>();
+    ).all<{ user_id: string; username: string | null; role: string; granted_by: string | null; expires_at: string | null; created_at: string }>();
 
     return json(request, env, {
       items: (rows.results || []).map((row) => ({
         userId: row.user_id,
         username: row.username || 'unknown',
+        role: row.role || 'admin',
         grantedBy: row.granted_by || null,
         expiresAt: row.expires_at || null,
         createdAt: row.created_at,
@@ -2149,15 +2399,31 @@ async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
   }
 
   if (request.method === 'POST') {
-    const body = await readJson<{ username?: string; expiresInDays?: number }>(request);
+    const body = await readJson<{ username?: string; role?: string; expiresInDays?: number }>(request);
     const username = normalizeUsername(body.username || '');
+    const requestedRole = (body.role || 'moderator').toLowerCase();
+    
+    if (!['owner', 'admin', 'moderator'].includes(requestedRole)) {
+      return json(request, env, { error: 'Invalid role' }, 400);
+    }
+
+    // Role hierarchy check
+    if (session.user.role === 'admin' && requestedRole !== 'moderator') {
+      return json(request, env, { error: 'Admins can only grant Moderator role' }, 403);
+    }
+
     if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
 
     const targetUser = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
     if (!targetUser?.id) return json(request, env, { error: 'User not found' }, 404);
 
-    const existingAdmin = await env.DB.prepare('SELECT user_id FROM admin_users WHERE user_id = ?').bind(targetUser.id).first<{ user_id: string }>();
-    if (existingAdmin) return json(request, env, { error: 'User is already an admin' }, 409);
+    const existingAdmin = await env.DB.prepare('SELECT user_id, role FROM admin_users WHERE user_id = ?').bind(targetUser.id).first<{ user_id: string; role: string }>();
+    if (existingAdmin) {
+      if (session.user.role === 'admin') {
+        return json(request, env, { error: 'User already has administrative privileges' }, 409);
+      }
+      // Owners can upgrade/downgrade existing admins
+    }
 
     const now = new Date().toISOString();
     let expiresAt: string | null = null;
@@ -2168,11 +2434,12 @@ async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
     }
 
     await env.DB.prepare(
-      `INSERT INTO admin_users (user_id, granted_by, expires_at, created_at)
-       VALUES (?, ?, ?, ?)`
-    ).bind(targetUser.id, session.user.id, expiresAt, now).run();
+      `INSERT INTO admin_users (user_id, role, granted_by, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET role = excluded.role, granted_by = excluded.granted_by, expires_at = excluded.expires_at`
+    ).bind(targetUser.id, requestedRole, session.user.id, expiresAt, now).run();
 
-    await writeAdminAuditLog(env, session.user.id, 'grant_admin', 'user', targetUser.id, { username, expiresAt });
+    await writeAdminAuditLog(env, session.user.id, 'grant_admin', 'user', targetUser.id, { username, role: requestedRole, expiresAt });
     return json(request, env, { ok: true });
   }
 
@@ -2183,6 +2450,18 @@ async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
 
     if (userId === session.user.id) {
       return json(request, env, { error: 'You cannot revoke your own admin access' }, 400);
+    }
+
+    const target = await env.DB.prepare('SELECT role FROM admin_users WHERE user_id = ?').bind(userId).first<{ role: string }>();
+    if (!target) return json(request, env, { error: 'User not found in admin list' }, 404);
+
+    // Permission check for revoking
+    if (session.user.role === 'admin') {
+      if (target.role !== 'moderator') {
+        return json(request, env, { error: 'Admins can only revoke Moderator access' }, 403);
+      }
+    } else if (session.user.role !== 'owner') {
+      return json(request, env, { error: 'Forbidden' }, 403);
     }
 
     await env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(userId).run();
@@ -2274,7 +2553,7 @@ async function handleAdminAuditLogs(request: Request, env: Env): Promise<Respons
 }
 
 async function handleAdminFeedback(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
   await cleanupExpiredClosedFeedbackThreads(env);
@@ -2331,8 +2610,9 @@ async function handleAdminFeedback(request: Request, env: Env): Promise<Response
 }
 
 async function handleAdminFeedbackMessages(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
+
   await ensureFeedbackTables(env);
   await cleanupExpiredClosedFeedbackThreads(env);
 
@@ -2371,7 +2651,7 @@ async function handleAdminFeedbackMessages(request: Request, env: Env): Promise<
 }
 
 async function handleAdminFeedbackReply(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
   await cleanupExpiredClosedFeedbackThreads(env);
@@ -2773,6 +3053,15 @@ export default {
 
       const url = new URL(request.url);
 
+      // Track activity for all requests except health checks and preflights
+      if (!['/', '/health'].includes(url.pathname)) {
+        await ensureSecurityTables(env);
+        
+        if (!request.headers.get('Authorization')) {
+          await updateActiveUser(env, request);
+        }
+      }
+
       switch (url.pathname) {
         case '/':
           return await handleHealth(request, env);
@@ -2784,6 +3073,9 @@ export default {
         case '/auth/login':
           if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleLogin(request, env);
+        case '/auth/change-password':
+          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handlePasswordChange(request, env);
         case '/auth/verify-email':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleVerifyEmail(request, env);
@@ -2838,6 +3130,12 @@ export default {
         case '/admin/overview':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminOverview(request, env);
+        case '/admin/health':
+          return await handleAdminHealth(request, env);
+        case '/api/report-error':
+          return await handleReportError(request, env);
+        case '/api/report-success':
+          return await handleReportSuccess(request, env);
         case '/admin/bans':
           if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminBans(request, env);
@@ -2859,6 +3157,9 @@ export default {
         case '/admin/users':
           if (!['GET', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminUsers(request, env);
+        case '/admin/users/reset-password':
+          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAdminResetPassword(request, env);
         case '/admin/grant':
           if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminGrant(request, env);

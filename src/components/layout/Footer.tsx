@@ -5,9 +5,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export function Footer() {
   const year = new Date().getFullYear();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <footer className="footer-glass">
@@ -15,8 +21,20 @@ export function Footer() {
         <div className="flex flex-col items-center gap-6 text-center">
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-gradient-to-br from-accent to-accent-hover shadow-[0_0_20px_var(--accent-glow)]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21" /></svg>
+            <div className="flex h-6 w-6 items-center justify-center rounded-[7px] shadow-[0_0_16px_var(--accent-glow)] bg-transparent p-0">
+              {/* Inline SVG favicon with dynamic accent color, rounded square, play triangle with padding */}
+              {isClient && (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="footer-accent" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="var(--accent)" />
+                      <stop offset="1" stopColor="var(--accent-hover)" />
+                    </linearGradient>
+                  </defs>
+                  <rect x="0" y="0" width="24" height="24" rx="7" fill="url(#footer-accent)" />
+                  <polygon points="10,7.5 16,12 10,16.5" fill="white" />
+                </svg>
+              )}
             </div>
             <span className="text-[15px] font-semibold text-white tracking-tight">NexVid</span>
           </div>

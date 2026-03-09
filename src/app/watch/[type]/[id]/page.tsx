@@ -142,7 +142,7 @@ export default function WatchPage() {
   const [dismissedTokenNoticeSitewide, setDismissedTokenNoticeSitewide] = useState(false);
 
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const { isLoggedIn, authToken: sessionToken } = useAuthStore();
   const { getByTmdbId, updateProgress } = useWatchlistStore();
   const { febboxApiKey, introDbApiKey } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -252,6 +252,7 @@ export default function WatchPage() {
           season: seasonNum,
           episode: episodeNum,
           febboxCookie: effectiveFebboxToken,
+          sessionToken,
         });
 
         const externalCaptions = await loadExternalCaptions({
@@ -277,7 +278,7 @@ export default function WatchPage() {
     } finally {
       loadingRef.current = false;
     }
-  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro]);
+  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken]);
 
   useEffect(() => {
     if (!duration || duration < 30 || !currentTime) return;

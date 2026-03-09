@@ -53,6 +53,7 @@ export interface ScrapeOptions {
   season?: number;
   episode?: number;
   febboxCookie?: string;
+  sessionToken?: string | null;
   episodeTmdbId?: string;
   seasonTmdbId?: string;
   seasonTitle?: string;
@@ -86,6 +87,10 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       if (options.episode) params.set('episode', String(options.episode));
     }
 
+    if (options.febboxCookie) {
+      params.set('febboxToken', options.febboxCookie);
+    }
+
     params.set('source', sourceId);
 
     options.onProgress?.({ id: sourceId, percentage: 30, status: 'pending' });
@@ -93,6 +98,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
     const response = await fetch(`/api/stream?${params.toString()}`, {
       headers: {
         ...(options.febboxCookie ? { 'x-febbox-cookie': options.febboxCookie } : {}),
+        ...(options.sessionToken ? { 'Authorization': `Bearer ${options.sessionToken}` } : {}),
       },
       signal: AbortSignal.timeout(20000),
     });

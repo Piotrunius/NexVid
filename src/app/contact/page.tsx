@@ -131,6 +131,18 @@ export default function ContactPage() {
   };
 
   useEffect(() => {
+    if (!selectedThreadId || !isLoggedIn) return;
+
+    const pollInterval = setInterval(() => {
+      loadUserFeedbackMessages(selectedThreadId)
+        .then(res => setMessages(res.items || []))
+        .catch(() => {});
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [selectedThreadId, isLoggedIn]);
+
+  useEffect(() => {
     loadThreads(false);
   }, [isLoggedIn]);
 

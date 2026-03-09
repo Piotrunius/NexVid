@@ -1,0 +1,22 @@
+# NexVid LLMs Policy
+
+site: https://nexvid.online
+name: NexVid
+summary: Streaming discovery hub for movies and TV shows with watchlists, search, and playback features.
+
+## Allowed
+- Public informational pages and metadata
+- Non-authenticated browsing pages
+- robots.txt and sitemap.xml discovery
+
+## Restricted
+- /admin
+- /api/
+- Authenticated user-specific data
+- Personal watchlist/account content
+
+## Canonical
+- https://nexvid.online/
+
+## Contact
+- https://nexvid.online/contact

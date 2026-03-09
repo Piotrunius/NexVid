@@ -20,7 +20,7 @@ export function formatTime(seconds: number): string {
 }
 
 export function tmdbImage(path: string | null, size: string = 'w500'): string {
-  if (!path) return '/placeholder.png';
+  if (!path) return '/placeholder.svg';
   return `https://image.tmdb.org/t/p/${size}${path}`;
 }
 

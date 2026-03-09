@@ -121,28 +121,28 @@ export async function loadCloudWatchlist() {
   return cloudFetch<{ items: any[] }>('/user/watchlist', { method: 'GET' });
 }
 
-export async function loadPublicAnnouncements() {
-  const apiUrl = getApiUrl();
-  if (!apiUrl) return { announcements: [] as any[] };
+export async function changeCloudPassword(payload: { currentPassword?: string; newPassword?: string }) {
+  return cloudFetch<{ ok: boolean }>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
 
+export async function loadPublicAnnouncements() {
   try {
-    const response = await fetch(`${apiUrl}/public/announcements`, {
+    return await cloudFetch<{ announcements: any[] }>('/public/announcements', {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
+      // @ts-ignore
       signal: AbortSignal.timeout(10000),
     });
-
-    const data = await response.json().catch(() => ({ announcements: [] }));
-    if (!response.ok) return { announcements: [] as any[] };
-    return data as { announcements: any[] };
   } catch {
     return { announcements: [] as any[] };
   }
 }
 
 export async function loadAdminOverview() {
-  return cloudFetch<{ stats: { users: number; activeSessions: number; bannedUsernames: number; bannedIps: number; activeAnnouncements: number }; admin: { id: string; username: string } }>('/admin/overview', { method: 'GET' });
+  return cloudFetch<{ stats: { users: number; activeSessions: number; banned: number; activeAnnouncements: number; activeUsers: number; activeGuests: number }; admin: { id: string; username: string; role: string } }>('/admin/overview', { method: 'GET' });
 }
 
 export async function loadAdminBans() {
@@ -229,18 +229,25 @@ export async function deleteAdminUserByUsername(username: string) {
   return cloudFetch(`/admin/users?username=${encodeURIComponent(username)}`, { method: 'DELETE' });
 }
 
+export async function resetUserPassword(username: string) {
+  return cloudFetch<{ ok: boolean; temporaryPassword?: string }>('/admin/users/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  });
+}
+
 export async function loadAdminUsers() {
   return cloudFetch<{ items: { id: string; username: string; createdAt: string; lastActiveAt: string }[] }>('/admin/users', { method: 'GET' });
 }
 
 export async function loadAdminGrantList() {
-  return cloudFetch<{ items: { userId: string; username: string; grantedBy: string | null; expiresAt: string | null; createdAt: string }[] }>('/admin/grant', { method: 'GET' });
+  return cloudFetch<{ items: { userId: string; username: string; role: string; grantedBy: string | null; expiresAt: string | null; createdAt: string }[] }>('/admin/grant', { method: 'GET' });
 }
 
-export async function grantAdminPermission(username: string, expiresInDays?: number) {
+export async function grantAdminPermission(username: string, expiresInDays?: number, role?: string) {
   return cloudFetch<{ ok: boolean }>('/admin/grant', {
     method: 'POST',
-    body: JSON.stringify({ username, expiresInDays: expiresInDays || undefined }),
+    body: JSON.stringify({ username, expiresInDays: expiresInDays || undefined, role: role || 'moderator' }),
   });
 }
 
@@ -278,6 +285,49 @@ export async function clearCloudEverything() {
   return cloudFetch<{ ok: boolean; deleted: { account: boolean; settings: boolean; watchlist: boolean; sessions: boolean } }>('/user/clear-everything', {
     method: 'DELETE',
   });
+}
+
+export async function loadAdminHealth() {
+  return cloudFetch<{
+    today: { attempts: number; successes: number; failures: number };
+    errors: { id: string; media_type: string; media_id: string; error_code: string; error_message: string; created_at: string }[];
+  }>('/admin/health', { method: 'GET' });
+}
+
+export async function reportPlayerError(mediaType: string, mediaId: string, code: string, message: string, isFebboxAuth: boolean, febboxToken?: string) {
+  return cloudFetch('/api/report-error', {
+    method: 'POST',
+    body: JSON.stringify({ mediaType, mediaId, code, message, isFebboxAuth, febboxToken }),
+  });
+}
+
+export async function reportPlayerSuccess(febboxToken?: string) {
+  return cloudFetch('/api/report-success', {
+    method: 'POST',
+    body: JSON.stringify({ febboxToken }),
+  });
+}
+
+export async function loadAdminFebboxTokens() {
+  return cloudFetch<{ items: { token: string; label: string; is_active: number; is_banned: number; usage_count: number; error_count: number; last_used_at: string | null; created_at: string }[] }>('/admin/febbox-tokens', { method: 'GET' });
+}
+
+export async function addAdminFebboxToken(token: string, label?: string) {
+  return cloudFetch('/admin/febbox-tokens', {
+    method: 'POST',
+    body: JSON.stringify({ token, label }),
+  });
+}
+
+export async function updateAdminFebboxToken(token: string, isActive?: boolean, isBanned?: boolean) {
+  return cloudFetch('/admin/febbox-tokens', {
+    method: 'PUT',
+    body: JSON.stringify({ token, isActive, isBanned }),
+  });
+}
+
+export async function deleteAdminFebboxToken(token: string) {
+  return cloudFetch(`/admin/febbox-tokens?token=${encodeURIComponent(token)}`, { method: 'DELETE' });
 }
 
 export async function loadUserFeedbackThreads() {
@@ -422,6 +472,7 @@ export async function createWatchParty(payload: {
     participantId: string;
     role: WatchPartyRole;
     state: WatchPartyPlaybackState;
+    serverNow: string;
     recommendedHostPushMs: number;
     recommendedGuestPollMs: number;
   }>('/watch-party/create', {
@@ -450,6 +501,7 @@ export async function joinWatchParty(payload: {
     title?: string;
     state: WatchPartyPlaybackState;
     updatedAt: string;
+    serverNow: string;
     recommendedGuestPollMs: number;
   }>('/watch-party/join', {
     method: 'POST',
@@ -474,6 +526,7 @@ export async function loadWatchPartyState(roomId: string, since?: string) {
     state?: WatchPartyPlaybackState;
     participantCount?: number;
     updatedAt: string;
+    serverNow: string;
     recommendedGuestPollMs: number;
   }>(`/watch-party/state?${qs.toString()}`, { method: 'GET' });
 }

@@ -3,7 +3,7 @@
    Local-first auth with optional backend sync
    ============================================ */
 
-import { clearCloudToken, CloudApiError, getCloudApiUrl, getCloudToken, loadCloudMe, setCloudToken, updateCloudNickname } from '@/lib/cloudSync';
+import { changeCloudPassword, clearCloudToken, CloudApiError, getCloudApiUrl, getCloudToken, loadCloudMe, setCloudToken, updateCloudNickname as apiUpdateNickname } from '@/lib/cloudSync';
 import { generateId } from '@/lib/utils';
 import type { User } from '@/types';
 import { create } from 'zustand';
@@ -25,6 +25,7 @@ interface AuthStore {
   registerWithBackend: (username: string, password: string, turnstileToken?: string | null) => Promise<void>;
   hydrateBackendSession: () => Promise<void>;
   updateNicknameWithBackend: (username: string) => Promise<void>;
+  changePasswordWithBackend: (currentPassword?: string, newPassword?: string) => Promise<void>;
 
   updateProfile: (partial: Partial<User>) => void;
 }
@@ -168,10 +169,31 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       updateNicknameWithBackend: async (username: string) => {
-        const result = await updateCloudNickname(username);
-        set((state: any) => ({
-          user: state.user ? { ...state.user, username: result?.user?.username || username } : state.user,
-        }));
+        set({ isLoading: true });
+        try {
+          await apiUpdateNickname(username);
+          set((state: any) => ({
+            user: state.user ? { ...state.user, username } : null,
+            isLoading: false,
+          }));
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      changePasswordWithBackend: async (currentPassword?: string, newPassword?: string) => {
+        set({ isLoading: true });
+        try {
+          await changeCloudPassword({ currentPassword, newPassword });
+          set((state: any) => ({
+            user: state.user ? { ...state.user, requiresPasswordChange: false } : null,
+            isLoading: false,
+          }));
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
       },
 
       updateProfile: (partial: Partial<User>) =>

@@ -310,7 +310,7 @@ export function Navbar() {
             {isBellOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsBellOpen(false)} />
-                <div className="fixed top-20 left-1/2 z-50 w-80" style={{ transform: 'translateX(-50%)' }}>
+                <div className="fixed top-[88px] left-1/2 z-50 w-80" style={{ transform: 'translateX(-50%)' }}>
                   <div className="panel-glass w-full overflow-hidden animate-scale-in">
                 <div className="px-4 py-3">
                   <p className="text-[13px] font-semibold text-white">Notifications</p>
@@ -359,7 +359,7 @@ export function Navbar() {
                             <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
                           </svg>
                         </div>
-                        <p className="flex-1 break-all whitespace-pre-wrap text-[11px] leading-relaxed text-white/40">
+                        <p className="flex-1 break-words whitespace-pre-wrap text-[11px] leading-relaxed text-white/40">
                           {a.message}
                           {a.link && (
                             <a href={a.link.url} target="_blank" rel="noopener noreferrer" className="ml-1 font-medium text-accent hover:underline">{a.link.label}</a>
@@ -415,7 +415,7 @@ export function Navbar() {
               </button>
 
               {isProfileOpen && (
-                <div className="panel-glass absolute right-0 top-[calc(100%+8px)] z-50 w-56 overflow-hidden p-2 animate-scale-in">
+                <div className="panel-glass absolute right-0 top-[calc(100%+16px)] z-50 w-56 overflow-hidden p-2 animate-scale-in">
                   <div className="mb-1 px-3 py-2.5">
                     <p className="truncate text-[13px] font-medium text-white">{user?.username}</p>
                     <p className="text-[11px] text-white/30 mt-0.5">Logged in</p>

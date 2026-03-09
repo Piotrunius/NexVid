@@ -13,14 +13,13 @@ import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AccentColor } from '@/types';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 export default function SettingsPage() {
   const store = useSettingsStore();
   const settings = store.settings;
   const publicTokenActive = settings.febboxApiKey === PUBLIC_FEBBOX_TOKEN_PLACEHOLDER;
-  const { user, isLoggedIn, updateProfile, updateNicknameWithBackend, logout } = useAuthStore();
+  const { user, isLoggedIn, updateProfile, updateNicknameWithBackend, changePasswordWithBackend, logout } = useAuthStore();
   const { exportItems, importItems, clearAll } = useWatchlistStore();
   const [proxyTestStatus, setProxyTestStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
   const [newUsername, setNewUsername] = useState('');
@@ -109,12 +108,20 @@ export default function SettingsPage() {
     input.click();
   };
 
-  const handlePasswordReset = () => {
+  const handlePasswordReset = async () => {
     if (!currentPassword || !newPassword) { toast('Fill in both password fields', 'error'); return; }
     if (newPassword.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
-    setCurrentPassword('');
-    setNewPassword('');
-    toast('Password updated', 'success');
+    
+    try {
+      if (hasCloudBackend()) {
+        await changePasswordWithBackend(currentPassword, newPassword);
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      toast('Password updated', 'success');
+    } catch (error: any) {
+      toast(error?.message || 'Failed to update password', 'error');
+    }
   };
 
   const handleNicknameChange = async () => {
@@ -417,42 +424,6 @@ export default function SettingsPage() {
           </div>
         </SettingsCard>
 
-        {/* ── About ── */}
-        <SettingsCard title="About" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>}>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-gradient-to-br from-accent to-accent-hover shadow-[0_0_20px_var(--accent-glow)]">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21" /></svg>
-              </div>
-              <div>
-                <span className="text-[15px] font-semibold text-white tracking-tight">NexVid</span>
-                <p className="text-[11px] text-text-muted">Streaming made simple</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3 text-[13px]">
-              {[
-                { href: '/credits', label: 'Credits' },
-                { href: '/privacy', label: 'Privacy' },
-                { href: '/terms', label: 'Terms' },
-                { href: '/dmca', label: 'DMCA' },
-                { href: '/contact', label: 'Contact' },
-              ].map((link) => (
-                <Link key={link.href} href={link.href} className="text-text-muted hover:text-text-primary transition-colors duration-200">
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-            <div className="text-[12px] text-text-muted leading-relaxed">
-              <p>
-                Created by{' '}
-                <a href="https://piotrunius.github.io" target="_blank" rel="noopener noreferrer" className="text-accent/60 hover:text-accent transition-colors duration-300">
-                  Piotrunius
-                </a>
-              </p>
-              <p className="mt-1 text-white/20">© {new Date().getFullYear()} NexVid · MIT License</p>
-            </div>
-          </div>
-        </SettingsCard>
       </div>
     </div>
   );
