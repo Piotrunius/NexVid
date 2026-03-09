@@ -25,6 +25,7 @@ pnpm-debug.log*
 .vercel/
 .wrangler/
 wrangler-*.log
+wrangler.toml
 
 # typescript
 *.tsbuildinfo
