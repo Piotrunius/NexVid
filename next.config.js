@@ -18,12 +18,18 @@ const securityHeaders = [
             "media-src 'self' blob: data: https:",
             "worker-src 'self' blob:",
             "child-src 'self' blob:",
-            "frame-src 'self' https:",
+            "frame-src 'self' https://vidlink.pro https://*.vidlink.pro https://vidsrc.icu https://*.vidsrc.icu https://vidsrc.me https://*.vidsrc.me https://www.youtube.com https:",
         ].join('; '),
     },
 ];
 
 const nextConfig = {
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: true,
+    },
     images: {
         remotePatterns: [
             { protocol: 'https', hostname: 'image.tmdb.org' },

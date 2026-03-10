@@ -211,6 +211,7 @@ export interface UserSettings {
   idlePauseOverlay: boolean;
   proxyUrl: string;
   febboxApiKey: string;
+  disableEmbeds: boolean;
   introDbApiKey: string;
   preferredSources: string[];
   disabledSources: string[];

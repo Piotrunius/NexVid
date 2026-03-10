@@ -144,7 +144,7 @@ export default function WatchPage() {
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
   const { getByTmdbId, updateProgress } = useWatchlistStore();
-  const { febboxApiKey, introDbApiKey } = useSettingsStore((s) => s.settings);
+  const { febboxApiKey, introDbApiKey, disableEmbeds, accentColor, customAccentHex, autoPlay, autoNext, idlePauseOverlay } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
@@ -182,7 +182,7 @@ export default function WatchPage() {
   }, [introDbApiKey]);
 
   const loadMedia = useCallback(async () => {
-    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}`;
+    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}-${accentColor}-${customAccentHex}-${autoPlay}-${autoNext}-${idlePauseOverlay}`;
     if (loadingRef.current || lastLoadKey.current === loadKey) return;
     loadingRef.current = true;
     lastLoadKey.current = loadKey;
@@ -253,7 +253,17 @@ export default function WatchPage() {
           episode: episodeNum,
           febboxCookie: effectiveFebboxToken,
           sessionToken,
+          accentColor,
+          customAccentHex,
+          autoPlay,
+          autoNext,
+          idlePauseOverlay,
         });
+
+        // Filter out embeds if settings forbid them
+        const filteredResults = disableEmbeds 
+          ? results.filter(r => r.stream.type !== 'embed')
+          : results;
 
         const externalCaptions = await loadExternalCaptions({
           imdbId: extImdbId,
@@ -262,12 +272,22 @@ export default function WatchPage() {
           episode: episodeNum,
         });
 
-        if (results.length > 0) {
-          const mergedCaptions = mergeCaptionSets(mergeSourceCaptions(results), externalCaptions);
-          setSourceResults(results);
-          setSourceIndex(0);
-          setStream(withMergedCaptions(results[0].stream, mergedCaptions));
-          setScrapeStatus('success');
+        if (filteredResults.length > 0) {
+          const mergedCaptions = mergeCaptionSets(mergeSourceCaptions(filteredResults), externalCaptions);
+          setSourceResults(filteredResults);
+          
+          // Find first non-embed source for automatic selection
+          const autoIdx = filteredResults.findIndex(r => r.stream.type !== 'embed');
+          
+          if (autoIdx !== -1) {
+            setSourceIndex(autoIdx);
+            setStream(withMergedCaptions(filteredResults[autoIdx].stream, mergedCaptions));
+            setScrapeStatus('success');
+          } else {
+            // No direct source found, stay in "error" state so user sees source selector
+            // but we still keep the results so they can click them manually
+            setScrapeStatus('error');
+          }
         } else {
           setScrapeStatus('error');
         }
@@ -278,7 +298,7 @@ export default function WatchPage() {
     } finally {
       loadingRef.current = false;
     }
-  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken]);
+  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken, accentColor, customAccentHex, autoPlay, autoNext, idlePauseOverlay]);
 
   useEffect(() => {
     if (!duration || duration < 30 || !currentTime) return;

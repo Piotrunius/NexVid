@@ -27,7 +27,7 @@ const LOGIN_BLOCK_MS = 30 * 60 * 1000;
 const DEFAULT_MAX_ACCOUNTS_PER_IP = 2;
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, X-NexVid-Activity',
   'Access-Control-Expose-Headers': '*',
   'Access-Control-Max-Age': '86400',
@@ -1578,7 +1578,8 @@ async function handleUserFeedback(request: Request, env: Env): Promise<Response>
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
   await ensureFeedbackTables(env);
-  await cleanupExpiredClosedFeedbackThreads(env);
+  // Automatic cleanup disabled - threads persist for admins
+  // await cleanupExpiredClosedFeedbackThreads(env);
 
   if (request.method === 'GET') {
     const threads = await env.DB.prepare(
@@ -1654,7 +1655,8 @@ async function handleUserFeedbackMessages(request: Request, env: Env): Promise<R
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
   await ensureFeedbackTables(env);
-  await cleanupExpiredClosedFeedbackThreads(env);
+  // Automatic cleanup disabled - threads persist for admins
+  // await cleanupExpiredClosedFeedbackThreads(env);
 
   if (request.method === 'GET') {
     const url = new URL(request.url);
@@ -2556,7 +2558,8 @@ async function handleAdminFeedback(request: Request, env: Env): Promise<Response
   const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
-  await cleanupExpiredClosedFeedbackThreads(env);
+  // Automatic cleanup disabled - threads persist for admins
+  // await cleanupExpiredClosedFeedbackThreads(env);
 
   if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
 
@@ -2614,7 +2617,8 @@ async function handleAdminFeedbackMessages(request: Request, env: Env): Promise<
   if (session instanceof Response) return session;
 
   await ensureFeedbackTables(env);
-  await cleanupExpiredClosedFeedbackThreads(env);
+  // Automatic cleanup disabled - threads persist for admins
+  // await cleanupExpiredClosedFeedbackThreads(env);
 
   if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
 
@@ -2654,7 +2658,8 @@ async function handleAdminFeedbackReply(request: Request, env: Env): Promise<Res
   const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
-  await cleanupExpiredClosedFeedbackThreads(env);
+  // Automatic cleanup disabled - threads persist for admins
+  // await cleanupExpiredClosedFeedbackThreads(env);
 
   if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
 
@@ -2693,7 +2698,7 @@ async function handleAdminFeedbackReply(request: Request, env: Env): Promise<Res
 }
 
 async function handleAdminFeedbackDelete(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner']);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
 
@@ -3035,6 +3040,119 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
 
 /* ──── Router ──── */
 
+/* ──── Surveys & Feedback ──── */
+
+async function handleAdminSurveys(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  if (!session || !session.user.isAdmin) return json(request, env, { error: 'Unauthorized' }, 401);
+
+  if (request.method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT * FROM surveys ORDER BY created_at DESC').all();
+    const mapped = results.map((s: any) => ({
+      ...s,
+      questions: typeof s.questions === 'string' ? JSON.parse(s.questions) : s.questions
+    }));
+    return json(request, env, { surveys: mapped });
+  }
+
+  if (request.method === 'POST') {
+    const body = await readJson<{ title: string; description?: string; questions: any[] }>(request);
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await env.DB.prepare('INSERT INTO surveys (id, title, description, questions, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)')
+      .bind(id, body.title, body.description || '', JSON.stringify(body.questions), now, now)
+      .run();
+    
+    await writeAdminAuditLog(env, session.user.id, 'create_survey', 'survey', id, { title: body.title });
+    
+    return json(request, env, { ok: true, id });
+  }
+
+  if (request.method === 'PATCH') {
+    const body = await readJson<{ id: string; isActive: boolean }>(request);
+    if (body.isActive) {
+      await env.DB.prepare('UPDATE surveys SET is_active = 0').run();
+    }
+    await env.DB.prepare('UPDATE surveys SET is_active = ?, updated_at = ? WHERE id = ?')
+      .bind(body.isActive ? 1 : 0, new Date().toISOString(), body.id)
+      .run();
+
+    await writeAdminAuditLog(env, session.user.id, body.isActive ? 'activate_survey' : 'deactivate_survey', 'survey', body.id, null);
+
+    return json(request, env, { ok: true });
+  }
+
+  if (request.method === 'DELETE') {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    if (!id) return json(request, env, { error: 'Missing id' }, 400);
+    await env.DB.prepare('DELETE FROM surveys WHERE id = ?').bind(id).run();
+
+    await writeAdminAuditLog(env, session.user.id, 'delete_survey', 'survey', id, null);
+
+    return json(request, env, { ok: true });
+  }
+
+  return json(request, env, { error: 'Method not allowed' }, 405);
+}
+
+async function handleAdminSurveyResults(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  if (!session || !session.user.isAdmin) return json(request, env, { error: 'Unauthorized' }, 401);
+
+  const url = new URL(request.url);
+  const id = url.searchParams.get('id');
+  if (!id) return json(request, env, { error: 'Missing id' }, 400);
+
+  const { results } = await env.DB.prepare('SELECT * FROM survey_responses WHERE survey_id = ? ORDER BY created_at DESC').bind(id).all();
+  return json(request, env, { responses: results });
+}
+
+async function handlePublicSurvey(request: Request, env: Env): Promise<Response> {
+  const row = await env.DB.prepare('SELECT id, title, description, questions FROM surveys WHERE is_active = 1 LIMIT 1').first<{ id: string; title: string; description: string; questions: string }>();
+  if (!row) return json(request, env, { survey: null });
+  return json(request, env, { survey: { ...row, questions: JSON.parse(row.questions) } });
+}
+
+async function handleSurveyRespond(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  const body = await readJson<{ surveyId: string; answers: any }>(request);
+  const now = new Date().toISOString();
+
+  await env.DB.prepare('INSERT INTO survey_responses (survey_id, user_id, answers, created_at) VALUES (?, ?, ?, ?)')
+    .bind(body.surveyId, session?.user.id || null, JSON.stringify(body.answers), now)
+    .run();
+
+  return json(request, env, { ok: true });
+}
+
+async function handleAdminCreateChat(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  if (!session || !session.user.isAdmin) return json(request, env, { error: 'Unauthorized' }, 401);
+
+  const body = await readJson<{ targetUserId: string; subject: string; message: string }>(request);
+  const { targetUserId, subject, message } = body;
+
+  const threadId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(
+    'INSERT INTO feedback_threads (id, user_id, subject, category, status, created_at, updated_at, last_reply_at, admin_last_reply_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  )
+    .bind(threadId, targetUserId, subject, 'contact', 'answered', now, now, now, now)
+    .run();
+
+  await env.DB.prepare(
+    'INSERT INTO feedback_messages (id, thread_id, sender_user_id, sender_role, message, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+    .bind(crypto.randomUUID(), threadId, session.user.id, 'admin', message, now)
+    .run();
+
+  await writeAdminAuditLog(env, session.user.id, 'create_chat_thread', 'feedback_thread', threadId, { targetUserId, subject });
+
+  return json(request, env, { ok: true, threadId });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
@@ -3175,6 +3293,20 @@ export default {
         case '/admin/feedback/thread':
           if (!['DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminFeedbackDelete(request, env);
+        case '/admin/feedback/create-chat':
+          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAdminCreateChat(request, env);
+        case '/admin/surveys':
+          return await handleAdminSurveys(request, env);
+        case '/admin/surveys/results':
+          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAdminSurveyResults(request, env);
+        case '/public/survey':
+          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handlePublicSurvey(request, env);
+        case '/public/survey/respond':
+          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleSurveyRespond(request, env);
         case '/proxy':
           return await handleProxy(request, env);
         case '/hls':

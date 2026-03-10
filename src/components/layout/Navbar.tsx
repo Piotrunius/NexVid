@@ -145,8 +145,9 @@ export function Navbar() {
   if (!mounted) return null;
   if (isWatchPage) return null;
 
-  const unreadNotifications = notifications.filter((item) => !item.isRead).length;
-  const totalNotifCount = announcements.length + unreadNotifications;
+  const unreadNotifications = notifications.filter((item) => !item.isRead && item.type !== 'feedback_reply');
+  const hasUnreadFeedback = notifications.some((item) => !item.isRead && item.type === 'feedback_reply');
+  const totalNotifCount = announcements.length + unreadNotifications.length;
 
   const dockItems = [
     { href: '/', id: 'home', label: 'Home', icon: (
@@ -300,11 +301,10 @@ export function Navbar() {
                   <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                 </svg>
                 {totalNotifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent text-[9px] font-bold text-white px-1 shadow-[0_0_12px_var(--accent-glow)]">
-                    {totalNotifCount}
-                  </span>
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
                 )}
-              </div>
+                </div>
+
             </button>
 
             {isBellOpen && (
@@ -324,7 +324,7 @@ export function Navbar() {
                   </div>
                 ) : (
                   <div className="max-h-80 overflow-y-auto p-2 space-y-1">
-                    {notifications.map((item) => (
+                    {notifications.filter(n => n.type !== 'feedback_reply').map((item) => (
                       <button
                         key={item.id}
                         onClick={async () => {
@@ -459,6 +459,9 @@ export function Navbar() {
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
+                  {hasUnreadFeedback && (
+                    <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
+                  )}
                 </div>
               </Link>
 

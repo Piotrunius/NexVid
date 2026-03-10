@@ -56,3 +56,26 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_watchlist_user ON watchlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_history_user ON watch_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_history_tmdb ON watch_history(tmdb_id);
+
+-- Surveys table
+CREATE TABLE IF NOT EXISTS surveys (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  questions TEXT NOT NULL, -- JSON array of question objects
+  is_active INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Survey responses table
+CREATE TABLE IF NOT EXISTS survey_responses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  survey_id TEXT NOT NULL REFERENCES surveys(id) ON DELETE CASCADE,
+  user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  answers TEXT NOT NULL, -- JSON object of answers {questionId: answer}
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_surveys_active ON surveys(is_active);
+CREATE INDEX IF NOT EXISTS idx_responses_survey ON survey_responses(survey_id);

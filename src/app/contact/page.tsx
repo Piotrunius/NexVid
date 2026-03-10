@@ -333,7 +333,7 @@ export default function ContactPage() {
                       <p className="text-[12px] font-medium text-text-primary line-clamp-1">{thread.subject}</p>
                       <p className="mt-0.5 text-[11px] text-text-muted">{thread.category} · {thread.status === 'answered' ? 'resolved' : thread.status}</p>
                       {thread.status === 'closed' && (
-                        <p className="mt-1 text-[10px] text-red-500">Archive auto-delete in {formatRemaining(thread.closedRemainingMs)}</p>
+                        <p className="mt-1 text-[10px] text-red-500/80 font-medium">Archived · Visible for 14 days</p>
                       )}
                     </button>
                   ))}
@@ -356,14 +356,13 @@ export default function ContactPage() {
                     <p className="mt-0.5 text-[11px] text-text-muted">{selectedThread.category} · {selectedStatus === 'answered' ? 'resolved by admin' : selectedStatus}</p>
                     {selectedStatus === 'answered' && <p className="mt-1 text-[11px] font-semibold text-emerald-500">Marked as resolved</p>}
                     {selectedStatus === 'closed' && (
-                      <p className="mt-1 text-[11px] font-semibold text-red-500">
-                        Archived (read-only). Auto-delete in {formatRemaining(selectedClosedRemainingMs)}
-                        {selectedClosedExpiresAt ? ` · ${new Date(selectedClosedExpiresAt).toLocaleString()}` : ''}
+                      <p className="mt-1 text-[11px] font-semibold text-red-500/80">
+                        Archived thread (read-only) · Visible for 14 days after closing
                       </p>
                     )}
                   </div>
 
-                  <div className="mt-3 flex-1 min-h-0 space-y-2 overflow-auto pr-1">
+                  <div className="mt-3 flex-1 min-h-0 space-y-3 overflow-auto pr-1">
                     {messages.length === 0 ? (
                       <p className="text-[13px] text-text-muted">No messages yet.</p>
                     ) : (
@@ -371,31 +370,47 @@ export default function ContactPage() {
                         <div
                           key={item.id}
                           className={cn(
-                            'max-w-[90%] rounded-[12px] px-3 py-2.5 text-[13px] leading-relaxed',
-                            item.senderRole === 'admin'
-                              ? 'bg-accent/10 text-text-primary'
-                              : 'bg-[var(--bg-glass-light)] text-text-secondary ml-auto'
+                            "flex flex-col gap-1",
+                            item.senderRole === 'user' ? "items-end" : "items-start"
                           )}
                         >
-                          <p className="text-[11px] font-semibold mb-1 opacity-80">{item.senderRole === 'admin' ? 'Admin' : 'You'}</p>
-                          <p className="whitespace-pre-wrap">{item.message}</p>
+                          <div
+                            className={cn(
+                              "max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] leading-relaxed shadow-sm",
+                              item.senderRole === 'admin'
+                                ? "bg-accent text-white rounded-tr-[4px]"
+                                : "bg-white/10 text-white/90 rounded-tl-[4px]"
+                            )}
+                          >
+                            <p className="whitespace-pre-wrap">{item.message}</p>
+                          </div>
+                          <p className="text-[10px] text-white/30 px-1 font-medium">
+                            {item.senderRole === 'admin' ? 'Support' : 'You'} · {new Date(item.createdAt).toLocaleString()}
+                          </p>
                         </div>
                       ))
                     )}
                   </div>
 
-                  <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-2">
-                    <textarea
-                      className="input min-h-24 w-full"
-                      value={replyText}
-                      onChange={(event) => setReplyText(event.target.value)}
-                      placeholder={isSelectedClosed ? 'Thread is closed (read-only archive)' : 'Write a reply...'}
-                      maxLength={4000}
-                      disabled={isSelectedClosed || isSubmitting}
-                    />
-                    <button disabled={isSubmitting || isSelectedClosed} onClick={handleReply} className="btn-glass w-full">
-                      Send reply
-                    </button>
+                  <div className="mt-3 border-t border-[var(--border)] pt-3">
+                    <div className="flex gap-2">
+                      <textarea
+                        className="input min-h-12 max-h-32 flex-1"
+                        value={replyText}
+                        onChange={(event) => setReplyText(event.target.value)}
+                        placeholder={isSelectedClosed ? 'Thread is archived' : 'Write message...'}
+                        maxLength={4000}
+                        disabled={isSelectedClosed || isSubmitting}
+                        rows={1}
+                      />
+                      <button 
+                        disabled={isSubmitting || isSelectedClosed || !replyText.trim()} 
+                        onClick={handleReply} 
+                        className="btn-accent px-5 shrink-0"
+                      >
+                        Send
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

@@ -20,6 +20,16 @@ export default function PrivacyPage() {
           </p>
         </section>
 
+        <section className="mt-8">
+          <p className="text-[13px] text-text-muted">
+            Created by{' '}
+            <a href="https://piotrunius.github.io" target="_blank" rel="noopener noreferrer" className="text-accent/60 hover:text-accent transition-colors duration-300">
+              Piotrunius
+            </a>{' '}
+            · © {new Date().getFullYear()} NexVid · All rights reserved.
+          </p>
+        </section>
+
         <section>
           <h2 className="text-[15px] font-semibold text-text-primary mb-2">2. Data We Process</h2>
           <p>
@@ -57,21 +67,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">4. Optional Cloud Sync</h2>
-          <p>
-            If <code className="text-accent">NEXT_PUBLIC_API_URL</code> is configured and you use backend login,
-            NexVid can sync data with that backend. In that mode, data may be transmitted to endpoints such as
-            <code className="text-accent"> /auth/me</code>, <code className="text-accent"> /user/profile</code>,
-            <code className="text-accent"> /user/settings</code>, and <code className="text-accent"> /user/watchlist</code>.
-          </p>
-          <p className="mt-2">
-            This deployment may be self-hosted or operated by a third party. Data retention, geographic location,
-            and infrastructure controls for synced data depend on that backend operator.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">5. Third-Party Services</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">4. Third-Party Services</h2>
           <p>NexVid may connect to external services needed to render content and metadata:</p>
           <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
             <li><strong>TMDB API</strong> &mdash; movie/show metadata, posters, and search data</li>
@@ -85,7 +81,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">6. Cookies and Local Storage</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">5. Cookies and Local Storage</h2>
           <p>
             NexVid uses only technically necessary client-side storage (primarily <code className="text-accent">localStorage</code>)
             and authentication/session mechanisms required to operate the service. We do not use advertising or tracking cookies.
@@ -97,7 +93,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">7. Retention</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">6. Retention</h2>
           <p>
             We keep data only as long as needed for account operation, service reliability, and abuse prevention.
             Retention may vary by data type (e.g., session records vs. moderation logs) and may be adjusted
@@ -106,7 +102,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">8. Analytics</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">7. Analytics</h2>
           <p>
             This deployment does not use behavioral advertising trackers.
             If operational telemetry is enabled by the infrastructure provider, it is used for reliability/security,
@@ -115,7 +111,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">9. Your Rights (EU/EEA)</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">8. Your Rights (EU/EEA)</h2>
           <p>
             Subject to applicable law, you may request access, rectification, erasure, restriction, objection,
             and data portability where relevant. You may also object to processing based on legitimate interest.
@@ -123,7 +119,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">10. Your Control</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">9. Your Control</h2>
           <p>
             You can delete all stored data at any time by clearing your browser&apos;s localStorage,
             or by using the &ldquo;Clear Everything&rdquo; option in the Settings page.
@@ -135,7 +131,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">11. Contact</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">10. Contact</h2>
           <p>
             For privacy requests related to this deployment (including account deletion or access request),
             contact the service operator using the support/contact channel provided in this deployment.

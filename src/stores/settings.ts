@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   idlePauseOverlay: true,
   proxyUrl: '',
   febboxApiKey: '',
+  disableEmbeds: false,
   introDbApiKey: '',
   preferredSources: [],
   disabledSources: [],

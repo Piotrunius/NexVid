@@ -6,6 +6,7 @@
 
 import type {
   AudioTrack,
+  EmbedStream,
   FileBasedStream,
   HlsBasedStream,
   MediaType,
@@ -28,10 +29,14 @@ export function configureProviders(newConfig: ProviderConfig) {
 
 const SOURCES: SourceMeta[] = [
   { id: 'febbox', name: 'FebBox', rank: 300, type: 'source' },
+  { id: 'videasy', name: 'Videasy', rank: 250, type: 'embed' },
+  { id: 'vidlink', name: 'VidLink Pro', rank: 200, type: 'embed' },
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
   febbox: 'FebBox',
+  videasy: 'Videasy',
+  vidlink: 'VidLink Pro',
 };
 
 function mapQuality(raw: string): StreamQuality {
@@ -58,6 +63,11 @@ export interface ScrapeOptions {
   seasonTmdbId?: string;
   seasonTitle?: string;
   episodeCount?: number;
+  accentColor?: string;
+  customAccentHex?: string;
+  autoPlay?: boolean;
+  autoNext?: boolean;
+  idlePauseOverlay?: boolean;
   onProgress?: (progress: ScrapeProgress) => void;
   onSourceFound?: (result: SourceResult) => void;
   onDebugLog?: (entry: { step: string; source?: string; message: string; data?: any }) => void;
@@ -70,10 +80,75 @@ function pushDebug(
   options.onDebugLog?.(entry);
 }
 
+function getAccentHex(color?: string, customHex?: string): string {
+  if (color === 'custom' && customHex) return customHex.replace('#', '');
+  const colors: Record<string, string> = {
+    indigo: '6366f1',
+    violet: '8b5cf6',
+    rose: 'f43f5e',
+    emerald: '10b981',
+    amber: 'f59e0b',
+    cyan: '06b6d4',
+  };
+  return colors[color || 'indigo'] || '6366f1';
+}
+
 async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<SourceResult | null> {
   try {
     const sourceLabel = SOURCE_LABELS[sourceId] || sourceId;
     pushDebug(options, { step: sourceId, message: `Starting ${sourceLabel} resolution` });
+
+    if (sourceId === 'videasy') {
+      options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
+      const baseUrl = 'https://player.videasy.net';
+      let embedUrl = '';
+      if (options.mediaType === 'movie') {
+        embedUrl = `${baseUrl}/movie/${options.tmdbId}`;
+      } else {
+        embedUrl = `${baseUrl}/tv/${options.tmdbId}/${options.season || 1}/${options.episode || 1}`;
+      }
+
+      const url = new URL(embedUrl);
+      const accentHex = getAccentHex(options.accentColor, options.customAccentHex);
+      url.searchParams.set('color', accentHex);
+      url.searchParams.set('nextEpisode', options.autoNext ? 'true' : 'false');
+      url.searchParams.set('autoplayNextEpisode', options.autoNext ? 'true' : 'false');
+      url.searchParams.set('episodeSelector', 'true');
+      url.searchParams.set('overlay', options.idlePauseOverlay ? 'true' : 'false');
+
+      const stream: EmbedStream = {
+        type: 'embed',
+        url: url.toString(),
+      };
+
+      options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
+      pushDebug(options, { step: 'done', source: sourceId, message: `Using ${sourceLabel} embed` });
+      return { sourceId, stream };
+    }
+
+    if (sourceId === 'vidlink') {
+      options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
+      const baseUrl = 'https://vidlink.pro';
+      let embedUrl = '';
+      if (options.mediaType === 'movie') {
+        embedUrl = `${baseUrl}/movie/${options.tmdbId}`;
+      } else {
+        embedUrl = `${baseUrl}/tv/${options.tmdbId}/${options.season || 1}/${options.episode || 1}`;
+      }
+
+      const url = new URL(embedUrl);
+      url.searchParams.set('primaryColor', '6366f1');
+
+      const stream: EmbedStream = {
+        type: 'embed',
+        url: url.toString(),
+      };
+
+      options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
+      pushDebug(options, { step: 'done', source: sourceId, message: `Using ${sourceLabel} embed` });
+      return { sourceId, stream };
+    }
+
     options.onProgress?.({ id: sourceId, percentage: 10, status: 'pending' });
 
     const params = new URLSearchParams({
