@@ -165,6 +165,8 @@ body {
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     border: none;
     box-shadow: var(--shadow-ambient), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+    isolation: isolate;
+    transform: translateZ(0);
 }
 
 .glass-heavy {
@@ -220,6 +222,8 @@ body {
     border-radius: var(--glass-radius);
     box-shadow: var(--shadow-ambient), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
     transition: transform 0.6s var(--spring), box-shadow 0.6s var(--spring);
+    isolation: isolate;
+    transform: translateZ(0);
 }
 
 .glass-card:hover {
@@ -273,6 +277,8 @@ body {
     position: relative;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    isolation: isolate;
+    transform: translateZ(0);
 }
 
 .btn-glass:hover {
@@ -365,6 +371,7 @@ select.input {
     background-repeat: no-repeat;
     background-position: right 14px center;
     padding-right: 36px;
+    transition: background-color 0.4s var(--spring), box-shadow 0.4s var(--spring), transform 0.4s var(--spring);
 }
 
 select.input option {

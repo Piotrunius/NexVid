@@ -9,6 +9,7 @@
 
 import { createWatchParty, joinWatchParty, leaveWatchParty, loadWatchPartyState, updateWatchPartyState, loadPublicAnnouncements, reportPlayerSuccess, reportPlayerError, type WatchPartyPlaybackState, type WatchPartyRole } from '@/lib/cloudSync';
 import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER } from '@/lib/febbox';
+import { getAvailableSources } from '@/lib/providers';
 import type { MediaSegments } from '@/lib/tidb';
 import { submitSegment } from '@/lib/tidb';
 import { getSeasonDetails } from '@/lib/tmdb';
@@ -62,7 +63,7 @@ interface PlayerProps {
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
-const KNOWN_SOURCE_ORDER = ['febbox'] as const;
+const KNOWN_SOURCE_ORDER = ['febbox', 'videasy', 'vidlink'] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = 'nexvid-subtitle-appearance';
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 
@@ -267,7 +268,39 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     setAudioTracks, setActiveAudioTrack,
   } = usePlayerStore();
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey } = useSettingsStore((s) => s.settings);
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Handle VidLink
+      if (event.origin === 'https://vidlink.pro') {
+        if (event.data?.type === 'PLAYER_EVENT') {
+          const { event: eventType, currentTime: time, duration: dur } = event.data.data;
+          if (eventType === 'timeupdate' && time && dur) {
+            setCurrentTime(time);
+            setDuration(dur);
+          }
+        }
+        return;
+      }
+
+      // Handle Videasy
+      if (event.origin === 'https://player.videasy.net') {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          if (data && typeof data.timestamp === 'number' && typeof data.duration === 'number') {
+            setCurrentTime(data.timestamp);
+            setDuration(data.duration);
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [setCurrentTime, setDuration]);
+
+  const { skipIntro, skipOutro, autoSkipSegments, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey, disableEmbeds } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
@@ -282,7 +315,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       }
     : undefined);
 
-  const [settingsPanel, setSettingsPanel] = useState<'main' | 'quality' | 'speed' | 'subtitles' | 'subAppearance' | 'episodes' | 'info' | 'segments' | 'playback' | 'skip' | 'watchParty' | 'sources' | null>(null);
+  const [settingsPanel, setSettingsPanel] = useState<'main' | 'quality' | 'speed' | 'subtitles' | 'subAppearance' | 'episodes' | 'info' | 'segments' | 'playback' | 'skip' | 'watchParty' | 'alternative' | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [hoverProgress, setHoverProgress] = useState<number | null>(null);
   const [captionTrackUrls, setCaptionTrackUrls] = useState<Record<string, string>>({});
@@ -320,6 +353,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [showInfoWatchlistMenu, setShowInfoWatchlistMenu] = useState(false);
   const [isEpisodeNavigating, setIsEpisodeNavigating] = useState(false);
   const [showIdlePauseOverlay, setShowIdlePauseOverlay] = useState(false);
+  const [isEmbedNoticeDismissed, setIsEmbedNoticeDismissed] = useState(false);
   const [idleSnapshot, setIdleSnapshot] = useState<string | null>(null);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
@@ -605,6 +639,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         audio.removeAttribute('src');
         audio.load();
       }
+      setPlaying(false);
+      setLoading(false);
     };
   }, [stream, defaultQuality, playerVolume, playbackSpeed, autoPlay, canTryNextSource, onTryNextSource]);
 
@@ -1642,13 +1678,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     >
       {/* Embed iframe or native video */}
       {stream?.type === 'embed' ? (
-        <div className="absolute inset-x-0 top-[56px] bottom-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
           <iframe
             src={stream.url}
             title="Embedded video player"
             className={cn('h-full w-full border-0', embedLockState !== 'unlocked' && 'pointer-events-none')}
             allowFullScreen
-            allow="autoplay; encrypted-media; fullscreen"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
             referrerPolicy="origin"
           />
         </div>
@@ -1708,26 +1744,57 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         </div>
       )}
 
-      {stream?.type === 'embed' && embedLockState === 'locked' && (
-        <div className="absolute inset-x-0 bottom-20 z-30 flex justify-center px-4">
-          <div className="rounded-[12px] bg-black/70 px-4 py-3 backdrop-blur-sm flex flex-wrap items-center justify-center gap-2">
-            <p className="w-full text-center text-[11px] text-white/70">Embed interaction is locked to prevent malicious redirects.</p>
-            <button
-              onClick={() => setEmbedLockState('unlocked')}
-              className="rounded-[8px] bg-accent/80 px-3 py-1.5 text-[11px] text-white font-medium hover:bg-accent transition-colors"
-            >
-              Enable clicks
-            </button>
-            <a
-              href={stream.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white hover:bg-white/20 transition-colors"
-            >
-              Open in new tab
-            </a>
+      {stream?.type === 'embed' && !isEmbedNoticeDismissed && embedLockState === 'locked' && (
+        <div className="absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
+          <div className="rounded-[20px] bg-black/85 p-5 backdrop-blur-2xl flex flex-col items-center gap-4 max-w-sm border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)] animate-scale-in">
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-center text-[13px] font-semibold text-white">Embed Interaction Locked</p>
+              <p className="text-center text-[11px] text-white/50 leading-relaxed px-4">
+                Clicks are restricted to prevent malicious redirects and popups from the provider.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2.5 w-full">
+              <button
+                onClick={() => setEmbedLockState('unlocked')}
+                className="flex items-center justify-center gap-2 rounded-[12px] bg-accent px-3 py-2.5 text-[11px] text-white font-bold hover:brightness-110 transition-all shadow-lg shadow-accent/25"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                Enable Clicks
+              </button>
+
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center justify-center gap-2 rounded-[12px] bg-white/10 px-3 py-2.5 text-[11px] text-white font-bold hover:bg-white/15 transition-all border border-white/5"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" suppressHydrationWarning><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Native Player
+              </button>
+
+              <a
+                href={stream.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-[12px] bg-white/10 px-3 py-2.5 text-[11px] text-white font-bold hover:bg-white/15 transition-all border border-white/5"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+                Open in Tab
+              </a>
+
+              <button
+                onClick={() => setIsEmbedNoticeDismissed(true)}
+                className="flex items-center justify-center gap-2 rounded-[12px] bg-white/5 px-3 py-2.5 text-[11px] text-white/40 font-bold hover:bg-white/10 hover:text-white/60 transition-all"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                Hide Notice
+              </button>
+            </div>
+
             {sourceLabel && (
-              <p className="w-full text-center text-[11px] text-white/50">Current source: {formatSourceName(sourceLabel)}</p>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[10px] font-bold text-white/40 tracking-wider uppercase">{formatSourceName(sourceLabel)}</p>
+              </div>
             )}
           </div>
         </div>
@@ -1871,42 +1938,11 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       )}
 
       {/* Top Bar - shown for all stream types */}
-      {stream?.type === 'embed' ? (
-        <div className="absolute top-0 left-0 right-0 flex items-center gap-3 px-5 pt-4 pb-12 bg-gradient-to-b from-black/70 to-transparent z-30">
-          {onBack && (
-            <button onClick={onBack} className="rounded-[8px] p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
-            </button>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              {title && <p className="text-[13px] font-semibold text-white truncate">{title}</p>}
-              {media && (
-                <button
-                  onClick={() => setSettingsPanel(settingsPanel === 'info' ? null : 'info')}
-                  className={cn(
-                    'shrink-0 rounded-[8px] p-1.5 transition-colors',
-                    settingsPanel === 'info' ? 'text-accent' : 'text-white/70 hover:bg-white/10 hover:text-white'
-                  )}
-                  title="Info"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            {subtitle && <p className="text-[11px] text-white/60 truncate">{subtitle}</p>}
-          </div>
-        </div>
-      ) : (
-      <>
-      {/* Top Bar */}
       <div className={cn(
-        'absolute top-0 left-0 right-0 flex items-center gap-3 px-5 pt-4 pb-12 z-20',
-        'bg-gradient-to-b from-black/70 to-transparent',
+        'absolute top-0 left-0 right-0 flex items-center gap-3 px-3 sm:px-5 pt-4 pb-12 z-[40]',
+        'bg-gradient-to-b from-black/80 to-transparent',
         'transition-opacity duration-300',
-        (controlsVisible || scrapeStatus === 'error' || (error && !stream)) ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        (stream?.type === 'embed' || controlsVisible || scrapeStatus === 'error' || (error && !stream)) ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}>
         {onBack && (
           <button onClick={onBack} className="rounded-[8px] p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors">
@@ -1933,11 +1969,28 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           </div>
           {subtitle && <p className="text-[11px] text-white/60 truncate">{subtitle}</p>}
         </div>
-        {playbackSpeed !== 1 && (
-          <span className="rounded-[6px] bg-accent/80 px-2 py-0.5 text-[11px] font-bold text-white">{playbackSpeed}x</span>
-        )}
-      </div>
 
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Restore Locked Notice button if hidden */}
+            {stream?.type === 'embed' && isEmbedNoticeDismissed && embedLockState === 'locked' && (
+              <button
+                onClick={() => setIsEmbedNoticeDismissed(false)}
+                className="rounded-[8px] p-2 text-amber-400/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
+                title="Show interaction notice"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+                </svg>
+              </button>
+            )}
+
+            {playbackSpeed !== 1 && stream?.type !== 'embed' && (
+              <span className="rounded-[6px] bg-accent/80 px-2 py-0.5 text-[11px] font-bold text-white">{playbackSpeed}x</span>
+            )}
+          </div>
+          </div>
+      {stream?.type === 'embed' ? null : (
+      <>
       {/* Bottom Controls */}
       <div className={cn(
         'player-controls',
@@ -1999,9 +2052,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21" /></svg>
               )}
-            </button>
-            <button onClick={skipBackward} className="hidden rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors sm:inline-flex" title="Rewind 10s">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12.5 8-6 4 6 4V8z" /><path d="M19 8l-6 4 6 4V8z" /></svg>
             </button>
             <button onClick={skipForward} className="hidden rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors sm:inline-flex" title="Forward 10s">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m11.5 16 6-4-6-4v8z" /><path d="M5 16l6-4-6-4v8z" /></svg>
@@ -2355,52 +2405,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                     </div>
                   )}
 
-                  {/* Sources Sub-panel */}
-                  {settingsPanel === 'sources' && (
-                    <div>
-                      <button onClick={() => setSettingsPanel('main')} className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
-                        Sources
-                      </button>
-
-                      <div className="space-y-2 rounded-[12px] bg-white/[0.02] p-2">
-                        {sourceCatalog.length > 0 ? (
-                          sourceCatalog.map((source, index) => {
-                            const isCurrent = source.available && source.resultIndex === currentSourceIndex;
-                            return (
-                              <button
-                                key={`${source.id}-${index}`}
-                                disabled={!source.available}
-                                onClick={() => {
-                                  if (!source.available) return;
-                                  onSelectSource?.(source.resultIndex);
-                                  setSettingsPanel(null);
-                                }}
-                                className={cn(
-                                  'w-full rounded-[9px] px-3 py-2 text-left text-[12px] transition-colors',
-                                  isCurrent
-                                    ? 'bg-accent/20 text-accent'
-                                    : source.available
-                                      ? 'bg-white/10 text-white/75 hover:bg-white/15 hover:text-white'
-                                      : 'bg-white/5 text-white/35 cursor-not-allowed'
-                                )}
-                              >
-                                <span className="flex items-center justify-between gap-2">
-                                  <span className="truncate">{source.name}</span>
-                                  <span className={cn('text-[10px]', isCurrent ? 'text-emerald-300/90' : source.available ? 'text-white/45' : 'text-amber-300/80')}>
-                                    {isCurrent ? 'Current' : source.available ? `Source ${index + 1}` : 'Unavailable'}
-                                  </span>
-                                </span>
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <p className="px-2 py-1.5 text-[11px] text-white/45">No alternative sources available.</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Playback Sub-panel */}
                   {settingsPanel === 'playback' && (
                     <div>
@@ -2750,6 +2754,28 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 </div>
               )}
             </div>
+
+            {/* Alternative Source Switcher (Only if embeds are enabled) */}
+            {!disableEmbeds && (
+              <button
+                onClick={() => {
+                  const altIdx = allSourceResults?.findIndex(r => r.stream.type === 'embed') ?? -1;
+                  if (onSelectSource && altIdx !== -1) {
+                    onSelectSource(altIdx);
+                  } else if (onTryNextSource) {
+                    onTryNextSource();
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+                className="rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                title="Alternative Source"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" suppressHydrationWarning>
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+              </button>
+            )}
 
             {/* Fullscreen */}
             <button onClick={toggleFullscreen} className="rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Fullscreen (F)">

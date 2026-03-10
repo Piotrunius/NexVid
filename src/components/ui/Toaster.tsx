@@ -6,6 +6,7 @@
 
 import { cn } from '@/lib/utils';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useSettingsStore } from '@/stores/settings';
 
 interface Toast {
   id: string;
@@ -74,14 +75,17 @@ export function Toaster() {
     warning: '⚠',
   };
 
+  const { glassEffect } = useSettingsStore((s) => s.settings);
+
   return (
     <div className="fixed bottom-20 left-1/2 z-[100] flex flex-col items-center gap-2" style={{ transform: 'translateX(-50%)' }}>
       {toasts.map((t) => (
         <div
           key={t.id}
           className={cn(
-            'glass-card glass-liquid animate-slide-up flex items-center gap-3 px-4 py-3',
-            'min-w-[280px] max-w-[400px] cursor-pointer backdrop-blur-[40px]',
+            'glass-card animate-slide-up flex items-center gap-3 px-4 py-3',
+            'min-w-[280px] max-w-[400px] cursor-pointer',
+            glassEffect && 'glass-liquid backdrop-blur-[40px]',
             typeStyles[t.type]
           )}
           onClick={() => removeToast(t.id)}

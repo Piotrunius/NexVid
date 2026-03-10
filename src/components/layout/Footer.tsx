@@ -56,12 +56,11 @@ export function Footer() {
           {/* Info */}
           <div className="text-[12px] text-white/20 leading-relaxed">
             <p>
-              Created by{' '}
               <a href="https://piotrunius.github.io" target="_blank" rel="noopener noreferrer" className="text-accent/60 hover:text-accent transition-colors duration-300">
-                Piotrunius
+                Created by Piotrunius
               </a>
             </p>
-            <p className="mt-1">© {year} NexVid · MIT License</p>
+            <p className="mt-1">© {year} NexVid · All rights reserved.</p>
           </div>
         </div>
       </div>

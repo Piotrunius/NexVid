@@ -240,6 +240,24 @@ export default function SettingsPage() {
               </button>
             </SettingsRow>
 
+            <SettingsRow label="Streaming Sources">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.disableEmbeds}
+                onClick={() => store.updateSettings({ disableEmbeds: !settings.disableEmbeds })}
+                className="w-full flex items-center justify-between gap-4 rounded-full bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.06]"
+              >
+                <div className="text-left flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-text-primary truncate">Disable external embeds</p>
+                  <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2 sm:line-clamp-none">Blocks sources that use an external iframe. Only direct streams will be used.</p>
+                </div>
+                <div className={cn('relative shrink-0 w-11 h-[24px] rounded-full transition-colors duration-200', settings.disableEmbeds ? 'bg-accent' : 'bg-white/10')}>
+                  <div className={cn('absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200', settings.disableEmbeds ? 'translate-x-[22px]' : 'translate-x-[2px]')} />
+                </div>
+              </button>
+            </SettingsRow>
+
             {settings.accentColor === 'custom' && (
               <SettingsRow label="Custom Accent Color">
                 <div className="flex items-center gap-2">
@@ -377,27 +395,28 @@ export default function SettingsPage() {
         {/* ── Data ── */}
         <SettingsCard title="Data" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>}>
           <div className="space-y-3">
-            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
               <button
                 onClick={handleExportWatchlist}
-                className="btn-accent text-[13px] !shadow-[0_6px_16px_rgba(0,0,0,0.35)] hover:!shadow-[0_10px_22px_rgba(0,0,0,0.45)]"
+                className="btn-accent flex items-center justify-center gap-1.5 text-[13px] !shadow-[0_6px_16px_rgba(0,0,0,0.35)] hover:!shadow-[0_10px_22px_rgba(0,0,0,0.45)] py-2.5"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export Watchlist
               </button>
-              <button onClick={handleImportWatchlist} className="btn-glass text-[13px]">
+              <button onClick={handleImportWatchlist} className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Import Watchlist
               </button>
               <button
                 onClick={() => { store.resetSettings(); toast('Settings reset to defaults', 'success'); }}
-                className="btn-glass text-[13px]"
+                className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5"
               >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                 Reset Settings
               </button>
               <button
                 onClick={handleClearEverything}
-                className="flex items-center gap-1.5 rounded-[10px] bg-red-500/10 px-3.5 py-2 text-[13px] font-medium text-red-400 hover:bg-red-500/18 active:scale-[0.98] transition-all duration-200"
+                className="flex items-center justify-center gap-1.5 rounded-[10px] bg-red-500/10 px-3.5 py-2.5 text-[13px] font-medium text-red-400 hover:bg-red-500/18 active:scale-[0.98] transition-all duration-200"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 Clear Everything
@@ -410,16 +429,20 @@ export default function SettingsPage() {
         <SettingsCard title="FAQ" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}>
           <div className="space-y-3 text-[12px] leading-relaxed">
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-              <p className="text-text-primary font-medium">Why only FebBox?</p>
-              <p className="mt-1 text-text-muted">It is currently the most stable and predictable source in the stack, with safer behavior and fewer broken links.</p>
+              <p className="text-text-primary font-medium">Why should I use my own FebBox UI Cookie?</p>
+              <p className="mt-1 text-text-muted">A personal cookie bypasses the slow and unstable public proxy, providing instant loading, better quality, and a much smoother experience.</p>
             </div>
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-              <p className="text-text-primary font-medium">Why does speed/availability vary?</p>
-              <p className="mt-1 text-text-muted">Quality depends on upstream host load, your network route, and whether you use a personal vs public token.</p>
+              <p className="text-text-primary font-medium">What are Alternative Sources?</p>
+              <p className="mt-1 text-text-muted">These are external players used as backups when the primary source is unavailable. Interaction is locked by default for your security.</p>
             </div>
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-              <p className="text-text-primary font-medium">Why use your own FebBox cookie?</p>
-              <p className="mt-1 text-text-muted">Personal cookies usually provide better reliability than the public fallback token.</p>
+              <p className="text-text-primary font-medium">Is my data synced?</p>
+              <p className="mt-1 text-text-muted">If you are logged in, your settings, watchlist, and progress are securely synced to your account across all your devices.</p>
+            </div>
+            <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
+              <p className="text-text-primary font-medium">How do I fix playback issues?</p>
+              <p className="mt-1 text-text-muted">Try clearing your local data in the Data section above, or switch to an alternative source using the button in the player.</p>
             </div>
           </div>
         </SettingsCard>

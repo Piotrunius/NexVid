@@ -4,6 +4,7 @@
 
 import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
+import { SurveyModal } from '@/components/ui/SurveyModal';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import { Toaster } from '@/components/ui/Toaster';
@@ -111,6 +112,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </div>
           <Toaster />
+          <SurveyModal />
           <KeyboardShortcuts />
         </ThemeProvider>
       </body>

@@ -68,7 +68,7 @@ export function clearCloudToken() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
-async function cloudFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
+export async function cloudFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const apiUrl = getApiUrl();
   if (!apiUrl) throw new Error('Cloud API URL is not configured');
 
