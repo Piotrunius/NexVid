@@ -43,6 +43,7 @@ export function Footer() {
           <div className="flex items-center gap-8 text-[13px] text-white/30">
             {[
               { href: '/credits', label: 'Credits' },
+              { href: '/contact', label: 'Contact' },
               { href: '/privacy', label: 'Privacy' },
               { href: '/terms', label: 'Terms' },
               { href: '/dmca', label: 'DMCA' },

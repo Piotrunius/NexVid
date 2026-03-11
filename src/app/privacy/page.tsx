@@ -132,10 +132,13 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-[15px] font-semibold text-text-primary mb-2">10. Contact</h2>
-          <p>
-            For privacy requests related to this deployment (including account deletion or access request),
-            contact the service operator using the support/contact channel provided in this deployment.
+          <p className="mb-2">
+            For privacy requests related to this deployment (including account deletion, access requests, or security concerns),
+            please contact our security team:
           </p>
+          <a href="mailto:security@nexvid.online" className="text-accent hover:underline font-medium">security@nexvid.online</a>
+          <p className="mt-4 mb-2">For general support and other inquiries:</p>
+          <a href="mailto:support@nexvid.online" className="text-accent hover:underline font-medium">support@nexvid.online</a>
         </section>
       </div>
     </div>

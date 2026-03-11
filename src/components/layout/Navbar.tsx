@@ -260,7 +260,10 @@ export function Navbar() {
 
           {/* Search */}
           <button
-            onClick={() => setIsSearchOpen(true)}
+            onClick={() => {
+              setIsSearchOpen(true);
+              setTimeout(() => searchRef.current?.focus(), 100);
+            }}
             className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
             title="Search (press /)"
             onMouseEnter={() => setHoveredItem('search')}

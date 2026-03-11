@@ -55,6 +55,14 @@ export default function DmcaPage() {
             Users are responsible for complying with applicable copyright laws in their jurisdiction.
           </p>
         </section>
+
+        <section className="pt-6 border-t border-[var(--border)]">
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">Contact Information</h2>
+          <p className="mb-2">For any legal or copyright-related inquiries, please contact our security team:</p>
+          <a href="mailto:security@nexvid.online" className="text-accent hover:underline font-medium">security@nexvid.online</a>
+          <p className="mt-4 mb-2">For general support and other inquiries:</p>
+          <a href="mailto:support@nexvid.online" className="text-accent hover:underline font-medium">support@nexvid.online</a>
+        </section>
       </div>
     </div>
   );

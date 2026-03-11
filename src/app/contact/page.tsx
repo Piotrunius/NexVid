@@ -254,7 +254,11 @@ export default function ContactPage() {
           </div>
           <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
           <p className="mt-2 text-[13px] text-text-muted">Sign in to send bug reports, feedback and contact messages.</p>
-          <Link href="/login" className="btn-accent mt-5 inline-flex">Go to login</Link>
+          <div className="mt-6 border-t border-[var(--border)] pt-6">
+            <p className="text-[12px] text-text-muted">Or contact us directly via email:</p>
+            <a href="mailto:support@nexvid.online" className="mt-1 block text-[14px] font-medium text-accent hover:underline">support@nexvid.online</a>
+          </div>
+          <Link href="/login" className="btn-accent mt-6 inline-flex">Go to login</Link>
         </div>
       </div>
     );
@@ -262,9 +266,21 @@ export default function ContactPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 space-y-6">
-      <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5">
-        <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
-        <p className="mt-1 text-[13px] text-text-muted">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
+      <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
+          <p className="mt-1 text-[13px] text-text-muted">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
+        </div>
+        <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 text-[12px] text-text-muted">
+            <span>Support:</span>
+            <a href="mailto:support@nexvid.online" className="font-medium text-accent hover:underline">support@nexvid.online</a>
+          </div>
+          <div className="flex items-center gap-2 text-[12px] text-text-muted">
+            <span>Security:</span>
+            <a href="mailto:security@nexvid.online" className="font-medium text-accent hover:underline">security@nexvid.online</a>
+          </div>
+        </div>
       </div>
 
       <div className="grid items-stretch gap-6 xl:grid-cols-3">

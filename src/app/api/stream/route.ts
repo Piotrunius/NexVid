@@ -59,10 +59,27 @@ export async function GET(request: NextRequest) {
 
   // UI cookie can come from client settings header, query param, or server env
   const queryToken = searchParams.get('febboxToken') || '';
+  const rdToken = searchParams.get('rdToken') || request.headers.get('x-rd-token') || '';
+  const tbToken = searchParams.get('tbToken') || request.headers.get('x-tb-token') || '';
   const headerCookie = request.headers.get('x-febbox-cookie') || '';
   const uiCookie = (queryToken || headerCookie || process.env.FEBBOX_UI_COOKIE || '').trim().replace(/^["']|["']$/g, '');
 
   try {
+    // Forward to Cloudflare Worker for Debrid/TorBox sources
+    if (sourceMode === 'debrid' || sourceMode === 'torbox') {
+      const workerUrl = new URL('https://nexvid-proxy.piotrunius.workers.dev/stream');
+      searchParams.forEach((v, k) => workerUrl.searchParams.set(k, v));
+      
+      const workerRes = await fetch(workerUrl.toString(), {
+        headers: {
+          'x-rd-token': rdToken,
+          'x-tb-token': tbToken,
+          'Authorization': request.headers.get('Authorization') || '',
+        },
+      });
+      return NextResponse.json(await workerRes.json(), { status: workerRes.status });
+    }
+
     if (!tryFebbox) {
       return NextResponse.json({
         success: false,

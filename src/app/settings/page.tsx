@@ -322,15 +322,6 @@ export default function SettingsPage() {
                 placeholder={publicTokenActive ? 'Public token active (hidden)' : 'ui=...; auth_token=...'}
                 className="input w-full"
                 autoComplete="new-password"
-                name="nexvid-febbox-cookie-no-autofill"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="none"
-                onCopy={(event) => { if (publicTokenActive) { event.preventDefault(); toast('Copy is blocked for public token mode', 'info'); } }}
-                onCut={(event) => { if (publicTokenActive) event.preventDefault(); }}
-                onContextMenu={(event) => { if (publicTokenActive) event.preventDefault(); }}
               />
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
                 <p className="text-[11px] text-text-muted">Public FebBox token is available only for signed-in users. It is very slow and may be unstable.</p>
