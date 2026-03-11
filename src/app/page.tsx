@@ -5,12 +5,13 @@
 'use client';
 
 import { MediaRow, MediaRowSkeleton } from '@/components/media/MediaCard';
-import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
+import { getPopular, getRecommendations, getTopRated, getTrending } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export default function HomePage() {
@@ -18,8 +19,10 @@ export default function HomePage() {
   const [popular, setPopular] = useState<MediaItem[]>([]);
   const [topMovies, setTopMovies] = useState<MediaItem[]>([]);
   const [topShows, setTopShows] = useState<MediaItem[]>([]);
+  const [recommendations, setRecommendations] = useState<MediaItem[]>([]);
   const [featured, setFeatured] = useState<MediaItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
   const continueRowRef = useRef<HTMLDivElement>(null);
   const { items } = useWatchlistStore();
 
@@ -42,6 +45,29 @@ export default function HomePage() {
         setTopMovies(m);
         setTopShows(s);
         if (t.length > 0) setFeatured(t[Math.floor(Math.random() * Math.min(5, t.length))]);
+
+        // Recommendations based on watchlist
+        if (items.length > 0) {
+          const recentItems = [...items]
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .slice(0, 3);
+          
+          const recResults = await Promise.all(
+            recentItems.map(item => 
+              getRecommendations(item.mediaType as 'movie' | 'tv', item.tmdbId).catch(() => [])
+            )
+          );
+          
+          const combined = recResults.flat();
+          const seenIds = new Set(items.map(i => i.tmdbId));
+          const uniqueRecs = combined.filter(item => {
+            if (seenIds.has(item.tmdbId)) return false;
+            seenIds.add(item.tmdbId);
+            return true;
+          }).slice(0, 20);
+          
+          setRecommendations(uniqueRecs);
+        }
       } catch (err) {
         console.error('Failed to load homepage data:', err);
       } finally {
@@ -211,6 +237,9 @@ export default function HomePage() {
               </section>
             )}
             <MediaRow title="Trending This Week" items={trending} showType href="/browse?tab=trending" enableControls seeAllAsButton />
+            {recommendations.length > 0 && (
+              <MediaRow title="Recommended for You" items={recommendations} showType enableControls />
+            )}
             <MediaRow title="Popular Movies" items={popular} href="/browse?tab=movies" enableControls seeAllAsButton />
             <MediaRow title="Top Rated Movies" items={topMovies} href="/browse?tab=movies" enableControls seeAllAsButton />
             <MediaRow title="Top Rated TV Shows" items={topShows} href="/browse?tab=shows" enableControls seeAllAsButton />

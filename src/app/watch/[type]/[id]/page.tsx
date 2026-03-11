@@ -9,7 +9,7 @@ export const runtime = 'edge';
 import { VideoPlayer } from '@/components/player/VideoPlayer';
 import { toast } from '@/components/ui/Toaster';
 import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER, resolveFebboxToken } from '@/lib/febbox';
-import { scrapeAllSources } from '@/lib/providers';
+import { scrapeAllSources, SOURCES } from '@/lib/providers';
 import type { MediaSegments } from '@/lib/tidb';
 import { getExternalIds, getMovieDetails, getSeasonDetails, getShowDetails } from '@/lib/tmdb';
 import { useAuthStore } from '@/stores/auth';
@@ -18,7 +18,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { Caption, Episode, Movie, Season, Show, SourceResult, Stream } from '@/types';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const EMPTY_SEGMENTS: MediaSegments = {
   intro: [],
@@ -144,11 +144,24 @@ export default function WatchPage() {
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
   const { getByTmdbId, updateProgress } = useWatchlistStore();
-  const { febboxApiKey, introDbApiKey, disableEmbeds, accentColor, customAccentHex, autoPlay, autoNext, idlePauseOverlay } = useSettingsStore((s) => s.settings);
+  const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
   const currentMediaKey = `${type}-${id}`;
+
+  const resolvedAccentHex = useMemo(() => {
+    if (accentColor === 'custom') return customAccentHex || '#6366f1';
+    const mapping: Record<string, string> = {
+      indigo: '#6366f1',
+      violet: '#8b5cf6',
+      rose: '#f43f5e',
+      emerald: '#10b981',
+      amber: '#f59e0b',
+      cyan: '#06b6d4',
+    };
+    return mapping[accentColor] || '#6366f1';
+  }, [accentColor, customAccentHex]);
 
   // Prevent duplicate loading
   const loadingRef = useRef(false);
@@ -182,7 +195,7 @@ export default function WatchPage() {
   }, [introDbApiKey]);
 
   const loadMedia = useCallback(async () => {
-    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}-${accentColor}-${customAccentHex}-${autoPlay}-${autoNext}-${idlePauseOverlay}`;
+    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}`;
     if (loadingRef.current || lastLoadKey.current === loadKey) return;
     loadingRef.current = true;
     lastLoadKey.current = loadKey;
@@ -253,10 +266,7 @@ export default function WatchPage() {
           episode: episodeNum,
           febboxCookie: effectiveFebboxToken,
           sessionToken,
-          accentColor,
-          customAccentHex,
-          autoPlay,
-          autoNext,
+          accentColor: resolvedAccentHex,
           idlePauseOverlay,
         });
 
@@ -276,16 +286,23 @@ export default function WatchPage() {
           const mergedCaptions = mergeCaptionSets(mergeSourceCaptions(filteredResults), externalCaptions);
           setSourceResults(filteredResults);
           
-          // Find first non-embed source for automatic selection
-          const autoIdx = filteredResults.findIndex(r => r.stream.type !== 'embed');
+          // Sort results by rank (descending) to ensure highest quality/priority is first
+          const sortedResults = [...filteredResults].sort((a, b) => {
+            const rankA = SOURCES.find(s => s.id === a.sourceId)?.rank || 0;
+            const rankB = SOURCES.find(s => s.id === b.sourceId)?.rank || 0;
+            return rankB - rankA;
+          });
+
+          // Find first available DIRECT source (not an embed) for automatic selection
+          const bestDirectIdx = filteredResults.findIndex(r => r.sourceId === sortedResults[0].sourceId && r.stream.type !== 'embed');
           
-          if (autoIdx !== -1) {
-            setSourceIndex(autoIdx);
-            setStream(withMergedCaptions(filteredResults[autoIdx].stream, mergedCaptions));
+          if (bestDirectIdx !== -1) {
+            setSourceIndex(bestDirectIdx);
+            setStream(withMergedCaptions(filteredResults[bestDirectIdx].stream, mergedCaptions));
             setScrapeStatus('success');
           } else {
-            // No direct source found, stay in "error" state so user sees source selector
-            // but we still keep the results so they can click them manually
+            // No direct source found, do NOT auto-select anything
+            // Stay in error state so the user sees the "No sources found" UI but can still use the Source selector
             setScrapeStatus('error');
           }
         } else {
@@ -298,7 +315,7 @@ export default function WatchPage() {
     } finally {
       loadingRef.current = false;
     }
-  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken, accentColor, customAccentHex, autoPlay, autoNext, idlePauseOverlay]);
+  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken, resolvedAccentHex, idlePauseOverlay, disableEmbeds, updateSettings, reset, getByTmdbId]);
 
   useEffect(() => {
     if (!duration || duration < 30 || !currentTime) return;
@@ -343,7 +360,7 @@ export default function WatchPage() {
   useEffect(() => {
     loadMedia();
     return () => reset();
-  }, [loadMedia]);
+  }, [loadMedia, reset]);
 
   useEffect(() => {
     try {

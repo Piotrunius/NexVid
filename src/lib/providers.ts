@@ -27,7 +27,7 @@ export function configureProviders(newConfig: ProviderConfig) {
   config = { ...config, ...newConfig };
 }
 
-const SOURCES: SourceMeta[] = [
+export const SOURCES: SourceMeta[] = [
   { id: 'febbox', name: 'FebBox', rank: 300, type: 'source' },
   { id: 'videasy', name: 'Videasy', rank: 250, type: 'embed' },
   { id: 'vidlink', name: 'VidLink Pro', rank: 200, type: 'embed' },
@@ -59,15 +59,12 @@ export interface ScrapeOptions {
   episode?: number;
   febboxCookie?: string;
   sessionToken?: string | null;
+  accentColor?: string;
+  idlePauseOverlay?: boolean;
   episodeTmdbId?: string;
   seasonTmdbId?: string;
   seasonTitle?: string;
   episodeCount?: number;
-  accentColor?: string;
-  customAccentHex?: string;
-  autoPlay?: boolean;
-  autoNext?: boolean;
-  idlePauseOverlay?: boolean;
   onProgress?: (progress: ScrapeProgress) => void;
   onSourceFound?: (result: SourceResult) => void;
   onDebugLog?: (entry: { step: string; source?: string; message: string; data?: any }) => void;
@@ -78,19 +75,6 @@ function pushDebug(
   entry: { step: string; source?: string; message: string; data?: any },
 ) {
   options.onDebugLog?.(entry);
-}
-
-function getAccentHex(color?: string, customHex?: string): string {
-  if (color === 'custom' && customHex) return customHex.replace('#', '');
-  const colors: Record<string, string> = {
-    indigo: '6366f1',
-    violet: '8b5cf6',
-    rose: 'f43f5e',
-    emerald: '10b981',
-    amber: 'f59e0b',
-    cyan: '06b6d4',
-  };
-  return colors[color || 'indigo'] || '6366f1';
 }
 
 async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<SourceResult | null> {
@@ -109,20 +93,15 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       }
 
       const url = new URL(embedUrl);
-      const accentHex = getAccentHex(options.accentColor, options.customAccentHex);
-      url.searchParams.set('color', accentHex);
-      url.searchParams.set('nextEpisode', options.autoNext ? 'true' : 'false');
-      url.searchParams.set('autoplayNextEpisode', options.autoNext ? 'true' : 'false');
+      const color = (options.accentColor || '6366f1').replace('#', '');
+      url.searchParams.set('color', color);
+      url.searchParams.set('nextEpisode', 'true');
+      url.searchParams.set('autoplayNextEpisode', 'true');
       url.searchParams.set('episodeSelector', 'true');
-      url.searchParams.set('overlay', options.idlePauseOverlay ? 'true' : 'false');
+      if (options.idlePauseOverlay) url.searchParams.set('overlay', 'true');
 
-      const stream: EmbedStream = {
-        type: 'embed',
-        url: url.toString(),
-      };
-
+      const stream: EmbedStream = { type: 'embed', url: url.toString() };
       options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
-      pushDebug(options, { step: 'done', source: sourceId, message: `Using ${sourceLabel} embed` });
       return { sourceId, stream };
     }
 
@@ -137,37 +116,31 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       }
 
       const url = new URL(embedUrl);
-      url.searchParams.set('primaryColor', '6366f1');
+      const color = (options.accentColor || '6366f1').replace('#', '');
+      url.searchParams.set('primaryColor', color);
+      url.searchParams.set('nextbutton', 'true');
+      url.searchParams.set('autoplay', 'true');
 
-      const stream: EmbedStream = {
-        type: 'embed',
-        url: url.toString(),
-      };
-
+      const stream: EmbedStream = { type: 'embed', url: url.toString() };
       options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
-      pushDebug(options, { step: 'done', source: sourceId, message: `Using ${sourceLabel} embed` });
       return { sourceId, stream };
     }
 
-    options.onProgress?.({ id: sourceId, percentage: 10, status: 'pending' });
-
     const params = new URLSearchParams({
-      title: options.title,
       tmdbId: options.tmdbId,
-      type: options.mediaType === 'movie' ? 'movie' : 'show',
+      mediaType: options.mediaType,
+      title: options.title,
+      year: String(options.releaseYear),
     });
 
-    if (options.mediaType !== 'movie') {
-      if (options.season) params.set('season', String(options.season));
-      if (options.episode) params.set('episode', String(options.episode));
+    if (options.mediaType === 'show') {
+      params.set('season', String(options.season || 1));
+      params.set('episode', String(options.episode || 1));
     }
 
-    if (options.febboxCookie) {
-      params.set('febboxToken', options.febboxCookie);
-    }
+    if (options.febboxCookie) params.set('febboxToken', options.febboxCookie);
 
     params.set('source', sourceId);
-
     options.onProgress?.({ id: sourceId, percentage: 30, status: 'pending' });
 
     const response = await fetch(`/api/stream?${params.toString()}`, {
@@ -178,17 +151,6 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       signal: AbortSignal.timeout(20000),
     });
     const data = await response.json();
-
-    pushDebug(options, {
-      step: sourceId,
-      message: `API response: success=${Boolean(data.success)}`,
-      data: data?.logs || data?.error,
-    });
-    pushDebug(options, {
-      step: sourceId,
-      message: `Using user-provided UI cookie: ${Boolean(options.febboxCookie)}`,
-      data: data?.diagnostics,
-    });
 
     options.onProgress?.({ id: sourceId, percentage: 80, status: 'pending' });
 
@@ -209,10 +171,8 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       const streamUrl = String(data.data?.url || '').trim();
       if (!streamUrl) {
         options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
-        pushDebug(options, { step: sourceId, message: `${sourceLabel} returned hls kind without playlist URL` });
         return null;
       }
-
       const stream: HlsBasedStream = {
         type: 'hls',
         id: `${sourceId}-hls-stream`,
@@ -221,23 +181,16 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
         playlist: streamUrl,
         headers: data.data?.headers && typeof data.data.headers === 'object' ? data.data.headers : undefined,
       };
-
       options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
-      pushDebug(options, { step: 'done', source: sourceId, message: `Using ${sourceLabel} hls stream` });
       return { sourceId, stream };
     }
 
-    if (data.success && data.data?.qualities?.length > 0) {
-      const incomingQualities = Array.isArray(data.data.qualities) ? data.data.qualities : [];
-      const nonOrgQualities = incomingQualities.filter((q: any) => {
-        const label = String(q?.quality || q?.label || '').trim().toLowerCase();
-        return label && !label.includes('org') && !label.includes('original');
-      });
-      const selectedQualities = nonOrgQualities.length > 0 ? nonOrgQualities : incomingQualities;
-
+    if (data.success && data.data?.qualities && typeof data.data.qualities === 'object') {
       const qualities: Partial<Record<StreamQuality, StreamFile>> = {};
-      for (const q of selectedQualities) {
-        const mapped = mapQuality(q.quality);
+      const qualityList = Array.isArray(data.data.qualities) ? data.data.qualities : Object.values(data.data.qualities);
+      
+      for (const q of qualityList as any[]) {
+        const mapped = mapQuality(q.quality || q.label || '');
         qualities[mapped] = { type: 'mp4', url: q.url };
       }
 
@@ -248,27 +201,23 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
         captions,
         audioTracks: Array.isArray(data.data.audioTracks)
           ? data.data.audioTracks.map((track: any, index: number) => ({
-            id: Number.isFinite(Number(track?.id)) ? Number(track.id) : index,
-            name: String(track?.name || track?.label || track?.lang || `Track ${index + 1}`),
-            lang: String(track?.lang || track?.language || 'unknown').toLowerCase(),
-            isDefault: Boolean(track?.isDefault || track?.default || index === 0),
-            url: track?.url ? String(track.url) : undefined,
-          } as AudioTrack))
+            id: index,
+            name: String(track?.name || track?.label || `Track ${index + 1}`),
+            lang: String(track?.lang || 'unknown').toLowerCase(),
+            isDefault: Boolean(track?.isDefault || index === 0),
+            url: track?.url,
+          }))
           : [],
         qualities,
       };
-
       options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
-      pushDebug(options, { step: 'done', source: sourceId, message: `Using ${sourceLabel} direct stream` });
       return { sourceId, stream };
     }
 
     options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
-    pushDebug(options, { step: sourceId, message: 'No direct stream found' });
     return null;
   } catch (error: any) {
     options.onProgress?.({ id: sourceId, percentage: 100, status: 'failure' });
-    pushDebug(options, { step: sourceId, message: 'Failed with exception', data: error?.message });
     return null;
   }
 }
@@ -276,37 +225,12 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
 export async function scrapeAllSources(options: ScrapeOptions): Promise<SourceResult[]> {
   const results: SourceResult[] = [];
 
-  pushDebug(options, {
-    step: 'start',
-    message: `Scrape started for ${options.mediaType} ${options.tmdbId}`,
-    data: {
-      title: options.title,
-      season: options.season,
-      episode: options.episode,
-    },
-  });
-
   for (const source of SOURCES) {
     const result = await scrapeSource(options, source.id);
     if (result) {
       results.push(result);
       options.onSourceFound?.(result);
-      continue;
     }
-
-    pushDebug(options, {
-      step: 'done',
-      source: source.id,
-      message: `No direct stream found from ${source.name}`,
-    });
-  }
-
-  if (results.length > 0) {
-    pushDebug(options, {
-      step: 'done',
-      message: `Scrape complete: ${results.length} source(s) found`,
-      data: results.map(r => r.sourceId),
-    });
   }
 
   return results;

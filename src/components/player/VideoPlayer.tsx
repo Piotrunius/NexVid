@@ -63,7 +63,7 @@ interface PlayerProps {
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
-const KNOWN_SOURCE_ORDER = ['febbox', 'videasy', 'vidlink'] as const;
+const KNOWN_SOURCE_ORDER = ['febbox', 'vidlink'] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = 'nexvid-subtitle-appearance';
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 
@@ -270,32 +270,38 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Handle VidLink
+      // Handle VidLink messages
       if (event.origin === 'https://vidlink.pro') {
         if (event.data?.type === 'PLAYER_EVENT') {
-          const { event: eventType, currentTime: time, duration: dur } = event.data.data;
-          if (eventType === 'timeupdate' && time && dur) {
+          const { currentTime: time, duration: dur } = event.data.data;
+          if (time && dur) {
             setCurrentTime(time);
             setDuration(dur);
           }
         }
-        return;
+        if (event.data?.type === 'MEDIA_DATA') {
+          const { progress } = event.data.data;
+          if (progress?.watched && progress?.duration) {
+            setCurrentTime(progress.watched);
+            setDuration(progress.duration);
+          }
+        }
       }
 
-      // Handle Videasy
+      // Handle Videasy messages
       if (event.origin === 'https://player.videasy.net') {
         try {
           const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          // Videasy sends: { progress, timestamp, duration, ... }
           if (data && typeof data.timestamp === 'number' && typeof data.duration === 'number') {
             setCurrentTime(data.timestamp);
             setDuration(data.duration);
           }
-        } catch (e) {
-          // ignore parse errors
+        } catch {
+          // ignore malformed JSON
         }
       }
     };
-
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
@@ -351,6 +357,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [watchPartyServerDiff, setWatchPartyServerDiff] = useState(0);
   const [watchPartyLastSyncTs, setWatchPartyLastSyncTs] = useState(0);
   const [showInfoWatchlistMenu, setShowInfoWatchlistMenu] = useState(false);
+  const [showSourceSelector, setShowSourceSelector] = useState(false);
   const [isEpisodeNavigating, setIsEpisodeNavigating] = useState(false);
   const [showIdlePauseOverlay, setShowIdlePauseOverlay] = useState(false);
   const [isEmbedNoticeDismissed, setIsEmbedNoticeDismissed] = useState(false);
@@ -1792,7 +1799,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
             {sourceLabel && (
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shadow-[0_0_8px_var(--accent-glow)]" />
                 <p className="text-[10px] font-bold text-white/40 tracking-wider uppercase">{formatSourceName(sourceLabel)}</p>
               </div>
             )}
@@ -2755,26 +2762,105 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               )}
             </div>
 
-            {/* Alternative Source Switcher (Only if embeds are enabled) */}
+            {/* Sources Switcher */}
             {!disableEmbeds && (
-              <button
-                onClick={() => {
-                  const altIdx = allSourceResults?.findIndex(r => r.stream.type === 'embed') ?? -1;
-                  if (onSelectSource && altIdx !== -1) {
-                    onSelectSource(altIdx);
-                  } else if (onTryNextSource) {
-                    onTryNextSource();
-                  } else {
-                    window.location.reload();
-                  }
-                }}
-                className="rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-                title="Alternative Source"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" suppressHydrationWarning>
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => { setShowSourceSelector(!showSourceSelector); setSettingsPanel(null); }}
+                  className={cn(
+                    "rounded-[8px] p-2 transition-all duration-300",
+                    showSourceSelector ? "bg-accent/20 text-accent" : "text-white/70 hover:bg-white/10 hover:text-white"
+                  )}
+                  title="Sources"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" suppressHydrationWarning>
+                    <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6" y2="6"/><line x1="6" y1="18" x2="6" y2="18"/>
+                  </svg>
+                </button>
+
+                {showSourceSelector && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowSourceSelector(false)} />
+                    <div className="panel-glass absolute right-0 bottom-full mb-3 z-50 w-[280px] p-2 animate-scale-in">
+                      <div className="px-2 py-1.5 border-b border-white/[0.06] mb-1">
+                        <p className="text-[11px] font-bold text-white/30 uppercase tracking-widest">Select Source</p>
+                      </div>
+                      
+                      <div className="max-h-[320px] overflow-y-auto space-y-1 custom-scrollbar">
+                        {/* Direct Sources */}
+                        {allSourceResults?.filter(r => r.stream.type !== 'embed').map((res, i) => (
+                          <button
+                            key={res.sourceId}
+                            onClick={() => { onSelectSource?.(allSourceResults.indexOf(res)); setShowSourceSelector(false); }}
+                            className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-[12px] transition-all duration-300 text-left border-none hover:bg-white/[0.06]"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={cn(
+                                "h-2 w-2 rounded-full bg-accent transition-all duration-500",
+                                currentSourceIndex === allSourceResults.indexOf(res) && "shadow-[0_0_12px_var(--accent-glow)] scale-110"
+                              )} />
+                              <div className="min-w-0">
+                                <p className={cn("text-[13px] font-semibold truncate", currentSourceIndex === allSourceResults.indexOf(res) ? "text-accent" : "text-white/90")}>
+                                  {formatSourceName(res.sourceId)}
+                                </p>
+                                <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Direct Stream</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/30 uppercase">Direct</span>
+                          </button>
+                        ))}
+
+                        {/* Divider if both types exist */}
+                        {allSourceResults?.some(r => r.stream.type !== 'embed') && allSourceResults?.some(r => r.stream.type === 'embed') && (
+                          <hr className="my-1 border-white/[0.06]" />
+                        )}
+
+                        {/* External Embeds */}
+                        {allSourceResults?.filter(r => r.stream.type === 'embed').map((res, i) => {
+                          const isVidlink = res.sourceId.toLowerCase().includes('vidlink');
+                          const isVideasy = res.sourceId.toLowerCase().includes('videasy');
+                          const isSelected = currentSourceIndex === allSourceResults.indexOf(res);
+                          
+                          return (
+                            <button
+                              key={res.sourceId}
+                              onClick={() => { onSelectSource?.(allSourceResults.indexOf(res)); setShowSourceSelector(false); }}
+                              className="w-full flex flex-col gap-1 px-3 py-2.5 rounded-[14px] transition-all duration-300 text-left border-none mb-1 last:mb-0 hover:bg-white/[0.06]"
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className={cn(
+                                    "h-2 w-2 rounded-full bg-accent transition-all duration-500",
+                                    isSelected && "shadow-[0_0_12px_var(--accent-glow)] scale-110"
+                                  )} />
+                                  <p className="text-[14px] font-bold tracking-tight truncate text-white/90">
+                                    {formatSourceName(res.sourceId)}
+                                  </p>
+                                </div>
+                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-[6px] bg-white/[0.04] text-white/30 uppercase tracking-tighter">Embed</span>
+                              </div>
+                              
+                              {isVideasy && (
+                                <div className="flex flex-col gap-0.5 mt-0.5 pl-4.5">
+                                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wide">Recommended</p>
+                                  <p className="text-[10px] text-white/40 font-medium">Contains some ads & redirects</p>
+                                </div>
+                              )}
+                              
+                              {isVidlink && (
+                                <div className="flex flex-col gap-0.5 mt-0.5 pl-4.5">
+                                  <p className="text-[10px] text-red-400/80 font-bold uppercase tracking-wide">Not Recommended</p>
+                                  <p className="text-[10px] text-amber-400/60 font-medium">High amount of ads & redirects</p>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
 
             {/* Fullscreen */}

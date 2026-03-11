@@ -3206,7 +3206,8 @@ export default {
         case '/auth/me':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleMe(request, env);
-        case '/user/settings':
+        case '/watchlist':
+
           if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleSettings(request, env);
         case '/user/profile':

@@ -93,6 +93,14 @@ export default function TermsPage() {
             TMDB branding is used under their API terms of use.
           </p>
         </section>
+
+        <section className="pt-6 border-t border-[var(--border)]">
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">10. Contact Information</h2>
+          <p className="mb-2">For security concerns and legal notices:</p>
+          <a href="mailto:security@nexvid.online" className="text-accent hover:underline font-medium">security@nexvid.online</a>
+          <p className="mt-4 mb-2">For general inquiries and support:</p>
+          <a href="mailto:support@nexvid.online" className="text-accent hover:underline font-medium">support@nexvid.online</a>
+        </section>
       </div>
     </div>
   );
