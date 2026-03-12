@@ -412,18 +412,18 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
     const nowMs = Date.now();
     const identifier = userId || `guest_${await sha256Hex(request.headers.get('CF-Connecting-IP') || '0.0.0.0')}`;
     
-    // In-memory throttle to save D1 write attempts across requests in the same isolate
+    // In-memory throttle to 2 minutes
     const last = lastSeenCache.get(`active:${identifier}`);
-    if (last && nowMs - last < 10 * 60 * 1000) return;
+    if (last && nowMs - last < 2 * 60 * 1000) return;
     lastSeenCache.set(`active:${identifier}`, nowMs);
 
     const now = new Date().toISOString();
-    // Throttle updates to once every 15 minutes to save D1 writes
+    // Throttle updates in DB to once every 3 minutes
     await env.DB.prepare(
       `INSERT INTO active_users (user_id, last_seen_at) 
        VALUES (?, ?) 
        ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
-       WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
+       WHERE excluded.last_seen_at > datetime(last_seen_at, '+3 minutes')`
     ).bind(identifier, now).run();
   } catch {
     // ignore
@@ -432,8 +432,8 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
 
 async function getActiveUsersCount(env: Env): Promise<{ users: number; guests: number }> {
   try {
-    // Increase window to 20 minutes to account for the 15-minute update throttle in updateActiveUser
-    const activeWindowAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+    // Now looking at the last 5 minutes for a much more real-time feel
+    const activeWindowAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const rows = await env.DB.prepare(
       'SELECT user_id FROM active_users WHERE last_seen_at > ?'
     ).bind(activeWindowAgo).all<{ user_id: string }>();
