@@ -31,6 +31,7 @@ wrangler.toml
 *.tsbuildinfo
 
 # OS / editor
+.directory
 .DS_Store
 Thumbs.db
 .vscode/
