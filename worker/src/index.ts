@@ -384,28 +384,44 @@ async function handleReportError(request: Request, env: Env): Promise<Response> 
   const now = new Date().toISOString();
   const dateKey = now.split('T')[0];
 
-  if (!body.isFebboxAuth) {
+  // Throttle error logging: don't log the same error for the same media from the same IP more than once per 30m
+  const ip = getClientIp(request);
+  const errorCacheKey = `err:${ip}:${body.mediaId}:${body.code}`;
+  const lastError = lastSeenCache.get(errorCacheKey);
+  const shouldLogDetail = !lastError || (Date.now() - lastError > 30 * 60 * 1000);
+
+  if (!body.isFebboxAuth && shouldLogDetail) {
+    lastSeenCache.set(errorCacheKey, Date.now());
     await env.DB.prepare(
       `INSERT INTO player_errors (id, media_type, media_id, error_code, error_message, user_agent, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).bind(crypto.randomUUID(), body.mediaType, body.mediaId, body.code, body.message, request.headers.get('User-Agent') || 'unknown', now).run();
   }
 
-  await env.DB.prepare(
-    `INSERT INTO daily_player_stats (date, attempts, failures) VALUES (?, 1, 1)
-     ON CONFLICT(date) DO UPDATE SET attempts = attempts + 1, failures = failures + 1`
-  ).bind(dateKey).run();
+  // Sample stats updates for failures too (only 20% of failures update the daily counter)
+  if (Math.random() < 0.2) {
+    await env.DB.prepare(
+      `INSERT INTO daily_player_stats (date, attempts, failures) VALUES (?, 5, 5)
+       ON CONFLICT(date) DO UPDATE SET attempts = attempts + 5, failures = failures + 5`
+    ).bind(dateKey).run();
+  }
 
   return json(request, env, { ok: true });
 }
 
 async function handleReportSuccess(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+  
+  // OPTIMIZATION: Sample successes (1 in 10). Save 90% of writes on this table.
+  if (Math.random() > 0.1) {
+    return json(request, env, { ok: true, sampled: true });
+  }
+
   const dateKey = new Date().toISOString().split('T')[0];
 
   await env.DB.prepare(
-    `INSERT INTO daily_player_stats (date, attempts, successes) VALUES (?, 1, 1)
-     ON CONFLICT(date) DO UPDATE SET attempts = attempts + 1, successes = successes + 1`
+    `INSERT INTO daily_player_stats (date, attempts, successes) VALUES (?, 10, 10)
+     ON CONFLICT(date) DO UPDATE SET attempts = attempts + 10, successes = successes + 10`
   ).bind(dateKey).run();
 
   return json(request, env, { ok: true });
@@ -471,11 +487,19 @@ async function handleAdminFebboxTokens(request: Request, env: Env): Promise<Resp
   return json(request, env, { error: 'Method not allowed' }, 405);
 }
 
+const lastSeenCache = new Map<string, number>();
+
 async function updateActiveUser(env: Env, request: Request, userId?: string): Promise<void> {
   try {
-    const now = new Date().toISOString();
+    const nowMs = Date.now();
     const identifier = userId || `guest_${await sha256Hex(request.headers.get('CF-Connecting-IP') || '0.0.0.0')}`;
     
+    // In-memory throttle to save D1 write attempts across requests in the same isolate
+    const last = lastSeenCache.get(`active:${identifier}`);
+    if (last && nowMs - last < 10 * 60 * 1000) return;
+    lastSeenCache.set(`active:${identifier}`, nowMs);
+
+    const now = new Date().toISOString();
     // Throttle updates to once every 15 minutes to save D1 writes
     await env.DB.prepare(
       `INSERT INTO active_users (user_id, last_seen_at) 
@@ -630,6 +654,9 @@ function getWatchPartyExpiryIso(hours = 8): string {
 }
 
 async function cleanupExpiredWatchParties(env: Env): Promise<void> {
+  // Only run cleanup with a 5% chance per request to save D1 writes
+  if (Math.random() > 0.05) return;
+  
   await ensureWatchPartyTables(env);
   await env.DB.batch([
     env.DB.prepare(
@@ -713,6 +740,12 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
 }
 
 async function linkUserIdentifiers(env: Env, userId: string, identifiers: RequestIdentifiers): Promise<void> {
+  const nowMs = Date.now();
+  const cacheKey = `link:${userId}:${identifiers.ipHash}`;
+  const last = lastSeenCache.get(cacheKey);
+  if (last && nowMs - last < 10 * 60 * 1000) return;
+  lastSeenCache.set(cacheKey, nowMs);
+
   await ensureSecurityTables(env);
   const now = new Date().toISOString();
   // Throttle updates to once every 15 minutes to save D1 writes
@@ -1513,16 +1546,16 @@ async function handleWatchPartyUpdate(request: Request, env: Env): Promise<Respo
   if (!roomId || !hostToken) return json(request, env, { error: 'roomId and hostToken are required' }, 400);
 
   const room = await env.DB.prepare(
-    `SELECT id, host_token, media_key
+    `SELECT id, host_token, media_key, state_json
      FROM watch_party_rooms
      WHERE id = ? AND datetime(expires_at) > datetime('now')`
-  ).bind(roomId).first<{ id: string; host_token: string; media_key: string }>();
+  ).bind(roomId).first<{ id: string; host_token: string; media_key: string; state_json: string }>();
 
   if (!room?.id) return json(request, env, { error: 'Room not found or expired' }, 404);
   if (hostToken !== room.host_token) return json(request, env, { error: 'Invalid host token' }, 403);
 
   const now = new Date().toISOString();
-  const state = {
+  const newState = {
     paused: Boolean(body.paused ?? true),
     time: Math.max(0, Number(body.time || 0)),
     playbackRate: Math.min(2, Math.max(0.25, Number(body.playbackRate || 1))),
@@ -1530,11 +1563,23 @@ async function handleWatchPartyUpdate(request: Request, env: Env): Promise<Respo
     updatedAt: now,
   };
 
+  // Optimization: Only update DB if state actually changed significantly
+  const currentState = JSON.parse(room.state_json || '{}');
+  const hasSignificantChange = 
+    newState.paused !== currentState.paused ||
+    newState.mediaKey !== currentState.mediaKey ||
+    newState.playbackRate !== currentState.playbackRate ||
+    Math.abs(newState.time - (currentState.time || 0)) > 5; // only update if time drifted by > 5s
+
+  if (!hasSignificantChange) {
+    return json(request, env, { ok: true, updatedAt: currentState.updatedAt || now });
+  }
+
   await env.DB.prepare(
     `UPDATE watch_party_rooms
      SET state_json = ?, updated_at = ?, expires_at = ?
      WHERE id = ?`
-  ).bind(JSON.stringify(state), now, getWatchPartyExpiryIso(8), roomId).run();
+  ).bind(JSON.stringify(newState), now, getWatchPartyExpiryIso(8), roomId).run();
 
   return json(request, env, { ok: true, updatedAt: now });
 }

@@ -387,9 +387,9 @@ export default function WatchPage() {
     if (last.key !== key) {
       lastProgressSyncRef.current = { wallTime: 0, percent: 0, second: 0, key };
     } else {
-      const movedEnoughInTime = Math.abs(second - last.second) >= 10;
-      const movedEnoughInPercent = Math.abs(percent - last.percent) >= 1.5;
-      const enoughWallTime = now - last.wallTime >= 8_000;
+      const movedEnoughInTime = Math.abs(second - last.second) >= 30;
+      const movedEnoughInPercent = Math.abs(percent - last.percent) >= 3.0;
+      const enoughWallTime = now - last.wallTime >= 25_000;
 
       if (!(enoughWallTime && (movedEnoughInTime || movedEnoughInPercent))) {
         return;
