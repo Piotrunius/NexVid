@@ -29,18 +29,20 @@ export function configureProviders(newConfig: ProviderConfig) {
 
 export const SOURCES: SourceMeta[] = [
   { id: 'febbox', name: 'FebBox', rank: 300, type: 'source' },
+  { id: 'vixsrc', name: 'VixSrc', rank: 275, type: 'source' },
   { id: 'videasy', name: 'Videasy', rank: 250, type: 'embed' },
   { id: 'vidlink', name: 'VidLink Pro', rank: 200, type: 'embed' },
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
   febbox: 'FebBox',
+  vixsrc: 'VixSrc',
   videasy: 'Videasy',
   vidlink: 'VidLink Pro',
 };
 
-function mapQuality(raw: string): StreamQuality {
-  const q = raw.toLowerCase();
+export function mapQuality(raw: string): StreamQuality {
+  const q = String(raw || '').toLowerCase();
   if (q.includes('4k') || q.includes('2160')) return '4k';
   if (q.includes('1080')) return '1080';
   if (q.includes('720')) return '720';
@@ -82,6 +84,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
     const sourceLabel = SOURCE_LABELS[sourceId] || sourceId;
     pushDebug(options, { step: sourceId, message: `Starting ${sourceLabel} resolution` });
 
+    // Videasy is a simple embed, can stay on client
     if (sourceId === 'videasy') {
       options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
       const baseUrl = 'https://player.videasy.net';
@@ -105,6 +108,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       return { sourceId, stream };
     }
 
+    // Vidlink is also a simple embed
     if (sourceId === 'vidlink') {
       options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
       const baseUrl = 'https://vidlink.pro';
@@ -116,8 +120,25 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       }
 
       const url = new URL(embedUrl);
-      const color = (options.accentColor || '6366f1').replace('#', '');
+      
+      const accentMap: Record<string, string> = {
+        indigo: '6366f1',
+        violet: '8b5cf6',
+        rose: 'f43f5e',
+        emerald: '10b981',
+        amber: 'f59e0b',
+        cyan: '06b6d4'
+      };
+
+      let color = '6366f1';
+      if (options.accentColor && /^[0-9a-fA-F]{3,6}$/.test(options.accentColor)) {
+        color = options.accentColor;
+      } else if (options.accentColor && accentMap[options.accentColor]) {
+        color = accentMap[options.accentColor];
+      }
+
       url.searchParams.set('primaryColor', color);
+      url.searchParams.set('secondaryColor', '000000');
       url.searchParams.set('nextbutton', 'true');
       url.searchParams.set('autoplay', 'true');
 
@@ -126,6 +147,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       return { sourceId, stream };
     }
 
+    // Integrated providers
     const params = new URLSearchParams({
       tmdbId: options.tmdbId,
       mediaType: options.mediaType,
@@ -139,8 +161,8 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
     }
 
     if (options.febboxCookie) params.set('febboxToken', options.febboxCookie);
-
     params.set('source', sourceId);
+    
     options.onProgress?.({ id: sourceId, percentage: 30, status: 'pending' });
 
     const response = await fetch(`/api/stream?${params.toString()}`, {
@@ -148,27 +170,38 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
         ...(options.febboxCookie ? { 'x-febbox-cookie': options.febboxCookie } : {}),
         ...(options.sessionToken ? { 'Authorization': `Bearer ${options.sessionToken}` } : {}),
       },
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(25000),
     });
+    
+    if (!response.ok) {
+        options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
+        return null;
+    }
+    
     const data = await response.json();
-
     options.onProgress?.({ id: sourceId, percentage: 80, status: 'pending' });
 
-    const captions = Array.isArray(data.data?.subtitles)
-      ? data.data.subtitles
+    if (!data.success || !data.data) {
+        options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
+        return null;
+    }
+
+    const streamData = data.data;
+    const captions = Array.isArray(streamData.captions || streamData.subtitles)
+      ? (streamData.captions || streamData.subtitles)
         .map((subtitle: any) => {
           const url = String(subtitle?.url || '');
           if (!url) return null;
-          const language = String(subtitle?.language || 'en').toLowerCase();
+          const language = String(subtitle?.language || subtitle?.label || 'en').toLowerCase();
           const label = String(subtitle?.label || language.toUpperCase());
-          const type = String(subtitle?.type || '').toLowerCase().includes('vtt') ? 'vtt' : 'srt';
-          return { id: `sb-${language}-${label}`, language, label, type, url };
+          const type = String(subtitle?.type || subtitle?.format || '').toLowerCase().includes('vtt') ? 'vtt' : 'srt';
+          return { id: `sb-${language}-${label}-${Math.random().toString(36).slice(2, 6)}`, language, label, type, url };
         })
         .filter(Boolean)
       : [];
 
-    if (data.success && String(data.data?.kind || '').toLowerCase() === 'hls') {
-      const streamUrl = String(data.data?.url || '').trim();
+    if (String(streamData.type || streamData.kind || '').toLowerCase() === 'hls' || streamData.playlist) {
+      const streamUrl = String(streamData.playlist || streamData.url || '').trim();
       if (!streamUrl) {
         options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
         return null;
@@ -179,19 +212,25 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
         flags: [],
         captions,
         playlist: streamUrl,
-        headers: data.data?.headers && typeof data.data.headers === 'object' ? data.data.headers : undefined,
+        headers: streamData.headers,
       };
       options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
       return { sourceId, stream };
     }
 
-    if (data.success && data.data?.qualities && typeof data.data.qualities === 'object') {
+    if (streamData.qualities && typeof streamData.qualities === 'object') {
       const qualities: Partial<Record<StreamQuality, StreamFile>> = {};
-      const qualityList = Array.isArray(data.data.qualities) ? data.data.qualities : Object.values(data.data.qualities);
       
-      for (const q of qualityList as any[]) {
-        const mapped = mapQuality(q.quality || q.label || '');
-        qualities[mapped] = { type: 'mp4', url: q.url };
+      if (Array.isArray(streamData.qualities)) {
+          for (const q of streamData.qualities) {
+              const mapped = mapQuality(q.quality || q.label || '');
+              qualities[mapped] = { type: 'mp4', url: q.url };
+          }
+      } else {
+          for (const [key, val] of Object.entries(streamData.qualities)) {
+              const mapped = mapQuality(key);
+              qualities[mapped] = { type: 'mp4', url: (val as any).url || val };
+          }
       }
 
       const stream: FileBasedStream = {
@@ -199,15 +238,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
         id: `${sourceId}-stream`,
         flags: [],
         captions,
-        audioTracks: Array.isArray(data.data.audioTracks)
-          ? data.data.audioTracks.map((track: any, index: number) => ({
-            id: index,
-            name: String(track?.name || track?.label || `Track ${index + 1}`),
-            lang: String(track?.lang || 'unknown').toLowerCase(),
-            isDefault: Boolean(track?.isDefault || index === 0),
-            url: track?.url,
-          }))
-          : [],
+        audioTracks: streamData.audioTracks,
         qualities,
       };
       options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
@@ -217,6 +248,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
     options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
     return null;
   } catch (error: any) {
+    console.error(`[scrapeSource] ${sourceId} error:`, error);
     options.onProgress?.({ id: sourceId, percentage: 100, status: 'failure' });
     return null;
   }
@@ -230,6 +262,15 @@ export async function scrapeAllSources(options: ScrapeOptions): Promise<SourceRe
     if (result) {
       results.push(result);
       options.onSourceFound?.(result);
+    } else if (['febbox', 'vixsrc'].includes(source.id)) {
+      // Always include these as placeholders if they fail,
+      // so the user can see them in the list even if no results found.
+      const placeholder: SourceResult = {
+        sourceId: source.id,
+        stream: { type: 'file', id: `${source.id}-placeholder`, flags: [], qualities: {} }
+      };
+      results.push(placeholder);
+      options.onSourceFound?.(placeholder);
     }
   }
 

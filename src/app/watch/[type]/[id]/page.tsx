@@ -266,11 +266,11 @@ export default function WatchPage() {
           episode: episodeNum,
           febboxCookie: effectiveFebboxToken,
           sessionToken,
-          accentColor: resolvedAccentHex,
+          accentColor: resolvedAccentHex.replace('#', ''),
           idlePauseOverlay,
         });
 
-        // Filter out embeds if settings forbid them
+        // Filter out embeds if settings forbid them, but KEEP integrated providers (direct streams)
         const filteredResults = disableEmbeds 
           ? results.filter(r => r.stream.type !== 'embed')
           : results;
@@ -286,24 +286,26 @@ export default function WatchPage() {
           const mergedCaptions = mergeCaptionSets(mergeSourceCaptions(filteredResults), externalCaptions);
           setSourceResults(filteredResults);
           
-          // Sort results by rank (descending) to ensure highest quality/priority is first
+          // Sort results by rank (descending)
           const sortedResults = [...filteredResults].sort((a, b) => {
             const rankA = SOURCES.find(s => s.id === a.sourceId)?.rank || 0;
             const rankB = SOURCES.find(s => s.id === b.sourceId)?.rank || 0;
             return rankB - rankA;
           });
 
-          // Find first available DIRECT source (not an embed) for automatic selection
-          const bestDirectIdx = filteredResults.findIndex(r => r.sourceId === sortedResults[0].sourceId && r.stream.type !== 'embed');
+          // Find the highest ranked available source that is NOT an embed
+          const bestDirect = sortedResults.find(r => r.stream.type !== 'embed');
+          const bestDirectIdx = bestDirect ? filteredResults.indexOf(bestDirect) : -1;
           
           if (bestDirectIdx !== -1) {
             setSourceIndex(bestDirectIdx);
             setStream(withMergedCaptions(filteredResults[bestDirectIdx].stream, mergedCaptions));
             setScrapeStatus('success');
           } else {
-            // No direct source found, do NOT auto-select anything
-            // Stay in error state so the user sees the "No sources found" UI but can still use the Source selector
-            setScrapeStatus('error');
+            // We have sources but they are all embeds
+            // Set status to success so player shows up, but don't set stream (prevents auto-play)
+            // The user will see the source selector and can pick videasy manually
+            setScrapeStatus('success');
           }
         } else {
           setScrapeStatus('error');
@@ -417,8 +419,8 @@ export default function WatchPage() {
     setDismissedTokenNoticeSitewide(true);
     try {
       window.localStorage.setItem(FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY, '1');
-    } catch {
-      return;
+    } catch (e) {
+      console.error('Failed to save sitewide dismiss:', e);
     }
   }, []);
 

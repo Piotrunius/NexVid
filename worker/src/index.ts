@@ -476,8 +476,12 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
     const now = new Date().toISOString();
     const identifier = userId || `guest_${await sha256Hex(request.headers.get('CF-Connecting-IP') || '0.0.0.0')}`;
     
+    // Throttle updates to once every 15 minutes to save D1 writes
     await env.DB.prepare(
-      'INSERT INTO active_users (user_id, last_seen_at) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at'
+      `INSERT INTO active_users (user_id, last_seen_at) 
+       VALUES (?, ?) 
+       ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
+       WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
     ).bind(identifier, now).run();
   } catch {
     // ignore
@@ -711,16 +715,19 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
 async function linkUserIdentifiers(env: Env, userId: string, identifiers: RequestIdentifiers): Promise<void> {
   await ensureSecurityTables(env);
   const now = new Date().toISOString();
+  // Throttle updates to once every 15 minutes to save D1 writes
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO user_identifiers (user_id, identifier, id_type, created_at, last_seen_at)
        VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at`
+       ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at
+       WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
     ).bind(userId, identifiers.ipHash, 'ip', now, now),
     env.DB.prepare(
       `INSERT INTO user_identifiers (user_id, identifier, id_type, created_at, last_seen_at)
        VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at`
+       ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at
+       WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
     ).bind(userId, identifiers.fingerprintHash, 'fingerprint', now, now),
   ]);
 }
@@ -2848,18 +2855,15 @@ async function handleHealth(request: Request, env: Env): Promise<Response> {
   );
 }
 
-/* ──── Direct Stream Resolver (VidLink/VidRock) ──── */
+/* ──── Direct Stream Resolver (VidLink) ──── */
 
 const DIRECT_RESOLVER_ALLOWED_HOSTS = [
   '*.vodvidl.site',
   '*.b-cdn.net',
-  '*.vidrock.store',
   '*.vidlink.pro',
-  '*.vidrock.net',
   '*.workers.dev',
   'videostr.net',
   'vidlink.pro',
-  'vidrock.net',
 ];
 
 function isDirectResolverHostAllowed(hostname: string): boolean {
@@ -2925,9 +2929,7 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
 
   try {
     const targetHost = parsedTarget.hostname.toLowerCase();
-    const defaultOrigin = targetHost.includes('b-cdn.net') || targetHost.includes('vidrock')
-      ? 'https://vidrock.net'
-      : targetHost.includes('vodvidl') || targetHost.includes('videostr')
+    const defaultOrigin = targetHost.includes('vodvidl') || targetHost.includes('videostr')
         ? 'https://videostr.net'
         : 'https://vidlink.pro';
 
@@ -3206,10 +3208,12 @@ export default {
         case '/auth/me':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleMe(request, env);
-        case '/watchlist':
-
+        case '/user/settings':
           if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleSettings(request, env);
+        case '/user/watchlist':
+          if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleWatchlist(request, env);
         case '/user/profile':
           if (!['PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleProfile(request, env);
@@ -3225,9 +3229,6 @@ export default {
         case '/user/notifications':
           if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleUserNotifications(request, env);
-        case '/user/watchlist':
-          if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
-          return await handleWatchlist(request, env);
         case '/watch-party/create':
           if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleWatchPartyCreate(request, env);

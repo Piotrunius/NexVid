@@ -195,11 +195,6 @@ export function DownloadModal({
             </>
           )}
         </div>
-
-        <p className="mt-6 text-[11px] text-white/20 text-center leading-relaxed">
-          Downloader checks all direct providers (FebBox, Debrid).<br/>
-          Select a quality to start your download.
-        </p>
       </div>
     </div>
   );

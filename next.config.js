@@ -9,17 +9,18 @@ const securityHeaders = [
     {
         key: 'Content-Security-Policy',
         value: [
-            "default-src 'self' https:",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+            "default-src 'self' blob: https:",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https:",
             "style-src 'self' 'unsafe-inline' https:",
             "img-src 'self' data: blob: https:",
             "font-src 'self' data: https:",
-            `connect-src ${connectSrc.join(' ')}`,
+            `connect-src 'self' blob: ${connectSrc.filter(s => s !== "'self'").join(' ')}`,
             "media-src 'self' blob: data: https:",
-            "worker-src 'self' blob:",
+            "worker-src 'self' blob: https:",
             "child-src 'self' blob:",
             "frame-src 'self' https://vidlink.pro https://*.vidlink.pro https://vidsrc.icu https://*.vidsrc.icu https://vidsrc.me https://*.vidsrc.me https://www.youtube.com https:",
         ].join('; '),
+
     },
 ];
 
