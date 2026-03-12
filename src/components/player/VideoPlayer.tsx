@@ -58,6 +58,7 @@ interface PlayerProps {
   onTokenNoticePermanentDismiss?: () => void;
   fullViewport?: boolean;
   initialSeekTime?: number;
+  externalCaptions?: Caption[];
 }
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -148,6 +149,46 @@ const LANGUAGE_LABELS: Record<string, string> = {
   zh: '中文',
   ar: 'العربية',
   hi: 'हिन्दी',
+  sq: 'Shqip',
+  bn: 'বাংলা',
+  et: 'Eesti',
+  km: 'ភាសាខ្មែร',
+  mk: 'Македонски',
+  ms: 'Bahasa Melayu',
+  sl: 'Slovenščina',
+  ea: 'Español (Latino)',
+  ca: 'Català',
+  gl: 'Galego',
+  eu: 'Euskara',
+  ml: 'മലയാളം',
+  ta: 'தமிழ்',
+  te: 'తెలుగు',
+  kn: 'ಕನ್ನಡ',
+  mr: 'मराठी',
+  gu: 'ગુજરાતી',
+  pa: 'ਪੰਜਾਬੀ',
+  ur: 'اردو',
+  si: 'සිංහල',
+  ka: 'ქართული',
+  hy: 'Հայերեն',
+  az: 'Azərbaycan',
+  lt: 'Lietuvių',
+  lv: 'Latviešu',
+  is: 'Íslenska',
+  be: 'Беларуская',
+  kk: 'Қазақ тілі',
+  uz: 'Oʻzbek',
+  mn: 'Монгол',
+  af: 'Afrikaans',
+  sw: 'Kiswahili',
+  am: 'አማርኛ',
+  tl: 'Tagalog',
+  my: 'မြန်မာဘာသာ',
+  lo: 'ພາសាລາວ',
+  bs: 'Bosanski',
+  cy: 'Cymraeg',
+  ga: 'Gaeilge',
+  mt: 'Malti',
 };
 
 const FLAG_BY_LANG: Record<string, string> = {
@@ -184,6 +225,46 @@ const FLAG_BY_LANG: Record<string, string> = {
   zh: '🇨🇳',
   ar: '🇸🇦',
   hi: '🇮🇳',
+  sq: '🇦🇱',
+  bn: '🇧🇩',
+  et: '🇪🇪',
+  km: '🇰🇭',
+  mk: '🇲🇰',
+  ms: '🇲🇾',
+  sl: '🇸🇮',
+  ea: '🇲🇽',
+  ca: '🇦🇩',
+  gl: '🇪🇸',
+  eu: '🇪🇸',
+  ml: '🇮🇳',
+  ta: '🇮🇳',
+  te: '🇮🇳',
+  kn: '🇮🇳',
+  mr: '🇮🇳',
+  gu: '🇮🇳',
+  pa: '🇮🇳',
+  ur: '🇵🇰',
+  si: '🇱🇰',
+  ka: '🇬🇪',
+  hy: '🇦🇲',
+  az: '🇦🇿',
+  lt: '🇱🇹',
+  lv: '🇱🇻',
+  is: '🇮🇸',
+  be: '🇧🇾',
+  kk: '🇰🇿',
+  uz: '🇺🇿',
+  mn: '🇲🇳',
+  af: '🇿🇦',
+  sw: '🇰🇪',
+  am: '🇪🇹',
+  tl: '🇵🇭',
+  my: '🇲🇲',
+  lo: '🇱🇦',
+  bs: '🇧🇦',
+  cy: '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+  ga: '🇮🇪',
+  mt: '🇲🇹',
 };
 
 const LANGUAGE_ALIASES: Record<string, string> = {
@@ -247,7 +328,7 @@ function convertSrtToVtt(text: string): string {
   return `WEBVTT\n\n${body}`;
 }
 
-export function VideoPlayer({ stream, onBack, title, subtitle, media, season, seasonNum = 1, episodeNum = 1, mediaType, onNavigateEpisode, scrapeStatus, segments, tmdbId, sourceLabel, canTryNextSource, onTryNextSource, allSourceResults, currentSourceIndex: propSourceIndex, onSelectSource, scrapeErrorTitle, scrapeErrorDescription, scrapeErrorActionLabel, onScrapeErrorAction, showTokenNotice, tokenNoticeText, tokenNoticeActionLabel, onTokenNoticeAction, tokenNoticeSettingsLabel, onTokenNoticeSettings, tokenNoticeDismissLabel, onTokenNoticeDismiss, tokenNoticePermanentDismissLabel, tokenNoticePermanentDismissHint, onTokenNoticePermanentDismiss, fullViewport = false, initialSeekTime = 0 }: PlayerProps) {
+export function VideoPlayer({ stream, onBack, title, subtitle, media, season, seasonNum = 1, episodeNum = 1, mediaType, onNavigateEpisode, scrapeStatus, segments, tmdbId, sourceLabel, canTryNextSource, onTryNextSource, allSourceResults, currentSourceIndex: propSourceIndex, onSelectSource, scrapeErrorTitle, scrapeErrorDescription, scrapeErrorActionLabel, onScrapeErrorAction, showTokenNotice, tokenNoticeText, tokenNoticeActionLabel, onTokenNoticeAction, tokenNoticeSettingsLabel, onTokenNoticeSettings, tokenNoticeDismissLabel, onTokenNoticeDismiss, tokenNoticePermanentDismissLabel, tokenNoticePermanentDismissHint, onTokenNoticePermanentDismiss, fullViewport = false, initialSeekTime = 0, externalCaptions = [] }: PlayerProps) {
   const WATCH_PARTY_CODE_KEY = 'nexvid-watch-party-code';
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -603,9 +684,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       return;
     }
 
-    const streamCaptions = 'captions' in stream && Array.isArray(stream.captions) ? stream.captions : [];
-    setCaptions(streamCaptions);
-
     return () => {
       // Destroy HLS instance if present
       if (hlsRef.current) {
@@ -716,8 +794,14 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   }, [stream, externalAudioUrl, isMuted, volume]);
 
   useEffect(() => {
+    // Sync external captions to the player store
+    // We don't include 'captions' in deps to avoid infinite loops
+    setCaptions(externalCaptions);
+  }, [externalCaptions, setCaptions]);
+
+  useEffect(() => {
     if (captions.length === 0) {
-      setCaptionTrackUrls({});
+      setManualCues([]);
       setRenderedSubtitle('');
       if (activeCaption) setActiveCaption(null);
       return;
@@ -725,7 +809,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
     if (captionTouchedByUser) return;
 
-    const preferred = normalizeLanguageCode(subtitleLanguage || 'en');
+    const preferred = normalizeLanguageCode(subtitleLanguage || 'pl');
     if (preferred === 'off') {
       if (activeCaption) setActiveCaption(null);
       return;
@@ -733,156 +817,109 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
     if (!activeCaption || !captions.some((caption) => caption.id === activeCaption)) {
       const preferredCaption = captions.find((caption) => normalizeLanguageCode(caption.language) === preferred);
+      const polish = captions.find((caption) => normalizeLanguageCode(caption.language) === 'pl');
       const english = captions.find((caption) => normalizeLanguageCode(caption.language) === 'en');
-      setActiveCaption((preferredCaption || english || captions[0]).id);
+      setActiveCaption((preferredCaption || polish || english || captions[0]).id);
     }
   }, [captions, activeCaption, captionTouchedByUser, subtitleLanguage]);
 
+  const [manualCues, setManualCues] = useState<{ start: number; end: number; text: string }[]>([]);
+
   useEffect(() => {
+    if (!activeCaption || !captions.length) {
+      setManualCues([]);
+      setRenderedSubtitle('');
+      return;
+    }
+
+    const caption = captions.find(c => c.id === activeCaption);
+    if (!caption) return;
+
     let cancelled = false;
-    const createdObjectUrls: string[] = [];
+    const loadManualSubs = async () => {
+      try {
+        const proxiedUrl = `/api/subtitle?url=${encodeURIComponent(caption.url)}`;
+        const response = await fetch(proxiedUrl);
+        if (!response.ok) throw new Error('Fetch failed');
+        const text = await response.text();
+        if (cancelled) return;
 
-    const buildTrackUrls = async () => {
-      const entries = await Promise.all(
-        captions.map(async (caption) => {
-          const proxiedUrl = `/api/subtitle?url=${encodeURIComponent(caption.url)}`;
+        // Simple VTT/SRT Parser
+        const parseSubtitles = (rawText: string) => {
+          const normalized = rawText.replace(/\r/g, '').replace(/^﻿/, '');
+          const blocks = normalized.split(/\n\s*\n/);
+          const result: { start: number; end: number; text: string }[] = [];
 
-          try {
-            const response = await fetch(proxiedUrl, { signal: AbortSignal.timeout(15000) });
-            if (!response.ok) return [caption.id, proxiedUrl] as const;
-            const text = await response.text();
+          const timeToSec = (t: string) => {
+            const parts = t.trim().split(':');
+            if (parts.length < 2) return 0;
+            const s = parts.length === 3
+              ? parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2].replace(',', '.'))
+              : parseFloat(parts[0]) * 60 + parseFloat(parts[1].replace(',', '.'));
+            return s;
+          };
 
-            const vtt = caption.type === 'vtt'
-              ? (text.startsWith('WEBVTT') ? text : `WEBVTT\n\n${text}`)
-              : convertSrtToVtt(text);
+          for (const block of blocks) {
+            const lines = block.trim().split('\n');
+            let timeLine = '';
+            let textLines: string[] = [];
 
-            const objectUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
-            createdObjectUrls.push(objectUrl);
-            return [caption.id, objectUrl] as const;
-          } catch {
-            return [caption.id, proxiedUrl] as const;
+            for (const line of lines) {
+              if (line.includes('-->')) {
+                timeLine = line;
+              } else if (timeLine) {
+                textLines.push(line);
+              }
+            }
+
+            if (timeLine) {
+              const [startStr, endStr] = timeLine.split('-->');
+              const text = textLines.join('\n').replace(/<[^>]*>/g, '').trim();
+              if (text) {
+                result.push({
+                  start: timeToSec(startStr),
+                  end: timeToSec(endStr),
+                  text
+                });
+              }
+            }
           }
-        }),
-      );
+          return result;
+        };
 
-      if (!cancelled) {
-        setCaptionTrackUrls(Object.fromEntries(entries));
+        setManualCues(parseSubtitles(text));
+      } catch (err) {
+        console.error('Manual subtitle load error:', err);
+        setManualCues([]);
       }
     };
 
-    buildTrackUrls();
+    loadManualSubs();
+    return () => { cancelled = true; };
+  }, [activeCaption, captions]);
 
-    return () => {
-      cancelled = true;
-      createdObjectUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [captions]);
-
-  const applyActiveCaptionMode = useCallback(() => {
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const trackNodes = Array.from(video.querySelectorAll('track')) as HTMLTrackElement[];
-    const textTracks = Array.from(video.textTracks);
-
-    textTracks.forEach((track, index) => {
-      const node = trackNodes[index];
-      const captionId = node?.dataset.captionId;
-      const isActive = Boolean(activeCaption && captionId === activeCaption);
-
-      if (node) node.default = isActive;
-      track.mode = isActive ? 'hidden' : 'disabled';
-
-      if (isActive && (!track.cues || track.cues.length === 0)) {
-        track.mode = 'showing';
-        window.setTimeout(() => {
-          if (track.mode === 'showing') track.mode = 'hidden';
-        }, 60);
-      }
-    });
-  }, [activeCaption]);
-
-  useEffect(() => {
-    applyActiveCaptionMode();
-    const timer = window.setTimeout(applyActiveCaptionMode, 180);
-    return () => window.clearTimeout(timer);
-  }, [applyActiveCaptionMode, captionTrackUrls, captions, stream]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !activeCaption) {
-      setRenderedSubtitle('');
-      return;
-    }
-
-    const trackNodes = Array.from(video.querySelectorAll('track')) as HTMLTrackElement[];
-    const activeIndex = trackNodes.findIndex((node) => node?.dataset.captionId === activeCaption);
-    const activeTrack = activeIndex >= 0 ? video.textTracks[activeIndex] : null;
-
-    if (!activeTrack) {
-      setRenderedSubtitle('');
-      return;
-    }
-
-    if (activeTrack.mode === 'disabled') {
-      activeTrack.mode = 'hidden';
-    }
-    if (!activeTrack.cues || activeTrack.cues.length === 0) {
-      activeTrack.mode = 'showing';
-      window.setTimeout(() => {
-        if (activeTrack.mode === 'showing') activeTrack.mode = 'hidden';
-      }, 60);
-    }
-
-    const activeNode = activeIndex >= 0 ? trackNodes[activeIndex] : null;
-
     const updateSubtitleText = () => {
-      if (!videoRef.current || !activeCaption) {
+      if (!activeCaption || manualCues.length === 0 || !videoRef.current) {
         setRenderedSubtitle('');
         return;
       }
 
-      const cues = activeTrack.cues;
-      if (!cues || cues.length === 0) {
-        setRenderedSubtitle('');
-        return;
+      const shiftedTime = videoRef.current.currentTime - (subDelayMs / 1000);
+      const active = manualCues.filter(c => shiftedTime >= c.start && shiftedTime <= c.end);
+      
+      const newText = active.map(a => a.text).join('\n');
+      if (newText !== renderedSubtitle) {
+        setRenderedSubtitle(newText);
       }
-
-      const shiftedTime = videoRef.current.currentTime - subDelayMs / 1000;
-      if (!Number.isFinite(shiftedTime) || shiftedTime < 0) {
-        setRenderedSubtitle('');
-        return;
-      }
-
-      const activeTexts: string[] = [];
-      for (let i = 0; i < cues.length; i += 1) {
-        const cue = cues[i] as any;
-        if (!cue || typeof cue !== 'object') continue;
-        const startTime = Number(cue.startTime ?? 0);
-        const endTime = Number(cue.endTime ?? 0);
-        if (shiftedTime >= startTime && shiftedTime <= endTime) {
-          const text = String(cue.text ?? '').trim();
-          if (text) activeTexts.push(text);
-        }
-      }
-
-      setRenderedSubtitle(activeTexts.join('\n'));
     };
 
-    updateSubtitleText();
-    const syncEvents: Array<keyof HTMLMediaElementEventMap> = ['timeupdate', 'seeked', 'loadedmetadata', 'play', 'pause', 'ratechange'];
-    syncEvents.forEach((eventName) => video.addEventListener(eventName, updateSubtitleText));
-    activeTrack.addEventListener('cuechange', updateSubtitleText as EventListener);
-    if (activeNode) activeNode.addEventListener('load', updateSubtitleText);
-    const timer = window.setInterval(updateSubtitleText, 180);
-
-    return () => {
-      syncEvents.forEach((eventName) => video.removeEventListener(eventName, updateSubtitleText));
-      activeTrack.removeEventListener('cuechange', updateSubtitleText as EventListener);
-      if (activeNode) activeNode.removeEventListener('load', updateSubtitleText);
-      window.clearInterval(timer);
-    };
-  }, [activeCaption, captionTrackUrls, subDelayMs, stream]);
+    const interval = window.setInterval(updateSubtitleText, 100);
+    return () => window.clearInterval(interval);
+  }, [activeCaption, manualCues, subDelayMs, renderedSubtitle]);
 
   async function loadHls(url: string, video: HTMLVideoElement, headers?: Record<string, string>) {
     try {
@@ -1694,18 +1731,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             muted={isMuted}
             autoPlay={autoPlay}
           >
-            {captions.map((caption) => (
-              <track
-                key={caption.id}
-                data-caption-id={caption.id}
-                kind="subtitles"
-                src={captionTrackUrls[caption.id] || `/api/subtitle?url=${encodeURIComponent(caption.url)}`}
-                srcLang={normalizeLanguageCode(caption.language)}
-                label={languageLabel(caption.language)}
-                default={activeCaption === caption.id}
-                onLoad={applyActiveCaptionMode}
-              />
-            ))}
           </video>
           <audio ref={externalAudioRef} className="hidden" preload="auto" />
         </>
@@ -2594,16 +2619,34 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
                         Subtitles
                       </button>
-                      <div className="space-y-0.5 max-h-44 overflow-y-auto">
-                        <button onClick={() => { setCaptionTouchedByUser(true); setActiveCaption(null); setSettingsPanel('main'); }} className={cn('w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors', !activeCaption ? 'bg-accent/20 text-accent' : 'text-white/60 hover:bg-white/10')}>Off</button>
-                        {captions.map((cap) => (
-                          <button key={cap.id} onClick={() => { setCaptionTouchedByUser(true); setActiveCaption(cap.id); setSettingsPanel('main'); }} className={cn('w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors', activeCaption === cap.id ? 'bg-accent/20 text-accent' : 'text-white/60 hover:bg-white/10')}>
-                            <span className="mr-2">{languageFlag(cap.language)}</span>
-                            {languageLabel(cap.language)}
+                      <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                        <button onClick={() => { setCaptionTouchedByUser(true); setActiveCaption(null); setRenderedSubtitle(''); setSettingsPanel('main'); }} className={cn('w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors', !activeCaption ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10')}>Off</button>
+
+                        {captions
+                          .filter(cap => {
+                            const code = normalizeLanguageCode(cap.language);
+                            return code !== 'unknown' && languageLabel(code) !== 'Unknown';
+                          })
+                          .map((cap) => (
+                          <button
+                            key={cap.id} 
+                            onClick={() => { 
+                              setCaptionTouchedByUser(true); 
+                              setActiveCaption(cap.id); 
+                              setSettingsPanel('main'); 
+                            }} 
+                            className={cn('w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between', activeCaption === cap.id ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10')}
+                          >
+                            <div className="flex items-center">
+                              <span className="mr-2 opacity-80">{languageFlag(cap.language)}</span>
+                              {languageLabel(cap.language)}
+                            </div>
+                            {activeCaption === cap.id && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
                           </button>
                         ))}
+
                         {captions.length === 0 && (
-                          <p className="px-3 py-2 text-[11px] text-white/40">No subtitles available</p>
+                          <p className="px-3 py-2 text-[11px] text-white/40 italic">No external subtitles found</p>
                         )}
                       </div>
                       <hr className="my-2 border-white/[0.06]" />
@@ -2612,9 +2655,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         Subtitle Appearance
                       </button>
                     </div>
-                  )}
-
-                  {/* Subtitle Appearance Sub-panel */}
+                  )}                  {/* Subtitle Appearance Sub-panel */}
                   {settingsPanel === 'subAppearance' && (
                     <div>
                       <button onClick={() => setSettingsPanel('subtitles')} className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors">
