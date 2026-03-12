@@ -912,13 +912,13 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
   if (!token) return null;
 
   const row = await env.DB.prepare(
-    `SELECT u.id, u.username, u.email, u.created_at, u.requires_password_change
+    `SELECT u.id, u.username, u.created_at, u.requires_password_change
      FROM sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.token = ? AND s.expires_at > ?`
   )
     .bind(token, new Date().toISOString())
-    .first<{ id: string; username: string; email: string; created_at: string; requires_password_change: number }>();
+    .first<{ id: string; username: string; created_at: string; requires_password_change: number }>();
 
   if (!row) return null;
 
@@ -995,13 +995,12 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
   const userId = crypto.randomUUID();
   const passwordHash = await hashPassword(password);
   const now = new Date().toISOString();
-  const localEmail = `${normalizedUsername}-${userId.slice(0, 8)}@local.nexvid`;
   const token = createToken();
   const ttlDays = Number(env.SESSION_TTL_DAYS || '30');
   const expires = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
 
   await env.DB.batch([
-    env.DB.prepare('INSERT INTO users (id, username, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)').bind(userId, username, localEmail, passwordHash, now),
+    env.DB.prepare('INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)').bind(userId, username, passwordHash, now),
     env.DB.prepare('INSERT INTO user_settings (user_id, settings_json, updated_at) VALUES (?, ?, ?)').bind(userId, '{}', now),
     env.DB.prepare('INSERT INTO watchlist (user_id, items_json, updated_at) VALUES (?, ?, ?)').bind(userId, '[]', now),
     env.DB.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, userId, now, expires),
@@ -1089,9 +1088,9 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     return json(request, env, { error: message }, 403);
   }
 
-  const row = await env.DB.prepare('SELECT id, username, email, password_hash, created_at FROM users WHERE LOWER(username) = ?')
+  const row = await env.DB.prepare('SELECT id, username, password_hash, created_at FROM users WHERE LOWER(username) = ?')
     .bind(normalizedUsername)
-    .first<{ id: string; username: string; email: string; password_hash: string; created_at: string }>();
+    .first<{ id: string; username: string; password_hash: string; created_at: string }>();
 
   if (!row) {
     await registerFailedLogin(env, limit.key);
