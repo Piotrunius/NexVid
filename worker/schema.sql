@@ -1,11 +1,15 @@
--- NexVid Cloudflare D1 schema
+-- NexVid Cloudflare D1 Complete Schema
+-- Combined from root, worker schemas, and hardcoded worker initialization logic.
+-- This is the single source of truth for the database structure.
 
+-- 1. Core User & Session Tables
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  requires_password_change INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -26,6 +30,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 2. Media & Personalization
 CREATE TABLE IF NOT EXISTS watchlist (
   user_id TEXT PRIMARY KEY,
   items_json TEXT NOT NULL,
@@ -33,6 +38,30 @@ CREATE TABLE IF NOT EXISTS watchlist (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS watch_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tmdb_id TEXT NOT NULL,
+  media_type TEXT NOT NULL,
+  season INTEGER,
+  episode INTEGER,
+  progress_seconds REAL NOT NULL DEFAULT 0,
+  duration_seconds REAL,
+  watched_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_history_user ON watch_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_history_tmdb ON watch_history(tmdb_id);
+
+CREATE TABLE IF NOT EXISTS febbox_tokens (
+  token TEXT PRIMARY KEY,
+  label TEXT NOT NULL DEFAULT 'Public Token',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  is_banned INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 3. Security, Bans & Anti-Abuse
 CREATE TABLE IF NOT EXISTS login_attempts (
   key TEXT PRIMARY KEY,
   failures INTEGER NOT NULL DEFAULT 0,
@@ -42,40 +71,59 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 
 CREATE INDEX IF NOT EXISTS idx_login_attempts_blocked_until ON login_attempts(blocked_until);
 
-CREATE TABLE IF NOT EXISTS email_verification (
-  user_id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  verified_at TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS email_verification_tokens (
-  token_hash TEXT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS user_identifiers (
   user_id TEXT NOT NULL,
-  email TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
+  identifier TEXT NOT NULL,
+  id_type TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  consumed_at TEXT,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  last_seen_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, identifier)
 );
 
-CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_user ON email_verification_tokens(user_id);
-CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires ON email_verification_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier);
 
-CREATE TABLE IF NOT EXISTS admin_users (
-  user_id TEXT PRIMARY KEY,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS banned_emails (
-  email TEXT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS banned_identifiers (
+  identifier TEXT PRIMARY KEY,
+  id_type TEXT NOT NULL,
   reason TEXT,
   created_at TEXT NOT NULL,
+  created_by_user_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS banned_usernames (
+  username TEXT PRIMARY KEY,
+  reason TEXT,
+  created_at TEXT NOT NULL,
+  created_by_user_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS banned_ip_hashes (
+  ip_hash TEXT PRIMARY KEY,
+  ip_label TEXT NOT NULL,
+  reason TEXT,
+  created_at TEXT NOT NULL,
+  created_by_user_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS account_limit_overrides (
+  type TEXT NOT NULL,
+  value TEXT NOT NULL,
+  value_label TEXT,
+  max_accounts INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
   created_by_user_id TEXT,
-  FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  PRIMARY KEY (type, value)
+);
+
+-- 4. Admin, Auditing & Communication
+CREATE TABLE IF NOT EXISTS admin_users (
+  user_id TEXT PRIMARY KEY,
+  role TEXT NOT NULL DEFAULT 'admin',
+  granted_by TEXT,
+  expires_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS announcements (
@@ -105,3 +153,106 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS active_users (
+  user_id TEXT PRIMARY KEY,
+  last_seen_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_active_users_last_seen ON active_users(last_seen_at);
+
+-- 5. Surveys & Feedback
+CREATE TABLE IF NOT EXISTS surveys (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  questions TEXT NOT NULL, -- JSON array of question objects
+  is_active INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS survey_responses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  survey_id TEXT NOT NULL REFERENCES surveys(id) ON DELETE CASCADE,
+  user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  answers TEXT NOT NULL, -- JSON object of answers {questionId: answer}
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_surveys_active ON surveys(is_active);
+CREATE INDEX IF NOT EXISTS idx_responses_survey ON survey_responses(survey_id);
+
+CREATE TABLE IF NOT EXISTS feedback_threads (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_reply_at TEXT NOT NULL,
+  admin_last_reply_at TEXT,
+  user_last_reply_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_threads_user ON feedback_threads(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_threads_status ON feedback_threads(status, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS feedback_messages (
+  id TEXT PRIMARY KEY,
+  thread_id TEXT NOT NULL,
+  sender_user_id TEXT,
+  sender_role TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_messages_thread ON feedback_messages(thread_id, created_at ASC);
+
+CREATE TABLE IF NOT EXISTS user_notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  thread_id TEXT,
+  is_read INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, is_read, created_at DESC);
+
+-- 6. Social / Watch Party
+CREATE TABLE IF NOT EXISTS watch_party_rooms (
+  id TEXT PRIMARY KEY,
+  host_token TEXT NOT NULL,
+  host_user_id TEXT,
+  host_name TEXT NOT NULL,
+  media_key TEXT NOT NULL,
+  media_type TEXT,
+  media_id TEXT,
+  season INTEGER,
+  episode INTEGER,
+  title TEXT,
+  state_json TEXT NOT NULL,
+  participant_count INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_watch_party_rooms_expires ON watch_party_rooms(expires_at);
+
+CREATE TABLE IF NOT EXISTS watch_party_participants (
+  room_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  user_id TEXT,
+  name TEXT NOT NULL,
+  is_host INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  PRIMARY KEY (room_id, participant_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_watch_party_participants_room ON watch_party_participants(room_id, last_seen_at DESC);
