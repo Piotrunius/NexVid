@@ -288,24 +288,15 @@ export async function clearCloudEverything() {
 }
 
 export async function loadAdminHealth() {
-  return cloudFetch<{
-    today: { attempts: number; successes: number; failures: number };
-    errors: { id: string; media_type: string; media_id: string; error_code: string; error_message: string; created_at: string }[];
-  }>('/admin/health', { method: 'GET' });
+  return { today: { attempts: 0, successes: 0, failures: 0 }, errors: [] };
 }
 
 export async function reportPlayerError(mediaType: string, mediaId: string, code: string, message: string, isFebboxAuth: boolean, febboxToken?: string) {
-  return cloudFetch('/api/report-error', {
-    method: 'POST',
-    body: JSON.stringify({ mediaType, mediaId, code, message, isFebboxAuth, febboxToken }),
-  });
+  return { ok: true };
 }
 
 export async function reportPlayerSuccess(febboxToken?: string) {
-  return cloudFetch('/api/report-success', {
-    method: 'POST',
-    body: JSON.stringify({ febboxToken }),
-  });
+  return { ok: true };
 }
 
 export async function loadAdminFebboxTokens() {

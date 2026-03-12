@@ -340,28 +340,9 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         await env.DB.prepare('ALTER TABLE users ADD COLUMN requires_password_change INTEGER DEFAULT 0').run();
       } catch { /* already exists */ }
 
-      // Error tracking for player health
-      await env.DB.prepare(
-        `CREATE TABLE IF NOT EXISTS player_errors (
-           id TEXT PRIMARY KEY,
-           media_type TEXT,
-           media_id TEXT,
-           error_code TEXT,
-           error_message TEXT,
-           user_agent TEXT,
-           created_at TEXT NOT NULL
-         )`
-      ).run();
+      // Error tracking for player health - REMOVED
       
-      // Daily stats for success rate
-      await env.DB.prepare(
-        `CREATE TABLE IF NOT EXISTS daily_player_stats (
-           date TEXT PRIMARY KEY,
-           attempts INTEGER DEFAULT 0,
-           successes INTEGER DEFAULT 0,
-           failures INTEGER DEFAULT 0
-         )`
-      ).run();
+      // Daily stats for success rate - REMOVED
 
       // Table for tracking real-time active users
       await env.DB.prepare(
@@ -377,71 +358,8 @@ async function ensureSecurityTables(env: Env): Promise<void> {
   await securityTablesInit;
 }
 
-async function handleReportError(request: Request, env: Env): Promise<Response> {
-  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
-  const body = await readJson<{ mediaType: string; mediaId: string; code: string; message: string; isFebboxAuth?: boolean }>(request);
-  
-  const now = new Date().toISOString();
-  const dateKey = now.split('T')[0];
-
-  // Throttle error logging: don't log the same error for the same media from the same IP more than once per 30m
-  const ip = getClientIp(request);
-  const errorCacheKey = `err:${ip}:${body.mediaId}:${body.code}`;
-  const lastError = lastSeenCache.get(errorCacheKey);
-  const shouldLogDetail = !lastError || (Date.now() - lastError > 30 * 60 * 1000);
-
-  if (!body.isFebboxAuth && shouldLogDetail) {
-    lastSeenCache.set(errorCacheKey, Date.now());
-    await env.DB.prepare(
-      `INSERT INTO player_errors (id, media_type, media_id, error_code, error_message, user_agent, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), body.mediaType, body.mediaId, body.code, body.message, request.headers.get('User-Agent') || 'unknown', now).run();
-  }
-
-  // Sample stats updates for failures too (only 20% of failures update the daily counter)
-  if (Math.random() < 0.2) {
-    await env.DB.prepare(
-      `INSERT INTO daily_player_stats (date, attempts, failures) VALUES (?, 5, 5)
-       ON CONFLICT(date) DO UPDATE SET attempts = attempts + 5, failures = failures + 5`
-    ).bind(dateKey).run();
-  }
-
-  return json(request, env, { ok: true });
-}
-
-async function handleReportSuccess(request: Request, env: Env): Promise<Response> {
-  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
-  
-  // OPTIMIZATION: Sample successes (1 in 10). Save 90% of writes on this table.
-  if (Math.random() > 0.1) {
-    return json(request, env, { ok: true, sampled: true });
-  }
-
-  const dateKey = new Date().toISOString().split('T')[0];
-
-  await env.DB.prepare(
-    `INSERT INTO daily_player_stats (date, attempts, successes) VALUES (?, 10, 10)
-     ON CONFLICT(date) DO UPDATE SET attempts = attempts + 10, successes = successes + 10`
-  ).bind(dateKey).run();
-
-  return json(request, env, { ok: true });
-}
-
 async function handleAdminHealth(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin']);
-  if (session instanceof Response) return session;
-
-  const dateKey = new Date().toISOString().split('T')[0];
-  const stats = await env.DB.prepare('SELECT * FROM daily_player_stats WHERE date = ?').bind(dateKey).first<{ attempts: number; successes: number; failures: number }>();
-  
-  const recentErrors = await env.DB.prepare(
-    'SELECT * FROM player_errors ORDER BY created_at DESC LIMIT 20'
-  ).all();
-
-  return json(request, env, {
-    today: stats || { attempts: 0, successes: 0, failures: 0 },
-    errors: recentErrors.results || [],
-  });
+  return json(request, env, { today: { attempts: 0, successes: 0, failures: 0 }, errors: [] });
 }
 
 async function handleAdminFebboxTokens(request: Request, env: Env): Promise<Response> {
@@ -514,10 +432,11 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
 
 async function getActiveUsersCount(env: Env): Promise<{ users: number; guests: number }> {
   try {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // Increase window to 20 minutes to account for the 15-minute update throttle in updateActiveUser
+    const activeWindowAgo = new Date(Date.now() - 20 * 60 * 1000).toISOString();
     const rows = await env.DB.prepare(
       'SELECT user_id FROM active_users WHERE last_seen_at > ?'
-    ).bind(fiveMinutesAgo).all<{ user_id: string }>();
+    ).bind(activeWindowAgo).all<{ user_id: string }>();
     
     const results = rows.results || [];
     const users = results.filter(r => !r.user_id.startsWith('guest_')).length;
@@ -3298,11 +3217,9 @@ export default {
         case '/admin/health':
           return await handleAdminHealth(request, env);
         case '/api/report-error':
-          return await handleReportError(request, env);
         case '/api/report-success':
-          return await handleReportSuccess(request, env);
-        case '/admin/bans':
-          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+          return json(request, env, { ok: true });
+        case '/admin/bans':          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminBans(request, env);
         case '/admin/account-limits':
           if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
