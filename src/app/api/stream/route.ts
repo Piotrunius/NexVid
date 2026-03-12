@@ -1,12 +1,16 @@
 /* ============================================
    Stream Resolution API Route
-   Resolves TMDB title → FebBox video URLs
+   Resolves TMDB title → Multi-provider URLs
    ============================================ */
 
 import { getFebBoxToken, resolveStream } from '@/lib/showbox';
 import { getMovieDetails, getShowDetails } from '@/lib/tmdb';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Import providers
+import { VixSrcProvider } from '@/lib/providers/vixsrc';
+
+// Edge runtime is required for Cloudflare Pages
 export const runtime = 'edge';
 
 function normalizeType(rawType: string | null, season?: number, episode?: number): 'movie' | 'show' | null {
@@ -21,73 +25,103 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const season = searchParams.get('season') ? parseInt(searchParams.get('season')!, 10) : undefined;
   const episode = searchParams.get('episode') ? parseInt(searchParams.get('episode')!, 10) : undefined;
-  const sourceMode = String(searchParams.get('source') || searchParams.get('prefer') || 'auto').trim().toLowerCase();
-  const normalizedSourceMode = sourceMode || 'auto';
-  const tryFebbox = normalizedSourceMode === 'auto' || normalizedSourceMode === 'febbox';
+  const sourceId = String(searchParams.get('source') || 'febbox').trim().toLowerCase();
 
   const tmdbId = searchParams.get('tmdbId') || searchParams.get('id') || searchParams.get('tmdb') || '';
   const type = normalizeType(searchParams.get('type') || searchParams.get('mediaType'), season, episode);
 
   let title = (searchParams.get('title') || searchParams.get('name') || searchParams.get('q') || '').trim();
-  if (!title && tmdbId && type) {
-    try {
-      if (type === 'movie') {
-        const movie = await getMovieDetails(tmdbId);
-        title = String(movie?.title || '').trim();
-      } else {
-        const show = await getShowDetails(tmdbId);
-        title = String(show?.title || '').trim();
-      }
-    } catch {
-      // ignore TMDB fallback errors and validate below
-    }
-  }
+  const year = parseInt(searchParams.get('year') || '0', 10);
 
-  if (!tmdbId || !type || !title) {
-    return NextResponse.json({
-      error: 'Missing required params',
-      required: ['tmdbId|id', 'type (movie|show|tv)', 'title|name'],
-      received: {
-        tmdbId: Boolean(tmdbId),
-        type: type || null,
-        title: Boolean(title),
-        season,
-        episode,
-      },
-    }, { status: 400 });
+  if (!tmdbId || !type) {
+    return NextResponse.json({ error: 'Missing tmdbId or type' }, { status: 400 });
   }
-
-  // UI cookie can come from client settings header, query param, or server env
-  const queryToken = searchParams.get('febboxToken') || '';
-  const rdToken = searchParams.get('rdToken') || request.headers.get('x-rd-token') || '';
-  const tbToken = searchParams.get('tbToken') || request.headers.get('x-tb-token') || '';
-  const headerCookie = request.headers.get('x-febbox-cookie') || '';
-  const uiCookie = (queryToken || headerCookie || process.env.FEBBOX_UI_COOKIE || '').trim().replace(/^["']|["']$/g, '');
 
   try {
-    // Forward to Cloudflare Worker for Debrid/TorBox sources
-    if (sourceMode === 'debrid' || sourceMode === 'torbox') {
-      const workerUrl = new URL('https://nexvid-proxy.piotrunius.workers.dev/stream');
-      searchParams.forEach((v, k) => workerUrl.searchParams.set(k, v));
-      
-      const workerRes = await fetch(workerUrl.toString(), {
-        headers: {
-          'x-rd-token': rdToken,
-          'x-tb-token': tbToken,
-          'Authorization': request.headers.get('Authorization') || '',
-        },
-      });
-      return NextResponse.json(await workerRes.json(), { status: workerRes.status });
+    // If title is missing, fetch it from TMDB
+    if (!title) {
+        if (type === 'movie') {
+            const movie = await getMovieDetails(tmdbId);
+            title = movie?.title || '';
+        } else {
+            const show = await getShowDetails(tmdbId);
+            title = show?.title || '';
+        }
     }
 
-    if (!tryFebbox) {
-      return NextResponse.json({
-        success: false,
-        error: 'No streams found',
-        logs: [{ step: 'febbox', status: 'fail', detail: `Source mode "${normalizedSourceMode}" disabled (FebBox-only mode)` }],
-        diagnostics: { usingFebboxCookie: Boolean(uiCookie), source: normalizedSourceMode },
-      });
+    // Handle integrated providers from core-main
+    if (['vixsrc'].includes(sourceId)) {
+        console.log(`[API /stream] Handling provider source: ${sourceId}`);
+        let provider: any;
+        switch (sourceId) {
+            case 'vixsrc': provider = new VixSrcProvider(); break;
+        }
+
+        const media = {
+            type: type === 'show' ? 'tv' as const : 'movie' as const,
+            tmdbId,
+            title,
+            releaseYear: year || 2024,
+            s: season,
+            e: episode
+        };
+
+        try {
+            const result = type === 'movie' 
+                ? await provider.getMovieSources(media)
+                : await provider.getTVSources(media);
+
+            console.log(`[API /stream] Provider ${sourceId} returned ${result.sources.length} sources`);
+
+            if (result.sources.length > 0) {
+                // Map the first provider source to our Stream format
+                const first = result.sources[0];
+                
+                // For HLS
+                if (first.type === 'hls') {
+                    return NextResponse.json({
+                        success: true,
+                        data: {
+                            type: 'hls',
+                            url: first.url,
+                            playlist: first.url,
+                            captions: result.subtitles,
+                            headers: first.headers
+                        }
+                    });
+                }
+                
+                // For File (mp4/mkv)
+                const qualities: any = {};
+                result.sources.forEach((s: any) => {
+                    qualities[s.quality || '1080p'] = { 
+                        url: s.url,
+                        headers: s.headers
+                    };
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    data: {
+                        type: 'file',
+                        qualities,
+                        captions: result.subtitles,
+                        audioTracks: first.audioTracks,
+                        headers: first.headers // Fallback for some player logic
+                    }
+                });
+            }
+        } catch (provErr) {
+            console.error(`[API /stream] Provider ${sourceId} threw:`, provErr);
+        }
+
+        return NextResponse.json({ success: false, error: 'No sources found from provider' });
     }
+
+    // Default: FebBox resolution
+    const queryToken = searchParams.get('febboxToken') || '';
+    const headerCookie = request.headers.get('x-febbox-cookie') || '';
+    const uiCookie = (queryToken || headerCookie || process.env.FEBBOX_UI_COOKIE || '').trim().replace(/^["']|["']$/g, '');
 
     const febboxResult = await resolveStream({
       title,
@@ -103,7 +137,6 @@ export async function GET(request: NextRequest) {
         success: false,
         error: 'No streams found',
         logs: febboxResult.logs,
-        diagnostics: { usingFebboxCookie: Boolean(uiCookie), source: 'febbox' },
       });
     }
 
@@ -111,7 +144,6 @@ export async function GET(request: NextRequest) {
       success: true,
       data: febboxResult.stream,
       logs: febboxResult.logs,
-      diagnostics: { usingFebboxCookie: Boolean(uiCookie), source: 'febbox' },
     });
   } catch (error: any) {
     console.error('Stream resolution error:', error);
@@ -119,11 +151,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/stream — validate FebBox token
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
     if (body.action === 'validate-febbox') {
       const clientId = process.env.FEBBOX_CLIENT_ID || body.clientId || '';
       const clientSecret = process.env.FEBBOX_CLIENT_SECRET || body.clientSecret || '';
@@ -140,7 +170,6 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({ valid: false, error: tokenRes.msg });
     }
-
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

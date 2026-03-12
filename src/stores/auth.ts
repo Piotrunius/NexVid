@@ -117,6 +117,29 @@ export const useAuthStore = create<AuthStore>()(
           if (!res.ok) throw new Error(data?.error || 'Login failed');
           setCloudToken(data.token || '');
           set({ user: data.user, isLoggedIn: true, isLoading: false, authToken: data.token || '' });
+          
+          // Trigger immediate data fetch after login/reg
+          void (async () => {
+            try {
+              const { loadCloudSettings, loadCloudWatchlist } = await import('@/lib/cloudSync');
+              const { useSettingsStore, DEFAULT_SETTINGS } = await import('@/stores/settings');
+              const { useWatchlistStore } = await import('@/stores/watchlist');
+              
+              const [settingsRes, watchlistRes] = await Promise.all([
+                loadCloudSettings(),
+                loadCloudWatchlist(),
+              ]);
+              
+              if (settingsRes?.settings) {
+                useSettingsStore.getState().setAllSettings({ ...DEFAULT_SETTINGS, ...settingsRes.settings });
+              }
+              if (Array.isArray(watchlistRes?.items)) {
+                useWatchlistStore.getState().setItems(watchlistRes.items);
+              }
+            } catch (e) {
+              console.error('Failed to sync data:', e);
+            }
+          })();
         } catch (error) {
           set({ isLoading: false });
           throw error;
@@ -137,6 +160,29 @@ export const useAuthStore = create<AuthStore>()(
           if (!res.ok) throw new Error(data?.error || 'Registration failed');
           setCloudToken(data.token || '');
           set({ user: data.user, isLoggedIn: true, isLoading: false, authToken: data.token || '' });
+          
+          // Trigger immediate data fetch after login/reg
+          void (async () => {
+            try {
+              const { loadCloudSettings, loadCloudWatchlist } = await import('@/lib/cloudSync');
+              const { useSettingsStore, DEFAULT_SETTINGS } = await import('@/stores/settings');
+              const { useWatchlistStore } = await import('@/stores/watchlist');
+              
+              const [settingsRes, watchlistRes] = await Promise.all([
+                loadCloudSettings(),
+                loadCloudWatchlist(),
+              ]);
+              
+              if (settingsRes?.settings) {
+                useSettingsStore.getState().setAllSettings({ ...DEFAULT_SETTINGS, ...settingsRes.settings });
+              }
+              if (Array.isArray(watchlistRes?.items)) {
+                useWatchlistStore.getState().setItems(watchlistRes.items);
+              }
+            } catch (e) {
+              console.error('Failed to sync data:', e);
+            }
+          })();
         } catch (error) {
           set({ isLoading: false });
           throw error;

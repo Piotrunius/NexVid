@@ -63,7 +63,7 @@ interface PlayerProps {
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
-const KNOWN_SOURCE_ORDER = ['febbox', 'vidlink'] as const;
+const KNOWN_SOURCE_ORDER = ['febbox', 'vixsrc', 'vidlink'] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = 'nexvid-subtitle-appearance';
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 
@@ -357,7 +357,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [watchPartyServerDiff, setWatchPartyServerDiff] = useState(0);
   const [watchPartyLastSyncTs, setWatchPartyLastSyncTs] = useState(0);
   const [showInfoWatchlistMenu, setShowInfoWatchlistMenu] = useState(false);
-  const [showSourceSelector, setShowSourceSelector] = useState(false);
   const [isEpisodeNavigating, setIsEpisodeNavigating] = useState(false);
   const [showIdlePauseOverlay, setShowIdlePauseOverlay] = useState(false);
   const [isEmbedNoticeDismissed, setIsEmbedNoticeDismissed] = useState(false);
@@ -407,29 +406,10 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
   const formatSourceName = useCallback((sourceId?: string) => {
     if (!sourceId) return 'Source';
-    if (sourceId === '111movies') return '111Movies';
-    if (sourceId === '2embedcc') return '2EmbedCC';
-    if (sourceId === 'aoneroom') return 'AOneRoom';
-    if (sourceId === 'fmovies') return 'FMovies';
+    if (sourceId === 'vixsrc') return 'VixSrc';
     if (sourceId === 'febbox') return 'FebBox';
-    if (sourceId === 'idflix') return 'IDFlix';
-    if (sourceId === 'primewire') return 'Primewire';
-    if (sourceId === 'ridomovie') return 'RidoMovie';
-    if (sourceId === 'tomautoembed') return 'TomAutoEmbed';
-    if (sourceId === 'uniquestream') return 'UniqueStream';
     if (sourceId === 'videasy') return 'Videasy';
     if (sourceId === 'vidlink') return 'VidLink';
-    if (sourceId === 'vidlinkpro') return 'VidLink Pro';
-    if (sourceId === 'vidsrccc') return 'VidSrc CC';
-    if (sourceId === 'vidsrcrip') return 'VidSrc Rip';
-    if (sourceId === 'vidsrcpro') return 'VidSrc Pro';
-    if (sourceId === 'vidsrcvip') return 'VidSrc VIP';
-    if (sourceId === 'vixsrc') return 'Vixsrc';
-    if (sourceId === 'yesmovies') return 'YesMovies';
-    if (sourceId === 'ymovies') return 'YMovies';
-    if (sourceId === 'embedsu') return 'Embed.su';
-    if (sourceId === 'vidsrcicu') return 'VidSrc ICU';
-    if (sourceId === 'vidsrc') return 'VidSrc (All)';
     return sourceId;
   }, []);
 
@@ -1994,9 +1974,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             {playbackSpeed !== 1 && stream?.type !== 'embed' && (
               <span className="rounded-[6px] bg-accent/80 px-2 py-0.5 text-[11px] font-bold text-white">{playbackSpeed}x</span>
             )}
-          </div>
-          </div>
-      {stream?.type === 'embed' ? null : (
+            </div>
+            </div>      {stream?.type === 'embed' ? null : (
       <>
       {/* Bottom Controls */}
       <div className={cn(
@@ -2115,7 +2094,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         <select
                           value={episodePanelSeason}
                           onChange={(e) => loadSeasonEpisodes(parseInt(e.target.value))}
-                          className="rounded-[8px] bg-white/[0.06] px-2 py-1 text-[11px] text-white border-none outline-none shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)]"
+                          className="rounded-[8px] bg-white/10 px-2 py-1 text-[11px] text-white border-none outline-none shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)]"
                         >
                           {(media as Show).seasons.map((s) => (
                             <option key={s.seasonNumber} value={s.seasonNumber} className="bg-[#0a0a0a]">
@@ -2132,10 +2111,10 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           key={ep.episodeNumber}
                           onClick={() => { onNavigateEpisode?.(episodePanelSeason, ep.episodeNumber); setSettingsPanel(null); }}
                           className={cn(
-                            'w-full flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-all duration-200',
+                            'w-full flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-all duration-200',
                             episodePanelSeason === seasonNum && ep.episodeNumber === episodeNum
                               ? 'bg-accent/15 text-accent shadow-[0_0_0_1px_var(--accent-muted)]'
-                              : 'text-white/70 hover:bg-white/[0.06] hover:text-white'
+                              : 'text-white/70 hover:bg-white/10 hover:text-white'
                           )}
                         >
                           <span className="text-[11px] font-bold tabular-nums w-6 shrink-0">E{ep.episodeNumber}</span>
@@ -2335,19 +2314,19 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           </span>
                         </button>
 
-                        {/* Speed Tile */}
+                        {/* Sources Tile */}
                         <button
-                          onClick={() => setSettingsPanel('speed')}
+                          onClick={() => setSettingsPanel('sources')}
                           className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
+                            <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6" y2="6"/><line x1="6" y1="18" x2="6" y2="18"/>
                           </svg>
-                          <span className="text-[10px] text-white/60">Speed</span>
-                          <span className={cn("text-[10px] font-semibold", playbackSpeed !== 1 ? "text-accent" : "text-white/80")}>{playbackSpeed}x</span>
+                          <span className="text-[10px] text-white/60">Sources</span>
+                          <span className="text-[10px] font-semibold text-accent truncate max-w-full">
+                            {formatSourceName(sourceResults[currentSourceIndex]?.sourceId)}
+                          </span>
                         </button>
-
                         {/* Subtitles Tile */}
                         <button
                           onClick={() => setSettingsPanel('subtitles')}
@@ -2545,19 +2524,65 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                     </div>
                   )}
 
-                  {/* Speed Sub-panel */}
-                  {settingsPanel === 'speed' && (
+                  {/* Sources Sub-panel */}
+                  {settingsPanel === 'sources' && (
                     <div>
                       <button onClick={() => setSettingsPanel('main')} className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
-                        Playback Speed
+                        Sources
                       </button>
-                      <div className="space-y-0.5">
-                        {PLAYBACK_SPEEDS.map((speed) => (
-                          <button key={speed} onClick={() => changeSpeed(speed)} className={cn('w-full rounded-[8px] px-3 py-1.5 text-left text-[13px] transition-colors', playbackSpeed === speed ? 'bg-accent/20 text-accent' : 'text-white/60 hover:bg-white/10')}>
-                            {speed}x {speed === 1 && <span className="text-white/40 text-[11px]">(Normal)</span>}
-                          </button>
-                        ))}
+                      <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
+                        {/* Direct Sources */}
+                        {sourceResults.filter(r => r.stream.type !== 'embed').map((res, i) => {
+                          const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                          return (
+                            <button
+                              key={res.sourceId}
+                              onClick={() => { onSelectSource?.(sourceResults.indexOf(res)); setSettingsPanel(null); }}
+                              className={cn(
+                                "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none",
+                                isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={cn(
+                                  "h-1.5 w-1.5 rounded-full transition-all duration-500",
+                                  isSelected ? "bg-accent shadow-[0_0_8px_var(--accent-glow)]" : "bg-white/20"
+                                )} />
+                                <p className={cn("text-[12px] font-semibold truncate", isSelected ? "text-accent" : "text-white")}>
+                                  {formatSourceName(res.sourceId)}
+                                </p>
+                              </div>
+                              <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Direct</span>
+                            </button>
+                          );
+                        })}
+
+                        {/* External Embeds */}
+                        {sourceResults.filter(r => r.stream.type === 'embed').map((res, i) => {
+                          const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                          return (
+                            <button
+                              key={res.sourceId}
+                              onClick={() => { onSelectSource?.(allSourceResults.indexOf(res)); setSettingsPanel(null); }}
+                              className={cn(
+                                "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none",
+                                isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={cn(
+                                  "h-1.5 w-1.5 rounded-full transition-all duration-500",
+                                  isSelected ? "bg-accent shadow-[0_0_8px_var(--accent-glow)]" : "bg-white/20"
+                                )} />
+                                <p className={cn("text-[12px] font-semibold truncate", isSelected ? "text-accent" : "text-white")}>
+                                  {formatSourceName(res.sourceId)}
+                                </p>
+                              </div>
+                              <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -2762,107 +2787,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               )}
             </div>
 
-            {/* Sources Switcher */}
-            {!disableEmbeds && (
-              <div className="relative">
-                <button
-                  onClick={() => { setShowSourceSelector(!showSourceSelector); setSettingsPanel(null); }}
-                  className={cn(
-                    "rounded-[8px] p-2 transition-all duration-300",
-                    showSourceSelector ? "bg-accent/20 text-accent" : "text-white/70 hover:bg-white/10 hover:text-white"
-                  )}
-                  title="Sources"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" suppressHydrationWarning>
-                    <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6" y2="6"/><line x1="6" y1="18" x2="6" y2="18"/>
-                  </svg>
-                </button>
-
-                {showSourceSelector && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowSourceSelector(false)} />
-                    <div className="panel-glass absolute right-0 bottom-full mb-3 z-50 w-[280px] p-2 animate-scale-in">
-                      <div className="px-2 py-1.5 border-b border-white/[0.06] mb-1">
-                        <p className="text-[11px] font-bold text-white/30 uppercase tracking-widest">Select Source</p>
-                      </div>
-                      
-                      <div className="max-h-[320px] overflow-y-auto space-y-1 custom-scrollbar">
-                        {/* Direct Sources */}
-                        {allSourceResults?.filter(r => r.stream.type !== 'embed').map((res, i) => (
-                          <button
-                            key={res.sourceId}
-                            onClick={() => { onSelectSource?.(allSourceResults.indexOf(res)); setShowSourceSelector(false); }}
-                            className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-[12px] transition-all duration-300 text-left border-none hover:bg-white/[0.06]"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={cn(
-                                "h-2 w-2 rounded-full bg-accent transition-all duration-500",
-                                currentSourceIndex === allSourceResults.indexOf(res) && "shadow-[0_0_12px_var(--accent-glow)] scale-110"
-                              )} />
-                              <div className="min-w-0">
-                                <p className={cn("text-[13px] font-semibold truncate", currentSourceIndex === allSourceResults.indexOf(res) ? "text-accent" : "text-white/90")}>
-                                  {formatSourceName(res.sourceId)}
-                                </p>
-                                <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider">Direct Stream</p>
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/30 uppercase">Direct</span>
-                          </button>
-                        ))}
-
-                        {/* Divider if both types exist */}
-                        {allSourceResults?.some(r => r.stream.type !== 'embed') && allSourceResults?.some(r => r.stream.type === 'embed') && (
-                          <hr className="my-1 border-white/[0.06]" />
-                        )}
-
-                        {/* External Embeds */}
-                        {allSourceResults?.filter(r => r.stream.type === 'embed').map((res, i) => {
-                          const isVidlink = res.sourceId.toLowerCase().includes('vidlink');
-                          const isVideasy = res.sourceId.toLowerCase().includes('videasy');
-                          const isSelected = currentSourceIndex === allSourceResults.indexOf(res);
-                          
-                          return (
-                            <button
-                              key={res.sourceId}
-                              onClick={() => { onSelectSource?.(allSourceResults.indexOf(res)); setShowSourceSelector(false); }}
-                              className="w-full flex flex-col gap-1 px-3 py-2.5 rounded-[14px] transition-all duration-300 text-left border-none mb-1 last:mb-0 hover:bg-white/[0.06]"
-                            >
-                              <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className={cn(
-                                    "h-2 w-2 rounded-full bg-accent transition-all duration-500",
-                                    isSelected && "shadow-[0_0_12px_var(--accent-glow)] scale-110"
-                                  )} />
-                                  <p className="text-[14px] font-bold tracking-tight truncate text-white/90">
-                                    {formatSourceName(res.sourceId)}
-                                  </p>
-                                </div>
-                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-[6px] bg-white/[0.04] text-white/30 uppercase tracking-tighter">Embed</span>
-                              </div>
-                              
-                              {isVideasy && (
-                                <div className="flex flex-col gap-0.5 mt-0.5 pl-4.5">
-                                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wide">Recommended</p>
-                                  <p className="text-[10px] text-white/40 font-medium">Contains some ads & redirects</p>
-                                </div>
-                              )}
-                              
-                              {isVidlink && (
-                                <div className="flex flex-col gap-0.5 mt-0.5 pl-4.5">
-                                  <p className="text-[10px] text-red-400/80 font-bold uppercase tracking-wide">Not Recommended</p>
-                                  <p className="text-[10px] text-amber-400/60 font-medium">High amount of ads & redirects</p>
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
             {/* Fullscreen */}
             <button onClick={toggleFullscreen} className="rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Fullscreen (F)">
               {isFullscreen ? (
@@ -2876,9 +2800,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       </div>
 
       {showNextPrompt && isShowWithEpisodes && (
-        <div className="panel-glass absolute right-4 bottom-20 z-30 w-[320px] p-3 animate-slide-up">
-          <p className="text-[13px] font-semibold text-white">Next episode ready</p>
-          <p className="text-[11px] text-white/60 mt-1">
+        <div className="absolute right-4 bottom-20 z-30 w-[320px] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-4 animate-slide-up">
+          <p className="text-[13px] font-semibold text-white">Next episode ready</p>          <p className="text-[11px] text-white/60 mt-1">
             {isEpisodeNavigating ? 'Loading next episode…' : autoNext ? `Auto-play in ${nextCountdown}s` : 'Auto-next is off'}
           </p>
           <div className="mt-3 flex items-center gap-2">
