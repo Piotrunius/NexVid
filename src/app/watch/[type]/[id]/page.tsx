@@ -49,23 +49,32 @@ function mergeSourceCaptions(results: Array<{ stream: Stream }>) {
   return captions;
 }
 
+function getStreamCaptions(stream: Stream | null): Caption[] {
+  if (!stream) return [];
+  return 'captions' in stream && Array.isArray(stream.captions) ? stream.captions : [];
+}
+
 async function loadExternalCaptions(params: {
   imdbId?: string;
+  tmdbId?: string;
   mediaType: 'movie' | 'show';
   season?: number;
   episode?: number;
 }): Promise<Caption[]> {
-  const { imdbId, mediaType, season, episode } = params;
-  if (!imdbId) return [];
+  const { imdbId, tmdbId, mediaType, season, episode } = params;
+  if (!imdbId && !tmdbId) return [];
 
-  const query = new URLSearchParams({ imdbId, type: mediaType });
+  const query = new URLSearchParams({ type: mediaType });
+  if (imdbId) query.set('imdbId', imdbId);
+  if (tmdbId) query.set('tmdbId', tmdbId);
+
   if (mediaType === 'show') {
     if (season) query.set('season', String(season));
     if (episode) query.set('episode', String(episode));
   }
 
   try {
-    const response = await fetch(`/api/subtitles?${query.toString()}`, { signal: AbortSignal.timeout(12000) });
+    const response = await fetch(`/api/subtitles?${query.toString()}`, { signal: AbortSignal.timeout(25000) });
     if (!response.ok) return [];
 
     const json = await response.json();
@@ -77,15 +86,22 @@ async function loadExternalCaptions(params: {
         if (!url) return null;
         const language = String(subtitle?.language || 'en').toLowerCase();
         const type = String(subtitle?.type || '').toLowerCase().includes('vtt') ? 'vtt' : 'srt';
+        
+        let id = String(subtitle?.id || '');
+        if (!id.startsWith('wyzie-')) {
+          id = `wyzie-${language}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+
         return {
-          id: String(subtitle?.id || `ext-${language}-${Math.random().toString(36).slice(2, 10)}`),
+          id,
           url,
           language,
           type,
         } as Caption;
       })
       .filter((caption: Caption | null): caption is Caption => Boolean(caption));
-  } catch {
+  } catch (err: any) {
+    console.error(`[Subtitles] FETCH ERROR:`, err);
     return [];
   }
 }
@@ -138,16 +154,19 @@ export default function WatchPage() {
   const [scrapeStatus, setScrapeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [sourceResults, setSourceResults] = useState<SourceResult[]>([]);
   const [sourceIndex, setSourceIndex] = useState(0);
+  const [externalCaptions, setExternalCaptions] = useState<Caption[]>([]);
+  const memoizedExternalCaptions = useMemo(() => externalCaptions, [externalCaptions]);
   const [dismissedTokenNoticeMediaKey, setDismissedTokenNoticeMediaKey] = useState<string | null>(null);
   const [dismissedTokenNoticeSitewide, setDismissedTokenNoticeSitewide] = useState(false);
 
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
-  const { getByTmdbId, updateProgress } = useWatchlistStore();
+  const { getByTmdbId, updateProgress, addItem } = useWatchlistStore();
   const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
+
   const currentMediaKey = `${type}-${id}`;
 
   const resolvedAccentHex = useMemo(() => {
@@ -194,6 +213,41 @@ export default function WatchPage() {
     }
   }, [introDbApiKey]);
 
+  useEffect(() => {
+    if (!id || !imdbId) return;
+    
+    let cancelled = false;
+    const load = async () => {
+      console.log(`[Subtitles] Requesting for ID: ${id} (IMDB: ${imdbId})`);
+      
+      const caps = await loadExternalCaptions({
+        imdbId,
+        tmdbId: id,
+        mediaType: type as 'movie' | 'show',
+        season: seasonNum,
+        episode: episodeNum,
+      });
+
+      if (!cancelled) {
+        if (caps.length > 0) {
+          console.log(`[Subtitles] SUCCESS: Found ${caps.length} tracks`);
+        } else {
+          console.warn(`[Subtitles] EMPTY: No tracks returned from API`);
+        }
+        setExternalCaptions(caps);
+        
+        // CRITICAL: Also update the current stream's captions if a stream is already active
+        setStream(prev => {
+          if (!prev) return null;
+          return withMergedCaptions(prev, caps);
+        });
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [id, type, seasonNum, episodeNum, imdbId]);
+
   const loadMedia = useCallback(async () => {
     const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}`;
     if (loadingRef.current || lastLoadKey.current === loadKey) return;
@@ -216,9 +270,14 @@ export default function WatchPage() {
         const movie = await getMovieDetails(id);
         setMedia(movie);
         mediaData = movie;
-        const ext = await getExternalIds('movie', id);
-        setImdbId(ext.imdbId);
-        extImdbId = ext.imdbId;
+        try {
+          const ext = await getExternalIds('movie', id);
+          setImdbId(ext.imdbId || movie.imdbId);
+          extImdbId = ext.imdbId || movie.imdbId;
+        } catch {
+          setImdbId(movie.imdbId);
+          extImdbId = movie.imdbId;
+        }
 
         const seg = await fetchSegments({ tmdbId: id, mediaType: 'movie' });
         setSegments(seg);
@@ -233,9 +292,14 @@ export default function WatchPage() {
         const show = await getShowDetails(id);
         setMedia(show);
         mediaData = show;
-        const ext = await getExternalIds('tv', id);
-        setImdbId(ext.imdbId);
-        extImdbId = ext.imdbId;
+        try {
+          const ext = await getExternalIds('tv', id);
+          setImdbId(ext.imdbId || (show as any).imdbId);
+          extImdbId = ext.imdbId || (show as any).imdbId;
+        } catch {
+          setImdbId((show as any).imdbId);
+          extImdbId = (show as any).imdbId;
+        }
         const seasonData = await getSeasonDetails(id, seasonNum);
         setSeason(seasonData);
         const ep = seasonData.episodes?.find((e) => e.episodeNumber === episodeNum);
@@ -275,17 +339,9 @@ export default function WatchPage() {
           ? results.filter(r => r.stream.type !== 'embed')
           : results;
 
-        const externalCaptions = await loadExternalCaptions({
-          imdbId: extImdbId,
-          mediaType: type as 'movie' | 'show',
-          season: seasonNum,
-          episode: episodeNum,
-        });
-
         if (filteredResults.length > 0) {
-          const mergedCaptions = mergeCaptionSets(mergeSourceCaptions(filteredResults), externalCaptions);
           setSourceResults(filteredResults);
-          
+
           // Sort results by rank (descending)
           const sortedResults = [...filteredResults].sort((a, b) => {
             const rankA = SOURCES.find(s => s.id === a.sourceId)?.rank || 0;
@@ -296,33 +352,29 @@ export default function WatchPage() {
           // Find the highest ranked available source that is NOT an embed
           const bestDirect = sortedResults.find(r => r.stream.type !== 'embed');
           const bestDirectIdx = bestDirect ? filteredResults.indexOf(bestDirect) : -1;
-          
+
           if (bestDirectIdx !== -1) {
             setSourceIndex(bestDirectIdx);
-            setStream(withMergedCaptions(filteredResults[bestDirectIdx].stream, mergedCaptions));
+            setStream(withMergedCaptions(filteredResults[bestDirectIdx].stream, externalCaptions));
             setScrapeStatus('success');
           } else {
             // We have sources but they are all embeds
-            // Set status to success so player shows up, but don't set stream (prevents auto-play)
-            // The user will see the source selector and can pick videasy manually
             setScrapeStatus('success');
           }
         } else {
           setScrapeStatus('error');
-        }
-      }
+        }      }
     } catch (err) {
       console.error('Failed to load media:', err);
       setScrapeStatus('error');
     } finally {
       loadingRef.current = false;
     }
-  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken, resolvedAccentHex, idlePauseOverlay, disableEmbeds, updateSettings, reset, getByTmdbId]);
+  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken, resolvedAccentHex, idlePauseOverlay, disableEmbeds, updateSettings, reset, getByTmdbId, externalCaptions]);
 
   useEffect(() => {
-    if (!duration || duration < 30 || !currentTime) return;
+    if (!duration || duration < 30 || !currentTime || !media) return;
     const item = getByTmdbId(id);
-    if (!item) return;
 
     const percent = Math.max(0, Math.min(100, (currentTime / duration) * 100));
     if (percent < 0.5) return;
@@ -351,13 +403,18 @@ export default function WatchPage() {
       key,
     };
 
-    updateProgress(item.id, {
+    updateProgress(item?.id || '', {
       season: type === 'show' ? seasonNum : undefined,
       episode: type === 'show' ? episodeNum : undefined,
       timestamp: Math.floor(currentTime),
       percentage: percent,
+    }, {
+      tmdbId: id,
+      mediaType: type as 'movie' | 'show',
+      title: media.title,
+      posterPath: media.posterPath,
     });
-  }, [currentTime, duration, id, type, seasonNum, episodeNum, getByTmdbId, updateProgress]);
+  }, [currentTime, duration, id, type, seasonNum, episodeNum, getByTmdbId, updateProgress, media]);
 
   useEffect(() => {
     loadMedia();
@@ -383,17 +440,19 @@ export default function WatchPage() {
   const tryNextSource = useCallback(() => {
     if (sourceResults.length < 2) return;
     const next = (sourceIndex + 1) % sourceResults.length;
-    const mergedCaptions = mergeSourceCaptions(sourceResults);
+    const currentStream = sourceResults[next].stream;
     setSourceIndex(next);
-    setStream(withMergedCaptions(sourceResults[next].stream, mergedCaptions));
-  }, [sourceIndex, sourceResults]);
+    // Inject external captions directly into the stream object
+    setStream(withMergedCaptions(currentStream, externalCaptions));
+  }, [sourceIndex, sourceResults, externalCaptions]);
 
   const selectSource = useCallback((idx: number) => {
     if (idx < 0 || idx >= sourceResults.length) return;
-    const mergedCaptions = mergeSourceCaptions(sourceResults);
+    const currentStream = sourceResults[idx].stream;
     setSourceIndex(idx);
-    setStream(withMergedCaptions(sourceResults[idx].stream, mergedCaptions));
-  }, [sourceResults]);
+    // Inject external captions directly into the stream object
+    setStream(withMergedCaptions(currentStream, externalCaptions));
+  }, [sourceResults, externalCaptions]);
 
   const applyPublicFebboxToken = useCallback(() => {
     if (!isLoggedIn) {
@@ -464,6 +523,7 @@ export default function WatchPage() {
         allSourceResults={sourceResults}
         currentSourceIndex={sourceIndex}
         onSelectSource={selectSource}
+        externalCaptions={memoizedExternalCaptions}
         scrapeErrorTitle={shouldShowMissingFebboxTokenPrompt ? 'No FebBox token configured' : undefined}
         scrapeErrorDescription={shouldShowMissingFebboxTokenPrompt ? 'Add your own token in settings, or sign in to use the public token.' : undefined}
         scrapeErrorActionLabel={shouldShowMissingFebboxTokenPrompt ? (isLoggedIn ? 'Use public FebBox token' : 'Sign in to use public token') : undefined}

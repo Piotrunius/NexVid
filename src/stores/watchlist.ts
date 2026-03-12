@@ -85,18 +85,45 @@ export const useWatchlistStore = create<WatchlistStore>()(
           return { items: next };
         }),
 
-      updateProgress: (id, progress) =>
-        set((state: any) => {
-          const next = state.items.map((i: WatchlistItem) =>
-            i.id === id
-              ? { ...i, progress, updatedAt: new Date().toISOString() }
-              : i
-          );
-          if (getCloudToken()) {
-            void saveCloudWatchlist(next).catch(() => {});
-          }
-          return { items: next };
-        }),
+      updateProgress: (id: string, progress: WatchlistItem['progress'], mediaMeta?: { tmdbId: string; mediaType: MediaType; title: string; posterPath: string | null }) =>
+    set((state: any) => {
+      let found = false;
+      const next = state.items.map((i: WatchlistItem) => {
+        if (i.id === id || (mediaMeta && i.tmdbId === mediaMeta.tmdbId)) {
+          found = true;
+          return { ...i, progress, status: i.status === 'planned' ? 'watching' : i.status, updatedAt: new Date().toISOString() };
+        }
+        return i;
+      });
+
+      if (!found && mediaMeta) {
+        const newItem: WatchlistItem = {
+          id: generateId(),
+          tmdbId: mediaMeta.tmdbId,
+          mediaType: mediaMeta.mediaType,
+          title: mediaMeta.title,
+          posterPath: mediaMeta.posterPath,
+          status: 'watching',
+          progress,
+          addedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedItems = [...state.items, newItem];
+        if (getCloudToken()) {
+          void saveCloudWatchlist(updatedItems).catch(() => {});
+        }
+        return { items: updatedItems };
+      }
+
+      if (found) {
+        if (getCloudToken()) {
+          void saveCloudWatchlist(next).catch(() => {});
+        }
+        return { items: next };
+      }
+
+      return state;
+    }),
 
       setRating: (id, rating) =>
         set((state: any) => {

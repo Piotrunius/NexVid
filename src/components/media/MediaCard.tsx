@@ -4,7 +4,7 @@
 
 'use client';
 
-import { cn, tmdbImage } from '@/lib/utils';
+import { cn, tmdbImage, formatTime } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem, WatchlistStatus } from '@/types';
 import Image from 'next/image';
@@ -18,6 +18,22 @@ interface MediaCardProps {
 }
 
 const STATUSES: WatchlistStatus[] = ['planned', 'watching', 'completed', 'dropped', 'on-hold'];
+
+function formatRelativeTime(dateString: string): string {
+  try {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } catch {
+    return '';
+  }
+}
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
   switch (status) {
@@ -35,10 +51,18 @@ function StatusIcon({ status }: { status: WatchlistStatus }) {
 }
 
 export function MediaCard({ item, size = 'md', showType = false }: MediaCardProps) {
-  const href = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
+  const watchlistItem = useWatchlistStore((s) => s.getByTmdbId(item.tmdbId));
+  const progress = watchlistItem?.progress;
+  const hasProgress = progress && (progress.percentage || 0) > 1;
+  const isShow = item.mediaType === 'show' || watchlistItem?.mediaType === 'show';
+
+  const watchUrl = hasProgress
+    ? `/watch/${item.mediaType || watchlistItem?.mediaType}/${item.tmdbId}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
+    : item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
+
+  const href = hasProgress ? watchUrl : (item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`);
   const [showMenu, setShowMenu] = useState(false);
-  const { addItem, getByTmdbId, setStatus: setWatchlistStatus } = useWatchlistStore();
-  const watchlistItem = getByTmdbId(item.tmdbId);
+  const { addItem, setStatus: setWatchlistStatus } = useWatchlistStore();
 
   const handleWatchlistClick = (e: React.MouseEvent, status: WatchlistStatus) => {
     e.preventDefault();
@@ -78,11 +102,22 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
           </div>
         )}
 
-        {/* Hover overlay */}
+        {/* Progress Bar */}
+        {hasProgress && (
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/40 backdrop-blur-md">
+            <div
+              className="h-full bg-accent shadow-[0_0_12px_var(--accent-glow)] transition-all duration-1000"
+              style={{ width: `${progress.percentage}%` }}
+            />
+          </div>
+        )}
+
+        {/* Hover overlay - Simplified */}
         <div className="media-card-overlay">
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p className="text-[11px] font-medium text-white/50">{item.releaseYear || 'TBA'}</p>
-            <p className="text-[13px] font-semibold text-white line-clamp-2 leading-tight mt-0.5">{item.title}</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+             <div className="h-12 w-12 rounded-full bg-accent/90 text-white flex items-center justify-center shadow-[0_0_20px_var(--accent-glow)] transform scale-90 group-hover:scale-100 transition-transform duration-500">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21" /></svg>
+             </div>
           </div>
         </div>
 
@@ -128,7 +163,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
         </div>
 
         {/* Rating badge */}
-        {item.rating > 0 && (
+        {!hasProgress && item.rating > 0 && (
           <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-[20px] px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -147,10 +182,26 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
         )}
       </div>
 
-      {/* Title below card */}
-      <div className="mt-3 px-1">
-        <p className="text-[13px] font-medium text-white/80 line-clamp-1">{item.title}</p>
-        <p className="text-[11px] text-white/25 mt-0.5">{item.releaseYear}</p>
+      {/* Title below card - Enhanced Info */}
+      <div className="mt-3 px-1 space-y-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] font-bold text-white/90 line-clamp-1 flex-1 tracking-tight">{item.title}</p>
+          {hasProgress && (
+             <span className="text-[10px] font-black text-accent tracking-tighter bg-accent/10 px-1.5 py-0.5 rounded-md">
+                {Math.round(progress.percentage || 0)}%
+             </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between text-[11px] font-medium">
+          <p className="text-white/30">
+            {watchlistItem?.updatedAt ? formatRelativeTime(watchlistItem.updatedAt) : item.releaseYear}
+          </p>
+          {hasProgress && (
+             <p className="text-white/50 tracking-wide font-bold">
+                {isShow ? `S${progress.season}:E${progress.episode}` : formatTime(progress.timestamp || 0)}
+             </p>
+          )}
+        </div>
       </div>
     </Link>
   );
