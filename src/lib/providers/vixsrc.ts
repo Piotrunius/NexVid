@@ -1,4 +1,3 @@
-import { BaseProvider } from './base';
 import type {
     ProviderCapabilities,
     ProviderMediaObject,
@@ -6,6 +5,7 @@ import type {
     Source,
     Subtitle
 } from './base';
+import { BaseProvider } from './base';
 
 export class VixSrcProvider extends BaseProvider {
     readonly id = 'vixsrc';
