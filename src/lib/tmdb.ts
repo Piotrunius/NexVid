@@ -224,16 +224,35 @@ export async function getGenres(type: 'movie' | 'tv'): Promise<Genre[]> {
   return data.genres;
 }
 
+export async function discover(
+  type: 'movie' | 'tv',
+  params: Record<string, string> = {}
+): Promise<MediaItem[]> {
+  const data = await tmdbFetch<any>(`/discover/${type}`, {
+    ...params,
+    include_adult: 'false',
+    'vote_count.gte': '50', // Filter out obscure titles
+  });
+  return data.results.map((r: any) =>
+    type === 'movie' ? transformMovie(r) : transformShow(r)
+  );
+}
+
 export async function discoverByGenre(
   type: 'movie' | 'tv',
   genreId: number,
   page = 1
 ): Promise<MediaItem[]> {
-  const data = await tmdbFetch<any>(`/discover/${type}`, {
+  return discover(type, {
     with_genres: String(genreId),
     page: String(page),
     sort_by: 'popularity.desc',
   });
+}
+
+export async function getNowPlaying(type: 'movie' | 'tv', page = 1): Promise<MediaItem[]> {
+  const path = type === 'movie' ? '/movie/now_playing' : '/tv/on_the_air';
+  const data = await tmdbFetch<any>(path, { page: String(page) });
   return data.results.map((r: any) =>
     type === 'movie' ? transformMovie(r) : transformShow(r)
   );

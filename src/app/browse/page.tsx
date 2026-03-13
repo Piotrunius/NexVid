@@ -5,9 +5,10 @@
 'use client';
 
 import { MediaCard, MediaCardSkeleton } from '@/components/media/MediaCard';
-import { discoverByGenre, getGenres, getPopular, getTopRated, getTrending } from '@/lib/tmdb';
+import { discover, getGenres, getPopular, getTrending } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
 import type { Genre, MediaItem } from '@/types';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 type Tab = 'trending' | 'movies' | 'shows';
@@ -16,6 +17,7 @@ type Filter = 'popular' | 'top_rated' | string;
 export default function BrowsePage() {
   const [tab, setTab] = useState<Tab>('trending');
   const [filter, setFilter] = useState<Filter>('popular');
+  const [year, setYear] = useState('');
   const [items, setItems] = useState<MediaItem[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
@@ -23,6 +25,7 @@ export default function BrowsePage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     (async () => {
@@ -45,7 +48,7 @@ export default function BrowsePage() {
     setPage(1);
     setHasMore(true);
     loadItems(1, true);
-  }, [tab, filter]);
+  }, [tab, filter, year]);
 
   const loadItems = useCallback(
     async (p: number, reset = false) => {
@@ -53,10 +56,30 @@ export default function BrowsePage() {
       try {
         let results: MediaItem[] = [];
         const mediaType = tab === 'movies' ? 'movie' : tab === 'shows' ? 'tv' : 'all';
-        if (tab === 'trending') results = await getTrending(mediaType, 'week', p);
-        else if (filter === 'popular') results = await getPopular(mediaType as 'movie' | 'tv', p);
-        else if (filter === 'top_rated') results = await getTopRated(mediaType as 'movie' | 'tv', p);
-        else results = await discoverByGenre(mediaType as 'movie' | 'tv', parseInt(filter), p);
+        
+        if (tab === 'trending') {
+          results = await getTrending(mediaType, 'week', p);
+        } else {
+          const params: Record<string, string> = {
+            page: String(p),
+            sort_by: 'popularity.desc', // Domyślne sortowanie
+          };
+          
+          if (filter !== 'popular' && filter !== 'top_rated') {
+            params.with_genres = filter;
+          } else if (filter === 'top_rated') {
+            params['vote_count.gte'] = '500';
+            params.sort_by = 'vote_average.desc';
+          }
+
+          if (year) {
+            const yearKey = tab === 'movies' ? 'primary_release_year' : 'first_air_date_year';
+            params[yearKey] = year;
+          }
+
+          results = await discover(mediaType as 'movie' | 'tv', params);
+        }
+
         if (results.length < 20) setHasMore(false);
         setItems((prev) => (reset ? results : [...prev, ...results]));
       } catch (err) {
@@ -65,7 +88,7 @@ export default function BrowsePage() {
         setIsLoading(false);
       }
     },
-    [tab, filter]
+    [tab, filter, year]
   );
 
   const loadMore = () => {
@@ -75,6 +98,23 @@ export default function BrowsePage() {
       loadItems(next);
     }
   };
+
+  const handleRandom = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const type = tab === 'movies' ? 'movie' : tab === 'shows' ? 'tv' : Math.random() > 0.5 ? 'movie' : 'tv';
+      const randomPage = Math.floor(Math.random() * 5) + 1;
+      const results = await getPopular(type as 'movie' | 'tv', randomPage);
+      if (results.length > 0) {
+        const randomItem = results[Math.floor(Math.random() * results.length)];
+        router.push(`/${randomItem.mediaType === 'show' ? 'show' : 'movie'}/${randomItem.tmdbId}`);
+      }
+    } catch (err) {
+      console.error('Failed to get random item:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tab, router]);
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'trending', label: 'Trending', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> },
@@ -93,25 +133,47 @@ export default function BrowsePage() {
         <h1 className="text-[28px] font-bold text-text-primary tracking-tight mb-6">Browse</h1>
 
         {/* macOS segmented control */}
-        <div className="inline-flex rounded-full bg-white/[0.04] backdrop-blur-2xl p-1 mb-4">
-          {tabs.map((t) => (
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="inline-flex rounded-full bg-white/[0.04] backdrop-blur-2xl p-1">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => { setTab(t.key); setFilter('popular'); }}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full px-5 py-2 text-[13px] font-medium transition-all duration-200',
+                  tab === t.key
+                    ? 'bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
+                )}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {tab !== 'trending' && (
+              <input
+                type="number"
+                placeholder="Year"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="bg-white/[0.04] border border-white/10 rounded-full px-4 py-2 text-[13px] text-white focus:outline-none focus:ring-1 focus:ring-accent w-24 placeholder:text-white/20 hover:bg-white/[0.08] transition-colors"
+              />
+            )}
+
             <button
-              key={t.key}
-              onClick={() => { setTab(t.key); setFilter('popular'); }}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full px-5 py-2 text-[13px] font-medium transition-all duration-200',
-                tab === t.key
-                  ? 'bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
-              )}
+              onClick={handleRandom}
+              disabled={isLoading}
+              className="btn-glass !px-5 !py-2 text-[13px] font-bold text-white/80 hover:text-white"
             >
-              {t.icon}
-              {t.label}
+              Surprise Me
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Sub-filters */}
+        {/* Sub-filters (Gatunki zawinięte, bez scrolla) */}
         {tab !== 'trending' && (
           <div className="flex flex-wrap items-center gap-2 mb-6">
             {filters.map((f) => (
@@ -119,25 +181,25 @@ export default function BrowsePage() {
                 key={f.key}
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  'rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-all duration-200',
+                  'rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200',
                   filter === f.key
                     ? 'bg-accent/10 text-accent shadow-[0_0_0_1px_var(--accent-muted)]'
-                    : 'border-white/6 text-text-muted hover:text-text-secondary hover:bg-white/[0.06]',
+                    : 'bg-white/[0.02] border border-white/5 text-text-muted hover:text-text-secondary hover:bg-white/[0.06]',
                 )}
               >
                 {f.label}
               </button>
             ))}
-            <div className="w-px h-5 bg-[var(--border)] self-center mx-1" />
+            <div className="w-px h-5 bg-white/10 self-center mx-1" />
             {genres.map((g) => (
               <button
                 key={g.id}
                 onClick={() => setFilter(String(g.id))}
                 className={cn(
-                  'rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-all duration-200',
+                  'rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200',
                   filter === String(g.id)
                     ? 'bg-accent/10 text-accent shadow-[0_0_0_1px_var(--accent-muted)]'
-                    : 'border-white/6 text-text-muted hover:text-text-secondary hover:bg-white/[0.06]',
+                    : 'bg-white/[0.02] border border-white/5 text-text-muted hover:text-text-secondary hover:bg-white/[0.06]',
                 )}
               >
                 {g.name}
@@ -161,6 +223,16 @@ export default function BrowsePage() {
             <button onClick={loadMore} className="btn-glass px-8">
               Load More
             </button>
+          </div>
+        )}
+
+        {!isLoading && items.length === 0 && (
+          <div className="h-[40vh] flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-white/[0.02] flex items-center justify-center mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/20"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <h3 className="text-white font-medium mb-1">No results found</h3>
+            <p className="text-white/40 text-[13px]">Try adjusting your filters or search criteria</p>
           </div>
         )}
       </div>
