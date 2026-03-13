@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
     // It strictly requires either tmdb_id (number) OR imdb_id (string)
     const params: any = {
       source: 'opensubtitles', // Start with a fast source
+      key: process.env.WYZIE_KEY,
     };
 
     if (imdbId && imdbId !== 'undefined' && imdbId !== 'null' && imdbId.startsWith('tt')) {
