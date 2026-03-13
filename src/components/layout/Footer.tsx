@@ -6,6 +6,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import buildInfo from '@/lib/build-info.json';
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -14,6 +15,16 @@ export function Footer() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const lastUpdated = isClient 
+    ? new Date(buildInfo.timestamp).toLocaleString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    : '';
 
   return (
     <footer className="footer-glass">
@@ -62,6 +73,21 @@ export function Footer() {
               </a>
             </p>
             <p className="mt-1">© {year} NexVid · All rights reserved.</p>
+            {isClient && (
+              <p className="mt-1 text-[10px] opacity-50 flex items-center justify-center">
+                {/* Balancing spacer to keep text centered */}
+                <span className="invisible mr-1" aria-hidden="true">(info)</span>
+                
+                <span>Last updated: {lastUpdated}</span>
+                
+                <span 
+                  className="ml-1 opacity-0 hover:opacity-100 transition-opacity cursor-default" 
+                  title={`Commit: ${buildInfo.commit}\nAuthor: ${buildInfo.author}\nMessage: ${buildInfo.message}`}
+                >
+                  (info)
+                </span>
+              </p>
+            )}
           </div>
         </div>
       </div>
