@@ -73,6 +73,7 @@ export default function PrivacyPage() {
             <li><strong>TMDB API</strong> &mdash; movie/show metadata, posters, and search data</li>
             <li><strong>FebBox</strong> &mdash; streaming source/provider integration used by resolver flows</li>
             <li><strong>TheIntroDB</strong> &mdash; optional intro/outro segment metadata (skip-intro/skip-outro features)</li>
+            <li><strong>Wyzie Subs</strong> &mdash; Multi-language subtitles and translations.</li>
           </ul>
           <p className="mt-2">
             These services operate under their own privacy policies and terms. We recommend reviewing
