@@ -111,7 +111,7 @@ export default function SettingsPage() {
   const handlePasswordReset = async () => {
     if (!currentPassword || !newPassword) { toast('Fill in both password fields', 'error'); return; }
     if (newPassword.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
-    
+
     try {
       if (hasCloudBackend()) {
         await changePasswordWithBackend(currentPassword, newPassword);
@@ -299,7 +299,7 @@ export default function SettingsPage() {
         <SettingsCard title="API Keys" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>}>
           <p className="text-[12px] text-text-muted mb-4">Keys are saved in your account when logged in.</p>
           <div className="space-y-4">
-            <SettingsRow label="TheIntroDB (Segments)">
+            <SettingsRow label="TheIntroDB">
               <p className="text-[11px] text-text-muted mb-1.5">
                 Required to submit timestamps. Get one at{' '}
                 <a href="https://theintrodb.org" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">theintrodb.org</a>
@@ -313,8 +313,8 @@ export default function SettingsPage() {
               />
             </SettingsRow>
 
-            <SettingsRow label="FebBox UI Cookie">
-              <p className="text-[11px] text-text-muted mb-1.5">Optional – paste full cookie string or just the ui token.</p>
+            <SettingsRow label="FebBox UI Token">
+              <p className="text-[11px] text-text-muted mb-1.5">Recomended - Paste full cookie string or just the ui token.</p>
               <input
                 type="password"
                 value={publicTokenActive ? 'PUBLIC_TOKEN_ACTIVE' : settings.febboxApiKey || ''}
