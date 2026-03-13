@@ -5,6 +5,7 @@
 'use client';
 
 import { MediaRow, MediaRowSkeleton } from '@/components/media/MediaCard';
+import { RecommendationRows } from '@/components/media/RecommendationRows';
 import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
@@ -172,6 +173,8 @@ export default function HomePage() {
                 ref={continueRowRef}
               />
             )}
+
+            <RecommendationRows />
 
             <MediaRow title="Trending This Week" items={trending} showType href="/browse?tab=trending" enableControls seeAllAsButton />
             <MediaRow title="Popular Movies" items={popular} href="/browse?tab=movies" enableControls seeAllAsButton />
