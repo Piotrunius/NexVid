@@ -33,7 +33,13 @@ export default function WatchlistPage() {
   );
 
   const filteredItems = useMemo(() => {
-    let list = activeStatus === 'all' ? items : items.filter((i: WatchlistItem) => i.status === activeStatus);
+    // Exclude items with status 'none' (those are only for Continue Watching)
+    let list = items.filter(i => i.status !== 'none');
+    
+    if (activeStatus !== 'all') {
+      list = list.filter((i: WatchlistItem) => i.status === activeStatus);
+    }
+    
     list = [...list].sort((a: WatchlistItem, b: WatchlistItem) => {
       if (sortBy === 'title') return a.title.localeCompare(b.title);
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
@@ -43,8 +49,9 @@ export default function WatchlistPage() {
   }, [items, activeStatus, sortBy]);
 
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: items.length };
-    STATUSES.forEach((s) => { counts[s.key] = items.filter((i: WatchlistItem) => i.status === s.key).length; });
+    const activeItems = items.filter(i => i.status !== 'none');
+    const counts: Record<string, number> = { all: activeItems.length };
+    STATUSES.forEach((s) => { counts[s.key] = activeItems.filter((i: WatchlistItem) => i.status === s.key).length; });
     return counts;
   }, [items]);
 
@@ -101,7 +108,7 @@ export default function WatchlistPage() {
                 const href = item.mediaType === 'movie'
                   ? `/watch/movie/${item.tmdbId}${item.progress?.timestamp ? `?t=${item.progress.timestamp}` : ''}`
                   : `/watch/show/${item.tmdbId}?s=${item.progress?.season || 1}&e=${item.progress?.episode || 1}${item.progress?.timestamp ? `&t=${item.progress.timestamp}` : ''}`;
-                return <ContinueWatchingCard key={`continue-${item.id}`} item={item} href={href} onRemove={removeItem} />;
+                return <ContinueWatchingCard key={`continue-${item.id}`} item={item} href={href} onRemove={() => useWatchlistStore.getState().clearProgress(item.id)} />;
               })}
             </div>
           </section>

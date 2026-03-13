@@ -137,7 +137,8 @@ export default function WatchPage() {
   const id = params?.id as string;
   const seasonNum = searchParams?.get('s') ? parseInt(searchParams.get('s')!) : 1;
   const episodeNum = searchParams?.get('e') ? parseInt(searchParams.get('e')!) : 1;
-  const resumeTime = searchParams?.get('t') ? parseFloat(searchParams.get('t')!) : 0;
+  const resumeTimeFromUrl = searchParams?.get('t') ? parseFloat(searchParams.get('t')!) : 0;
+  
   const lastProgressSyncRef = useRef<{ wallTime: number; percent: number; second: number; key: string }>({
     wallTime: 0,
     percent: 0,
@@ -156,6 +157,11 @@ export default function WatchPage() {
   const [sourceIndex, setSourceIndex] = useState(0);
   const [externalCaptions, setExternalCaptions] = useState<Caption[]>([]);
   const memoizedExternalCaptions = useMemo(() => externalCaptions, [externalCaptions]);
+  
+  const [showResumeOverlay, setShowResumeOverlay] = useState(false);
+  const [resumeData, setResumeData] = useState<{ percentage: number; timestamp: number } | null>(null);
+  const [appliedSeekTime, setAppliedSeekTime] = useState(resumeTimeFromUrl);
+
   const [dismissedTokenNoticeMediaKey, setDismissedTokenNoticeMediaKey] = useState<string | null>(null);
   const [dismissedTokenNoticeSitewide, setDismissedTokenNoticeSitewide] = useState(false);
 
@@ -213,54 +219,10 @@ export default function WatchPage() {
     }
   }, [introDbApiKey]);
 
-  useEffect(() => {
-    if (!id || !imdbId) return;
-    
-    let cancelled = false;
-    const load = async () => {
-      console.log(`[Subtitles] Requesting for ID: ${id} (IMDB: ${imdbId})`);
-      
-      const caps = await loadExternalCaptions({
-        imdbId,
-        tmdbId: id,
-        mediaType: type as 'movie' | 'show',
-        season: seasonNum,
-        episode: episodeNum,
-      });
-
-      if (!cancelled) {
-        if (caps.length > 0) {
-          console.log(`[Subtitles] SUCCESS: Found ${caps.length} tracks`);
-        } else {
-          console.warn(`[Subtitles] EMPTY: No tracks returned from API`);
-        }
-        setExternalCaptions(caps);
-        
-        // CRITICAL: Also update the current stream's captions if a stream is already active
-        setStream(prev => {
-          if (!prev) return null;
-          return withMergedCaptions(prev, caps);
-        });
-      }
-    };
-
-    load();
-    return () => { cancelled = true; };
-  }, [id, type, seasonNum, episodeNum, imdbId]);
-
-  const loadMedia = useCallback(async () => {
-    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}`;
-    if (loadingRef.current || lastLoadKey.current === loadKey) return;
-    loadingRef.current = true;
-    lastLoadKey.current = loadKey;
-
-    reset();
-    setScrapeStatus('idle');
-    setStream(null);
-    setSegments(EMPTY_SEGMENTS);
-    setIntroOutro(null);
-    setSourceResults([]);
-    setSourceIndex(0);
+  const proceedWithScrape = useCallback(async (seekTime?: number) => {
+    if (typeof seekTime === 'number') {
+      setAppliedSeekTime(seekTime);
+    }
 
     try {
       let mediaData: Movie | Show | null = null;
@@ -313,7 +275,6 @@ export default function WatchPage() {
           outroStart: seg.credits?.[0]?.startMs != null ? seg.credits[0].startMs / 1000 : undefined,
           outroEnd: seg.credits?.[0]?.endMs != null ? seg.credits[0].endMs / 1000 : undefined,
         });
-
       }
 
       // Auto-scrape
@@ -334,22 +295,18 @@ export default function WatchPage() {
           idlePauseOverlay,
         });
 
-        // Filter out embeds if settings forbid them, but KEEP integrated providers (direct streams)
         const filteredResults = disableEmbeds 
           ? results.filter(r => r.stream.type !== 'embed')
           : results;
 
         if (filteredResults.length > 0) {
           setSourceResults(filteredResults);
-
-          // Sort results by rank (descending)
           const sortedResults = [...filteredResults].sort((a, b) => {
             const rankA = SOURCES.find(s => s.id === a.sourceId)?.rank || 0;
             const rankB = SOURCES.find(s => s.id === b.sourceId)?.rank || 0;
             return rankB - rankA;
           });
 
-          // Find the highest ranked available source that is NOT an embed
           const bestDirect = sortedResults.find(r => r.stream.type !== 'embed');
           const bestDirectIdx = bestDirect ? filteredResults.indexOf(bestDirect) : -1;
 
@@ -358,19 +315,89 @@ export default function WatchPage() {
             setStream(withMergedCaptions(filteredResults[bestDirectIdx].stream, externalCaptions));
             setScrapeStatus('success');
           } else {
-            // We have sources but they are all embeds
             setScrapeStatus('success');
           }
         } else {
           setScrapeStatus('error');
-        }      }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load media:', err);
+      setScrapeStatus('error');
+    }
+  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, sessionToken, resolvedAccentHex, idlePauseOverlay, disableEmbeds, externalCaptions, setIntroOutro]);
+
+  const loadMedia = useCallback(async () => {
+    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}`;
+    if (loadingRef.current || lastLoadKey.current === loadKey) return;
+    loadingRef.current = true;
+    lastLoadKey.current = loadKey;
+
+    reset();
+    setScrapeStatus('idle');
+    setStream(null);
+    setSegments(EMPTY_SEGMENTS);
+    setIntroOutro(null);
+    setSourceResults([]);
+    setSourceIndex(0);
+    setShowResumeOverlay(false);
+    setAppliedSeekTime(resumeTimeFromUrl);
+
+    try {
+      const item = getByTmdbId(id);
+      const prog = item?.progress;
+      
+      // Strict comparison for type and ID
+      const isSameType = item?.mediaType === type;
+      const isSameId = String(item?.tmdbId) === String(id);
+      const isSameEpisode = type === 'movie' || (prog?.season === seasonNum && prog?.episode === episodeNum);
+      
+      if (isSameType && isSameId && isSameEpisode && prog?.percentage && prog.percentage > 95) {
+        setResumeData({ percentage: prog.percentage, timestamp: prog.timestamp || 0 });
+        setShowResumeOverlay(true);
+        loadingRef.current = false;
+        return;
+      }
+
+      await proceedWithScrape();
     } catch (err) {
       console.error('Failed to load media:', err);
       setScrapeStatus('error');
     } finally {
       loadingRef.current = false;
     }
-  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, fetchSegments, setIntroOutro, sessionToken, resolvedAccentHex, idlePauseOverlay, disableEmbeds, updateSettings, reset, getByTmdbId, externalCaptions]);
+  }, [type, id, seasonNum, episodeNum, getByTmdbId, reset, proceedWithScrape, resumeTimeFromUrl]);
+
+  useEffect(() => {
+    if (!id || !imdbId) return;
+    
+    let cancelled = false;
+    const load = async () => {
+      const caps = await loadExternalCaptions({
+        imdbId,
+        tmdbId: id,
+        mediaType: type as 'movie' | 'show',
+        season: seasonNum,
+        episode: episodeNum,
+      });
+
+      if (!cancelled) {
+        setExternalCaptions(caps);
+        setStream(prev => {
+          if (!prev) return null;
+          return withMergedCaptions(prev, caps);
+        });
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [id, type, seasonNum, episodeNum, imdbId]);
+
+  useEffect(() => {
+    loadMedia();
+    return () => reset();
+  }, [loadMedia, reset]);
 
   useEffect(() => {
     if (!duration || duration < 30 || !currentTime || !media) return;
@@ -417,11 +444,6 @@ export default function WatchPage() {
   }, [currentTime, duration, id, type, seasonNum, episodeNum, getByTmdbId, updateProgress, media]);
 
   useEffect(() => {
-    loadMedia();
-    return () => reset();
-  }, [loadMedia, reset]);
-
-  useEffect(() => {
     try {
       setDismissedTokenNoticeSitewide(window.localStorage.getItem(FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY) === '1');
     } catch {
@@ -442,7 +464,6 @@ export default function WatchPage() {
     const next = (sourceIndex + 1) % sourceResults.length;
     const currentStream = sourceResults[next].stream;
     setSourceIndex(next);
-    // Inject external captions directly into the stream object
     setStream(withMergedCaptions(currentStream, externalCaptions));
   }, [sourceIndex, sourceResults, externalCaptions]);
 
@@ -450,7 +471,6 @@ export default function WatchPage() {
     if (idx < 0 || idx >= sourceResults.length) return;
     const currentStream = sourceResults[idx].stream;
     setSourceIndex(idx);
-    // Inject external captions directly into the stream object
     setStream(withMergedCaptions(currentStream, externalCaptions));
   }, [sourceResults, externalCaptions]);
 
@@ -482,6 +502,17 @@ export default function WatchPage() {
       console.error('Failed to save sitewide dismiss:', e);
     }
   }, []);
+
+  const handleResumeChoice = (choice: 'watch' | 'rewatch' | 'next') => {
+    setShowResumeOverlay(false);
+    if (choice === 'next') {
+      const nextEpNum = episodeNum + 1;
+      router.push(`/watch/show/${id}?s=${seasonNum}&e=${nextEpNum}`);
+      return;
+    }
+    const seekTime = choice === 'rewatch' ? 0.1 : (resumeData?.timestamp || 0);
+    proceedWithScrape(seekTime);
+  };
 
   const shouldShowMissingFebboxTokenPrompt = scrapeStatus === 'error' && !stream && !hasAnyFebboxToken;
   const shouldShowPersistentTokenNotice = !hasAnyFebboxToken && !dismissedTokenNoticeSitewide && dismissedTokenNoticeMediaKey !== currentMediaKey;
@@ -539,8 +570,57 @@ export default function WatchPage() {
         tokenNoticePermanentDismissLabel={shouldShowPersistentTokenNotice ? 'Dismiss sitewide' : undefined}
         tokenNoticePermanentDismissHint={shouldShowPersistentTokenNotice ? 'Not recommended' : undefined}
         onTokenNoticePermanentDismiss={shouldShowPersistentTokenNotice ? dismissTokenNoticeSitewide : undefined}
-        initialSeekTime={resumeTime > 0 ? resumeTime : 0}
+        initialSeekTime={appliedSeekTime}
       />
+
+      {showResumeOverlay && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
+          <div className="text-center max-w-lg px-8 animate-scale-in">
+            <div className="mb-8 flex justify-center">
+              <div className="h-20 w-20 rounded-3xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_40px_rgba(var(--accent-rgb),0.3)]">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+            </div>
+            <h2 className="text-[32px] font-black text-white tracking-tighter mb-3 uppercase italic">You're almost done</h2>
+            <p className="text-white/50 text-[14px] font-medium leading-relaxed mb-10 px-4">
+              You've watched <span className="text-accent font-bold">{Math.round(resumeData?.percentage || 0)}%</span> of this {type === 'movie' ? 'movie' : 'episode'}. Would you like to resume, restart, or skip to the next one?
+            </p>
+            
+            <div className="flex flex-col gap-3 w-full max-w-[400px] mx-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => handleResumeChoice('watch')}
+                  className="btn-accent !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full"
+                >
+                  Watch ({Math.round(resumeData?.percentage || 0)}%)
+                </button>
+                <button 
+                  onClick={() => handleResumeChoice('rewatch')}
+                  className="btn-glass !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full"
+                >
+                  Rewatch
+                </button>
+              </div>
+              
+              {type === 'show' && (
+                <button 
+                  onClick={() => handleResumeChoice('next')}
+                  className="btn-glass !bg-accent/10 !border-accent/20 !text-accent !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full hover:!bg-accent/20"
+                >
+                  Next Episode
+                </button>
+              )}
+            </div>
+            
+            <button 
+              onClick={() => { setShowResumeOverlay(false); router.back(); }}
+              className="mt-8 text-[11px] font-black text-white/30 uppercase tracking-[0.3em] hover:text-white/60 transition-colors"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
