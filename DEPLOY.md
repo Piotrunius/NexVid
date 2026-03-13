@@ -205,13 +205,9 @@ npx wrangler secret put SECRET_NAME --binding NAME
 
 # tail logs
 npx wrangler tail --config worker/wrangler.toml
+
+# Automated deploy (git commit, worker + pages together)
+npm run ship
 ```
 
 ---
-
-Jeśli chcesz, mogę:
-
-- dodać prosty skrypt `Makefile` lub `scripts/deploy.sh` aby zautomatyzować sekwencję deployu, lub
-- przeskanować repo i zaktualizować pozostałe wystąpienia "MIT" do Twojego nowego nagłówka.
-
-Powiedz co wolisz i zrobię następny krok.
