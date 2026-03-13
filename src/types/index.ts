@@ -219,10 +219,9 @@ export interface UserSettings {
 
 export type AccentColor = 'indigo' | 'violet' | 'rose' | 'emerald' | 'amber' | 'cyan' | 'custom';
 export type Theme = 'dark' | 'light';
-
 // ---- Watchlist Types ----
 
-export type WatchlistStatus = 'planned' | 'watching' | 'completed' | 'dropped' | 'on-hold';
+export type WatchlistStatus = 'planned' | 'watching' | 'completed' | 'dropped' | 'on-hold' | 'none';
 
 export interface WatchlistItem {
   id: string;
@@ -231,7 +230,9 @@ export interface WatchlistItem {
   title: string;
   posterPath: string | null;
   status: WatchlistStatus;
+  hidden?: boolean; // New: To hide from "My List" if it's only in "Continue Watching"
   progress?: {
+...
     season?: number;
     episode?: number;
     timestamp?: number;

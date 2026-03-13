@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { useSettingsStore } from '@/stores/settings';
 
 interface Particle {
   id: number;
@@ -21,6 +22,7 @@ export function DonateButton() {
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+  const { glassEffect } = useSettingsStore((s) => s.settings);
 
   useEffect(() => {
     setMounted(true);
@@ -69,10 +71,11 @@ export function DonateButton() {
           ref={buttonRef}
           onClick={handleDonate}
           className={cn(
-            "group relative flex items-center gap-2.5 px-5 py-3 rounded-full",
-            "bg-white/[0.03] backdrop-blur-3xl border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]",
-            "hover:bg-white/[0.08] hover:border-white/10 hover:scale-105 active:scale-95 transition-all duration-500",
-            "overflow-hidden"
+            "group relative flex items-center gap-2.5 px-3.5 py-3 rounded-full sm:px-5 transition-all duration-500 overflow-hidden",
+            glassEffect
+              ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.06)]"
+              : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.04)]",
+            "hover:scale-105 hover:brightness-110 active:scale-95"
           )}
         >
           {/* Particles burst relative to this container */}
@@ -104,7 +107,7 @@ export function DonateButton() {
             </svg>
           </div>
 
-          <span className="text-[14px] font-black text-white/90 group-hover:text-white tracking-tight uppercase">Support Me</span>
+          <span className="hidden sm:inline text-[14px] font-black text-white/90 group-hover:text-white tracking-tight uppercase">Support Me</span>
         </button>
       </div>
 

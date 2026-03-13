@@ -442,6 +442,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [showIdlePauseOverlay, setShowIdlePauseOverlay] = useState(false);
   const [isEmbedNoticeDismissed, setIsEmbedNoticeDismissed] = useState(false);
   const [idleSnapshot, setIdleSnapshot] = useState<string | null>(null);
+  const [isFinished, setIsFinished] = useState(false);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
   const lastAutoSkippedSegmentRef = useRef('');
@@ -449,6 +450,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const lastInteractionAtRef = useRef(Date.now());
   const attemptedAutoPlayRef = useRef(false);
   const lastProgressSaveRef = useRef(0);
+  const targetTimeRef = useRef<number | null>(null);
+  const seekTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const watchPartyApplyingRemoteRef = useRef(false);
   const watchPartyLastHostPushMsRef = useRef(0);
   const watchPartyAutoJoinAttemptedRef = useRef(false);
@@ -1055,7 +1058,37 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       });
     }
   }, [autoPlay, initialSeekTime, isMuted, watchPartyRole]);
+  const navigateNextEpisode = useCallback(() => {
+    if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length) return;
+    const nextEpisode = season.episodes.find((ep) => ep.episodeNumber === episodeNum + 1);
+    if (nextEpisode) {
+      setIsEpisodeNavigating(true);
+      onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
+    }
+  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
+
+  const navigatePrevEpisode = useCallback(() => {
+    if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length || episodeNum <= 1) return;
+    setIsEpisodeNavigating(true);
+    onNavigateEpisode(seasonNum, episodeNum - 1);
+  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
+
+  const handleEnded = useCallback(() => {
+    setPlaying(false);
+    setIsFinished(true);
+    // Auto-next logic when video actually ends
+    if (mediaType === 'show' && autoNext) {
+      setTimeout(() => {
+        // Only navigate if still on the end screen
+        if (videoRef.current?.ended || videoRef.current?.currentTime === videoRef.current?.duration) {
+          navigateNextEpisode();
+        }
+      }, 3000);
+    }
+  }, [mediaType, autoNext, navigateNextEpisode]);
+
   const handleError = useCallback(() => {
+    setPlaying(false);
     setError('Video playback error');
     const msg = videoRef.current?.error?.message || 'Unknown video error';
     const code = String(videoRef.current?.error?.code || 'unknown');
@@ -1071,14 +1104,27 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
   const seek = useCallback((time: number) => {
     if (!videoRef.current) return;
-    videoRef.current.currentTime = time;
-    if (externalAudioRef.current && externalAudioUrl) {
-      try {
-        externalAudioRef.current.currentTime = time;
-      } catch {}
-    }
-    pushWatchPartyHostStateNow();
-  }, [externalAudioUrl, pushWatchPartyHostStateNow]);
+    const clampedTime = Math.max(0, Math.min(time, duration || 999999));
+    
+    // Update ref immediately for accumulation
+    targetTimeRef.current = clampedTime;
+    setCurrentTime(clampedTime); // Update UI immediately
+
+    // Debounce the actual heavy seek operation
+    if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+    
+    seekTimeoutRef.current = setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = clampedTime;
+        if (duration && clampedTime < duration - 1) setIsFinished(false);
+      }
+      if (externalAudioRef.current && externalAudioUrl) {
+        try { externalAudioRef.current.currentTime = clampedTime; } catch {}
+      }
+      pushWatchPartyHostStateNow();
+      targetTimeRef.current = null;
+    }, 100);
+  }, [duration, externalAudioUrl, pushWatchPartyHostStateNow, setCurrentTime]);
 
   const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!progressRef.current || !duration) return;
@@ -1288,21 +1334,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       setIdleSnapshot(null);
     }
   }, [showIdlePauseOverlay]);
-
-  const navigateNextEpisode = useCallback(() => {
-    if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length) return;
-    const nextEpisode = season.episodes.find((ep) => ep.episodeNumber === episodeNum + 1);
-    if (nextEpisode) {
-      setIsEpisodeNavigating(true);
-      onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
-    }
-  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
-
-  const navigatePrevEpisode = useCallback(() => {
-    if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length || episodeNum <= 1) return;
-    setIsEpisodeNavigating(true);
-    onNavigateEpisode(seasonNum, episodeNum - 1);
-  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
 
   const loadSeasonEpisodes = useCallback(async (targetSeason: number) => {
     if (!tmdbId || mediaType !== 'show') return;
@@ -1622,8 +1653,15 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     setSettingsPanel(null);
   }, [pushWatchPartyHostStateNow]);
 
-  const skipForward = useCallback(() => seek(currentTime + 10), [currentTime]);
-  const skipBackward = useCallback(() => seek(currentTime - 10), [currentTime]);
+  const skipForward = useCallback(() => {
+    const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
+    seek(start + 10);
+  }, [currentTime, seek]);
+
+  const skipBackward = useCallback(() => {
+    const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
+    seek(start - 10);
+  }, [currentTime, seek]);
   const handleSkipIntro = useCallback(() => { if (introOutro?.introEnd) seek(introOutro.introEnd); }, [introOutro]);
   const handleSkipOutro = useCallback(() => { if (introOutro?.outroEnd) seek(introOutro.outroEnd); }, [introOutro]);
 
@@ -1725,6 +1763,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             onPause={handlePause}
             onWaiting={handleWaiting}
             onCanPlay={handleCanPlay}
+            onEnded={handleEnded}
             onError={handleError}
             onClick={togglePlay}
             onDoubleClick={toggleFullscreen}
@@ -2868,6 +2907,49 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 Cancel
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* End Screen / Finished Overlay */}
+      {isFinished && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in">
+          <div className="text-center max-w-md px-6 animate-scale-in">
+            <p className="text-[13px] font-bold uppercase tracking-widest text-accent mb-2">Finished</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6">
+              {mediaType === 'show' ? `Completed S${seasonNum}:E${episodeNum}` : 'Movie Finished'}
+            </h2>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
+              {mediaType === 'show' && season?.episodes?.some(ep => ep.episodeNumber === episodeNum + 1) && (
+                <button
+                  onClick={() => {
+                    setIsFinished(false);
+                    navigateNextEpisode();
+                  }}
+                  disabled={isEpisodeNavigating}
+                  className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px]"
+                >
+                  {isEpisodeNavigating ? 'Loading...' : 'Next Episode'}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setIsFinished(false);
+                  seek(0);
+                  videoRef.current?.play().catch(() => {});
+                }}
+                className="w-full sm:w-auto rounded-[14px] bg-white/10 px-8 py-3 text-[14px] font-bold text-white hover:bg-white/15 transition-all"
+              >
+                Rewatch
+              </button>
+              <button
+                onClick={onBack}
+                className="w-full sm:w-auto rounded-[14px] border border-white/10 px-8 py-3 text-[14px] font-bold text-white/70 hover:text-white transition-all"
+              >
+                Go Back
+              </button>
+            </div>
           </div>
         </div>
       )}
