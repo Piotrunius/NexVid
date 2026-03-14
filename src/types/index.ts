@@ -208,6 +208,7 @@ export interface UserSettings {
   skipIntro: boolean;
   skipOutro: boolean;
   autoSkipSegments: boolean;
+  autoSwitchSource: boolean;
   idlePauseOverlay: boolean;
   proxyUrl: string;
   febboxApiKey: string;
@@ -232,7 +233,6 @@ export interface WatchlistItem {
   status: WatchlistStatus;
   hidden?: boolean; // New: To hide from "My List" if it's only in "Continue Watching"
   progress?: {
-...
     season?: number;
     episode?: number;
     timestamp?: number;

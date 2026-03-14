@@ -7,9 +7,9 @@
 
 'use client';
 
-import { createWatchParty, joinWatchParty, leaveWatchParty, loadWatchPartyState, updateWatchPartyState, loadPublicAnnouncements, reportPlayerSuccess, reportPlayerError, type WatchPartyPlaybackState, type WatchPartyRole } from '@/lib/cloudSync';
+import { toast } from '@/components/ui/Toaster';
+import { createWatchParty, joinWatchParty, leaveWatchParty, loadWatchPartyState, reportPlayerError, reportPlayerSuccess, updateWatchPartyState, type WatchPartyPlaybackState, type WatchPartyRole } from '@/lib/cloudSync';
 import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER } from '@/lib/febbox';
-import { getAvailableSources } from '@/lib/providers';
 import type { MediaSegments } from '@/lib/tidb';
 import { submitSegment } from '@/lib/tidb';
 import { getSeasonDetails } from '@/lib/tmdb';
@@ -18,7 +18,7 @@ import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
-import type { AudioTrack, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
+import type { AudioTrack, Caption, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface PlayerProps {
@@ -349,6 +349,11 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     setAudioTracks, setActiveAudioTrack,
   } = usePlayerStore();
 
+  const isLoadingRef = useRef(isLoading);
+  const errorRef = useRef(error);
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+  useEffect(() => { errorRef.current = error; }, [error]);
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // Handle VidLink messages
@@ -387,7 +392,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey, disableEmbeds } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey, disableEmbeds } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
@@ -402,7 +407,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       }
     : undefined);
 
-  const [settingsPanel, setSettingsPanel] = useState<'main' | 'quality' | 'speed' | 'subtitles' | 'subAppearance' | 'episodes' | 'info' | 'segments' | 'playback' | 'skip' | 'watchParty' | 'alternative' | null>(null);
+  const [settingsPanel, setSettingsPanel] = useState<'main' | 'quality' | 'speed' | 'subtitles' | 'subAppearance' | 'episodes' | 'info' | 'segments' | 'playback' | 'skip' | 'watchParty' | 'alternative' | 'sources' | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [hoverProgress, setHoverProgress] = useState<number | null>(null);
   const [captionTrackUrls, setCaptionTrackUrls] = useState<Record<string, string>>({});
@@ -457,6 +462,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const watchPartyAutoJoinAttemptedRef = useRef(false);
   const watchPartyForcePausedRef = useRef(false);
   const hlsAutoSwitchAttemptedRef = useRef(false);
+  const autoSourceSwitchAttemptedRef = useRef(false);
+  const autoSourceTimeoutRef = useRef<number | null>(null);
   const username = useAuthStore((s) => s.user?.username) || 'Guest';
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const { addItem, getByTmdbId, setStatus: setWatchlistStatus } = useWatchlistStore();
@@ -486,6 +493,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   }, [mediaType, tmdbId, media?.id, title, seasonNum, episodeNum]);
 
   const sourceResults = allSourceResults || [];
+  const safeSourceResults = allSourceResults ?? sourceResults;
   const currentSourceIndex = Math.max(0, Math.min(typeof propSourceIndex === 'number' ? propSourceIndex : 0, Math.max(sourceResults.length - 1, 0)));
 
   const formatSourceName = useCallback((sourceId?: string) => {
@@ -609,6 +617,11 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     const video = videoRef.current;
 
     hlsAutoSwitchAttemptedRef.current = false;
+    autoSourceSwitchAttemptedRef.current = false;
+    if (autoSourceTimeoutRef.current) {
+      clearTimeout(autoSourceTimeoutRef.current);
+      autoSourceTimeoutRef.current = null;
+    }
 
     attemptedAutoPlayRef.current = false;
     setCaptionTouchedByUser(false);
@@ -621,6 +634,25 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     video.volume = playerVolume;
     setVolume(playerVolume);
     video.playbackRate = playbackSpeed;
+
+    if (stream.type === 'embed') {
+      // Embed streams are handled by iframe, no video setup needed
+      setLoading(false);
+      return;
+    }
+
+    if (autoSwitchSource && canTryNextSource && onTryNextSource) {
+      autoSourceTimeoutRef.current = window.setTimeout(() => {
+        if (!videoRef.current) return;
+        if (autoSourceSwitchAttemptedRef.current) return;
+        if (!isLoadingRef.current && !errorRef.current) return;
+
+        autoSourceSwitchAttemptedRef.current = true;
+        setError('Current source is taking too long to load. Switching to next source...');
+        toast('Switching source...', 'info');
+        onTryNextSource();
+      }, 20000);
+    }
 
     if (stream.type === 'hls') {
       loadHls(stream.playlist, video, stream.headers);
@@ -681,10 +713,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           });
         }
       }
-    } else if (stream.type === 'embed') {
-      // Embed streams are handled by iframe, no video setup needed
-      setLoading(false);
-      return;
     }
 
     return () => {
@@ -706,6 +734,10 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         audio.pause();
         audio.removeAttribute('src');
         audio.load();
+      }
+      if (autoSourceTimeoutRef.current) {
+        clearTimeout(autoSourceTimeoutRef.current);
+        autoSourceTimeoutRef.current = null;
       }
       setPlaying(false);
       setLoading(false);
@@ -913,7 +945,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
       const shiftedTime = videoRef.current.currentTime - (subDelayMs / 1000);
       const active = manualCues.filter(c => shiftedTime >= c.start && shiftedTime <= c.end);
-      
+
       const newText = active.map(a => a.text).join('\n');
       if (newText !== renderedSubtitle) {
         setRenderedSubtitle(newText);
@@ -958,10 +990,15 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
           if (data.fatal) {
             reportPlayerError(mediaType || '', tmdbId || '', data.type, data.details || 'Fatal HLS error', false, febboxApiKey).catch(() => {});
-            if (canTryNextSource && onTryNextSource && !hlsAutoSwitchAttemptedRef.current) {
-
+            if (autoSwitchSource && canTryNextSource && onTryNextSource && !hlsAutoSwitchAttemptedRef.current) {
               hlsAutoSwitchAttemptedRef.current = true;
+              autoSourceSwitchAttemptedRef.current = true;
+              if (autoSourceTimeoutRef.current) {
+                clearTimeout(autoSourceTimeoutRef.current);
+                autoSourceTimeoutRef.current = null;
+              }
               setError('Current source is blocked or unavailable. Switching source...');
+              toast('Switching source...', 'info');
               onTryNextSource();
               return;
             }
@@ -1030,8 +1067,33 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     }
     pushWatchPartyHostStateNow();
   }, [pushWatchPartyHostStateNow]);
-  const handleWaiting = useCallback(() => setLoading(true), []);
+  const handleWaiting = useCallback(() => {
+    setLoading(true);
+
+    if (!autoSwitchSource || !canTryNextSource || !onTryNextSource || autoSourceSwitchAttemptedRef.current) return;
+
+    if (autoSourceTimeoutRef.current) {
+      clearTimeout(autoSourceTimeoutRef.current);
+      autoSourceTimeoutRef.current = null;
+    }
+    autoSourceTimeoutRef.current = window.setTimeout(() => {
+      if (!videoRef.current) return;
+      if (autoSourceSwitchAttemptedRef.current) return;
+      if (!isLoadingRef.current && !errorRef.current) return;
+
+      autoSourceSwitchAttemptedRef.current = true;
+      setError('Current source is taking too long to load. Switching to next source...');
+      toast('Switching source...', 'info');
+      onTryNextSource();
+    }, 20000);
+  }, [autoSwitchSource, canTryNextSource, onTryNextSource, setError]);
   const handleCanPlay = useCallback(() => {
+    if (autoSourceTimeoutRef.current) {
+      clearTimeout(autoSourceTimeoutRef.current);
+      autoSourceTimeoutRef.current = null;
+    }
+    autoSourceSwitchAttemptedRef.current = false;
+
     setLoading(false);
     if (videoRef.current && initialSeekTime > 1 && videoRef.current.currentTime < 1) {
       videoRef.current.currentTime = initialSeekTime;
@@ -1093,7 +1155,18 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     const msg = videoRef.current?.error?.message || 'Unknown video error';
     const code = String(videoRef.current?.error?.code || 'unknown');
     reportPlayerError(mediaType || '', tmdbId || '', code, msg, false, febboxApiKey).catch(() => {});
-  }, [mediaType, tmdbId, febboxApiKey]);
+
+    if (!autoSwitchSource || !canTryNextSource || !onTryNextSource || autoSourceSwitchAttemptedRef.current) return;
+
+    autoSourceSwitchAttemptedRef.current = true;
+    if (autoSourceTimeoutRef.current) {
+      clearTimeout(autoSourceTimeoutRef.current);
+      autoSourceTimeoutRef.current = null;
+    }
+    setError('Current source is unavailable. Switching to next source...');
+    toast('Switching source...', 'info');
+    onTryNextSource();
+  }, [autoSwitchSource, canTryNextSource, mediaType, onTryNextSource, tmdbId, febboxApiKey]);
 
   // ---- Controls ----
   const togglePlay = useCallback(() => {
@@ -1105,14 +1178,14 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const seek = useCallback((time: number) => {
     if (!videoRef.current) return;
     const clampedTime = Math.max(0, Math.min(time, duration || 999999));
-    
+
     // Update ref immediately for accumulation
     targetTimeRef.current = clampedTime;
     setCurrentTime(clampedTime); // Update UI immediately
 
     // Debounce the actual heavy seek operation
     if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
-    
+
     seekTimeoutRef.current = setTimeout(() => {
       if (videoRef.current) {
         videoRef.current.currentTime = clampedTime;
@@ -1266,6 +1339,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
     lastAutoSkippedSegmentRef.current = activeSegment.key;
     lastAutoSkipAtRef.current = now;
+    toast('Skipping segment...', 'info');
     seek(Math.min(activeSegment.endSec + 0.1, duration));
   }, [autoSkipSegments, stream?.type, duration, currentTime, introOutro, effectiveSegments, seek]);
 
@@ -1388,7 +1462,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     // Hard sync (seek) if drift is large (> 2.5s)
     if (drift > 2.5) {
       video.currentTime = compensatedTime;
-    } 
+    }
     // Soft sync (adjust playback rate) if drift is small (0.4s - 2.5s)
     else if (!state.paused && drift > 0.4) {
       const isAhead = video.currentTime > compensatedTime;
@@ -1772,6 +1846,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           >
           </video>
           <audio ref={externalAudioRef} className="hidden" preload="auto" />
+
         </>
       )}
 
@@ -1804,7 +1879,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 Clicks are restricted to prevent malicious redirects and popups from the provider.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2.5 w-full">
               <button
                 onClick={() => setEmbedLockState('unlocked')}
@@ -2466,6 +2541,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         <PlayerToggle label="Auto-play" checked={autoPlay} onChange={(v) => updateSettings({ autoPlay: v })} />
                         <PlayerToggle label="Auto-next" checked={autoNext} onChange={(v) => updateSettings({ autoNext: v })} />
                         <PlayerToggle label="Auto-skip segments" checked={autoSkipSegments} onChange={(v) => updateSettings({ autoSkipSegments: v })} />
+                        <PlayerToggle label="Auto-switch source" checked={autoSwitchSource} onChange={(v) => updateSettings({ autoSwitchSource: v })} />
                         <PlayerToggle label="Idle pause overlay" checked={idlePauseOverlay} onChange={(v) => updateSettings({ idlePauseOverlay: v })} />
                       </div>
                     </div>
@@ -2628,7 +2704,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           return (
                             <button
                               key={res.sourceId}
-                              onClick={() => { onSelectSource?.(allSourceResults.indexOf(res)); setSettingsPanel(null); }}
+                              onClick={() => { onSelectSource?.(safeSourceResults.indexOf(res)); setSettingsPanel(null); }}
                               className={cn(
                                 "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none",
                                 isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
@@ -2668,12 +2744,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           })
                           .map((cap) => (
                           <button
-                            key={cap.id} 
-                            onClick={() => { 
-                              setCaptionTouchedByUser(true); 
-                              setActiveCaption(cap.id); 
-                              setSettingsPanel('main'); 
-                            }} 
+                            key={cap.id}
+                            onClick={() => {
+                              setCaptionTouchedByUser(true);
+                              setActiveCaption(cap.id);
+                              setSettingsPanel('main');
+                            }}
                             className={cn('w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between', activeCaption === cap.id ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10')}
                           >
                             <div className="flex items-center">
@@ -2919,7 +2995,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6">
               {mediaType === 'show' ? `Completed S${seasonNum}:E${episodeNum}` : 'Movie Finished'}
             </h2>
-            
+
             <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
               {mediaType === 'show' && season?.episodes?.some(ep => ep.episodeNumber === episodeNum + 1) && (
                 <button

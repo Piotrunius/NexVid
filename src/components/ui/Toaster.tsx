@@ -5,8 +5,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useSettingsStore } from '@/stores/settings';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface Toast {
   id: string;
@@ -64,7 +64,7 @@ export function Toaster() {
   const typeStyles: Record<string, string> = {
     success: 'border-emerald-500/20 bg-emerald-500/10',
     error: 'border-red-500/20 bg-red-500/10',
-    info: 'border-blue-500/20 bg-blue-500/10',
+    info: 'border-accent/20 border-accent/30',
     warning: 'border-amber-500/20 bg-amber-500/10',
   };
 
