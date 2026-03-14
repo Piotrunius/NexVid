@@ -45,6 +45,10 @@
     "wyzie-lib": "^2.4.0",
     "zustand": "^5.0.11"
   },
+  "overrides": {
+    "esbuild": "^0.27.4",
+    "undici": "^7.24.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
     "@testing-library/jest-dom": "^6.6.0",
@@ -61,7 +65,7 @@
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.7.0",
-    "vitest": "^2.1.0",
-    "wrangler": "^3.0.0"
+    "vitest": "^4.1.0",
+    "wrangler": "^4.73.0"
   }
 }
