@@ -15,21 +15,9 @@ import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { Caption, Episode, Movie, Season, Show, SourceResult, Stream } from '@/types';
-import type { Metadata } from 'next';
+import Head from 'next/head';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: true,
-    googleBot: {
-      index: false,
-      follow: true,
-      noimageindex: true,
-    },
-  },
-};
 
 export const runtime = 'edge';
 
@@ -539,7 +527,12 @@ export default function WatchPage() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-50">
+    <>
+      <Head>
+        <meta name="robots" content="noindex,follow" />
+        <meta name="googlebot" content="noindex,follow,noimageindex" />
+      </Head>
+      <div className="fixed inset-0 bg-black z-50">
       <VideoPlayer
         stream={stream}
         fullViewport
@@ -635,5 +628,6 @@ export default function WatchPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
