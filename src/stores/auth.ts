@@ -3,7 +3,7 @@
    Local-first auth with optional backend sync
    ============================================ */
 
-import { changeCloudPassword, clearCloudToken, CloudApiError, getCloudApiUrl, getCloudToken, loadCloudMe, setCloudToken, updateCloudNickname as apiUpdateNickname } from '@/lib/cloudSync';
+import { updateCloudNickname as apiUpdateNickname, changeCloudPassword, clearCloudToken, CloudApiError, getCloudApiUrl, getCloudToken, loadCloudMe, setCloudToken } from '@/lib/cloudSync';
 import { generateId } from '@/lib/utils';
 import type { User } from '@/types';
 import { create } from 'zustand';
@@ -56,10 +56,12 @@ export const useAuthStore = create<AuthStore>()(
             playerVolume: 1,
             skipIntro: true,
             skipOutro: true,
-            autoSkipSegments: false,
+            autoSkipSegments: true,
+            autoSwitchSource: true,
             idlePauseOverlay: true,
             proxyUrl: '',
             febboxApiKey: '',
+            disableEmbeds: false,
             introDbApiKey: '',
             preferredSources: [],
             disabledSources: [],
@@ -86,10 +88,12 @@ export const useAuthStore = create<AuthStore>()(
             playerVolume: 1,
             skipIntro: true,
             skipOutro: true,
-            autoSkipSegments: false,
+            autoSkipSegments: true,
+            autoSwitchSource: true,
             idlePauseOverlay: true,
             proxyUrl: '',
             febboxApiKey: '',
+            disableEmbeds: false,
             introDbApiKey: '',
             preferredSources: [],
             disabledSources: [],
@@ -117,19 +121,19 @@ export const useAuthStore = create<AuthStore>()(
           if (!res.ok) throw new Error(data?.error || 'Login failed');
           setCloudToken(data.token || '');
           set({ user: data.user, isLoggedIn: true, isLoading: false, authToken: data.token || '' });
-          
+
           // Trigger immediate data fetch after login/reg
           void (async () => {
             try {
               const { loadCloudSettings, loadCloudWatchlist } = await import('@/lib/cloudSync');
               const { useSettingsStore, DEFAULT_SETTINGS } = await import('@/stores/settings');
               const { useWatchlistStore } = await import('@/stores/watchlist');
-              
+
               const [settingsRes, watchlistRes] = await Promise.all([
                 loadCloudSettings(),
                 loadCloudWatchlist(),
               ]);
-              
+
               if (settingsRes?.settings) {
                 useSettingsStore.getState().setAllSettings({ ...DEFAULT_SETTINGS, ...settingsRes.settings });
               }
@@ -160,19 +164,19 @@ export const useAuthStore = create<AuthStore>()(
           if (!res.ok) throw new Error(data?.error || 'Registration failed');
           setCloudToken(data.token || '');
           set({ user: data.user, isLoggedIn: true, isLoading: false, authToken: data.token || '' });
-          
+
           // Trigger immediate data fetch after login/reg
           void (async () => {
             try {
               const { loadCloudSettings, loadCloudWatchlist } = await import('@/lib/cloudSync');
               const { useSettingsStore, DEFAULT_SETTINGS } = await import('@/stores/settings');
               const { useWatchlistStore } = await import('@/stores/watchlist');
-              
+
               const [settingsRes, watchlistRes] = await Promise.all([
                 loadCloudSettings(),
                 loadCloudWatchlist(),
               ]);
-              
+
               if (settingsRes?.settings) {
                 useSettingsStore.getState().setAllSettings({ ...DEFAULT_SETTINGS, ...settingsRes.settings });
               }
