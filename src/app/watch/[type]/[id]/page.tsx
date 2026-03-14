@@ -4,8 +4,6 @@
 
 'use client';
 
-export const runtime = 'edge';
-
 import { VideoPlayer } from '@/components/player/VideoPlayer';
 import { toast } from '@/components/ui/Toaster';
 import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER, resolveFebboxToken } from '@/lib/febbox';
@@ -17,8 +15,23 @@ import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { Caption, Episode, Movie, Season, Show, SourceResult, Stream } from '@/types';
+import type { Metadata } from 'next';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: true,
+    googleBot: {
+      index: false,
+      follow: true,
+      noimageindex: true,
+    },
+  },
+};
+
+export const runtime = 'edge';
 
 const EMPTY_SEGMENTS: MediaSegments = {
   intro: [],
@@ -86,7 +99,7 @@ async function loadExternalCaptions(params: {
         if (!url) return null;
         const language = String(subtitle?.language || 'en').toLowerCase();
         const type = String(subtitle?.type || '').toLowerCase().includes('vtt') ? 'vtt' : 'srt';
-        
+
         let id = String(subtitle?.id || '');
         if (!id.startsWith('wyzie-')) {
           id = `wyzie-${language}-${Math.random().toString(36).slice(2, 9)}`;
@@ -138,7 +151,7 @@ export default function WatchPage() {
   const seasonNum = searchParams?.get('s') ? parseInt(searchParams.get('s')!) : 1;
   const episodeNum = searchParams?.get('e') ? parseInt(searchParams.get('e')!) : 1;
   const resumeTimeFromUrl = searchParams?.get('t') ? parseFloat(searchParams.get('t')!) : 0;
-  
+
   const lastProgressSyncRef = useRef<{ wallTime: number; percent: number; second: number; key: string }>({
     wallTime: 0,
     percent: 0,
@@ -157,7 +170,7 @@ export default function WatchPage() {
   const [sourceIndex, setSourceIndex] = useState(0);
   const [externalCaptions, setExternalCaptions] = useState<Caption[]>([]);
   const memoizedExternalCaptions = useMemo(() => externalCaptions, [externalCaptions]);
-  
+
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [resumeData, setResumeData] = useState<{ percentage: number; timestamp: number } | null>(null);
   const [appliedSeekTime, setAppliedSeekTime] = useState(resumeTimeFromUrl);
@@ -295,7 +308,7 @@ export default function WatchPage() {
           idlePauseOverlay,
         });
 
-        const filteredResults = disableEmbeds 
+        const filteredResults = disableEmbeds
           ? results.filter(r => r.stream.type !== 'embed')
           : results;
 
@@ -346,12 +359,12 @@ export default function WatchPage() {
     try {
       const item = getByTmdbId(id);
       const prog = item?.progress;
-      
+
       // Strict comparison for type and ID
       const isSameType = item?.mediaType === type;
       const isSameId = String(item?.tmdbId) === String(id);
       const isSameEpisode = type === 'movie' || (prog?.season === seasonNum && prog?.episode === episodeNum);
-      
+
       if (isSameType && isSameId && isSameEpisode && prog?.percentage && prog.percentage > 95) {
         setResumeData({ percentage: prog.percentage, timestamp: prog.timestamp || 0 });
         setShowResumeOverlay(true);
@@ -370,7 +383,7 @@ export default function WatchPage() {
 
   useEffect(() => {
     if (!id || !imdbId) return;
-    
+
     let cancelled = false;
     const load = async () => {
       const caps = await loadExternalCaptions({
@@ -585,25 +598,25 @@ export default function WatchPage() {
             <p className="text-white/50 text-[14px] font-medium leading-relaxed mb-10 px-4">
               You've watched <span className="text-accent font-bold">{Math.round(resumeData?.percentage || 0)}%</span> of this {type === 'movie' ? 'movie' : 'episode'}. Would you like to resume, restart, or skip to the next one?
             </p>
-            
+
             <div className="flex flex-col gap-3 w-full max-w-[400px] mx-auto">
               <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                   onClick={() => handleResumeChoice('watch')}
                   className="btn-accent !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full"
                 >
                   Watch ({Math.round(resumeData?.percentage || 0)}%)
                 </button>
-                <button 
+                <button
                   onClick={() => handleResumeChoice('rewatch')}
                   className="btn-glass !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full"
                 >
                   Rewatch
                 </button>
               </div>
-              
+
               {type === 'show' && (
-                <button 
+                <button
                   onClick={() => handleResumeChoice('next')}
                   className="btn-glass !bg-accent/10 !border-accent/20 !text-accent !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full hover:!bg-accent/20"
                 >
@@ -611,8 +624,8 @@ export default function WatchPage() {
                 </button>
               )}
             </div>
-            
-            <button 
+
+            <button
               onClick={() => { setShowResumeOverlay(false); router.back(); }}
               className="mt-8 text-[11px] font-black text-white/30 uppercase tracking-[0.3em] hover:text-white/60 transition-colors"
             >

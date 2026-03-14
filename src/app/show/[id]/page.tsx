@@ -24,6 +24,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title,
       description,
+      robots: {
+        index: false,
+        follow: true,
+        googleBot: {
+          index: false,
+          follow: true,
+          noimageindex: true,
+        },
+      },
       alternates: {
         canonical: `/show/${id}`,
       },
@@ -47,6 +56,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: 'Watch TV Shows free on NexVid',
       description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
+      robots: {
+        index: false,
+        follow: true,
+        googleBot: {
+          index: false,
+          follow: true,
+          noimageindex: true,
+        },
+      },
       alternates: {
         canonical: `/show/${id}`,
       },

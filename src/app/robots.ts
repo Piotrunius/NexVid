@@ -7,7 +7,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin', '/api/'],
+      // Prevent search engines from indexing media pages that are more likely to trigger copyright takedowns.
+      disallow: ['/admin', '/api/', '/movie/', '/show/', '/watch/'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
