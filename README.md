@@ -1,197 +1,247 @@
-# NexVid – Frontend
+# NexVid
 
-Production-ready streaming website frontend built with **Next.js 15**, featuring source aggregation from 48+ providers, a custom video player, and Apple-style Liquid Glass UI.
+NexVid is a production-ready streaming frontend built with **Next.js 15 (App Router)**. It aggregates streams from multiple providers, offers a custom HLS player, and includes a Cloudflare Worker backend for proxying, authentication, and persistent user data.
+
+---
+
+## Key Concepts
+
+### What this repository contains
+
+- **Frontend** (Next.js): UI, routing, client state, video player, settings, and source selection.
+- **Worker** (Cloudflare Workers): proxy & API layer, including CORS proxy, HLS manifest rewriting, user auth, and Cloudflare D1 persistence.
+
+### Goals
+
+- Provide a modern streaming UI with source aggregation.
+- Enable users to save settings and watchlists in the cloud (D1).
+- Keep the frontend decoupled from scraping logic by using a worker proxy.
+
+---
 
 ## Features
 
-- **Source Aggregation** – Scans 48+ sources & 60+ embed providers simultaneously via `@p-stream/providers`
-- **Custom Video Player** – HLS.js-based player with keyboard shortcuts, quality selection, captions panel
-- **Liquid Glass UI** – Apple-style frosted glass theme (toggleable) with 6 accent colors
-- **TIDB Integration** – Skip intro/outro buttons via TheIntroDataBase
-- **Watchlist** – Planned / Watching / Completed / Dropped / On-Hold statuses with import/export
-- **Authentication + Cloud Sync** – Worker API with Cloudflare D1 storage (users, settings, watchlist)
-- **Cloudflare Worker Proxy/API** – CORS proxy, HLS playlist rewriting, auth & user data API
-- **Full Responsive Design** – Works on mobile, tablet, desktop
-- **Dark/Light Themes** – With 6 accent color options
+- Source aggregation from built-in providers (FebBox, VixSrc, Videasy, VidLink).
+- HLS.js-based player with keyboard shortcuts, quality selection, captions, and seek.
+- Optional skip intro/outro via TheIntroDataBase (TIDB).
+- Watchlist (planned/watching/completed/dropped/on-hold) with import/export support.
+- User settings persisted in localStorage + synchronized to Cloudflare D1.
+- Cloudflare Worker proxy for CORS, HLS manifest re-writing, and authentication.
+- Responsive UI with toggleable “Liquid Glass” theme and multiple accent colors.
 
-## Tech Stack
+---
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript 5.7 |
-| Styling | Tailwind CSS 3.4 |
-| State | Zustand 5 (persisted) |
-| Video | HLS.js |
-| Animations | Framer Motion |
-| Icons | Inline SVG |
-| Proxy | Cloudflare Workers |
+## Repository layout
 
-## Quick Start
+```
+/ (root)
+├── src/               # Next.js frontend (App Router)
+│   ├── app/           # Pages and layouts
+│   ├── components/    # Reusable UI components
+│   ├── lib/           # API clients, helpers, providers
+│   ├── stores/        # Zustand stores (auth/settings/watchlist/player)
+│   └── types/         # TypeScript interfaces
+├── worker/            # Cloudflare Worker proxy + API
+│   ├── src/           # Worker source code
+│   ├── schema.sql     # D1 schema
+│   └── wrangler.toml  # Worker configuration
+├── public/            # Static assets (images, robots.txt, etc.)
+├── package.json       # Frontend dependencies and scripts
+└── next.config.js     # Next.js configuration
+```
 
-### 1. Configure Environment
+---
+
+## Prerequisites
+
+- Node.js 20+ (recommended)
+- npm 10+ (or pnpm/yarn if you prefer; this repo uses npm scripts)
+- Cloudflare account (for Worker + D1)
+
+---
+
+## Local development
+
+### 1) Environment variables
+
+Copy example env file and set required values.
 
 ```bash
 cp .env.example .env.local
 ```
 
 Edit `.env.local`:
+
 ```env
 NEXT_PUBLIC_TMDB_API_KEY=your_tmdb_api_key_here
 NEXT_PUBLIC_PROXY_URL=https://your-proxy.workers.dev
 NEXT_PUBLIC_API_URL=https://your-worker.workers.dev
-NEXT_PUBLIC_DEV_MODE=true  # Enable mock sources for development
+NEXT_PUBLIC_DEV_MODE=true
 ```
 
-Get a free TMDB API key at [themoviedb.org](https://www.themoviedb.org/settings/api).
+#### Notes
 
-### 2. Install & Run
+- `NEXT_PUBLIC_TMDB_API_KEY` is required for TMDB metadata (titles, posters, etc.).
+- `NEXT_PUBLIC_PROXY_URL` is the worker proxy used for scraping sources and HLS rewriting.
+- `NEXT_PUBLIC_API_URL` is the worker API endpoint used for auth/settings/watchlist.
+- `NEXT_PUBLIC_DEV_MODE=true` enables mock sources (Mux test stream, Big Buck Bunny) without a proxy.
+
+### 2) Install dependencies
 
 ```bash
 npm install
+```
+
+### 3) Start frontend
+
+```bash
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000).
+Open http://localhost:3000
 
-### 3. Cloudflare D1 + Worker API
+---
 
-Create D1 and apply schema:
+## Cloudflare Worker (backend) setup
+
+The worker serves two purposes:
+
+1. **CORS proxy & stream resolver** (`/api/proxy`, `/api/hls`) for grabbing streams from external providers.
+2. **API endpoints** (`/api/auth`, `/api/user/*`) backed by Cloudflare D1 for auth, settings, and watchlist.
+
+### 1) Install worker dependencies
 
 ```bash
 cd worker
 npm install
+```
+
+### 2) Authenticate wrangler
+
+```bash
 npx wrangler login
+```
+
+### 3) Create or use an existing Cloudflare D1 database
+
+```bash
 npx wrangler d1 create nexvid-db
-# copy database_id into worker/wrangler.toml
+```
+
+Then copy the generated `database_id` into `worker/wrangler.toml`.
+
+### 4) Apply the schema
+
+```bash
 npx wrangler d1 execute nexvid-db --file=./schema.sql
 ```
 
-Deploy worker:
+### 5) Deploy the worker
 
 ```bash
 npx wrangler deploy
 ```
 
-Then set `NEXT_PUBLIC_API_URL` to your worker URL in `.env.local`.
+After deployment, set `NEXT_PUBLIC_API_URL` (and optionally `NEXT_PUBLIC_PROXY_URL`) to the deployed worker URL.
 
-## Project Structure
+---
 
-```
-pstream-frontend/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── page.tsx            # Homepage (trending, popular, top rated)
-│   │   ├── browse/page.tsx     # Browse with genre filters
-│   │   ├── search/page.tsx     # Search movies & shows
-│   │   ├── movie/[id]/page.tsx # Movie details
-│   │   ├── show/[id]/page.tsx  # Show details with episode list
-│   │   ├── watch/[type]/[id]/  # Watch page with player
-│   │   ├── settings/page.tsx   # Full settings panel
-│   │   ├── login/page.tsx      # Login/Register
-│   │   └── list/page.tsx       # Watchlist management
-│   ├── components/
-│   │   ├── layout/Navbar.tsx   # Glass navigation bar
-│   │   ├── media/MediaCard.tsx # Cards, rows, skeletons
-│   │   ├── player/
-│   │   │   ├── VideoPlayer.tsx # Custom HLS player
-│   │   │   └── SourceSelector.tsx
-│   │   ├── providers/ThemeProvider.tsx
-│   │   └── ui/Toaster.tsx
-│   ├── lib/
-│   │   ├── tmdb.ts             # TMDB API client
-│   │   ├── providers.ts        # Source scraping integration
-│   │   ├── cloudSync.ts        # Cloudflare auth/settings/watchlist sync
-│   │   ├── tidb.ts             # TheIntroDataBase client
-│   │   └── utils.ts            # cn(), tmdbImage(), etc.
-│   ├── stores/
-│   │   ├── settings.ts         # User preferences (persisted)
-│   │   ├── auth.ts             # Authentication state
-│   │   ├── watchlist.ts        # Watchlist management
-│   │   └── player.ts           # Playback state
-│   └── types/index.ts          # All TypeScript interfaces
-├── worker/                     # Cloudflare Worker proxy + API
-│   ├── src/index.ts            # CORS proxy + HLS + auth/settings/watchlist
-│   ├── schema.sql              # D1 schema
-│   ├── wrangler.toml
-│   └── package.json
-├── globals.css                 # Liquid Glass theme system
-└── package.json
-```
+## Key commands
 
-## Settings
+### Frontend
 
-All settings are persisted in localStorage:
+- `npm run dev` — Start Next.js in development mode.
+- `npm run build` — Build production frontend.
+- `npm run start` — Run production build locally.
+- `npm run lint` — Run ESLint.
+- `npm run typecheck` — Run TypeScript type check.
 
-| Setting | Options | Default |
-|---------|---------|---------|
-| Theme | Dark / Light | Dark |
-| Accent Color | Indigo, Violet, Rose, Emerald, Amber, Cyan | Indigo |
-| Glass Effect | On / Off | On |
-| Default Quality | Auto, 4K, 1080p, 720p, 480p, 360p | 1080p |
-| Auto-play | On / Off | On |
-| Auto Next Episode | On / Off | On |
-| Skip Intro (TIDB) | On / Off | On |
-| Skip Outro (TIDB) | On / Off | On |
-| Disable Transparency | On / Off | Off |
+### Worker
 
-## Keyboard Shortcuts (Player)
+From `worker/`:
 
-| Key | Action |
-|-----|--------|
-| `Space` / `K` | Play / Pause |
-| `F` | Toggle Fullscreen |
-| `M` | Toggle Mute |
-| `←` | Seek -10s |
-| `→` | Seek +10s |
-| `↑` | Volume +5% |
-| `↓` | Volume -5% |
+- `npm run dev` — Start wrangler dev server (local emulation).
+- `npm run deploy` — Deploy worker to Cloudflare.
+- `npm run lint` — (if configured) run lint checks for worker code.
 
-## Development Mode
+---
 
-Set `NEXT_PUBLIC_DEV_MODE=true` in `.env.local` to enable mock sources. This returns a Mux test HLS stream and Big Buck Bunny for testing the player without a real proxy.
+## Environment variables reference
 
-## Proxy Endpoints
+### Frontend (`.env.local`)
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /health` | Health check |
-| `GET /proxy?url=...` | CORS proxy with header forwarding |
-| `GET /hls?url=...` | HLS manifest proxy with URL rewriting |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_TMDB_API_KEY` | yes | TMDB API key for metadata.
+| `NEXT_PUBLIC_PROXY_URL` | yes | Worker proxy URL used for scraping and HLS rewriting.
+| `NEXT_PUBLIC_API_URL` | yes | Worker API base URL for auth/settings/watchlist.
+| `NEXT_PUBLIC_DEV_MODE` | no | `true` enables mock sources and bypasses proxy.
+| `NEXT_PUBLIC_DIRECT_RESOLVER_URL` | no | Optional resolver URL for direct stream access (see below).
 
-Headers forwarded: `X-Cookie` → `Cookie`, `X-Referer` → `Referer`, `X-Origin` → `Origin`, `X-User-Agent` → `User-Agent`.
+### Worker (`worker/.env` or `wrangler.toml`)
 
-## Worker API Endpoints
+Worker configuration is stored in `worker/wrangler.toml`. Common settings:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/auth/register` | POST | Create user and session |
-| `/auth/login` | POST | Sign in and return bearer token |
-| `/auth/me` | GET | Validate token and fetch current user |
-| `/auth/logout` | POST | Invalidate current session |
-| `/user/settings` | GET/PUT | Read/write user settings JSON in D1 |
-| `/user/watchlist` | GET/PUT | Read/write watchlist JSON in D1 |
+| Key | Purpose |
+|-----|---------|
+| `name` | Worker name.
+| `main` | Entry file (usually `./src/index.ts`).
+| `vars` | Environment variables (if any) required by the worker.
+| `d1_databases` | D1 database bindings.
 
-## Direct Stream Resolver (No-Embed)
+---
 
-If direct HLS URLs return `403` from upstream CDNs, deploy a dedicated Cloudflare Worker resolver and set:
+## API endpoints (worker)
+
+### Proxy endpoints (CORS / HLS)
+
+| Path | Method | Purpose |
+|------|--------|---------|
+| `/api/health` | GET | Health check.
+| `/api/proxy?url=...` | GET | Generic CORS proxy (for scraping sources).
+| `/api/hls?url=...` | GET | HLS manifest proxy + rewrite to make segments load.
+
+> Header forwarding (from frontend to upstream):
+> - `X-Cookie` → `Cookie`
+> - `X-Referer` → `Referer`
+> - `X-Origin` → `Origin`
+> - `X-User-Agent` → `User-Agent`
+
+### Auth / user data endpoints
+
+| Path | Method | Purpose |
+|------|--------|---------|
+| `/api/auth/register` | POST | Create user and session.
+| `/api/auth/login` | POST | Sign in and receive bearer token.
+| `/api/auth/me` | GET | Validate token and return user info.
+| `/api/auth/logout` | POST | Invalidate session.
+| `/api/user/settings` | GET/PUT | Read/write user settings (JSON) in D1.
+| `/api/user/watchlist` | GET/PUT | Read/write user watchlist (JSON) in D1.
+
+---
+
+## Direct stream resolver (optional)
+
+If some HLS sources return `403`/`401` due to CDN restrictions, you can deploy a dedicated worker resolver and set:
 
 ```env
 NEXT_PUBLIC_DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=
 ```
 
-in Cloudflare Pages: **Settings → Functions → Variables**.
+When configured, the frontend will route problematic URLs through the resolver before hitting the upstream.
 
-### Deploy quick steps
+---
 
-1. Create/deploy a resolver Worker (for example `my-resolver`).
-2. Copy Worker URL (for example `https://my-resolver.<account>.workers.dev`).
-3. Set `NEXT_PUBLIC_DIRECT_RESOLVER_URL=https://my-resolver.<account>.workers.dev?url=` in Pages variables.
-4. Re-deploy Pages project.
+## Notes for contributors
 
-`/api/hls-proxy` automatically uses this resolver as fallback when upstream returns `401/403/429`.
+- The frontend is written in TypeScript and uses React Server Components where appropriate.
+- State is managed with Zustand; localStorage persistence is handled via `src/stores`.
+- The worker uses Cloudflare Workers runtime and Cloudflare D1 for persistence.
+- Source aggregation is implemented in `src/lib/providers.ts` using built-in source resolver logic and the `/api/stream` worker endpoint.
+
+---
 
 ## License
 
-Private – Not for redistribution.
-# NexVid
+Private.
+
