@@ -952,7 +952,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       }
     };
 
-    const interval = window.setInterval(updateSubtitleText, 100);
+    const interval = window.setInterval(updateSubtitleText, 250);
     return () => window.clearInterval(interval);
   }, [activeCaption, manualCues, subDelayMs, renderedSubtitle]);
 
@@ -962,7 +962,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       const Hls = (await import('hls.js')).default;
       if (Hls.isSupported()) {
         if (hlsRef.current) hlsRef.current.destroy();
-        const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, enableWorker: false });
+        const hls = new Hls({ 
+          maxBufferLength: 60, 
+          maxMaxBufferLength: 90, 
+          enableWorker: true,
+          lowLatencyMode: false
+        });
         hlsRef.current = hls;
         hls.loadSource(proxiedUrl);
         hls.attachMedia(video);
@@ -1458,21 +1463,26 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     }
 
     const drift = Math.abs(video.currentTime - compensatedTime);
+    const isBuffering = video.readyState < 3; // HAVE_FUTURE_DATA
 
-    // Hard sync (seek) if drift is large (> 2.5s)
-    if (drift > 2.5) {
+    // Hard sync (seek) if drift is large.
+    // Use a much larger threshold if buffering (8.5s vs 3.5s) to avoid seek loops on slow connections.
+    const hardSyncThreshold = isBuffering ? 8.5 : 3.5;
+
+    if (drift > hardSyncThreshold) {
       video.currentTime = compensatedTime;
     }
-    // Soft sync (adjust playback rate) if drift is small (0.4s - 2.5s)
-    else if (!state.paused && drift > 0.4) {
+    // Soft sync (adjust playback rate) if drift is small (0.6s - threshold)
+    // Only adjust rate if not currently buffering to avoid stuttering on low-end PCs
+    else if (!state.paused && !isBuffering && drift > 0.6) {
       const isAhead = video.currentTime > compensatedTime;
       const baseRate = state.playbackRate || 1;
-      // Adjust rate by 10% to catch up or wait
-      const adjustedRate = isAhead ? Math.max(0.5, baseRate - 0.1) : Math.min(2.0, baseRate + 0.1);
+      // Adjust rate by 5% to catch up or wait (gentler than 10%)
+      const adjustedRate = isAhead ? Math.max(0.5, baseRate - 0.05) : Math.min(2.0, baseRate + 0.05);
       video.playbackRate = adjustedRate;
       setPlaybackSpeed(adjustedRate);
     } else {
-      // Very close or paused, use original rate
+      // Very close, paused, or buffering: use original rate
       video.playbackRate = state.playbackRate || 1;
       setPlaybackSpeed(state.playbackRate || 1);
     }
