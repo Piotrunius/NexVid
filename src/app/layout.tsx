@@ -4,6 +4,7 @@
 
 import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
+import ChunkLoadErrorHandler from '@/components/ChunkLoadErrorHandler';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import { SurveyModal } from '@/components/ui/SurveyModal';
@@ -129,6 +130,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Toaster />
           <SurveyModal />
           <KeyboardShortcuts />
+          <ChunkLoadErrorHandler />
         </ThemeProvider>
       </body>
     </html>
