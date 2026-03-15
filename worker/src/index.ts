@@ -3256,6 +3256,7 @@ export default {
       }
 
       const url = new URL(request.url);
+      console.log(`[Worker] Request: ${request.method} ${url.pathname}`);
 
       // Track activity for all requests except health checks and preflights
       if (!['/', '/health'].includes(url.pathname)) {
