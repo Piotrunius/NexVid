@@ -37,8 +37,9 @@ export const useBlockedContentStore = create<BlockedContentStore>((set, get) => 
   },
 
   isBlocked: (tmdbId: string, mediaType: string) => {
+    const normalizedType = mediaType === 'show' ? 'tv' : mediaType;
     return get().blockedItems.some(
-      (item) => item.tmdbId === tmdbId && item.mediaType === mediaType
+      (item) => String(item.tmdbId) === String(tmdbId) && item.mediaType === normalizedType
     );
   },
 }));

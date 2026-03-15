@@ -978,35 +978,44 @@ export default function AdminPage() {
               <h2 className="text-[15px] font-semibold text-text-primary">Blocked Content</h2>
               <p className="text-[11px] text-text-muted">Completely block access and hide from search by TMDB ID.</p>
               
-              <div className="grid gap-2">
-                <div className="flex gap-2">
-                  <input
-                    className="input flex-1"
-                    placeholder="TMDB ID"
-                    value={blockedTmdbId}
-                    onChange={(e) => setBlockedTmdbId(e.target.value)}
-                  />
-                  <select 
-                    className="input w-32"
-                    value={blockedMediaType}
-                    onChange={(e) => setBlockedMediaType(e.target.value as any)}
-                  >
-                    <option value="movie">Movie</option>
-                    <option value="tv">Show</option>
-                  </select>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">TMDB ID</label>
+                    <input
+                      className="input w-full min-h-[48px] text-[16px] text-text-primary bg-white/5 border-white/10 px-4 focus:bg-white/10"
+                      placeholder="e.g. 550"
+                      value={blockedTmdbId}
+                      onChange={(e) => setBlockedTmdbId(e.target.value)}
+                    />
+                  </div>
+                  <div className="w-full sm:w-32">
+                    <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">Type</label>
+                    <select 
+                      className="input w-full min-h-[48px] text-text-primary bg-white/5"
+                      value={blockedMediaType}
+                      onChange={(e) => setBlockedMediaType(e.target.value as any)}
+                    >
+                      <option value="movie">Movie</option>
+                      <option value="tv">Show</option>
+                    </select>
+                  </div>
                 </div>
-                <input 
-                  className="input w-full"
-                  placeholder="Reason (optional)"
-                  value={blockedReason}
-                  onChange={(e) => setBlockedReason(e.target.value)}
-                />
-                <button disabled={isSubmitting} onClick={handleBlockMedia} className="btn-accent w-full">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">Reason (optional)</label>
+                  <input 
+                    className="input w-full min-h-[48px] text-[15px] text-text-primary bg-white/5"
+                    placeholder="Why is this blocked?"
+                    value={blockedReason}
+                    onChange={(e) => setBlockedReason(e.target.value)}
+                  />
+                </div>
+                <button disabled={isSubmitting} onClick={handleBlockMedia} className="btn-accent w-full py-4 text-[15px] font-black uppercase tracking-widest shadow-[0_4px_20px_rgba(var(--accent-rgb),0.3)]">
                   Block Content
                 </button>
               </div>
 
-              <div className="max-h-64 overflow-auto space-y-2 pt-2">
+              <div className="max-h-80 overflow-auto space-y-2 pt-4 border-t border-white/5 mt-4">
                 {isLoading ? (
                   <p className="text-[13px] text-text-muted">Loading...</p>
                 ) : blockedMedia.length === 0 ? (

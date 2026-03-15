@@ -46,7 +46,7 @@ function SearchContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [localQuery, setLocalQuery] = useState(query);
-  const blockedItems = useBlockedContentStore((s) => s.blockedItems);
+  const { blockedItems, isBlocked } = useBlockedContentStore();
 
   useEffect(() => {
     if (query) doSearch(query);
@@ -59,9 +59,8 @@ function SearchContent() {
     setSearched(true);
     try {
       const { results } = await searchMedia(q.trim());
-      const filtered = results.filter(item => 
-        !blockedItems.some(b => b.tmdbId === item.tmdbId && b.mediaType === item.mediaType)
-      );
+      // Filter out blocked items
+      const filtered = results.filter(item => !isBlocked(item.tmdbId, item.mediaType));
       setResults(filtered);
     } catch (err) {
       console.error('Search failed:', err);

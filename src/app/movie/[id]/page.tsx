@@ -17,6 +17,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
 
   try {
+    const blockedRes = await loadPublicBlockedMedia();
+    const isBlocked = (blockedRes.items || []).some(
+      (item: any) => item.tmdbId === id && item.mediaType === 'movie'
+    );
+    if (isBlocked) return { title: 'Not Found' };
+  } catch (err) {}
+
+  try {
     const movie = await getMovieDetails(id);
     const releaseSuffix = movie.releaseYear ? ` (${movie.releaseYear})` : '';
     const title = `Watch - ${movie.title}${releaseSuffix} free on NexVid`;
