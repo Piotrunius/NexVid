@@ -23,6 +23,7 @@ export interface MediaBase {
 export interface Movie extends MediaBase {
   mediaType: 'movie';
   runtime: number;
+  certification?: string;
   cast?: CastMember[];
   crew?: CrewMember[];
   videos?: VideoItem[];
@@ -39,6 +40,7 @@ export interface Show extends MediaBase {
   mediaType: 'show';
   seasons: Season[];
   totalEpisodes: number;
+  certification?: string;
   cast?: CastMember[];
   crew?: CrewMember[];
   videos?: VideoItem[];
