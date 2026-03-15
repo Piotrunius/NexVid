@@ -26,7 +26,7 @@ export default function BrowsePage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const blockedItems = useBlockedContentStore((s) => s.blockedItems);
+  const { blockedItems, isBlocked } = useBlockedContentStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -82,9 +82,7 @@ export default function BrowsePage() {
           results = await discover(mediaType as 'movie' | 'tv', params);
         }
 
-        const filteredResults = results.filter(item => 
-          !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'tv' ? 'tv' : 'movie'))
-        );
+        const filteredResults = results.filter(item => !isBlocked(item.tmdbId, item.mediaType));
 
         if (results.length < 20) setHasMore(false);
         setItems((prev) => (reset ? filteredResults : [...prev, ...filteredResults]));
@@ -111,9 +109,7 @@ export default function BrowsePage() {
       const type = tab === 'movies' ? 'movie' : tab === 'shows' ? 'tv' : Math.random() > 0.5 ? 'movie' : 'tv';
       const randomPage = Math.floor(Math.random() * 5) + 1;
       const results = await getPopular(type as 'movie' | 'tv', randomPage);
-      const filteredResults = results.filter(item => 
-        !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'tv' ? 'tv' : 'movie'))
-      );
+      const filteredResults = results.filter(item => !isBlocked(item.tmdbId, item.mediaType));
       if (filteredResults.length > 0) {
         const randomItem = filteredResults[Math.floor(Math.random() * filteredResults.length)];
         router.push(`/${randomItem.mediaType === 'show' ? 'show' : 'movie'}/${randomItem.tmdbId}`);

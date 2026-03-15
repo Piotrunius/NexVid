@@ -21,7 +21,7 @@ export function RecommendationRows() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const blockedItems = useBlockedContentStore((s) => s.blockedItems);
+  const { blockedItems, isBlocked } = useBlockedContentStore();
 
   useEffect(() => {
     if (eligibleItems.length > 0) {
@@ -52,7 +52,7 @@ export function RecommendationRows() {
         const filteredRecs = recs.filter(
           (rec) => 
             !items.some((i) => String(i.tmdbId) === String(rec.tmdbId)) &&
-            !blockedItems.some((b) => String(b.tmdbId) === String(rec.tmdbId) && b.mediaType === (rec.mediaType === 'tv' ? 'tv' : 'movie'))
+            !isBlocked(rec.tmdbId, rec.mediaType)
         );
         setRecommendations(filteredRecs.slice(0, 20));
       } catch (err) {

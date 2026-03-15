@@ -37,11 +37,8 @@ function getApiUrl(): string {
     }
   }
 
-  if (typeof window !== 'undefined' && window.location.hostname.endsWith('nexvid.pages.dev')) {
-    return DEFAULT_PROD_API_URL;
-  }
-
-  return '';
+  // Fallback for production
+  return DEFAULT_PROD_API_URL;
 }
 
 export function getCloudApiUrl(): string {
@@ -210,7 +207,10 @@ export async function deleteAdminBlockedMedia(tmdbId: string, mediaType: 'movie'
 }
 
 export async function loadPublicBlockedMedia() {
-  return cloudFetch<{ items: { tmdbId: string; mediaType: string }[] }>('/public/blocked-media', { method: 'GET' });
+  return cloudFetch<{ items: { tmdbId: string; mediaType: string }[] }>('/public/blocked-media', { 
+    method: 'GET',
+    cache: 'no-store'
+  });
 }
 
 export async function createAdminAnnouncement(payload: {

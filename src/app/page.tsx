@@ -31,7 +31,7 @@ export default async function HomePage() {
 
     const blocked = blockedRes.items || [];
     const filterBlocked = (items: MediaItem[]) => 
-      items.filter(item => !blocked.some((b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'tv' ? 'tv' : 'movie')));
+      items.filter(item => !blocked.some((b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'show' ? 'tv' : 'movie')));
 
     trending = filterBlocked(t);
     popular = filterBlocked(p);

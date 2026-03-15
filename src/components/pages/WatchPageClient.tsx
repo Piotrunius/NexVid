@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import type { Caption, Episode, Movie, Season, Show, SourceResult, Stream } from '@/types';
 import { formatTime } from '@/lib/utils';
 import Head from 'next/head';
@@ -134,9 +135,18 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isBlocked, isLoaded } = useBlockedContentStore();
 
   const type = params?.type as string;
   const id = params?.id as string;
+
+  useEffect(() => {
+    if (isLoaded && isBlocked(id, type)) {
+      router.replace('/');
+      toast('This content is no longer available', 'error');
+    }
+  }, [isLoaded, isBlocked, id, type, router]);
+
   const seasonNum = searchParams?.get('s') ? parseInt(searchParams.get('s')!) : 1;
   const episodeNum = searchParams?.get('e') ? parseInt(searchParams.get('e')!) : 1;
   const resumeTimeFromUrl = searchParams?.get('t') ? parseFloat(searchParams.get('t')!) : 0;
