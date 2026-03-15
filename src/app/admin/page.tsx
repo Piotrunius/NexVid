@@ -984,7 +984,7 @@ export default function AdminPage() {
               </button>
             </section>
 
-            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5">
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
                 <div className="flex-1 rounded-[20px] bg-[var(--bg-glass-light)] p-5 backdrop-blur-sm">
                   <h2 className="text-[15px] font-semibold text-text-primary">Block content</h2>
