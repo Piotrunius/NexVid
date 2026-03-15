@@ -207,7 +207,7 @@ export function Navbar() {
     if (isButton) return content;
 
     return (
-      <Link href={item.href} className="flex flex-col items-center">
+      <Link href={item.href} className="flex flex-col items-center" aria-label={item.label}>
         {content}
       </Link>
     );
@@ -221,7 +221,7 @@ export function Navbar() {
           <div className="w-full max-w-xl mx-4 animate-slide-down" onClick={(e) => e.stopPropagation()}>
             <form onSubmit={handleSearch}>
               <div className="relative">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30" aria-hidden="true">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
                 <input
@@ -265,7 +265,7 @@ export function Navbar() {
               setTimeout(() => searchRef.current?.focus(), 100);
             }}
             className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
-            title="Search (press /)"
+            aria-label="Search (press /)"
             onMouseEnter={() => setHoveredItem('search')}
             onMouseLeave={() => setHoveredItem(null)}
           >
@@ -277,7 +277,7 @@ export function Navbar() {
               )}>
                 Search
               </span>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
             </div>
@@ -288,7 +288,7 @@ export function Navbar() {
             <button
               onClick={() => { setIsBellOpen((v) => !v); setIsProfileOpen(false); }}
               className="relative flex h-12 w-12 items-center justify-center rounded-[16px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500"
-              title="Notifications"
+              aria-label="Notifications"
               onMouseEnter={() => setHoveredItem('notifications')}
               onMouseLeave={() => setHoveredItem(null)}
             >
@@ -300,7 +300,7 @@ export function Navbar() {
                 )}>
                   Notifications
                 </span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                 </svg>
                 {totalNotifCount > 0 && (
@@ -397,7 +397,7 @@ export function Navbar() {
           <Link
             href="/settings"
             className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 sm:h-12 sm:w-12 sm:rounded-[16px]"
-            title="Settings"
+            aria-label="Settings"
             onMouseEnter={() => setHoveredItem('settings')}
             onMouseLeave={() => setHoveredItem(null)}
           >
@@ -409,7 +409,7 @@ export function Navbar() {
               )}>
                 Settings
               </span>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
@@ -425,7 +425,7 @@ export function Navbar() {
                 <Link
                   href="/admin"
                   className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 sm:h-12 sm:w-12"
-                  title="Admin"
+                  aria-label="Admin"
                   onMouseEnter={() => setHoveredItem('admin')}
                   onMouseLeave={() => setHoveredItem(null)}
                 >
@@ -437,7 +437,7 @@ export function Navbar() {
                     )}>
                       Admin
                     </span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
                   </div>
@@ -447,7 +447,7 @@ export function Navbar() {
               <Link
                 href="/contact"
                 className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 sm:h-12 sm:w-12"
-                title="Contact"
+                aria-label="Contact"
                 onMouseEnter={() => setHoveredItem('contact')}
                 onMouseLeave={() => setHoveredItem(null)}
               >
@@ -459,7 +459,7 @@ export function Navbar() {
                   )}>
                     Contact
                   </span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
                   {hasUnreadFeedback && (
@@ -474,7 +474,7 @@ export function Navbar() {
                   "flex h-10 w-10 items-center justify-center rounded-[14px] transition-all duration-500 sm:h-12 sm:w-12",
                   showProfilePartyInput ? "bg-accent/20 text-accent" : "text-white/40 hover:text-white/80 hover:bg-white/[0.08]"
                 )}
-                title="Watch Together"
+                aria-label="Watch Together"
                 onMouseEnter={() => setHoveredItem('watch')}
                 onMouseLeave={() => setHoveredItem(null)}
               >
@@ -486,7 +486,7 @@ export function Navbar() {
                   )}>
                     Watch Together
                   </span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                     <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5z" />
                     <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11z" />
                     <path d="M2 20v-1c0-2.2 2.69-4 6-4" /><path d="M22 20v-1c0-2.2-2.69-4-6-4" />
@@ -531,9 +531,9 @@ export function Navbar() {
             <button
               onClick={() => logout()}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all duration-500 hover:scale-110 sm:h-11 sm:w-11"
-              title="Log Out"
+              aria-label="Log Out"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
               </svg>
             </button>
