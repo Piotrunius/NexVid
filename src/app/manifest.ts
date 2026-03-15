@@ -13,18 +13,20 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     background_color: '#000000',
     theme_color: '#000000',
+    orientation: 'portrait',
+    categories: ['entertainment', 'movies', 'tv'],
     icons: [
-      {
-        src: '/favicon.ico',
-        sizes: '16x16 32x32 48x48',
-        type: 'image/x-icon',
-      },
       {
         src: '/favicon.svg',
         sizes: 'any',
         type: 'image/svg+xml',
       },
+      {
+        src: '/favicon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+        purpose: 'maskable',
+      },
     ],
-    id: SITE_URL,
   };
 }
