@@ -581,14 +581,14 @@ export default function WatchPage() {
 
       {showResumeOverlay && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
-          <div className="text-center max-w-lg px-8 animate-scale-in">
+          <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 animate-scale-in"> {/* Adjusted width and padding */}
             <div className="mb-8 flex justify-center">
               <div className="h-20 w-20 rounded-3xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_40px_rgba(var(--accent-rgb),0.3)]">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
               </div>
             </div>
-            <h2 className="text-[32px] font-black text-white tracking-tighter mb-3 uppercase italic">You're almost done</h2>
-            <p className="text-white/50 text-[14px] font-medium leading-relaxed mb-10 px-4">
+            <h2 className="text-2xl font-black text-white tracking-tighter mb-2 uppercase italic">You're almost done</h2> {/* Adjusted font size and margin */}
+            <p className="text-white/50 text-sm font-medium leading-relaxed mb-6 px-4"> {/* Adjusted font size and margin */}
               You've watched <span className="text-accent font-bold">{Math.round(resumeData?.percentage || 0)}%</span> of this {type === 'movie' ? 'movie' : 'episode'}. Would you like to resume, restart, or skip to the next one?
             </p>
 
