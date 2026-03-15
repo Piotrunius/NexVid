@@ -15,14 +15,14 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export default function MoviePage({ 
-  initialMovie, 
-  initialRecommendations = [], 
-  initialSimilar = [] 
-}: { 
-  initialMovie?: Movie | null, 
-  initialRecommendations?: MediaItem[], 
-  initialSimilar?: MediaItem[] 
+export default function MoviePage({
+  initialMovie,
+  initialRecommendations = [],
+  initialSimilar = []
+}: {
+  initialMovie?: Movie | null,
+  initialRecommendations?: MediaItem[],
+  initialSimilar?: MediaItem[]
 }) {
   const params = useParams();
   const id = params?.id as string;
@@ -144,6 +144,17 @@ export default function MoviePage({
             priority
           />
         )}
+        {trailer && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none motion-reduce:opacity-0">
+            <iframe
+              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailer.key}&modestbranding=1&rel=0`}
+              className="absolute inset-0 h-full w-full object-cover"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
+            <div className="absolute inset-0 bg-black/40" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
         <div className="absolute inset-0 bg-black/20" />
       </div>
@@ -182,6 +193,12 @@ export default function MoviePage({
 
             <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] text-text-secondary">
               <span>{movie.releaseYear}</span>
+              {movie.certification && (
+                <>
+                  <span className="text-text-muted">&bull;</span>
+                  <span className="rounded-[8px] bg-white/10 px-2.5 py-0.5 text-[11px] font-medium">{movie.certification}</span>
+                </>
+              )}
               {movie.runtime > 0 && (
                 <>
                   <span className="text-text-muted">&bull;</span>

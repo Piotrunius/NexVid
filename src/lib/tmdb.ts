@@ -25,6 +25,23 @@ async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): 
 
 // ---- Transformers ----
 
+function getCertificationFromReleaseDates(data: any): string | undefined {
+  const results = data.release_dates?.results;
+  if (!Array.isArray(results) || results.length === 0) return undefined;
+
+  const entry = results.find((r: any) => r.iso_3166_1 === 'US') || results[0];
+  const rating = entry?.release_dates?.find((d: any) => d.certification)?.certification;
+  return rating || undefined;
+}
+
+function getRatingFromContentRatings(data: any): string | undefined {
+  const results = data.content_ratings?.results;
+  if (!Array.isArray(results) || results.length === 0) return undefined;
+
+  const entry = results.find((r: any) => r.iso_3166_1 === 'US') || results[0];
+  return entry?.rating;
+}
+
 function transformMovie(data: any): Movie {
   return {
     id: data.id,
@@ -39,6 +56,7 @@ function transformMovie(data: any): Movie {
     genres: (data.genres || data.genre_ids?.map((id: number) => ({ id, name: '' })) || []),
     mediaType: 'movie',
     runtime: data.runtime || 0,
+    certification: getCertificationFromReleaseDates(data),
     cast: data.credits?.cast?.slice(0, 20).map(transformCast),
     crew: data.credits?.crew?.filter((c: any) => ['Director', 'Producer', 'Writer', 'Screenplay'].includes(c.job)).map(transformCrew),
     videos: data.videos?.results?.filter((v: any) => v.site === 'YouTube').map(transformVideo),
@@ -67,6 +85,7 @@ function transformShow(data: any): Show {
     mediaType: 'show',
     seasons: (data.seasons || []).map(transformSeason),
     totalEpisodes: data.number_of_episodes || 0,
+    certification: getRatingFromContentRatings(data),
     cast: data.credits?.cast?.slice(0, 20).map(transformCast),
     crew: data.credits?.crew?.filter((c: any) => ['Director', 'Producer', 'Writer', 'Screenplay', 'Creator'].includes(c.job)).map(transformCrew),
     videos: data.videos?.results?.filter((v: any) => v.site === 'YouTube').map(transformVideo),
@@ -191,12 +210,12 @@ export async function getTopRated(type: 'movie' | 'tv', page = 1): Promise<Media
 }
 
 export async function getMovieDetails(id: string): Promise<Movie> {
-  const data = await tmdbFetch<any>(`/movie/${id}`, { append_to_response: 'external_ids,credits,similar,recommendations,videos' });
+  const data = await tmdbFetch<any>(`/movie/${id}`, { append_to_response: 'external_ids,credits,similar,recommendations,videos,release_dates' });
   return transformMovie(data);
 }
 
 export async function getShowDetails(id: string): Promise<Show> {
-  const data = await tmdbFetch<any>(`/tv/${id}`, { append_to_response: 'external_ids,credits,similar,recommendations,videos' });
+  const data = await tmdbFetch<any>(`/tv/${id}`, { append_to_response: 'external_ids,credits,similar,recommendations,videos,content_ratings' });
   return transformShow(data);
 }
 
