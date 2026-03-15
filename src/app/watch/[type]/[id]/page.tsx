@@ -581,7 +581,7 @@ export default function WatchPage() {
 
       {showResumeOverlay && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
-          <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 animate-scale-in"> {/* Adjusted width and padding */}
+          <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 max-h-[85vh] overflow-y-auto animate-scale-in"> {/* Adjusted for scrollability and height */}
             <div className="mb-8 flex justify-center">
               <div className="h-20 w-20 rounded-3xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_40px_rgba(var(--accent-rgb),0.3)]">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
