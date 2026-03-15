@@ -353,7 +353,7 @@ export default function WatchPage() {
       const isSameId = String(item?.tmdbId) === String(id);
       const isSameEpisode = type === 'movie' || (prog?.season === seasonNum && prog?.episode === episodeNum);
 
-      if (isSameType && isSameId && isSameEpisode && prog?.percentage && prog.percentage > 95) {
+      if (isSameType && isSameId && isSameEpisode && prog?.percentage && prog.percentage > 90) {
         setResumeData({ percentage: prog.percentage, timestamp: prog.timestamp || 0 });
         setShowResumeOverlay(true);
         loadingRef.current = false;
