@@ -581,28 +581,28 @@ export default function WatchPage() {
 
       {showResumeOverlay && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
-          <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 max-h-[85vh] overflow-y-auto animate-scale-in"> {/* Adjusted for scrollability and height */}
-            <div className="mb-8 flex justify-center">
-              <div className="h-20 w-20 rounded-3xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_40px_rgba(var(--accent-rgb),0.3)]">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 animate-scale-in">
+            <div className="mb-4 flex justify-center">
+              <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
               </div>
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tighter mb-2 uppercase italic">You're almost done</h2> {/* Adjusted font size and margin */}
-            <p className="text-white/50 text-sm font-medium leading-relaxed mb-6 px-4"> {/* Adjusted font size and margin */}
-              You've watched <span className="text-accent font-bold">{Math.round(resumeData?.percentage || 0)}%</span> of this {type === 'movie' ? 'movie' : 'episode'}. Would you like to resume, restart, or skip to the next one?
+            <h2 className="text-xl font-black text-white tracking-tighter mb-1 uppercase italic">You're almost done</h2>
+            <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
+              You've watched <span className="text-accent font-bold">{Math.round(resumeData?.percentage || 0)}%</span> of this {type === 'movie' ? 'movie' : 'episode'}.
             </p>
 
-            <div className="flex flex-col gap-3 w-full max-w-[400px] mx-auto">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2 w-full max-w-[320px] mx-auto">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleResumeChoice('watch')}
-                  className="btn-accent !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full"
+                  className="btn-accent !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full"
                 >
                   Watch ({Math.round(resumeData?.percentage || 0)}%)
                 </button>
                 <button
                   onClick={() => handleResumeChoice('rewatch')}
-                  className="btn-glass !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full"
+                  className="btn-glass !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full"
                 >
                   Rewatch
                 </button>
@@ -611,7 +611,7 @@ export default function WatchPage() {
               {type === 'show' && (
                 <button
                   onClick={() => handleResumeChoice('next')}
-                  className="btn-glass !bg-accent/10 !border-accent/20 !text-accent !py-4 !rounded-2xl justify-center text-[12px] font-black uppercase tracking-widest w-full hover:!bg-accent/20"
+                  className="btn-glass !bg-accent/10 !border-accent/20 !text-accent !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full hover:!bg-accent/20"
                 >
                   Next Episode
                 </button>
@@ -620,7 +620,7 @@ export default function WatchPage() {
 
             <button
               onClick={() => { setShowResumeOverlay(false); router.back(); }}
-              className="mt-8 text-[11px] font-black text-white/30 uppercase tracking-[0.3em] hover:text-white/60 transition-colors"
+              className="mt-4 text-[10px] font-black text-white/30 uppercase tracking-[0.3em] hover:text-white/60 transition-colors"
             >
               Go Back
             </button>
