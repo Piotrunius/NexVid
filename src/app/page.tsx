@@ -11,6 +11,7 @@ import type { MediaItem } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
 
+export const runtime = 'edge';
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function HomePage() {
