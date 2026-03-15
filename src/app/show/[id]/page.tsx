@@ -1,5 +1,5 @@
 import ShowPageClient from '@/components/pages/ShowPageClient';
-import { getShowDetails } from '@/lib/tmdb';
+import { getRecommendations, getShowDetails, getSimilar } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { Metadata } from 'next';
 
@@ -72,6 +72,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default function ShowPage() {
-  return <ShowPageClient />;
+export default async function ShowPage({ params }: PageProps) {
+  const { id } = await params;
+
+  try {
+    const [show, recommendations, similar] = await Promise.all([
+      getShowDetails(id),
+      getRecommendations('tv', id),
+      getSimilar('tv', id),
+    ]);
+
+    return (
+      <ShowPageClient 
+        initialShow={show} 
+        initialRecommendations={recommendations} 
+        initialSimilar={similar} 
+      />
+    );
+  } catch (err) {
+    console.error('Failed to fetch show details:', err);
+    return <ShowPageClient />;
+  }
 }
