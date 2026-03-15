@@ -29,7 +29,19 @@ export default {
       },
     });
 
-    const upstream = await fetch(upstreamRequest);
+    let upstream = await fetch(upstreamRequest);
+
+    // Special handling for subtitles - automatic retry if failed or empty
+    const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(target) || 
+                       target.includes('wyzie.ru') ||
+                       target.includes('wyzie.io');
+    if (isSubtitle && (!upstream.ok || upstream.status === 204)) {
+      upstream = await fetch(new Request(target, {
+        method: 'GET',
+        headers: upstreamRequest.headers,
+      }));
+    }
+
     const headers = new Headers(upstream.headers);
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
