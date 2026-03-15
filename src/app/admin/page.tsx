@@ -16,6 +16,9 @@ import {
   loadAdminAnnouncements,
   loadAdminAuditLogs,
   loadAdminBans,
+  loadAdminBlockedMedia,
+  addAdminBlockedMedia,
+  deleteAdminBlockedMedia,
   loadAdminFeedbackMessages,
   loadAdminFeedbackThreads,
   loadAdminGrantList,
@@ -118,6 +121,13 @@ type AdminAuditLogItem = {
   createdAt: string;
 };
 
+type BlockedMediaItem = {
+  tmdbId: string;
+  mediaType: string;
+  reason: string | null;
+  createdAt: string;
+};
+
 const ANNOUNCEMENT_MAX_CHARS = 260;
 
 type FebboxTokenItem = {
@@ -149,6 +159,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState({ users: 0, activeSessions: 0, banned: 0, activeAnnouncements: 0, activeUsers: 0, activeGuests: 0 });
   const [bans, setBans] = useState<BannedItem[]>([]);
   const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
+  const [blockedMedia, setBlockedMedia] = useState<BlockedMediaItem[]>([]);
   const [accountLimits, setAccountLimits] = useState<AccountLimitItem[]>([]);
   const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -174,6 +185,9 @@ export default function AdminPage() {
   const [limitType, setLimitType] = useState<'username' | 'ip'>('ip');
   const [limitValue, setLimitValue] = useState('');
   const [limitAmount, setLimitAmount] = useState(1);
+  const [blockedTmdbId, setBlockedTmdbId] = useState('');
+  const [blockedMediaType, setBlockedMediaType] = useState<'movie' | 'tv'>('movie');
+  const [blockedReason, setBlockedReason] = useState('');
   const [lookupType, setLookupType] = useState<'username' | 'ip'>('username');
   const [lookupValue, setLookupValue] = useState('');
   const [lookupResult, setLookupResult] = useState<AccountLookupResult | null>(null);
@@ -283,6 +297,7 @@ export default function AdminPage() {
         promises.push(loadAdminAnnouncements());
         promises.push(loadAdminAccountLimits());
         promises.push(loadAdminAuditLogs());
+        promises.push(loadAdminBlockedMedia());
       }
 
       if (canManageAdmins) {
@@ -300,10 +315,11 @@ export default function AdminPage() {
         setAnnouncements(results[3].items || []);
         setAccountLimits(results[4].items || []);
         setAuditLogs(results[5].items || []);
+        setBlockedMedia(results[6].items || []);
       }
 
       if (canManageAdmins) {
-        const grantIndex = canManageModeration ? 6 : 2;
+        const grantIndex = canManageModeration ? 7 : 2;
         if (results[grantIndex]) {
           setAdminGrants(results[grantIndex].items || []);
         }
@@ -588,6 +604,40 @@ export default function AdminPage() {
       toast(item.isActive ? 'Announcement hidden' : 'Announcement activated', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to update announcement', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBlockMedia = async () => {
+    const tmdbId = blockedTmdbId.trim();
+    if (!tmdbId) {
+      toast('Enter TMDB ID', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addAdminBlockedMedia(tmdbId, blockedMediaType, blockedReason.trim());
+      setBlockedTmdbId('');
+      setBlockedReason('');
+      await loadAll();
+      toast('Content blocked successfully', 'success');
+    } catch (error: any) {
+      toast(error?.message || 'Failed to block content', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUnblockMedia = async (tmdbId: string, mediaType: 'movie' | 'tv') => {
+    setIsSubmitting(true);
+    try {
+      await deleteAdminBlockedMedia(tmdbId, mediaType as any);
+      await loadAll();
+      toast('Content unblocked successfully', 'success');
+    } catch (error: any) {
+      toast(error?.message || 'Failed to unblock content', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -922,6 +972,67 @@ export default function AdminPage() {
               <button disabled={isSubmitting} onClick={handleCreateAnnouncement} className="btn-accent w-full">
                 Publish announcement
               </button>
+            </section>
+
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+              <h2 className="text-[15px] font-semibold text-text-primary">Blocked Content</h2>
+              <p className="text-[11px] text-text-muted">Completely block access and hide from search by TMDB ID.</p>
+              
+              <div className="grid gap-2">
+                <div className="flex gap-2">
+                  <input
+                    className="input flex-1"
+                    placeholder="TMDB ID"
+                    value={blockedTmdbId}
+                    onChange={(e) => setBlockedTmdbId(e.target.value)}
+                  />
+                  <select 
+                    className="input w-32"
+                    value={blockedMediaType}
+                    onChange={(e) => setBlockedMediaType(e.target.value as any)}
+                  >
+                    <option value="movie">Movie</option>
+                    <option value="tv">Show</option>
+                  </select>
+                </div>
+                <input 
+                  className="input w-full"
+                  placeholder="Reason (optional)"
+                  value={blockedReason}
+                  onChange={(e) => setBlockedReason(e.target.value)}
+                />
+                <button disabled={isSubmitting} onClick={handleBlockMedia} className="btn-accent w-full">
+                  Block Content
+                </button>
+              </div>
+
+              <div className="max-h-64 overflow-auto space-y-2 pt-2">
+                {isLoading ? (
+                  <p className="text-[13px] text-text-muted">Loading...</p>
+                ) : blockedMedia.length === 0 ? (
+                  <p className="text-[13px] text-text-muted">No blocked content.</p>
+                ) : (
+                  blockedMedia.map((item) => (
+                    <div key={`${item.mediaType}:${item.tmdbId}`} className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 flex items-center justify-between gap-2 backdrop-blur-sm">
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-semibold text-text-primary">
+                          <span className="uppercase text-[10px] text-accent font-bold mr-1">{item.mediaType}</span>
+                          ID: {item.tmdbId}
+                        </p>
+                        <p className="text-[11px] text-text-muted truncate">{item.reason || 'No reason provided'}</p>
+                        <p className="text-[10px] text-text-muted/60 mt-0.5">{new Date(item.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <button 
+                        className="btn-glass text-red-400 text-[11px]" 
+                        disabled={isSubmitting}
+                        onClick={() => handleUnblockMedia(item.tmdbId, item.mediaType as any)}
+                      >
+                        Unblock
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </section>
           </>
         )}

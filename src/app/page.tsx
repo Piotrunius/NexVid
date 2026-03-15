@@ -5,6 +5,7 @@
 import { MediaRow } from '@/components/media/MediaCard';
 import { HomePageClient } from '@/components/pages/HomePageClient';
 import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
+import { loadPublicBlockedMedia } from '@/lib/cloudSync';
 import { tmdbImage } from '@/lib/utils';
 import type { MediaItem } from '@/types';
 import Image from 'next/image';
@@ -20,18 +21,25 @@ export default async function HomePage() {
   let featured: MediaItem | null = null;
 
   try {
-    const [t, p, m, s] = await Promise.all([
+    const [t, p, m, s, blockedRes] = await Promise.all([
       getTrending('all', 'week'),
       getPopular('movie'),
       getTopRated('movie'),
       getTopRated('tv'),
+      loadPublicBlockedMedia().catch(() => ({ items: [] })),
     ]);
-    trending = t;
-    popular = p;
-    topMovies = m;
-    topShows = s;
-    if (t.length > 0) {
-      featured = t[Math.floor(Math.random() * Math.min(5, t.length))];
+
+    const blocked = blockedRes.items || [];
+    const filterBlocked = (items: MediaItem[]) => 
+      items.filter(item => !blocked.some((b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'tv' ? 'tv' : 'movie')));
+
+    trending = filterBlocked(t);
+    popular = filterBlocked(p);
+    topMovies = filterBlocked(m);
+    topShows = filterBlocked(s);
+    
+    if (trending.length > 0) {
+      featured = trending[Math.floor(Math.random() * Math.min(5, trending.length))];
     }
   } catch (err) {
     console.error('Failed to load homepage data:', err);

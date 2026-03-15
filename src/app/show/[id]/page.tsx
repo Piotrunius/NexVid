@@ -1,6 +1,8 @@
 import ShowPageClient from '@/components/pages/ShowPageClient';
 import { getRecommendations, getShowDetails, getSimilar } from '@/lib/tmdb';
+import { loadPublicBlockedMedia } from '@/lib/cloudSync';
 import { tmdbImage } from '@/lib/utils';
+import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 
 export const runtime = 'edge';
@@ -74,6 +76,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ShowPage({ params }: PageProps) {
   const { id } = await params;
+
+  // Blocked content check
+  try {
+    const blockedRes = await loadPublicBlockedMedia();
+    const isBlocked = (blockedRes.items || []).some(
+      (item: any) => item.tmdbId === id && item.mediaType === 'tv'
+    );
+    if (isBlocked) return notFound();
+  } catch (err) {
+    console.error('Failed to check blocked status:', err);
+  }
 
   try {
     const [show, recommendations, similar] = await Promise.all([

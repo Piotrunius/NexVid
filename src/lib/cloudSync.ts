@@ -194,6 +194,25 @@ export async function loadAdminAnnouncements() {
   return cloudFetch<{ items: any[] }>('/admin/announcements', { method: 'GET' });
 }
 
+export async function loadAdminBlockedMedia() {
+  return cloudFetch<{ items: { tmdbId: string; mediaType: string; reason: string | null; createdAt: string }[] }>('/admin/blocked-media', { method: 'GET' });
+}
+
+export async function addAdminBlockedMedia(tmdbId: string, mediaType: 'movie' | 'tv', reason?: string) {
+  return cloudFetch('/admin/blocked-media', {
+    method: 'POST',
+    body: JSON.stringify({ tmdbId, mediaType, reason }),
+  });
+}
+
+export async function deleteAdminBlockedMedia(tmdbId: string, mediaType: 'movie' | 'tv') {
+  return cloudFetch(`/admin/blocked-media?tmdbId=${encodeURIComponent(tmdbId)}&mediaType=${encodeURIComponent(mediaType)}`, { method: 'DELETE' });
+}
+
+export async function loadPublicBlockedMedia() {
+  return cloudFetch<{ items: { tmdbId: string; mediaType: string }[] }>('/public/blocked-media', { method: 'GET' });
+}
+
 export async function createAdminAnnouncement(payload: {
   message: string;
   type: 'info' | 'warning' | 'update' | 'success';

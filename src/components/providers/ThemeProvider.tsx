@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/Toaster';
 import { useAuthStore } from '@/stores/auth';
 import { DEFAULT_SETTINGS, useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
@@ -17,6 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme, accentColor, customAccentHex, glassEffect } = useSettingsStore((s) => s.settings);
   const setAllSettings = useSettingsStore((s) => s.setAllSettings);
   const setItems = useWatchlistStore((s) => s.setItems);
+  const fetchBlockedItems = useBlockedContentStore((s) => s.fetchBlockedItems);
   const { user, isLoggedIn, hydrateBackendSession } = useAuthStore();
   const pathname = usePathname();
   const lastToastAtRef = useRef(0);
@@ -77,6 +79,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.remove('dark');
     }
   }, [theme, accentColor, customAccentHex, glassEffect]);
+
+  useEffect(() => {
+    fetchBlockedItems();
+  }, [fetchBlockedItems]);
 
   useEffect(() => {
     if (!hasCloudBackend()) return;

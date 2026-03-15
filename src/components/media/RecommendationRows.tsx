@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { MediaRow, MediaRowSkeleton } from './MediaCard';
 import { getRecommendations } from '@/lib/tmdb';
 import { useWatchlistStore } from '@/stores/watchlist';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import { cn } from '@/lib/utils';
 import type { MediaItem } from '@/types';
 
@@ -20,6 +21,7 @@ export function RecommendationRows() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const blockedItems = useBlockedContentStore((s) => s.blockedItems);
 
   useEffect(() => {
     if (eligibleItems.length > 0) {
@@ -48,7 +50,9 @@ export function RecommendationRows() {
         const apiType = selectedItem.mediaType === 'show' ? 'tv' : 'movie';
         const recs = await getRecommendations(apiType, selectedItem.tmdbId);
         const filteredRecs = recs.filter(
-          (rec) => !items.some((i) => String(i.tmdbId) === String(rec.tmdbId))
+          (rec) => 
+            !items.some((i) => String(i.tmdbId) === String(rec.tmdbId)) &&
+            !blockedItems.some((b) => String(b.tmdbId) === String(rec.tmdbId) && b.mediaType === (rec.mediaType === 'tv' ? 'tv' : 'movie'))
         );
         setRecommendations(filteredRecs.slice(0, 20));
       } catch (err) {
@@ -60,7 +64,7 @@ export function RecommendationRows() {
     }
 
     loadRecommendations();
-  }, [selectedItem, items]);
+  }, [selectedItem, items, blockedItems]);
 
   if (eligibleItems.length === 0) return null;
 
