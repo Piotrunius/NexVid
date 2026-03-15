@@ -64,7 +64,7 @@ export default function HomePage() {
       const scrollLeft = target.scrollLeft;
       const maxScroll = target.scrollWidth - target.clientWidth;
       const progress = scrollLeft / maxScroll;
-      
+
       const container = target.closest('.media-row-container');
       if (container) {
         const bg = container.querySelector('.media-row-bg') as HTMLDivElement;
@@ -156,7 +156,7 @@ export default function HomePage() {
       )}
 
       {/* ── Content Rows ── */}
-      <div className="relative z-10 -mt-32 space-y-4 pb-24 sm:-mt-48">
+      <div className="relative z-10 -mt-32 space-y-4 pb-24 sm:-mt-36">
         {isLoading ? (
           <div className="space-y-4 px-6 sm:px-8">
             <MediaRowSkeleton title="Trending Now" />
