@@ -6,16 +6,6 @@ export const metadata = { title: 'Credits - NexVid' };
 
 const SECTIONS = [
   {
-    title: 'Project Lead',
-    items: [
-      {
-        name: 'Piotrunius',
-        url: 'https://piotrunius.github.io',
-        desc: 'Creator and maintainer of NexVid.',
-      }
-    ]
-  },
-  {
     title: 'Data & Content',
     items: [
       {

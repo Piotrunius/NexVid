@@ -21,10 +21,6 @@ export default function DmcaPage() {
         </section>
         <section className="mt-8">
           <p className="text-[13px] text-text-muted">
-            Created by{' '}
-            <a href="https://piotrunius.github.io" target="_blank" rel="noopener noreferrer" className="text-accent/60 hover:text-accent transition-colors duration-300">
-              Piotrunius
-            </a>{' '}
             · © {new Date().getFullYear()} NexVid · All rights reserved.
           </p>
         </section>

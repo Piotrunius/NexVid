@@ -87,8 +87,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-[15px] font-semibold text-text-primary mb-2">9. Intellectual Property and License</h2>
-          <p>
-            Created by Piotrunius · © {new Date().getFullYear()} NexVid · All rights reserved.
+          <p>· © {new Date().getFullYear()} NexVid · All rights reserved.
             All media content, metadata, and images are the property of their respective owners.
             TMDB branding is used under their API terms of use.
           </p>
