@@ -1,35 +1,35 @@
 'use client';
 
-import { toast } from '@/components/ui/Toaster';
-import { cn } from '@/lib/utils';
-import {
-    banAdminTarget,
-    clearAllActiveSessions,
-    cloudFetch,
-    createAdminAnnouncement,
-    deleteAdminAccountLimit,
-    deleteAdminAnnouncement,
-    deleteAdminFeedbackThread,
-    deleteAdminUserByUsername,
-    grantAdminPermission,
-    loadAdminAccountLimits,
-    loadAdminAnnouncements,
-    loadAdminAuditLogs,
-    loadAdminBans,
-    loadAdminFeedbackMessages,
-    loadAdminFeedbackThreads,
-    loadAdminGrantList,
-    loadAdminOverview,
-    loadAdminUsers,
-    lookupAdminAccounts,
-    replyAdminFeedbackThread,
-    resetUserPassword,
-    revokeAdminPermission,
-    setAdminAccountLimit,
-    unbanAdminTarget,
-    updateAdminAnnouncement,
-} from '@/lib/cloudSync';
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
+import { toast } from '@/components/ui/Toaster';
+import {
+  banAdminTarget,
+  clearAllActiveSessions,
+  cloudFetch,
+  createAdminAnnouncement,
+  deleteAdminAccountLimit,
+  deleteAdminAnnouncement,
+  deleteAdminFeedbackThread,
+  deleteAdminUserByUsername,
+  grantAdminPermission,
+  loadAdminAccountLimits,
+  loadAdminAnnouncements,
+  loadAdminAuditLogs,
+  loadAdminBans,
+  loadAdminFeedbackMessages,
+  loadAdminFeedbackThreads,
+  loadAdminGrantList,
+  loadAdminOverview,
+  loadAdminUsers,
+  lookupAdminAccounts,
+  replyAdminFeedbackThread,
+  resetUserPassword,
+  revokeAdminPermission,
+  setAdminAccountLimit,
+  unbanAdminTarget,
+  updateAdminAnnouncement,
+} from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -133,7 +133,7 @@ type FebboxTokenItem = {
 
 export default function AdminPage() {
   const { user, isLoggedIn, logout } = useAuthStore();
-  
+
   const userRole = user?.role || (user?.isAdmin ? 'admin' : null);
   const isModerator = userRole === 'moderator';
   const isAdminRole = userRole === 'admin';
@@ -209,7 +209,7 @@ export default function AdminPage() {
   );
 
   const sortedFeedbackThreads = useMemo(() => {
-    const filtered = feedbackThreads.filter(t => 
+    const filtered = feedbackThreads.filter(t =>
       feedbackInboxTab === 'active' ? t.status !== 'closed' : t.status === 'closed'
     );
     return [...filtered].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
@@ -226,14 +226,14 @@ export default function AdminPage() {
   }, [announcementLength, message]);
 
   const filteredAndSortedUsers = useMemo(() => {
-    const filtered = adminUsers.filter(u => 
+    const filtered = adminUsers.filter(u =>
       u.username.toLowerCase().includes(userSearchQuery.toLowerCase())
     );
 
     return filtered.sort((a, b) => {
       const valA = a[userSortKey] || '';
       const valB = b[userSortKey] || '';
-      
+
       if (userSortOrder === 'asc') {
         return valA < valB ? -1 : valA > valB ? 1 : 0;
       } else {
@@ -284,13 +284,13 @@ export default function AdminPage() {
         promises.push(loadAdminAccountLimits());
         promises.push(loadAdminAuditLogs());
       }
-      
+
       if (canManageAdmins) {
         promises.push(loadAdminGrantList());
       }
 
       const results = await Promise.all(promises);
-      
+
       setAdminUsers(results[0].items || []);
       const nextFeedbackThreads = results[1].items || [];
       setFeedbackThreads(nextFeedbackThreads);
@@ -663,7 +663,7 @@ export default function AdminPage() {
           message: initialMessage,
         }),
       });
-      
+
       const threadsRes = await loadAdminFeedbackThreads();
       setFeedbackThreads(threadsRes.items || []);
       setFeedbackInboxTab('active');
@@ -731,7 +731,6 @@ export default function AdminPage() {
         <div>
           <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Admin Panel</h1>
           <p className="mt-1 text-[13px] text-text-muted">Moderation and management as <span className="text-accent font-semibold">{userRole}</span>.</p>
-          <p className="mt-1 text-[11px] text-accent">UI rev: 2026-03-09-roles-v1</p>
         </div>
         {canManageSystem && (
           <button disabled={isSubmitting} onClick={handleClearAllSessions} className="btn-glass text-red-400">
@@ -742,15 +741,15 @@ export default function AdminPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Users" value={stats.users} />
-        <StatCard 
-          label="Active" 
-          value={stats.activeUsers + stats.activeGuests} 
-          isAccent 
+        <StatCard
+          label="Active"
+          value={stats.activeUsers + stats.activeGuests}
+          isAccent
           subValue={`${stats.activeUsers} Users / ${stats.activeGuests} Guests`}
         />
-        <StatCard 
-          label="Sessions" 
-          value={stats.activeSessions} 
+        <StatCard
+          label="Sessions"
+          value={stats.activeSessions}
         />
         <StatCard label="Banned" value={stats.banned} />
       </div>
@@ -842,7 +841,7 @@ export default function AdminPage() {
                                 <p className="text-[13px] font-medium text-text-primary">{account.username}</p>
                                 <p className="text-[10px] font-mono text-white/30">{account.id.slice(0, 8)}...</p>
                               </div>
-                              <button 
+                              <button
                                 onClick={() => handleCreateAdminChat(account.id, account.username)}
                                 className="btn-accent px-3 py-1 rounded-[6px] text-[10px]"
                               >
@@ -988,8 +987,8 @@ export default function AdminPage() {
                         <td className="px-3 py-2 text-text-primary">{item.username}</td>
                         <td className="px-3 py-2">
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                            item.role === 'owner' ? 'bg-amber-500/20 text-amber-500' : 
-                            item.role === 'admin' ? 'bg-red-500/20 text-red-500' : 
+                            item.role === 'owner' ? 'bg-amber-500/20 text-amber-500' :
+                            item.role === 'admin' ? 'bg-red-500/20 text-red-500' :
                             'bg-emerald-500/20 text-emerald-500'
                           }`}>
                             {item.role}
@@ -1045,7 +1044,7 @@ export default function AdminPage() {
                 <button onClick={() => setUserSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white">×</button>
               )}
             </div>
-            <select 
+            <select
               className="input-minimal py-1.5 px-3 text-[12px] w-auto bg-transparent border-none text-white/70 font-bold cursor-pointer hover:text-white transition-colors"
               value={`${userSortKey}-${userSortOrder}`}
               onChange={(e) => {
@@ -1096,7 +1095,7 @@ export default function AdminPage() {
                     <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.createdAt).toLocaleString()}</td>
                     <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.lastActiveAt).toLocaleString()}</td>
                     <td className="px-3 py-3 text-right">
-                      <button 
+                      <button
                         onClick={() => handleCreateAdminChat(item.id, item.username)}
                         className="btn-glass text-[10px] py-1.5 px-3 bg-white/5 border-white/5 hover:bg-white/10"
                       >
@@ -1155,13 +1154,13 @@ export default function AdminPage() {
             <p className="text-[11px] text-text-muted">User reports and chat threads.</p>
           </div>
           <div className="flex gap-1.5 p-1 rounded-xl bg-white/5 w-fit">
-            <button 
+            <button
               onClick={() => setFeedbackInboxTab('active')}
               className={cn("px-3 py-1.5 rounded-[8px] text-[11px] font-bold transition-all", feedbackInboxTab === 'active' ? "bg-accent text-white shadow-md" : "text-white/40 hover:text-white")}
             >
               Active
             </button>
-            <button 
+            <button
               onClick={() => setFeedbackInboxTab('archive')}
               className={cn("px-3 py-1.5 rounded-[8px] text-[11px] font-bold transition-all", feedbackInboxTab === 'archive' ? "bg-accent text-white shadow-md" : "text-white/40 hover:text-white")}
             >
@@ -1282,18 +1281,18 @@ export default function AdminPage() {
                       maxLength={4000}
                       rows={1}
                     />
-                    <button 
-                      disabled={isSubmitting || !feedbackReply.trim()} 
-                      onClick={handleReplyFeedbackThread} 
+                    <button
+                      disabled={isSubmitting || !feedbackReply.trim()}
+                      onClick={handleReplyFeedbackThread}
                       className="btn-accent px-5 shrink-0"
                     >
                       Send
                     </button>
                   </div>
                   {isOwner && (
-                    <button 
-                      disabled={isSubmitting} 
-                      onClick={handleForceDeleteFeedbackThread} 
+                    <button
+                      disabled={isSubmitting}
+                      onClick={handleForceDeleteFeedbackThread}
                       className="btn-glass w-full text-red-400 mt-2"
                     >
                       Force delete thread
