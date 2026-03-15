@@ -3256,10 +3256,10 @@ export default {
       }
 
       const url = new URL(request.url);
-      console.log(`[Worker] Request: ${request.method} ${url.pathname}`);
+      const pathname = url.pathname;
 
       // Track activity for all requests except health checks and preflights
-      if (!['/', '/health'].includes(url.pathname)) {
+      if (!['/', '/health'].includes(pathname)) {
         await ensureSecurityTables(env);
         
         if (!request.headers.get('Authorization')) {
@@ -3267,9 +3267,8 @@ export default {
         }
       }
 
-      switch (url.pathname) {
+      switch (pathname) {
         case '/':
-          return await handleHealth(request, env);
         case '/health':
           return await handleHealth(request, env);
         case '/auth/register':
