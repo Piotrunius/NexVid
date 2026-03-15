@@ -6,6 +6,7 @@
 
 import { MediaCard, MediaCardSkeleton } from '@/components/media/MediaCard';
 import { searchMedia } from '@/lib/tmdb';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import type { MediaItem } from '@/types';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
@@ -45,6 +46,7 @@ function SearchContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [localQuery, setLocalQuery] = useState(query);
+  const blockedItems = useBlockedContentStore((s) => s.blockedItems);
 
   useEffect(() => {
     if (query) doSearch(query);
@@ -57,7 +59,10 @@ function SearchContent() {
     setSearched(true);
     try {
       const { results } = await searchMedia(q.trim());
-      setResults(results);
+      const filtered = results.filter(item => 
+        !blockedItems.some(b => b.tmdbId === item.tmdbId && b.mediaType === item.mediaType)
+      );
+      setResults(filtered);
     } catch (err) {
       console.error('Search failed:', err);
     } finally {

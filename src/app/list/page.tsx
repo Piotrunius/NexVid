@@ -6,6 +6,7 @@
 
 import { cn, tmdbImage } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import type { WatchlistItem, WatchlistStatus } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -23,18 +24,25 @@ export default function WatchlistPage() {
   const { items, removeItem, setStatus } = useWatchlistStore();
   const [activeStatus, setActiveStatus] = useState<WatchlistStatus | 'all'>('all');
   const [sortBy, setSortBy] = useState<'title' | 'added' | 'rating'>('added');
+  const blockedItems = useBlockedContentStore((s) => s.blockedItems);
 
   const continueWatching = useMemo(
     () => items
-      .filter((item: WatchlistItem) => (item.progress?.percentage || 0) > 1)
+      .filter((item: WatchlistItem) => 
+        (item.progress?.percentage || 0) > 1 &&
+        !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'show' ? 'tv' : 'movie'))
+      )
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 12),
-    [items],
+    [items, blockedItems],
   );
 
   const filteredItems = useMemo(() => {
     // Exclude items with status 'none' (those are only for Continue Watching)
-    let list = items.filter(i => i.status !== 'none');
+    let list = items.filter(i => 
+      i.status !== 'none' &&
+      !blockedItems.some(b => String(b.tmdbId) === String(i.tmdbId) && b.mediaType === (i.mediaType === 'show' ? 'tv' : 'movie'))
+    );
     
     if (activeStatus !== 'all') {
       list = list.filter((i: WatchlistItem) => i.status === activeStatus);
@@ -49,11 +57,14 @@ export default function WatchlistPage() {
   }, [items, activeStatus, sortBy]);
 
   const statusCounts = useMemo(() => {
-    const activeItems = items.filter(i => i.status !== 'none');
+    const activeItems = items.filter(i => 
+      i.status !== 'none' &&
+      !blockedItems.some(b => String(b.tmdbId) === String(i.tmdbId) && b.mediaType === (i.mediaType === 'show' ? 'tv' : 'movie'))
+    );
     const counts: Record<string, number> = { all: activeItems.length };
     STATUSES.forEach((s) => { counts[s.key] = activeItems.filter((i: WatchlistItem) => i.status === s.key).length; });
     return counts;
-  }, [items]);
+  }, [items, blockedItems]);
 
   return (
     <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6 lg:px-8">

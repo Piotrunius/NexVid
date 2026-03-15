@@ -242,6 +242,24 @@ async function verifyTurnstileToken(request: Request, env: Env, token: string): 
 let securityTablesInit: Promise<void> | null = null;
 let feedbackTablesInit: Promise<void> | null = null;
 let watchPartyTablesInit: Promise<void> | null = null;
+let blockedMediaTableInit: Promise<void> | null = null;
+
+async function ensureBlockedMediaTable(env: Env): Promise<void> {
+  if (!blockedMediaTableInit) {
+    blockedMediaTableInit = (async () => {
+      await env.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS blocked_media (
+           tmdb_id TEXT NOT NULL,
+           media_type TEXT NOT NULL,
+           reason TEXT,
+           created_at TEXT NOT NULL DEFAULT (datetime('now')),
+           PRIMARY KEY (tmdb_id, media_type)
+         )`
+      ).run();
+    })();
+  }
+  await blockedMediaTableInit;
+}
 
 async function ensureSecurityTables(env: Env): Promise<void> {
   if (!securityTablesInit) {
@@ -1838,6 +1856,73 @@ async function handlePublicAnnouncements(request: Request, env: Env): Promise<Re
   });
 }
 
+async function handleAdminBlockedMedia(request: Request, env: Env): Promise<Response> {
+  const session = await requireAdmin(request, env);
+  if (session instanceof Response) return session;
+
+  await ensureBlockedMediaTable(env);
+
+  if (request.method === 'GET') {
+    const rows = await env.DB.prepare(
+      'SELECT tmdb_id, media_type, reason, created_at FROM blocked_media ORDER BY created_at DESC'
+    ).all<{ tmdb_id: string; media_type: string; reason: string | null; created_at: string }>();
+
+    return json(request, env, {
+      items: (rows.results || []).map((row) => ({
+        tmdbId: row.tmdb_id,
+        mediaType: row.media_type,
+        reason: row.reason,
+        createdAt: row.created_at,
+      })),
+    });
+  }
+
+  if (request.method === 'POST') {
+    const body = await readJson<{ tmdbId?: string; mediaType?: string; reason?: string }>(request);
+    const tmdbId = String(body.tmdbId || '').trim();
+    const mediaType = (body.mediaType || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
+    const reason = (body.reason || '').trim().slice(0, 300);
+
+    if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
+
+    await env.DB.prepare(
+      `INSERT INTO blocked_media (tmdb_id, media_type, reason, created_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(tmdb_id, media_type) DO UPDATE SET reason = excluded.reason`
+    )
+      .bind(tmdbId, mediaType, reason || null, new Date().toISOString())
+      .run();
+
+    await writeAdminAuditLog(env, session.user.id, 'block_media', 'media', tmdbId, { mediaType, reason });
+    return json(request, env, { ok: true });
+  }
+
+  if (request.method === 'DELETE') {
+    const url = new URL(request.url);
+    const tmdbId = (url.searchParams.get('tmdbId') || '').trim();
+    const mediaType = (url.searchParams.get('mediaType') || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
+
+    if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
+
+    await env.DB.prepare('DELETE FROM blocked_media WHERE tmdb_id = ? AND media_type = ?').bind(tmdbId, mediaType).run();
+    await writeAdminAuditLog(env, session.user.id, 'unblock_media', 'media', tmdbId, { mediaType });
+    return json(request, env, { ok: true });
+  }
+
+  return json(request, env, { error: 'Method not allowed' }, 405);
+}
+
+async function handlePublicBlockedMedia(request: Request, env: Env): Promise<Response> {
+  await ensureBlockedMediaTable(env);
+  const rows = await env.DB.prepare('SELECT tmdb_id, media_type FROM blocked_media').all<{ tmdb_id: string; media_type: string }>();
+  return json(request, env, {
+    items: (rows.results || []).map((row) => ({
+      tmdbId: row.tmdb_id,
+      mediaType: row.media_type,
+    })),
+  });
+}
+
 async function handleAdminOverview(request: Request, env: Env): Promise<Response> {
   const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
   if (session instanceof Response) return session;
@@ -3249,6 +3334,12 @@ export default {
         case '/admin/overview':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminOverview(request, env);
+        case '/admin/blocked-media':
+          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAdminBlockedMedia(request, env);
+        case '/public/blocked-media':
+          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handlePublicBlockedMedia(request, env);
         case '/admin/health':
           return await handleAdminHealth(request, env);
         case '/api/report-error':

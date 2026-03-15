@@ -6,6 +6,7 @@
 
 import { MediaCard, MediaCardSkeleton } from '@/components/media/MediaCard';
 import { discover, getGenres, getPopular, getTrending } from '@/lib/tmdb';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import { cn } from '@/lib/utils';
 import type { Genre, MediaItem } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,7 @@ export default function BrowsePage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const blockedItems = useBlockedContentStore((s) => s.blockedItems);
   const router = useRouter();
 
   useEffect(() => {
@@ -80,15 +82,19 @@ export default function BrowsePage() {
           results = await discover(mediaType as 'movie' | 'tv', params);
         }
 
+        const filteredResults = results.filter(item => 
+          !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'tv' ? 'tv' : 'movie'))
+        );
+
         if (results.length < 20) setHasMore(false);
-        setItems((prev) => (reset ? results : [...prev, ...results]));
+        setItems((prev) => (reset ? filteredResults : [...prev, ...filteredResults]));
       } catch (err) {
         console.error('Failed to load browse items:', err);
       } finally {
         setIsLoading(false);
       }
     },
-    [tab, filter, year]
+    [tab, filter, year, blockedItems]
   );
 
   const loadMore = () => {
@@ -105,8 +111,11 @@ export default function BrowsePage() {
       const type = tab === 'movies' ? 'movie' : tab === 'shows' ? 'tv' : Math.random() > 0.5 ? 'movie' : 'tv';
       const randomPage = Math.floor(Math.random() * 5) + 1;
       const results = await getPopular(type as 'movie' | 'tv', randomPage);
-      if (results.length > 0) {
-        const randomItem = results[Math.floor(Math.random() * results.length)];
+      const filteredResults = results.filter(item => 
+        !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'tv' ? 'tv' : 'movie'))
+      );
+      if (filteredResults.length > 0) {
+        const randomItem = filteredResults[Math.floor(Math.random() * filteredResults.length)];
         router.push(`/${randomItem.mediaType === 'show' ? 'show' : 'movie'}/${randomItem.tmdbId}`);
       }
     } catch (err) {
@@ -114,7 +123,7 @@ export default function BrowsePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [tab, router]);
+  }, [tab, router, blockedItems]);
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'trending', label: 'Trending', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> },

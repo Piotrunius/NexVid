@@ -223,7 +223,16 @@ CREATE TABLE IF NOT EXISTS user_notifications (
 
 CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, is_read, created_at DESC);
 
--- 6. Social / Watch Party
+-- 6. Blocked Content
+CREATE TABLE IF NOT EXISTS blocked_media (
+  tmdb_id TEXT NOT NULL,
+  media_type TEXT NOT NULL, -- 'movie' or 'tv'
+  reason TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (tmdb_id, media_type)
+);
+
+-- 7. Social / Watch Party
 CREATE TABLE IF NOT EXISTS watch_party_rooms (
   id TEXT PRIMARY KEY,
   host_token TEXT NOT NULL,
