@@ -226,7 +226,7 @@ export default function AdminPage() {
   }, [announcementLength, message]);
 
   const filteredAndSortedUsers = useMemo(() => {
-    let filtered = adminUsers.filter(u => 
+    const filtered = adminUsers.filter(u => 
       u.username.toLowerCase().includes(userSearchQuery.toLowerCase())
     );
 

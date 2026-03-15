@@ -51,16 +51,21 @@ function StatusIcon({ status }: { status: WatchlistStatus }) {
 }
 
 export function MediaCard({ item, size = 'md', showType = false }: MediaCardProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const watchlistItem = useWatchlistStore((s) => s.getByTmdbId(item.tmdbId));
   const progress = watchlistItem?.progress;
-  const hasProgress = progress && (progress.percentage || 0) > 1;
+  const hasProgress = mounted && progress && (progress.percentage || 0) > 1;
   const isShow = item.mediaType === 'show' || watchlistItem?.mediaType === 'show';
 
+  const defaultHref = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
+  
   const watchUrl = hasProgress
     ? `/watch/${item.mediaType || watchlistItem?.mediaType}/${item.tmdbId}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
-    : item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
+    : defaultHref;
 
-  const href = hasProgress ? watchUrl : (item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`);
+  const href = hasProgress ? watchUrl : defaultHref;
   const [showMenu, setShowMenu] = useState(false);
   const { addItem, setStatus: setWatchlistStatus } = useWatchlistStore();
 
@@ -103,7 +108,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
         )}
 
         {/* Progress Bar */}
-        {hasProgress && (
+        {hasProgress && progress && (
           <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/40 backdrop-blur-md">
             <div
               className="h-full bg-accent shadow-[0_0_12px_var(--accent-glow)] transition-all duration-1000"
@@ -122,45 +127,47 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
         </div>
 
         {/* Watchlist Button */}
-        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-400 z-10">
-          <div className="relative">
-            <button
-              onClick={handleToggleMenu}
-              className={cn(
-                'flex items-center justify-center h-8 w-8 rounded-[12px] backdrop-blur-[20px] transition-all duration-400 ease-[var(--spring)] active:scale-90',
-                watchlistItem
-                  ? 'bg-accent/80 text-white shadow-[0_0_16px_var(--accent-glow)]'
-                  : 'bg-black/40 text-white/80 hover:bg-black/60',
+        {mounted && (
+          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-400 z-10">
+            <div className="relative">
+              <button
+                onClick={handleToggleMenu}
+                className={cn(
+                  'flex items-center justify-center h-8 w-8 rounded-[12px] backdrop-blur-[20px] transition-all duration-400 ease-[var(--spring)] active:scale-90',
+                  watchlistItem
+                    ? 'bg-accent/80 text-white shadow-[0_0_16px_var(--accent-glow)]'
+                    : 'bg-black/40 text-white/80 hover:bg-black/60',
+                )}
+                title={watchlistItem ? watchlistItem.status : 'Add to List'}
+              >
+                {watchlistItem ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+                )}
+              </button>
+              {showMenu && (
+                <div className="panel-glass absolute bottom-full right-0 mb-2 w-36 p-1.5 z-20 animate-scale-in">
+                  {STATUSES.map((status) => (
+                    <button
+                      key={status}
+                      onClick={(e) => handleWatchlistClick(e, status)}
+                      className={cn(
+                        'w-full flex items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[12px] capitalize transition-all duration-300',
+                        watchlistItem?.status === status
+                          ? 'bg-accent/15 text-accent font-medium'
+                          : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80',
+                      )}
+                    >
+                      <StatusIcon status={status} />
+                      {status.replace('-', ' ')}
+                    </button>
+                  ))}
+                </div>
               )}
-              title={watchlistItem ? watchlistItem.status : 'Add to List'}
-            >
-              {watchlistItem ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
-              )}
-            </button>
-            {showMenu && (
-              <div className="panel-glass absolute bottom-full right-0 mb-2 w-36 p-1.5 z-20 animate-scale-in">
-                {STATUSES.map((status) => (
-                  <button
-                    key={status}
-                    onClick={(e) => handleWatchlistClick(e, status)}
-                    className={cn(
-                      'w-full flex items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[12px] capitalize transition-all duration-300',
-                      watchlistItem?.status === status
-                        ? 'bg-accent/15 text-accent font-medium'
-                        : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80',
-                    )}
-                  >
-                    <StatusIcon status={status} />
-                    {status.replace('-', ' ')}
-                  </button>
-                ))}
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Rating badge */}
         {!hasProgress && item.rating > 0 && (
@@ -186,7 +193,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
       <div className="mt-3 px-1 space-y-0.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[13px] font-bold text-white/90 line-clamp-1 flex-1 tracking-tight">{item.title}</p>
-          {hasProgress && (
+          {hasProgress && progress && (
              <span className="text-[10px] font-black text-accent tracking-tighter bg-accent/10 px-1.5 py-0.5 rounded-md">
                 {Math.round(progress.percentage || 0)}%
              </span>
@@ -194,9 +201,9 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
         </div>
         <div className="flex items-center justify-between text-[11px] font-medium">
           <p className="text-white/30">
-            {watchlistItem?.updatedAt ? formatRelativeTime(watchlistItem.updatedAt) : item.releaseYear}
+            {mounted && watchlistItem?.updatedAt ? formatRelativeTime(watchlistItem.updatedAt) : item.releaseYear}
           </p>
-          {hasProgress && (
+          {hasProgress && progress && (
              <p className="text-white/50 tracking-wide font-bold">
                 {isShow ? `S${progress.season}:E${progress.episode}` : formatTime(progress.timestamp || 0)}
              </p>

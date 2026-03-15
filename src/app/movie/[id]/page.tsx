@@ -1,5 +1,5 @@
 import MoviePageClient from '@/components/pages/MoviePageClient';
-import { getMovieDetails } from '@/lib/tmdb';
+import { getMovieDetails, getRecommendations, getSimilar } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { Metadata } from 'next';
 
@@ -72,6 +72,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default function MoviePage() {
-  return <MoviePageClient />;
+export default async function MoviePage({ params }: PageProps) {
+  const { id } = await params;
+
+  try {
+    const [movie, recommendations, similar] = await Promise.all([
+      getMovieDetails(id),
+      getRecommendations('movie', id),
+      getSimilar('movie', id),
+    ]);
+
+    return (
+      <MoviePageClient 
+        initialMovie={movie} 
+        initialRecommendations={recommendations} 
+        initialSimilar={similar} 
+      />
+    );
+  } catch (err) {
+    console.error('Failed to fetch movie details:', err);
+    return <MoviePageClient />;
+  }
 }

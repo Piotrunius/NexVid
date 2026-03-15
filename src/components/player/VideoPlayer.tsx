@@ -897,7 +897,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           for (const block of blocks) {
             const lines = block.trim().split('\n');
             let timeLine = '';
-            let textLines: string[] = [];
+            const textLines: string[] = [];
 
             for (const line of lines) {
               if (line.includes('-->')) {

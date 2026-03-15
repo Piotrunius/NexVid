@@ -13,16 +13,24 @@ import type { MediaItem, Movie, WatchlistStatus } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export default function MoviePage() {
+export default function MoviePage({ 
+  initialMovie, 
+  initialRecommendations = [], 
+  initialSimilar = [] 
+}: { 
+  initialMovie?: Movie | null, 
+  initialRecommendations?: MediaItem[], 
+  initialSimilar?: MediaItem[] 
+}) {
   const params = useParams();
   const id = params?.id as string;
 
-  const [movie, setMovie] = useState<Movie | null>(null);
-  const [recommendations, setRecommendations] = useState<MediaItem[]>([]);
-  const [similar, setSimilar] = useState<MediaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [movie, setMovie] = useState<Movie | null>(initialMovie || null);
+  const [recommendations, setRecommendations] = useState<MediaItem[]>(initialRecommendations);
+  const [similar, setSimilar] = useState<MediaItem[]>(initialSimilar);
+  const [isLoading, setIsLoading] = useState(!initialMovie);
   const [showFullOverview, setShowFullOverview] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showWatchlistMenu, setShowWatchlistMenu] = useState(false);
@@ -32,11 +40,7 @@ export default function MoviePage() {
   const { addItem, getByTmdbId, setStatus } = useWatchlistStore();
   const watchlistItem = getByTmdbId(id);
 
-  useEffect(() => {
-    loadMovie();
-  }, [id]);
-
-  async function loadMovie() {
+  const loadMovie = useCallback(async () => {
     setIsLoading(true);
     try {
       const [m, recs, sim] = await Promise.all([
@@ -52,7 +56,12 @@ export default function MoviePage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [id]);
+
+  useEffect(() => {
+    if (movie && movie.tmdbId === id) return;
+    loadMovie();
+  }, [id, movie, loadMovie]);
 
   const handleWatchlistAction = (status: WatchlistStatus) => {
     if (watchlistItem) {
@@ -80,14 +89,34 @@ export default function MoviePage() {
     row.scrollBy({ left: direction === 'left' ? -delta : delta, behavior: 'smooth' });
   };
 
-  if (isLoading) {
+  if (isLoading && !movie) {
     return (
-      <div className="min-h-screen pt-16">
-        <div className="h-[60vh] skeleton" />
-        <div className="mx-auto max-w-7xl space-y-4 p-6">
-          <div className="skeleton h-10 w-72 rounded-[8px]" />
-          <div className="skeleton h-5 w-full max-w-2xl rounded" />
-          <div className="skeleton h-5 w-full max-w-xl rounded" />
+      <div className="min-h-screen">
+        {/* ── Movie Hero Skeleton ── */}
+        <section className="relative h-[60vh] min-h-[400px] bg-black animate-pulse">
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+        </section>
+
+        {/* ── Movie Info Skeleton ── */}
+        <div className="relative -mt-40 mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex gap-8">
+            <div className="hidden flex-shrink-0 md:block">
+              <div className="skeleton h-[360px] w-[240px] rounded-[24px]" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-4 pt-10">
+              <div className="skeleton h-10 w-3/4 rounded-xl" />
+              <div className="flex gap-3">
+                <div className="skeleton h-5 w-20 rounded-md" />
+                <div className="skeleton h-5 w-16 rounded-md" />
+                <div className="skeleton h-5 w-12 rounded-md" />
+              </div>
+              <div className="space-y-2 pt-4">
+                <div className="skeleton h-4 w-full rounded-md" />
+                <div className="skeleton h-4 w-full rounded-md" />
+                <div className="skeleton h-4 w-2/3 rounded-md" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
