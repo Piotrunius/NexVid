@@ -18,9 +18,29 @@ const securityHeaders = [
             "media-src 'self' blob: data: https:",
             "worker-src 'self' blob: https:",
             "child-src 'self' blob:",
-            "frame-src 'self' https://vidlink.pro https://*.vidlink.pro https://vidsrc.icu https://*.vidsrc.icu https://vidsrc.me https://*.vidsrc.me https://www.youtube.com https:",
+            "frame-src 'self' https://vidlink.pro https://*.vidlink.pro https://vidsrc.icu https://*.vidsrc.icu https://vidsrc.me https://*.vidsrc.me https://vidsrc.cc https://*.vidsrc.cc https://vidsrc.to https://*.vidsrc.to https://www.youtube.com https:",
+            "frame-ancestors 'self'",
         ].join('; '),
-
+    },
+    {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload',
+    },
+    {
+        key: 'X-Frame-Options',
+        value: 'SAMEORIGIN',
+    },
+    {
+        key: 'X-Content-Type-Options',
+        value: 'nosniff',
+    },
+    {
+        key: 'Referrer-Policy',
+        value: 'origin-when-cross-origin',
+    },
+    {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=()',
     },
 ];
 
