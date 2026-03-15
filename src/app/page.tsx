@@ -88,7 +88,7 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* ── Hero Section ── */}
       {featured && (
-        <section className="relative h-[90vh] min-h-[640px]">
+        <section className="relative h-[90vh]">
           {/* Background image */}
           <div className="absolute inset-0">
             <Image
