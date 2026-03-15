@@ -42,3 +42,9 @@ Thumbs.db
 *.log
 *.tmp
 *.swp
+
+# PWA generated files
+/public/sw.js
+/public/worker-*.js
+/public/workbox-*.js
+/public/swe-worker-*.js
