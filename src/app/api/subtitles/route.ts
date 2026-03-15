@@ -47,10 +47,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // wyzie-lib v2.4.0 params
-    // It strictly requires either tmdb_id (number) OR imdb_id (string)
     const params: any = {
-      source: 'opensubtitles', // Start with a fast source
+      source: 'opensubtitles',
       key: process.env.WYZIE_KEY,
     };
 
@@ -72,13 +70,19 @@ export async function GET(request: NextRequest) {
       params.episode = parseInt(episode, 10);
     }
 
-    // Call official library
-    let results = await searchSubtitles(params);
-    
-    // Fallback to 'all' if 'opensubtitles' is empty
-    if (!Array.isArray(results) || results.length === 0) {
+    let results;
+    try {
+      results = await searchSubtitles(params);
+    } catch (e) {
       params.source = 'all';
       results = await searchSubtitles(params);
+    }
+    
+    if (!Array.isArray(results) || results.length === 0) {
+      if (params.source !== 'all') {
+        params.source = 'all';
+        results = await searchSubtitles(params);
+      }
     }
     
     const items = Array.isArray(results) ? results : [];
@@ -137,7 +141,6 @@ export async function GET(request: NextRequest) {
     );
 
   } catch (error: any) {
-    console.error('wyzie-lib search error:', error);
-    return NextResponse.json({ subtitles: [], error: error?.message || 'Subtitle search failed' });
+    return NextResponse.json({ subtitles: [], error: error?.message || 'Subtitle search failed' }, { status: 200 });
   }
 }

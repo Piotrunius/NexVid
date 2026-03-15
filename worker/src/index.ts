@@ -2751,6 +2751,14 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
       );
     }
 
+    // Default Referer and Origin if not set to help with some providers
+    if (!requestHeaders.has('Referer')) {
+      requestHeaders.set('Referer', parsedTarget.origin + '/');
+    }
+    if (!requestHeaders.has('Origin')) {
+      requestHeaders.set('Origin', parsedTarget.origin);
+    }
+
     // Forward body for POST requests
     let body: BodyInit | null = null;
     if (request.method === 'POST') {
@@ -2760,12 +2768,28 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
     }
 
     // Make the request to target
-    const response = await fetch(targetUrl, {
+    let response = await fetch(targetUrl, {
       method: request.method === 'OPTIONS' ? 'GET' : request.method,
       headers: requestHeaders,
       body,
       redirect: 'follow',
     });
+
+    // Special handling for subtitle providers that are slow/flaky (like sub.wyzie.ru / .io)
+    const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) || 
+                       parsedTarget.hostname.includes('wyzie.ru') ||
+                       parsedTarget.hostname.includes('wyzie.io');
+
+    if (isSubtitle && (!response.ok || response.status === 204)) {
+      // Automatic retry for subtitles to handle "sometimes missing" issues
+      // as reported by users (requires refresh to work)
+      response = await fetch(targetUrl, {
+        method: request.method === 'OPTIONS' ? 'GET' : request.method,
+        headers: requestHeaders,
+        body,
+        redirect: 'follow',
+      });
+    }
 
     // Build response headers
     const responseHeaders = new Headers(corsHeaders(request, env));
@@ -2912,11 +2936,23 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
       upstreamHeaders.set(key, value);
     }
 
-    const upstreamResponse = await fetch(new Request(target, {
+    let upstreamResponse = await fetch(new Request(target, {
       method: 'GET',
       headers: upstreamHeaders,
       redirect: 'follow',
     }));
+
+    // Special handling for subtitles - automatic retry if failed or empty
+    const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
+                       parsedTarget.hostname.includes('wyzie.ru') ||
+                       parsedTarget.hostname.includes('wyzie.io');
+    if (isSubtitle && (!upstreamResponse.ok || upstreamResponse.status === 204)) {
+      upstreamResponse = await fetch(new Request(target, {
+        method: 'GET',
+        headers: upstreamHeaders,
+        redirect: 'follow',
+      }));
+    }
 
     const headers = new Headers(upstreamResponse.headers);
     const allowedOrigin = getAllowedOrigin(request, env);
@@ -2973,7 +3009,7 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
     const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
 
     // Rewrite relative URLs in HLS manifests to go through proxy
-    body = body.replace(/^(?!#)(.+\.(?:m3u8|ts|key|mp4|aac))(\?.*)?$/gm, (match) => {
+    body = body.replace(/^(?!#)(.+\.(?:m3u8|ts|key|mp4|aac|vtt|srt|webvtt))(\?.*)?$/gm, (match) => {
       if (match.startsWith('http://') || match.startsWith('https://')) {
         return `${proxyBase}${encodeURIComponent(match)}`;
       }
