@@ -224,8 +224,10 @@ export function Navbar() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30" aria-hidden="true">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
+                <label htmlFor="search-input" className="sr-only">Search movies and shows</label>
                 <input
                   ref={searchRef}
+                  id="search-input"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -501,7 +503,9 @@ export function Navbar() {
                   <div className="fixed top-[88px] left-1/2 z-50 w-64 -translate-x-1/2">
                     <div className="panel-glass p-3 animate-scale-in">
                       <p className="text-[13px] font-semibold text-white mb-2">Join Watch Together</p>
+                      <label htmlFor="party-code-input" className="sr-only">Room code</label>
                       <input
+                        id="party-code-input"
                         value={partyCode}
                         onChange={(e) => setPartyCode(e.target.value.toUpperCase())}
                         placeholder="Room code"
@@ -541,8 +545,9 @@ export function Navbar() {
             <Link
               href="/login"
               className="flex items-center justify-center rounded-[14px] bg-accent p-2.5 text-[12px] font-semibold text-white shadow-[0_0_24px_var(--accent-glow)] hover:bg-accent-hover hover:shadow-[0_0_40px_var(--accent-glow)] hover:scale-105 active:scale-95 transition-all duration-500 sm:gap-2 sm:rounded-[16px] sm:px-5 sm:py-2.5 sm:text-[13px]"
+              aria-label="Sign In"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:mr-1">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:mr-1" aria-hidden="true">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
               <span className="hidden sm:inline">Sign In</span>
