@@ -435,6 +435,10 @@ export default function SettingsPage() {
               <p className="text-text-primary font-medium">How do I fix playback issues?</p>
               <p className="mt-1 text-text-muted">Try clearing your local data in the Data section above, or switch to an alternative source using the button in the player.</p>
             </div>
+            <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
+              <p className="text-text-primary font-medium">Why is there no author in the credits?</p>
+              <p className="mt-1 text-text-muted">The author information is not included in the credits for privacy and legal reasons.</p>
+            </div>
           </div>
         </SettingsCard>
 
