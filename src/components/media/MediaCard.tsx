@@ -345,8 +345,10 @@ export function MediaRow({
    ============================================ */
 
 export function MediaCardSkeleton({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClasses = { sm: 'w-[140px]', md: 'w-[180px]', lg: 'w-[220px]' };
+
   return (
-    <div className="media-grid-item flex-shrink-0 w-[180px]">
+    <div className={cn('media-grid-item flex-shrink-0', sizeClasses[size])}>
       <div className="skeleton rounded-[24px] aspect-[2/3] w-full" />
       <div className="mt-3 space-y-2 px-1">
         <div className="skeleton h-3.5 w-3/4 rounded-[8px]" />
@@ -356,15 +358,29 @@ export function MediaCardSkeleton({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }
   );
 }
 
-export function MediaRowSkeleton({ count = 6 }: { count?: number }) {
+export function MediaRowSkeleton({
+  title,
+  count = 6,
+  size = 'md',
+  noPadding = false,
+}: {
+  title?: string;
+  count?: number;
+  size?: 'sm' | 'md' | 'lg';
+  noPadding?: boolean;
+}) {
   return (
-    <section className="py-6">
-      <div className="mb-4 px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
-        <div className="skeleton h-5 w-40 rounded-[8px]" />
+    <section className={cn(noPadding ? 'py-2' : 'py-8')}>
+      <div className="mb-5 px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
+        {title ? (
+          <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">{title}</h2>
+        ) : (
+          <div className="skeleton h-5 w-40 rounded-[8px]" />
+        )}
       </div>
       <div className="scroll-row px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
         {Array.from({ length: count }).map((_, i) => (
-          <MediaCardSkeleton key={i} />
+          <MediaCardSkeleton key={i} size={size} />
         ))}
       </div>
     </section>

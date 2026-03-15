@@ -2,92 +2,45 @@
    Homepage – Apple Sequoia Pitch Black
    ============================================ */
 
-'use client';
-
-import { MediaRow, MediaRowSkeleton } from '@/components/media/MediaCard';
-import { RecommendationRows } from '@/components/media/RecommendationRows';
+import { MediaRow } from '@/components/media/MediaCard';
+import { HomePageClient } from '@/components/pages/HomePageClient';
 import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
-import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-export default function HomePage() {
-  const [trending, setTrending] = useState<MediaItem[]>([]);
-  const [popular, setPopular] = useState<MediaItem[]>([]);
-  const [topMovies, setTopMovies] = useState<MediaItem[]>([]);
-  const [topShows, setTopShows] = useState<MediaItem[]>([]);
-  const [featured, setFeatured] = useState<MediaItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const continueRowRef = useRef<HTMLDivElement>(null);
-  const { items } = useWatchlistStore();
+export const revalidate = 3600; // Revalidate every hour
 
-  const continueWatching = items
-    .filter((item) => (item.progress?.percentage || 0) > 1)
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 20);
+export default async function HomePage() {
+  let trending: MediaItem[] = [];
+  let popular: MediaItem[] = [];
+  let topMovies: MediaItem[] = [];
+  let topShows: MediaItem[] = [];
+  let featured: MediaItem | null = null;
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [t, p, m, s] = await Promise.all([
-          getTrending('all', 'week'),
-          getPopular('movie'),
-          getTopRated('movie'),
-          getTopRated('tv'),
-        ]);
-        setTrending(t);
-        setPopular(p);
-        setTopMovies(m);
-        setTopShows(s);
-        if (t.length > 0) setFeatured(t[Math.floor(Math.random() * Math.min(5, t.length))]);
-      } catch (err) {
-        console.error('Failed to load homepage data:', err);
-      } finally {
-        setIsLoading(false);
-      }
+  try {
+    const [t, p, m, s] = await Promise.all([
+      getTrending('all', 'week'),
+      getPopular('movie'),
+      getTopRated('movie'),
+      getTopRated('tv'),
+    ]);
+    trending = t;
+    popular = p;
+    topMovies = m;
+    topShows = s;
+    if (t.length > 0) {
+      featured = t[Math.floor(Math.random() * Math.min(5, t.length))];
     }
-    load();
-  }, []);
-
-  useLayoutEffect(() => {
-    if (isLoading) return;
-    const rows = document.querySelectorAll('.media-row-viewport');
-    let rafId: number;
-
-    const handleRowScroll = (e: Event) => {
-      const target = e.target as HTMLDivElement;
-      const scrollLeft = target.scrollLeft;
-      const maxScroll = target.scrollWidth - target.clientWidth;
-      const progress = scrollLeft / maxScroll;
-
-      const container = target.closest('.media-row-container');
-      if (container) {
-        const bg = container.querySelector('.media-row-bg') as HTMLDivElement;
-        if (bg) {
-          bg.style.transform = `translateX(${progress * 20}px) scale(1.05)`;
-        }
-      }
-    };
-
-    const update = () => {
-      for (const row of rows) {
-        row.addEventListener('scroll', handleRowScroll, { passive: true });
-      }
-    };
-
-    rafId = requestAnimationFrame(update);
-    return () => { if (rafId) cancelAnimationFrame(rafId); for (const row of rows) row.removeEventListener('scroll', handleRowScroll); };
-  }, [isLoading, trending.length, popular.length, topMovies.length, topShows.length, continueWatching.length]);
+  } catch (err) {
+    console.error('Failed to load homepage data:', err);
+  }
 
   return (
     <div className="min-h-screen">
       {/* ── Hero Section ── */}
-      {featured && (
+      {featured ? (
         <section className="relative h-[90vh] min-h-[640px]">
           {/* Background image */}
           <div className="absolute inset-0">
@@ -106,7 +59,7 @@ export default function HomePage() {
 
           {/* Hero Content */}
           <div className="absolute inset-0 flex items-center pt-20">
-            <div className="mx-auto w-full max-w-7xl px-6 sm:px-8">
+            <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-10">
               <div className="max-w-2xl space-y-6">
                 <div className="flex flex-wrap items-center gap-3 animate-fade-in opacity-80">
                   <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-white backdrop-blur-md shadow-[0_0_0_0.5px_rgba(255,255,255,0.1)]">
@@ -153,37 +106,19 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+      ) : (
+        <section className="relative h-[90vh] min-h-[640px] bg-black animate-pulse" />
       )}
 
       {/* ── Content Rows ── */}
       <div className="relative z-10 -mt-32 space-y-4 pb-24 sm:-mt-36">
-        {isLoading ? (
-          <div className="space-y-4 px-6 sm:px-8">
-            <MediaRowSkeleton title="Trending Now" />
-            <MediaRowSkeleton title="Continue Watching" />
-            <MediaRowSkeleton title="Popular Movies" />
-          </div>
-        ) : (
-          <>
-            {continueWatching.length > 0 && (
-              <MediaRow
-                title="Continue Watching"
-                items={continueWatching}
-                enableControls
-                ref={continueRowRef}
-              />
-            )}
+        <HomePageClient />
 
-            <RecommendationRows />
-
-            <MediaRow title="Trending This Week" items={trending} showType href="/browse?tab=trending" enableControls seeAllAsButton />
-            <MediaRow title="Popular Movies" items={popular} href="/browse?tab=movies" enableControls seeAllAsButton />
-            <MediaRow title="Top Rated Movies" items={topMovies} href="/browse?tab=movies" enableControls seeAllAsButton />
-            <MediaRow title="Top Rated TV Shows" items={topShows} href="/browse?tab=shows" enableControls seeAllAsButton />
-          </>
-        )}
+        <MediaRow title="Trending This Week" items={trending} showType href="/browse?tab=trending" enableControls seeAllAsButton />
+        <MediaRow title="Popular Movies" items={popular} href="/browse?tab=movies" enableControls seeAllAsButton />
+        <MediaRow title="Top Rated Movies" items={topMovies} href="/browse?tab=movies" enableControls seeAllAsButton />
+        <MediaRow title="Top Rated TV Shows" items={topShows} href="/browse?tab=shows" enableControls seeAllAsButton />
       </div>
-
     </div>
   );
 }

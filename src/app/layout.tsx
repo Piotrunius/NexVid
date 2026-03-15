@@ -10,7 +10,10 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import { Toaster } from '@/components/ui/Toaster';
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://nexvid.online').replace(/\/$/, '');
 const SITE_NAME = 'NexVid';
@@ -109,7 +112,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}

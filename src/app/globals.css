@@ -113,7 +113,6 @@ html {
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
     background: #000000;
     color: var(--text-primary);
     min-height: 100vh;
