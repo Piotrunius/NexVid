@@ -15,6 +15,7 @@ export interface Announcement {
   type: 'info' | 'warning' | 'update' | 'success';
   link?: { url: string; label: string };
   dismissible?: boolean;
+  isImportant?: boolean;
 }
 
 const ICONS: Record<Announcement['type'], React.ReactNode> = {
@@ -25,10 +26,10 @@ const ICONS: Record<Announcement['type'], React.ReactNode> = {
 };
 
 const TYPE_STYLES: Record<Announcement['type'], string> = {
-  info: 'from-accent/10 to-transparent border-accent/15',
-  warning: 'from-yellow-500/10 to-transparent border-yellow-500/15',
-  update: 'from-blue-500/10 to-transparent border-blue-500/15',
-  success: 'from-green-500/10 to-transparent border-green-500/15',
+  info: 'bg-accent/5 border-accent/10 text-accent-light',
+  warning: 'bg-yellow-500/5 border-yellow-500/10 text-yellow-500',
+  update: 'bg-blue-500/5 border-blue-500/10 text-blue-500',
+  success: 'bg-green-500/5 border-green-500/10 text-green-500',
 };
 
 function getDismissedIds(): string[] {
@@ -60,12 +61,14 @@ export function AnnouncementBar() {
       if (!mounted) return;
 
       const active = (response.announcements || [])
+        .filter((item: any) => !item.isImportant)
         .map((item: any) => ({
           id: String(item.id),
           message: String(item.message || ''),
           type: (item.type || 'info') as Announcement['type'],
           link: item.link,
           dismissible: true,
+          isImportant: Boolean(item.isImportant),
         }))
         .filter((a: Announcement) => a.message)
         .filter((a: Announcement) => !dismissed.includes(a.id));

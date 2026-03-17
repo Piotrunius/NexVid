@@ -1831,7 +1831,7 @@ async function requireRole(request: Request, env: Env, allowedRoles: string[]): 
 
 async function handlePublicAnnouncements(request: Request, env: Env): Promise<Response> {
   const rows = await env.DB.prepare(
-    `SELECT id, message, type, link_url, link_label, updated_at
+    `SELECT id, message, type, link_url, link_label, is_important, updated_at
      FROM announcements
      WHERE is_active = 1
      ORDER BY updated_at DESC
@@ -1842,6 +1842,7 @@ async function handlePublicAnnouncements(request: Request, env: Env): Promise<Re
     type: AnnouncementType;
     link_url: string | null;
     link_label: string | null;
+    is_important: number;
     updated_at: string;
   }>();
 
@@ -1851,6 +1852,7 @@ async function handlePublicAnnouncements(request: Request, env: Env): Promise<Re
       message: row.message,
       type: sanitizeAnnouncementType(row.type),
       link: row.link_url ? { url: row.link_url, label: row.link_label || 'Learn more' } : undefined,
+      isImportant: Boolean(row.is_important),
       updatedAt: row.updated_at,
     })),
   });

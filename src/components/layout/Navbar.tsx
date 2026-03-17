@@ -29,6 +29,20 @@ interface UserNotification {
   createdAt: string;
 }
 
+const ICONS: Record<Announcement['type'], React.ReactNode> = {
+  info: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>,
+  warning: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4M12 17h.01" /></svg>,
+  update: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" /></svg>,
+  success: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
+};
+
+const TYPE_STYLES = {
+  info: { icon: 'text-accent', bg: 'bg-accent/10' },
+  warning: { icon: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+  update: { icon: 'text-blue-500', bg: 'bg-blue-500/10' },
+  success: { icon: 'text-green-500', bg: 'bg-green-500/10' },
+};
+
 function getDismissedIds(): string[] {
   if (typeof window === 'undefined') return [];
   try { return JSON.parse(localStorage.getItem('nexvid-dismissed-announcements') || '[]'); } catch { return []; }
@@ -74,6 +88,7 @@ export function Navbar() {
       if (!mounted) return;
 
       const activeAnnouncements = (publicRes.announcements || [])
+        .filter((item: any) => !item.isImportant)
         .map((item: any) => ({ id: String(item.id), message: String(item.message || ''), type: (item.type || 'info') as Announcement['type'], link: item.link }))
         .filter((a: Announcement) => a.message)
         .filter((a: Announcement) => !dismissed.includes(a.id));
@@ -357,38 +372,41 @@ export function Navbar() {
                       </button>
                     ))}
 
-                    {announcements.map((a) => (
-                      <div key={a.id} className="group relative flex items-start gap-3 rounded-[16px] bg-white/[0.03] p-3.5 border border-white/[0.05] transition-all duration-300 hover:bg-white/[0.06]">
-                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent">
-                            <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
-                          </svg>
+                    {announcements.map((a) => {
+                      const styles = TYPE_STYLES[a.type] || TYPE_STYLES.info;
+                      return (
+                        <div key={a.id} className="group relative flex items-start gap-3 rounded-[16px] bg-white/[0.03] p-3.5 border border-white/[0.05] transition-all duration-300 hover:bg-white/[0.06]">
+                          <div className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full", styles.bg)}>
+                            <div className={cn("text-accent", styles.icon)}>
+                              {ICONS[a.type] || ICONS.info}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0 pr-4">
+                            <p className="break-words whitespace-pre-wrap text-[13px] leading-relaxed text-white/90 font-medium">
+                              {a.message}
+                            </p>
+                            {a.link && (
+                              <a 
+                                href={a.link.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="mt-1.5 inline-flex items-center text-[12px] font-semibold text-accent hover:underline decoration-2 underline-offset-2"
+                              >
+                                {a.link.label}
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="ml-1 opacity-70"><path d="M7 17l10-10M7 7h10v10"/></svg>
+                              </a>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => { dismissId(a.id); setAnnouncements((prev) => prev.filter((x) => x.id !== a.id)); }} 
+                            className="absolute top-2.5 right-2.5 rounded-full p-1.5 opacity-0 group-hover:opacity-100 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all duration-300"
+                            title="Dismiss"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                          </button>
                         </div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <p className="break-words whitespace-pre-wrap text-[13px] leading-relaxed text-white/90 font-medium">
-                            {a.message}
-                          </p>
-                          {a.link && (
-                            <a 
-                              href={a.link.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="mt-1.5 inline-flex items-center text-[12px] font-semibold text-accent hover:underline decoration-2 underline-offset-2"
-                            >
-                              {a.link.label}
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="ml-1 opacity-70"><path d="M7 17l10-10M7 7h10v10"/></svg>
-                            </a>
-                          )}
-                        </div>
-                        <button 
-                          onClick={() => { dismissId(a.id); setAnnouncements((prev) => prev.filter((x) => x.id !== a.id)); }} 
-                          className="absolute top-2.5 right-2.5 rounded-full p-1.5 opacity-0 group-hover:opacity-100 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all duration-300"
-                          title="Dismiss"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

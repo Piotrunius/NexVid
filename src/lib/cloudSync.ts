@@ -219,6 +219,7 @@ export async function createAdminAnnouncement(payload: {
   linkUrl?: string;
   linkLabel?: string;
   isActive?: boolean;
+  isImportant?: boolean;
 }) {
   return cloudFetch('/admin/announcements', {
     method: 'POST',
@@ -233,6 +234,7 @@ export async function updateAdminAnnouncement(payload: {
   linkUrl?: string;
   linkLabel?: string;
   isActive?: boolean;
+  isImportant?: boolean;
 }) {
   return cloudFetch('/admin/announcements', {
     method: 'PUT',
