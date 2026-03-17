@@ -45,6 +45,7 @@ type AdminAnnouncement = {
   linkUrl?: string;
   linkLabel?: string;
   isActive: boolean;
+  isImportant: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -206,9 +207,15 @@ export default function AdminPage() {
   const [announcementType, setAnnouncementType] = useState<AnnouncementType>('info');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
-  const [isActive, setIsActive] = useState(true);
+  const [isImportant, setIsImportant] = useState(false);
 
   const canManage = hasAdminPanelAccess;
+
+  useEffect(() => {
+    if (!isImportant) {
+      setAnnouncementType('info');
+    }
+  }, [isImportant]);
 
   useEffect(() => {
     if (!selectedFeedbackThreadId || !canManage) return;
@@ -583,15 +590,16 @@ export default function AdminPage() {
         type: announcementType,
         linkUrl: linkUrl.trim() || undefined,
         linkLabel: linkLabel.trim() || undefined,
-        isActive,
+        isActive: false, // Manual activation
+        isImportant,
       });
       setMessage('');
       setLinkUrl('');
       setLinkLabel('');
       setAnnouncementType('info');
-      setIsActive(true);
+      setIsImportant(false);
       await loadAll();
-      toast('Announcement created', 'success');
+      toast('Announcement created (hidden by default)', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to create announcement', 'error');
     } finally {
@@ -609,6 +617,7 @@ export default function AdminPage() {
         linkUrl: item.linkUrl,
         linkLabel: item.linkLabel,
         isActive: !item.isActive,
+        isImportant: item.isImportant,
       });
       await loadAll();
       toast(item.isActive ? 'Announcement hidden' : 'Announcement activated', 'success');
@@ -964,15 +973,22 @@ export default function AdminPage() {
               <p className="text-right text-[11px] text-text-muted">{announcementLength}/{ANNOUNCEMENT_MAX_CHARS}</p>
 
               <div className="grid grid-cols-2 gap-2">
-                <select className="input w-full" value={announcementType} onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}>
-                  <option value="info">Info</option>
-                  <option value="warning">Warning</option>
-                  <option value="update">Update</option>
-                  <option value="success">Success</option>
-                </select>
-                <label className="flex items-center gap-2 rounded-[10px] bg-[var(--bg-glass-light)] px-3 py-2 text-[13px] text-text-secondary">
-                  <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-                  Active now
+                <div className="transition-all duration-300" style={{ opacity: isImportant ? 1 : 0.5, pointerEvents: isImportant ? 'auto' : 'none' }}>
+                  <select 
+                    className="input w-full" 
+                    value={announcementType} 
+                    onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}
+                    disabled={!isImportant}
+                  >
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="update">Update</option>
+                    <option value="success">Success</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 rounded-[10px] bg-[var(--bg-glass-light)] px-3 py-2 text-[13px] text-text-secondary cursor-pointer hover:bg-white/5 transition-colors">
+                  <input type="checkbox" checked={isImportant} onChange={(e) => setIsImportant(e.target.checked)} />
+                  Important (Full Screen)
                 </label>
               </div>
 
@@ -980,8 +996,9 @@ export default function AdminPage() {
               <input className="input w-full" placeholder="Optional link label" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} maxLength={60} />
 
               <button disabled={isSubmitting} onClick={handleCreateAnnouncement} className="btn-accent w-full">
-                Publish announcement
+                Create announcement
               </button>
+              <p className="text-[10px] text-text-muted text-center italic">Announcements are created as hidden and must be activated manually below.</p>
             </section>
 
             <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2">
@@ -1464,17 +1481,43 @@ export default function AdminPage() {
               <p className="text-[13px] text-text-muted">No announcements yet.</p>
             ) : (
               sortedAnnouncements.map((item) => (
-                <div key={item.id} className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between backdrop-blur-sm">
+                <div key={item.id} className={cn(
+                  "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300",
+                  item.isActive ? "border-accent/40 shadow-[0_8px_32px_rgba(var(--accent-rgb),0.15)]" : "border-white/5"
+                )}>
                   <div>
-                    <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary">{item.message}</p>
-                    <p className="text-[11px] text-text-muted mt-1">{item.type.toUpperCase()} • {item.isActive ? 'Active' : 'Hidden'}</p>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter",
+                          item.type === 'info' ? "bg-accent/20 text-accent" :
+                          item.type === 'warning' ? "bg-yellow-500/20 text-yellow-500" :
+                          item.type === 'update' ? "bg-blue-500/20 text-blue-500" :
+                          "bg-green-500/20 text-green-500"
+                        )}>
+                          {item.type}
+                        </span>
+                        {item.isImportant && <span className="text-[9px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Full Screen</span>}
+                      </div>
+                      {item.isActive && <span className="text-[9px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase">Active</span>}
+                    </div>
+                    <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary leading-relaxed">{item.message}</p>
+                    <p className="text-[10px] text-white/20 mt-3 font-medium">{new Date(item.updatedAt).toLocaleString()}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="btn-glass" disabled={isSubmitting} onClick={() => handleToggleAnnouncement(item)}>
-                      {item.isActive ? 'Hide' : 'Activate'}
+                    <button 
+                      className={cn("btn-glass flex-1 text-[11px] py-2", item.isActive && "bg-white/10")} 
+                      disabled={isSubmitting} 
+                      onClick={() => handleToggleAnnouncement(item)}
+                    >
+                      {item.isActive ? 'Deactivate' : 'Activate'}
                     </button>
-                    <button className="btn-glass text-red-400" disabled={isSubmitting} onClick={() => handleDeleteAnnouncement(item.id)}>
-                      Delete
+                    <button 
+                      className="btn-glass text-red-400 text-[11px] p-2" 
+                      disabled={isSubmitting} 
+                      onClick={() => handleDeleteAnnouncement(item.id)}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                   </div>
                 </div>

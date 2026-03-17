@@ -8,6 +8,7 @@ import ChunkLoadErrorHandler from '@/components/ChunkLoadErrorHandler';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import { SurveyModal } from '@/components/ui/SurveyModal';
+import { ImportantAnnouncementModal } from '@/components/ui/ImportantAnnouncementModal';
 import { Toaster } from '@/components/ui/Toaster';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
@@ -129,6 +130,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <Toaster />
           <SurveyModal />
+          <ImportantAnnouncementModal />
           <KeyboardShortcuts />
           <ChunkLoadErrorHandler />
         </ThemeProvider>
