@@ -358,6 +358,10 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         await env.DB.prepare('ALTER TABLE users ADD COLUMN requires_password_change INTEGER DEFAULT 0').run();
       } catch { /* already exists */ }
 
+      try {
+        await env.DB.prepare('ALTER TABLE announcements ADD COLUMN is_important INTEGER NOT NULL DEFAULT 0').run();
+      } catch { /* already exists */ }
+
       // Error tracking for player health - REMOVED
       
       // Daily stats for success rate - REMOVED
