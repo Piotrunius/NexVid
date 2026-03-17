@@ -2253,7 +2253,7 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
 
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
-      `SELECT id, message, type, link_url, link_label, is_active, created_at, updated_at
+      `SELECT id, message, type, link_url, link_label, is_active, is_important, created_at, updated_at
        FROM announcements
        ORDER BY updated_at DESC
        LIMIT 200`
@@ -2264,6 +2264,7 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
       link_url: string | null;
       link_label: string | null;
       is_active: number;
+      is_important: number;
       created_at: string;
       updated_at: string;
     }>();
@@ -2276,6 +2277,7 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
         linkUrl: row.link_url,
         linkLabel: row.link_label,
         isActive: Boolean(row.is_active),
+        isImportant: Boolean(row.is_important),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       })),
@@ -2283,12 +2285,13 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
   }
 
   if (request.method === 'POST') {
-    const body = await readJson<{ message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean }>(request);
+    const body = await readJson<{ message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean; isImportant?: boolean }>(request);
     const message = (body.message || '').trim().slice(0, 500);
     const type = sanitizeAnnouncementType(body.type);
     const linkUrl = sanitizeOptionalHttpUrl(body.linkUrl);
     const linkLabel = (body.linkLabel || '').trim().slice(0, 60);
     const isActive = body.isActive !== false;
+    const isImportant = Boolean(body.isImportant);
     const now = new Date().toISOString();
 
     if (!message) return json(request, env, { error: 'Message is required' }, 400);
@@ -2296,24 +2299,25 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
 
     const id = crypto.randomUUID();
     await env.DB.prepare(
-      `INSERT INTO announcements (id, message, type, link_url, link_label, is_active, created_at, updated_at, created_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO announcements (id, message, type, link_url, link_label, is_active, is_important, created_at, updated_at, created_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(id, message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, now, now, session.user.id)
+      .bind(id, message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, isImportant ? 1 : 0, now, now, session.user.id)
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'create_announcement', 'announcement', id, { isActive, type });
+    await writeAdminAuditLog(env, session.user.id, 'create_announcement', 'announcement', id, { isActive, isImportant, type });
     return json(request, env, { ok: true, id });
   }
 
   if (request.method === 'PUT') {
-    const body = await readJson<{ id?: string; message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean }>(request);
+    const body = await readJson<{ id?: string; message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean; isImportant?: boolean }>(request);
     const id = (body.id || '').trim();
     const message = (body.message || '').trim().slice(0, 500);
     const type = sanitizeAnnouncementType(body.type);
     const linkUrl = sanitizeOptionalHttpUrl(body.linkUrl);
     const linkLabel = (body.linkLabel || '').trim().slice(0, 60);
     const isActive = body.isActive !== false;
+    const isImportant = Boolean(body.isImportant);
 
     if (!id) return json(request, env, { error: 'Announcement id is required' }, 400);
     if (!message) return json(request, env, { error: 'Message is required' }, 400);
@@ -2321,13 +2325,13 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
 
     await env.DB.prepare(
       `UPDATE announcements
-       SET message = ?, type = ?, link_url = ?, link_label = ?, is_active = ?, updated_at = ?
+       SET message = ?, type = ?, link_url = ?, link_label = ?, is_active = ?, is_important = ?, updated_at = ?
        WHERE id = ?`
     )
-      .bind(message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, new Date().toISOString(), id)
+      .bind(message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, isImportant ? 1 : 0, new Date().toISOString(), id)
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'update_announcement', 'announcement', id, { isActive, type });
+    await writeAdminAuditLog(env, session.user.id, 'update_announcement', 'announcement', id, { isActive, isImportant, type });
     return json(request, env, { ok: true });
   }
 
