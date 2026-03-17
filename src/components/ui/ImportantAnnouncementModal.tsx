@@ -50,7 +50,7 @@ export function ImportantAnnouncementModal() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Allow everywhere, but user specified homepage style behavior? 
+  // Allow everywhere, but user specified homepage style behavior?
   // Usually important announcements should show everywhere until dismissed.
   // But let's restrict to homepage to avoid interrupting playback/browsing too much if they prefer.
   const isHomepage = pathname === '/' || pathname === '';
@@ -125,7 +125,7 @@ export function ImportantAnnouncementModal() {
             )}
             <button
               onClick={handleClose}
-              className="btn-glass w-full py-4 text-[14px] font-bold uppercase tracking-widest text-white/40 hover:text-white"
+              className="btn-glass flex w-full items-center justify-center py-4 text-[14px] font-bold uppercase tracking-widest text-white/40 hover:text-white"
             >
               Got it, close
             </button>
