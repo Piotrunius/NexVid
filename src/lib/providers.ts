@@ -30,6 +30,7 @@ export function configureProviders(newConfig: ProviderConfig) {
 export const SOURCES: SourceMeta[] = [
   { id: 'febbox', name: 'FebBox', rank: 300, type: 'source' },
   { id: 'vixsrc', name: 'VixSrc', rank: 275, type: 'source' },
+  { id: '67movies', name: '67Movies', rank: 260, type: 'embed' },
   { id: 'videasy', name: 'Videasy', rank: 250, type: 'embed' },
   { id: 'vidlink', name: 'VidLink Pro', rank: 200, type: 'embed' },
 ];
@@ -37,6 +38,7 @@ export const SOURCES: SourceMeta[] = [
 const SOURCE_LABELS: Record<string, string> = {
   febbox: 'FebBox',
   vixsrc: 'VixSrc',
+  '67movies': '67Movies',
   videasy: 'Videasy',
   vidlink: 'VidLink Pro',
 };
@@ -63,6 +65,7 @@ export interface ScrapeOptions {
   sessionToken?: string | null;
   accentColor?: string;
   idlePauseOverlay?: boolean;
+  startAt?: number;
   episodeTmdbId?: string;
   seasonTmdbId?: string;
   seasonTitle?: string;
@@ -83,6 +86,27 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
   try {
     const sourceLabel = SOURCE_LABELS[sourceId] || sourceId;
     pushDebug(options, { step: sourceId, message: `Starting ${sourceLabel} resolution` });
+
+    if (sourceId === '67movies') {
+      options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
+      const baseUrl = 'https://67movies.ru';
+      let embedUrl = '';
+      if (options.mediaType === 'movie') {
+        embedUrl = `${baseUrl}/embed/movie/${options.tmdbId}`;
+      } else {
+        embedUrl = `${baseUrl}/embed/tv/${options.tmdbId}/${options.season || 1}/${options.episode || 1}`;
+      }
+
+      const url = new URL(embedUrl);
+      url.searchParams.set('autoPlay', 'true');
+      const color = (options.accentColor || '6366f1').replace('#', '');
+      url.searchParams.set('theme', color);
+      if (options.startAt) url.searchParams.set('startAt', String(Math.floor(options.startAt)));
+      
+      const stream: EmbedStream = { type: 'embed', url: url.toString() };
+      options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
+      return { sourceId, stream };
+    }
 
     // Videasy is a simple embed, can stay on client
     if (sourceId === 'videasy') {

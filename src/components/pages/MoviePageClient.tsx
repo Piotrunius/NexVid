@@ -282,13 +282,13 @@ export default function MoviePage({
             {/* Actions */}
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                href={`/watch/movie/${id}`}
+                href={`/watch/movie/${id}${watchlistItem?.progress?.timestamp ? `?t=${Math.floor(watchlistItem.progress.timestamp)}` : ''}`}
                 className="btn-accent !px-8 !py-3 text-[14px]"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5 3 19 12 5 21" />
                 </svg>
-                Watch Now
+                {watchlistItem?.progress?.timestamp && watchlistItem.progress.percentage && watchlistItem.progress.percentage < 95 ? 'Resume Watching' : 'Watch Now'}
               </Link>
 
               <button

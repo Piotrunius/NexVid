@@ -56,7 +56,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
 
   const watchlistItem = useWatchlistStore((s) => s.getByTmdbId(item.tmdbId));
   const progress = watchlistItem?.progress;
-  const hasProgress = mounted && progress && (progress.percentage || 0) > 1;
+  const hasProgress = mounted && progress && (progress.percentage || 0) > 0.1;
   const isShow = item.mediaType === 'show' || watchlistItem?.mediaType === 'show';
 
   const defaultHref = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;

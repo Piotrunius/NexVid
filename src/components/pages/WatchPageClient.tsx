@@ -311,6 +311,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
           sessionToken,
           accentColor: resolvedAccentHex.replace('#', ''),
           idlePauseOverlay,
+          startAt: seekTime,
         });
 
         const filteredResults = disableEmbeds
@@ -359,18 +360,24 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     setSourceResults([]);
     setSourceIndex(0);
     setShowResumeOverlay(false);
-    setAppliedSeekTime(resumeTimeFromUrl);
+    
+    // Fallback to stored progress if URL doesn't have a timestamp
+    let initialSeek = resumeTimeFromUrl;
+    const item = getByTmdbId(id);
+    const prog = item?.progress;
+    
+    const isSameType = item?.mediaType === type;
+    const isSameId = String(item?.tmdbId) === String(id);
+    const isSameEpisode = type === 'movie' || (prog?.season === seasonNum && prog?.episode === episodeNum);
+    const hasMeaningfulProgress = isSameType && isSameId && isSameEpisode && prog?.percentage;
+
+    if (initialSeek === 0 && hasMeaningfulProgress && prog?.timestamp) {
+        initialSeek = prog.timestamp;
+    }
+    
+    setAppliedSeekTime(initialSeek);
 
     try {
-      const item = getByTmdbId(id);
-      const prog = item?.progress;
-
-      // Strict comparison for type and ID
-      const isSameType = item?.mediaType === type;
-      const isSameId = String(item?.tmdbId) === String(id);
-      const isSameEpisode = type === 'movie' || (prog?.season === seasonNum && prog?.episode === episodeNum);
-      const hasMeaningfulProgress = isSameType && isSameId && isSameEpisode && prog?.percentage;
-
       if (hasMeaningfulProgress) {
         if (prog.percentage > 90) {
           setResumeData({ percentage: prog.percentage, timestamp: prog.timestamp || 0 });
@@ -388,7 +395,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         }
       }
 
-      await proceedWithScrape();
+      await proceedWithScrape(initialSeek);
     } catch (err) {
       console.error('Failed to load media:', err);
       setScrapeStatus('error');
@@ -432,41 +439,16 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     return () => reset();
   }, [loadMedia, reset]);
 
-  useEffect(() => {
-    if (!duration || duration < 30 || !currentTime || !media) return;
+  const saveProgress = useCallback((time: number, dur: number) => {
+    if (!time || !dur || dur < 30 || !media) return;
     const item = getByTmdbId(id);
-
-    const percent = Math.max(0, Math.min(100, (currentTime / duration) * 100));
-    if (percent < 0.5) return;
-
-    const now = Date.now();
-    const second = Math.floor(currentTime);
-    const key = `${id}:${type}:${seasonNum}:${episodeNum}`;
-    const last = lastProgressSyncRef.current;
-
-    if (last.key !== key) {
-      lastProgressSyncRef.current = { wallTime: 0, percent: 0, second: 0, key };
-    } else {
-      const movedEnoughInTime = Math.abs(second - last.second) >= 30;
-      const movedEnoughInPercent = Math.abs(percent - last.percent) >= 3.0;
-      const enoughWallTime = now - last.wallTime >= 25_000;
-
-      if (!(enoughWallTime && (movedEnoughInTime || movedEnoughInPercent))) {
-        return;
-      }
-    }
-
-    lastProgressSyncRef.current = {
-      wallTime: now,
-      percent,
-      second,
-      key,
-    };
+    const percent = Math.max(0, Math.min(100, (time / dur) * 100));
+    if (percent < 0.1) return;
 
     updateProgress(item?.id || '', {
       season: type === 'show' ? seasonNum : undefined,
       episode: type === 'show' ? episodeNum : undefined,
-      timestamp: Math.floor(currentTime),
+      timestamp: Math.floor(time),
       percentage: percent,
     }, {
       tmdbId: id,
@@ -474,7 +456,49 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
       title: media.title,
       posterPath: media.posterPath,
     });
-  }, [currentTime, duration, id, type, seasonNum, episodeNum, getByTmdbId, updateProgress, media]);
+  }, [id, type, seasonNum, episodeNum, getByTmdbId, updateProgress, media]);
+
+  // Handle unmount save
+  const progressRef = useRef({ currentTime, duration });
+  useEffect(() => {
+    progressRef.current = { currentTime, duration };
+  }, [currentTime, duration]);
+
+  useEffect(() => {
+    return () => {
+      const { currentTime: t, duration: d } = progressRef.current;
+      if (t > 0 && d > 0) {
+        saveProgress(t, d);
+      }
+    };
+  }, [saveProgress]);
+
+  useEffect(() => {
+    if (!duration || duration < 30 || !currentTime || !media) return;
+
+    const percent = Math.max(0, Math.min(100, (currentTime / duration) * 100));
+    if (percent < 0.1) return;
+
+    const now = Date.now();
+    const second = Math.floor(currentTime);
+    const key = `${id}:${type}:${seasonNum}:${episodeNum}`;
+    const last = lastProgressSyncRef.current;
+
+    if (last.key !== key) {
+      lastProgressSyncRef.current = { wallTime: now, percent, second, key };
+      // First save for this item can happen sooner (e.g., after 5s)
+      return;
+    }
+
+    const movedEnoughInTime = Math.abs(second - last.second) >= 20;
+    const movedEnoughInPercent = Math.abs(percent - last.percent) >= 2.0;
+    const enoughWallTime = now - last.wallTime >= 15_000; // Reduced from 25s to 15s
+
+    if (enoughWallTime && (movedEnoughInTime || movedEnoughInPercent)) {
+      lastProgressSyncRef.current = { wallTime: now, percent, second, key };
+      saveProgress(currentTime, duration);
+    }
+  }, [currentTime, duration, id, type, seasonNum, episodeNum, saveProgress]);
 
   useEffect(() => {
     try {
