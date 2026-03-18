@@ -213,9 +213,13 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     }
 
     try {
+      const headers: Record<string, string> = {};
+      if (introDbApiKey) headers['x-introdb-api-key'] = introDbApiKey;
+      if (sessionToken) headers['Authorization'] = `Bearer ${sessionToken}`;
+
       const response = await fetch(`/api/segments?${query.toString()}`, {
         signal: AbortSignal.timeout(9000),
-        headers: introDbApiKey ? { 'x-introdb-api-key': introDbApiKey } : undefined,
+        headers,
       });
       if (!response.ok) return EMPTY_SEGMENTS;
       const json = await response.json();

@@ -466,6 +466,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const autoSourceTimeoutRef = useRef<number | null>(null);
   const username = useAuthStore((s) => s.user?.username) || 'Guest';
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const sessionToken = useAuthStore((s) => s.authToken);
   const { addItem, getByTmdbId, setStatus: setWatchlistStatus } = useWatchlistStore();
 
   const mediaTmdbId = tmdbId || (media?.id ? String(media.id) : '');
@@ -2933,6 +2934,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                               endSec: parseFloat(submitEnd),
                               season: seasonNum,
                               episode: episodeNum,
+                              sessionToken: sessionToken || undefined,
                             });
                             setSubmitStatus(res.ok ? 'ok' : 'error');
                             setTimeout(() => setSubmitStatus('idle'), 2000);

@@ -3,6 +3,7 @@
    ============================================ */
 
 import { getCloudToken, saveCloudSettings } from '@/lib/cloudSync';
+import { PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
 import type { AccentColor, StreamQuality, UserSettings } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
