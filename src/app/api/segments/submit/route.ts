@@ -4,35 +4,22 @@ export const runtime = 'edge';
 
 const TIDB_V2_BASE = 'https://api.theintrodb.org/v2';
 const PUBLIC_TIDB_API_KEY_PLACEHOLDER = '__PUBLIC_TIDB_KEY__';
+// NOTE: This is a public (shared) key that is intentionally hardcoded so that
+// users can submit segments without needing to supply their own API key.
+// The client-side UI should still show the placeholder value to end users.
+const PUBLIC_TIDB_API_KEY_HARDCODED =
+  'theintrodb:user_3B7cSOVdPMaOgNF64iugv4b6yj5:ilo_pdil6Ojt-S_NHOy9K8-RrHTiLoLPPECA7HbbgQM';
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization');
     const body = await request.json();
     const { apiKey, tmdb_id, type, segment, start_sec, end_sec, season, episode, imdb_id } = body;
 
     let effectiveApiKey = apiKey;
     if (apiKey === PUBLIC_TIDB_API_KEY_PLACEHOLDER || !apiKey) {
-      // Verify session
-      let isValidSession = false;
-      if (authHeader?.startsWith('Bearer ')) {
-        try {
-          const baseUrl = process.env.APP_BASE_URL || new URL(request.url).origin;
-          const meRes = await fetch(`${baseUrl}/api/proxy-health`, {
-            headers: { Authorization: authHeader },
-            cache: 'no-store',
-          });
-          if (meRes.ok) isValidSession = true;
-        } catch {
-          isValidSession = false;
-        }
-      }
-
-      if (isValidSession) {
-        effectiveApiKey = process.env.TIDB_API_KEY;
-      } else {
-        return NextResponse.json({ ok: false, error: 'Authorization required to use public key' }, { status: 401 });
-      }
+      // Use the hardcoded public key when the client is using the placeholder.
+      // This keeps the placeholder visible on the client, but still allows submissions.
+      effectiveApiKey = PUBLIC_TIDB_API_KEY_HARDCODED;
     }
 
     if (!effectiveApiKey) {
