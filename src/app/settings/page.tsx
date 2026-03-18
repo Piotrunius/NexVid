@@ -317,7 +317,7 @@ export default function SettingsPage() {
                 autoComplete="new-password"
               />
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                <p className="text-[11px] text-text-muted leading-relaxed">Public TheIntroDB key is available only for signed-in users. It allows you to see and submit skip buttons.</p>
+                <p className="text-[11px] text-text-muted leading-relaxed">Public TheIntroDB key is available only for signed-in users.</p>
                 {isLoggedIn && !isPublicTidbKey(settings.introDbApiKey) && (
                   <button
                     onClick={() => {
@@ -346,12 +346,12 @@ export default function SettingsPage() {
                 type="password"
                 value={publicTokenActive ? 'PUBLIC_TOKEN_ACTIVE' : settings.febboxApiKey || ''}
                 onChange={(e) => store.updateSettings({ febboxApiKey: normalizeFebboxTokenForStorage(e.target.value) })}
-                placeholder={publicTokenActive ? 'Public token active (hidden)' : 'ui=...; auth_token=...'}
+                placeholder={publicTokenActive ? 'Public token active (hidden)' : 'ui=...'}
                 className="input w-full"
                 autoComplete="new-password"
               />
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                <p className="text-[11px] text-text-muted">Public FebBox token is available only for signed-in users. It is very slow and may be unstable.</p>
+                <p className="text-[11px] text-text-muted">Public FebBox token is available only for signed-in users.</p>
                 {isLoggedIn && !publicTokenActive ? (
                   <button
                     onClick={() => {
