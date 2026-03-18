@@ -73,7 +73,32 @@ export async function GET(request: NextRequest) {
       if (type === 'show' && season) upstream.searchParams.set('season', season);
       if (type === 'show' && episode) upstream.searchParams.set('episode', episode);
 
-      const apiKey = request.headers.get('x-introdb-api-key')?.trim();
+      const providedApiKey = request.headers.get('x-introdb-api-key')?.trim();
+      const authHeader = request.headers.get('Authorization');
+      let apiKey = providedApiKey;
+
+      if (providedApiKey === '__PUBLIC_TIDB_KEY__' || !providedApiKey) {
+        // Verify session for public key use
+        let isValidSession = false;
+        if (authHeader?.startsWith('Bearer ')) {
+          try {
+            const baseUrl = process.env.APP_BASE_URL || new URL(request.url).origin;
+            const meRes = await fetch(`${baseUrl}/api/proxy-health`, {
+              headers: { Authorization: authHeader },
+              cache: 'no-store',
+            });
+            if (meRes.ok) isValidSession = true;
+          } catch {
+            isValidSession = false;
+          }
+        }
+
+        if (isValidSession) {
+          apiKey = process.env.TIDB_API_KEY;
+        } else {
+          apiKey = undefined; // No key for anonymous if no custom key provided
+        }
+      }
       const res = await fetch(upstream.toString(), {
         method: 'GET',
         cache: 'no-store',

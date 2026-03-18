@@ -107,6 +107,7 @@ export interface SubmitSegmentParams {
   season?: number;
   episode?: number;
   imdbId?: string;
+  sessionToken?: string;
 }
 
 export interface SubmitSegmentResult {
@@ -119,30 +120,42 @@ export interface SubmitSegmentResult {
   error?: string;
 }
 
+export const PUBLIC_TIDB_API_KEY_PLACEHOLDER = '__PUBLIC_TIDB_KEY__';
+
+export function isPublicTidbKey(rawValue?: string | null): boolean {
+  return String(rawValue || '').trim() === PUBLIC_TIDB_API_KEY_PLACEHOLDER;
+}
+
 export async function submitSegment(params: SubmitSegmentParams): Promise<SubmitSegmentResult> {
   try {
+    const isPublic = isPublicTidbKey(params.apiKey);
+    
+    // If it's a public key, we use our own API proxy to hide the secret
+    // If it's a custom key, we can still use the proxy or go direct.
+    // Let's use the proxy for both to keep it consistent and handle the secret on the server.
     const body: Record<string, any> = {
       tmdb_id: Number(params.tmdbId),
       type: params.type === 'movie' ? 'movie' : 'tv',
       segment: params.segment,
       start_sec: params.startSec,
       end_sec: params.endSec,
+      apiKey: params.apiKey, // Pass the key (could be the placeholder)
     };
     if (params.type === 'show' && params.season != null) body.season = params.season;
     if (params.type === 'show' && params.episode != null) body.episode = params.episode;
     if (params.imdbId) body.imdb_id = params.imdbId;
 
-    const res = await fetch(`${TIDB_V2_BASE}/submit`, {
+    const res = await fetch('/api/segments/submit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${params.apiKey}`,
+        ...(params.sessionToken ? { Authorization: `Bearer ${params.sessionToken}` } : {}),
       },
       body: JSON.stringify(body),
     });
 
     const data = await res.json();
-    if (data?.ok) {
+    if (res.ok && data?.ok) {
       return { ok: true, submission: data.submission };
     }
     return { ok: false, error: data?.message || data?.error || 'Unknown error' };

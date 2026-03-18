@@ -7,6 +7,7 @@
 import { toast } from '@/components/ui/Toaster';
 import { clearCloudEverything, hasCloudBackend } from '@/lib/cloudSync';
 import { normalizeFebboxTokenForStorage, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER } from '@/lib/febbox';
+import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
@@ -301,20 +302,46 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <SettingsRow label="TheIntroDB">
               <p className="text-[11px] text-text-muted mb-1.5">
-                Required to submit timestamps. Get one at{' '}
+                Required to fetch and submit timestamps. Get your own at{' '}
                 <a href="https://theintrodb.org" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">theintrodb.org</a>
               </p>
               <input
                 type="password"
-                value={settings.introDbApiKey || ''}
-                onChange={(e) => store.updateSettings({ introDbApiKey: e.target.value })}
-                placeholder="TheIntroDB API key..."
+                value={isPublicTidbKey(settings.introDbApiKey) ? 'PUBLIC_KEY_ACTIVE' : settings.introDbApiKey || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  store.updateSettings({ introDbApiKey: val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_TIDB_API_KEY_PLACEHOLDER : val });
+                }}
+                placeholder={isPublicTidbKey(settings.introDbApiKey) ? 'Public key active (hidden)' : 'theintrodb:user_...'}
                 className="input w-full"
+                autoComplete="new-password"
               />
+              <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
+                <p className="text-[11px] text-text-muted leading-relaxed">Public TheIntroDB key is available only for signed-in users. It allows you to see and submit skip buttons.</p>
+                {isLoggedIn && !isPublicTidbKey(settings.introDbApiKey) && (
+                  <button
+                    onClick={() => {
+                      store.updateSettings({ introDbApiKey: PUBLIC_TIDB_API_KEY_PLACEHOLDER });
+                      toast('Public TheIntroDB key enabled', 'info');
+                    }}
+                    className="btn-glass mt-2 w-full text-[12px]"
+                  >
+                    Use public TheIntroDB key
+                  </button>
+                )}
+                {isLoggedIn && isPublicTidbKey(settings.introDbApiKey) && (
+                  <button
+                    onClick={() => { store.updateSettings({ introDbApiKey: '' }); toast('Public key cleared', 'info'); }}
+                    className="btn-glass mt-2 w-full text-[12px]"
+                  >
+                    Clear public key
+                  </button>
+                )}
+              </div>
             </SettingsRow>
 
             <SettingsRow label="FebBox UI Token">
-              <p className="text-[11px] text-text-muted mb-1.5">Recomended - Paste full cookie string or just the ui token.</p>
+              <p className="text-[11px] text-text-muted mb-1.5">Set up your own FebBox UI token by pasting the full cookie string or just the ui token</p>
               <input
                 type="password"
                 value={publicTokenActive ? 'PUBLIC_TOKEN_ACTIVE' : settings.febboxApiKey || ''}
