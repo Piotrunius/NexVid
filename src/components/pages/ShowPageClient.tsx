@@ -268,13 +268,17 @@ export default function ShowPage({
             {/* Actions */}
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                href={`/watch/show/${id}?s=${selectedSeason}&e=1`}
+                href={
+                  watchlistItem?.progress 
+                    ? `/watch/show/${id}?s=${watchlistItem.progress.season || 1}&e=${watchlistItem.progress.episode || 1}${watchlistItem.progress.timestamp ? `&t=${Math.floor(watchlistItem.progress.timestamp)}` : ''}`
+                    : `/watch/show/${id}?s=${selectedSeason}&e=1`
+                }
                 className="btn-accent !px-8 !py-3 text-[14px]"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <polygon points="5 3 19 12 5 21" />
                 </svg>
-                Watch Now
+                {watchlistItem?.progress?.percentage && watchlistItem.progress.percentage < 95 ? 'Resume Watching' : 'Watch Now'}
               </Link>
 
               <button
@@ -471,12 +475,16 @@ export default function ShowPage({
 
         {/* Episode Grid */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {seasonData?.episodes?.map((ep, index) => (
-            <Link
-              key={`${ep.id}-${ep.episodeNumber}-${index}`}
-              href={`/watch/show/${id}?s=${selectedSeason}&e=${ep.episodeNumber}`}
-              className="glass-card glass-liquid flex gap-3 p-3 group hover:border-accent/30 transition-all"
-            >
+          {seasonData?.episodes?.map((ep, index) => {
+            const isCurrentProgress = watchlistItem?.progress?.season === selectedSeason && watchlistItem?.progress?.episode === ep.episodeNumber;
+            const resumeTime = isCurrentProgress ? watchlistItem?.progress?.timestamp : 0;
+            
+            return (
+              <Link
+                key={`${ep.id}-${ep.episodeNumber}-${index}`}
+                href={`/watch/show/${id}?s=${selectedSeason}&e=${ep.episodeNumber}${resumeTime ? `&t=${Math.floor(resumeTime)}` : ''}`}
+                className="glass-card glass-liquid flex gap-3 p-3 group hover:border-accent/30 transition-all"
+              >
               <div className="relative h-20 w-36 flex-shrink-0 overflow-hidden rounded-[10px] bg-[var(--bg-tertiary)]">
                 {ep.stillPath ? (
                   <Image src={tmdbImage(ep.stillPath, 'w300')} alt={ep.name} fill sizes="144px" className="object-cover" />
@@ -499,7 +507,8 @@ export default function ShowPage({
                 <p className="mt-1 text-[11px] text-text-secondary line-clamp-2">{ep.overview}</p>
               </div>
             </Link>
-          ))}
+          );
+          })}
         </div>
       </div>
 

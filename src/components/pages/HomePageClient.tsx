@@ -13,7 +13,7 @@ export function HomePageClient() {
 
   const continueWatching = useMemo(
     () => items
-      .filter((item) => (item.progress?.percentage || 0) > 1 && !isBlocked(item.tmdbId, item.mediaType))
+      .filter((item) => (item.progress?.percentage || 0) > 0.1 && !isBlocked(item.tmdbId, item.mediaType))
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 12),
     [items, isBlocked]

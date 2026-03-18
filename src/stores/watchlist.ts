@@ -71,7 +71,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
           if (!item) return state;
 
           let next;
-          const hasSignificantProgress = (item.progress?.percentage || 0) > 1;
+          const hasSignificantProgress = (item.progress?.percentage || 0) > 0.1;
 
           if (hasSignificantProgress) {
             next = state.items.map((i: WatchlistItem) => 
