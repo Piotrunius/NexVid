@@ -302,7 +302,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <SettingsRow label="TheIntroDB">
               <p className="text-[11px] text-text-muted mb-1.5">
-                Required to fetch and submit timestamps. Get your own at{' '}
+                Required to submit timestamps. Get your own at{' '}
                 <a href="https://theintrodb.org" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">theintrodb.org</a>
               </p>
               <input
