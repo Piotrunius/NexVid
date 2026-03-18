@@ -29,7 +29,7 @@ export default function WatchlistPage() {
   const continueWatching = useMemo(
     () => items
       .filter((item: WatchlistItem) => 
-        (item.progress?.percentage || 0) > 1 &&
+        (item.progress?.percentage || 0) > 0.1 &&
         !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'show' ? 'tv' : 'movie'))
       )
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
