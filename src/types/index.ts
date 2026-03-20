@@ -107,7 +107,7 @@ export type MediaItem = Movie | Show;
 
 // ---- Stream Types ----
 
-export type StreamQuality = 'unknown' | '360' | '480' | '720' | '1080' | '4k';
+export type StreamQuality = 'unknown' | '360' | '480' | '720' | '1080' | '2k' | '4k';
 
 export interface StreamFile {
   type: 'mp4';

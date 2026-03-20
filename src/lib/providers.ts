@@ -5,16 +5,15 @@
    ============================================ */
 
 import type {
-  AudioTrack,
-  EmbedStream,
-  FileBasedStream,
-  HlsBasedStream,
-  MediaType,
-  ScrapeProgress,
-  SourceMeta,
-  SourceResult,
-  StreamFile,
-  StreamQuality,
+    EmbedStream,
+    FileBasedStream,
+    HlsBasedStream,
+    MediaType,
+    ScrapeProgress,
+    SourceMeta,
+    SourceResult,
+    StreamFile,
+    StreamQuality
 } from '@/types';
 
 interface ProviderConfig {
@@ -44,6 +43,7 @@ const SOURCE_LABELS: Record<string, string> = {
 export function mapQuality(raw: string): StreamQuality {
   const q = String(raw || '').toLowerCase();
   if (q.includes('4k') || q.includes('2160')) return '4k';
+  if (q.includes('2k') || q.includes('1440')) return '2k';
   if (q.includes('1080')) return '1080';
   if (q.includes('720')) return '720';
   if (q.includes('480')) return '480';
@@ -121,7 +121,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       }
 
       const url = new URL(embedUrl);
-      
+
       const accentMap: Record<string, string> = {
         indigo: '6366f1',
         violet: '8b5cf6',
@@ -163,7 +163,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
 
     if (options.febboxCookie) params.set('febboxToken', options.febboxCookie);
     params.set('source', sourceId);
-    
+
     options.onProgress?.({ id: sourceId, percentage: 30, status: 'pending' });
 
     const response = await fetch(`/api/stream?${params.toString()}`, {
@@ -173,12 +173,12 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       },
       signal: AbortSignal.timeout(25000),
     });
-    
+
     if (!response.ok) {
         options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
         return null;
     }
-    
+
     const data = await response.json();
     options.onProgress?.({ id: sourceId, percentage: 80, status: 'pending' });
 
@@ -221,7 +221,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
 
     if (streamData.qualities && typeof streamData.qualities === 'object') {
       const qualities: Partial<Record<StreamQuality, StreamFile>> = {};
-      
+
       if (Array.isArray(streamData.qualities)) {
           for (const q of streamData.qualities) {
               const mapped = mapQuality(q.quality || q.label || '');
