@@ -39,21 +39,25 @@ export function generateId(): string {
 export function getBestQuality(
   qualities: Partial<Record<string, { url: string }>>
 ): { quality: string; url: string } | null {
-  const order = ['4k', '1080', '720', '480', '360', 'unknown'];
+  const order = ['4k', '2k', '1080', '720', '480', '360', 'unknown'];
   for (const q of order) {
     if (qualities[q]) return { quality: q, url: qualities[q]!.url };
   }
+  // fall back for upstream 1440 labels
+  if (qualities['1440']) return { quality: '2k', url: qualities['1440']!.url };
   return null;
 }
 
 export function getQualityLabel(quality: string): string {
   const labels: Record<string, string> = {
-    '4k': '2160p (4K)',
-    '1080': '1080p HD',
-    '720': '720p',
-    '480': '480p',
-    '360': '360p',
-    unknown: 'Original Source',
+    '4k': '2160p (UHD)',
+    '2k': '1440p (QHD)',
+    '1440': '1440p (QHD)',
+    '1080': '1080p (FHD)',
+    '720': '720p (HD)',
+    '480': '480p (SD)',
+    '360': '360p (SD)',
+    unknown: 'Unknown Quality',
   };
   return labels[quality] || quality;
 }

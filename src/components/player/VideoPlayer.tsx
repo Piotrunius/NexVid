@@ -78,6 +78,7 @@ function normalizeQualityKey(raw: string): StreamQuality | null {
   const value = String(raw || '').trim().toLowerCase();
   if (!value) return null;
   if (value === '4k' || value === '2160' || value.includes('2160')) return '4k';
+  if (value === '2k' || value === '1440' || value.includes('1440')) return '2k';
   if (value === '1080' || value.includes('1080')) return '1080';
   if (value === '720' || value.includes('720')) return '720';
   if (value === '480' || value.includes('480')) return '480';
@@ -87,12 +88,13 @@ function normalizeQualityKey(raw: string): StreamQuality | null {
 }
 
 function getQualitySortWeight(quality: StreamQuality): number {
-  if (quality === '1080') return 0;
-  if (quality === '720') return 1;
-  if (quality === '480') return 2;
-  if (quality === '360') return 3;
-  if (quality === '4k') return 4;
-  return 5;
+  if (quality === '4k') return 0;
+  if (quality === '2k') return 1;
+  if (quality === '1080') return 2;
+  if (quality === '720') return 3;
+  if (quality === '480') return 4;
+  if (quality === '360') return 5;
+  return 6;
 }
 
 function getNormalizedQualityEntries(qualities: Record<string, { url: string } | undefined>): NormalizedQualityEntry[] {
@@ -111,7 +113,7 @@ function getNormalizedQualityEntries(qualities: Record<string, { url: string } |
 
 function getPreferredManualQuality(entries: NormalizedQualityEntry[], preferred: StreamQuality): StreamQuality | null {
   if (entries.some((entry) => entry.quality === preferred)) return preferred;
-  const fallbackOrder: StreamQuality[] = ['1080', '720', '480', '360', '4k', 'unknown'];
+  const fallbackOrder: StreamQuality[] = ['2k', '1080', '720', '480', '360', '4k', 'unknown'];
   return fallbackOrder.find((quality) => entries.some((entry) => entry.quality === quality)) || null;
 }
 
@@ -963,9 +965,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       const Hls = (await import('hls.js')).default;
       if (Hls.isSupported()) {
         if (hlsRef.current) hlsRef.current.destroy();
-        const hls = new Hls({ 
-          maxBufferLength: 60, 
-          maxMaxBufferLength: 90, 
+        const hls = new Hls({
+          maxBufferLength: 60,
+          maxMaxBufferLength: 90,
           enableWorker: true,
           lowLatencyMode: false
         });
