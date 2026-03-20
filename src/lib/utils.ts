@@ -57,7 +57,7 @@ export function getQualityLabel(quality: string): string {
     '720': '720p (HD)',
     '480': '480p (SD)',
     '360': '360p (SD)',
-    unknown: 'Unknown Quality',
+    'unknown': 'Unknown',
   };
   return labels[quality] || quality;
 }
