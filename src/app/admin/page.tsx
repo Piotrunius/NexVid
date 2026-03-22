@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-  addAdminBlockedMedia,
-  banAdminTarget,
-  clearAllActiveSessions,
-  cloudFetch,
-  createAdminAnnouncement,
-  deleteAdminAccountLimit,
-  deleteAdminAnnouncement,
-  deleteAdminBlockedMedia,
-  deleteAdminFeedbackThread,
-  deleteAdminUserByUsername,
-  grantAdminPermission,
-  loadAdminAccountLimits,
-  loadAdminAnnouncements,
-  loadAdminAuditLogs,
-  loadAdminBans,
-  loadAdminBlockedMedia,
-  loadAdminFeedbackMessages,
-  loadAdminFeedbackThreads,
-  loadAdminGrantList,
-  loadAdminOverview,
-  loadAdminUsers,
-  lookupAdminAccounts,
-  replyAdminFeedbackThread,
-  resetUserPassword,
-  revokeAdminPermission,
-  setAdminAccountLimit,
-  unbanAdminTarget,
-  updateAdminAnnouncement,
+    addAdminBlockedMedia,
+    banAdminTarget,
+    clearAllActiveSessions,
+    cloudFetch,
+    createAdminAnnouncement,
+    deleteAdminAccountLimit,
+    deleteAdminAnnouncement,
+    deleteAdminBlockedMedia,
+    deleteAdminFeedbackThread,
+    deleteAdminUserByUsername,
+    grantAdminPermission,
+    loadAdminAccountLimits,
+    loadAdminAnnouncements,
+    loadAdminAuditLogs,
+    loadAdminBans,
+    loadAdminBlockedMedia,
+    loadAdminFeedbackMessages,
+    loadAdminFeedbackThreads,
+    loadAdminGrantList,
+    loadAdminOverview,
+    loadAdminUsers,
+    lookupAdminAccounts,
+    replyAdminFeedbackThread,
+    resetUserPassword,
+    revokeAdminPermission,
+    setAdminAccountLimit,
+    unbanAdminTarget,
+    updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -509,7 +509,7 @@ export default function AdminPage() {
     try {
       const result = await lookupAdminAccounts(lookupType, value);
       setLookupResult(result);
-      toast('Lookup completed', 'success');
+      toast('Lookup Completed', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to lookup accounts', 'error');
     } finally {
@@ -974,9 +974,9 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="transition-all duration-300" style={{ opacity: isImportant ? 1 : 0.5, pointerEvents: isImportant ? 'auto' : 'none' }}>
-                  <select 
-                    className="input w-full" 
-                    value={announcementType} 
+                  <select
+                    className="input w-full"
+                    value={announcementType}
                     onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}
                     disabled={!isImportant}
                   >
@@ -1505,16 +1505,16 @@ export default function AdminPage() {
                     <p className="text-[10px] text-white/20 mt-3 font-medium">{new Date(item.updatedAt).toLocaleString()}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button 
-                      className={cn("btn-glass flex-1 text-[11px] py-2", item.isActive && "bg-white/10")} 
-                      disabled={isSubmitting} 
+                    <button
+                      className={cn("btn-glass flex-1 text-[11px] py-2", item.isActive && "bg-white/10")}
+                      disabled={isSubmitting}
                       onClick={() => handleToggleAnnouncement(item)}
                     >
                       {item.isActive ? 'Deactivate' : 'Activate'}
                     </button>
-                    <button 
-                      className="btn-glass text-red-400 text-[11px] p-2" 
-                      disabled={isSubmitting} 
+                    <button
+                      className="btn-glass text-red-400 text-[11px] p-2"
+                      disabled={isSubmitting}
                       onClick={() => handleDeleteAnnouncement(item.id)}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>

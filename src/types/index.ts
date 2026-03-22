@@ -224,7 +224,7 @@ export type AccentColor = 'indigo' | 'violet' | 'rose' | 'emerald' | 'amber' | '
 export type Theme = 'dark' | 'light';
 // ---- Watchlist Types ----
 
-export type WatchlistStatus = 'planned' | 'watching' | 'completed' | 'dropped' | 'on-hold' | 'none';
+export type WatchlistStatus = 'Planned' | 'Watching' | 'Completed' | 'Dropped' | 'On-Hold' | 'none';
 
 export interface WatchlistItem {
   id: string;

@@ -4,7 +4,7 @@
 
 import { getCloudToken, saveCloudWatchlist } from '@/lib/cloudSync';
 import { generateId } from '@/lib/utils';
-import type { WatchlistItem, WatchlistStatus, MediaType } from '@/types';
+import type { MediaType, WatchlistItem, WatchlistStatus } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -39,9 +39,9 @@ export const useWatchlistStore = create<WatchlistStore>()(
       addItem: (item) => {
         const existing = get().items.find((i) => i.tmdbId === item.tmdbId);
         if (existing) {
-          // If already in list but hidden (only in continue watching), unhide it
+          // If already in list but hidden (only in continue Watching), unhide it
           if (existing.status === 'none' || existing.hidden) {
-             get().updateItem(existing.id, { status: item.status || 'planned', hidden: false });
+             get().updateItem(existing.id, { status: item.status || 'Planned', hidden: false });
           }
           return;
         }
@@ -51,7 +51,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
           id: generateId(),
           addedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          status: item.status || 'planned',
+          status: item.status || 'Planned',
         };
         set((state: any) => {
           const next = [...state.items, newItem];
@@ -74,7 +74,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
           const hasSignificantProgress = (item.progress?.percentage || 0) > 0.1;
 
           if (hasSignificantProgress) {
-            next = state.items.map((i: WatchlistItem) => 
+            next = state.items.map((i: WatchlistItem) =>
               i.id === id ? { ...i, status: 'none', hidden: true, updatedAt: new Date().toISOString() } : i
             );
           } else {
@@ -98,7 +98,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
           if (item.status === 'none') {
             next = state.items.filter((i: WatchlistItem) => i.id !== id);
           } else {
-            next = state.items.map((i: WatchlistItem) => 
+            next = state.items.map((i: WatchlistItem) =>
               i.id === id ? { ...i, progress: undefined, updatedAt: new Date().toISOString() } : i
             );
           }
@@ -137,8 +137,8 @@ export const useWatchlistStore = create<WatchlistStore>()(
           const next = state.items.map((i: WatchlistItem) => {
             if (i.id === id || (mediaMeta && String(i.tmdbId) === String(mediaMeta.tmdbId))) {
               found = true;
-              // Do NOT auto-change status to 'watching' anymore. 
-              // Keep existing status (could be 'none', 'planned', etc.)
+              // Do NOT auto-change status to 'Watching' anymore.
+              // Keep existing status (could be 'none', 'Planned', etc.)
               return { ...i, progress, updatedAt: new Date().toISOString() };
             }
             return i;

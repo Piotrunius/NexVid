@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import { cloudFetch } from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { toast } from './Toaster';
 
 interface SurveyQuestion {
@@ -53,7 +53,7 @@ export function SurveyModal() {
 
         const surveyId = surveyData.id;
         const lastClosed = localStorage.getItem(`survey_hide_${surveyId}`);
-        const isCompleted = localStorage.getItem(`survey_completed_${surveyId}`);
+        const isCompleted = localStorage.getItem(`survey_Completed_${surveyId}`);
 
         if (isCompleted) return;
         if (lastClosed && Date.now() - parseInt(lastClosed) < HIDE_DURATION_MS) return;
@@ -95,7 +95,7 @@ export function SurveyModal() {
           answers,
         }),
       });
-      localStorage.setItem(`survey_completed_${survey.id}`, 'true');
+      localStorage.setItem(`survey_Completed_${survey.id}`, 'true');
       toast('Thank you for your feedback!', 'success');
       setIsVisible(false);
     } catch (err: any) {

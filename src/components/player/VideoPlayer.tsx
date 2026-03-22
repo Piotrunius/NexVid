@@ -2409,7 +2409,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                       <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 px-4" onClick={() => setShowInfoWatchlistMenu(false)}>
                         <div className="w-full max-w-xs rounded-[14px] bg-black/90 p-2.5 shadow-[0_16px_50px_rgba(0,0,0,0.75)]" onClick={(e) => e.stopPropagation()}>
                           <p className="px-2 pb-1.5 text-[11px] font-semibold text-white/70">Add to List</p>
-                          {(['planned', 'watching', 'completed', 'dropped', 'on-hold'] as WatchlistStatus[]).map((status) => (
+                          {(['Planned', 'Watching', 'Completed', 'Dropped', 'On-Hold'] as WatchlistStatus[]).map((status) => (
                             <button
                               key={status}
                               onClick={() => handleInfoWatchlistAction(status)}
