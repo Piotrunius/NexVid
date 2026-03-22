@@ -236,11 +236,6 @@ export default function ShowPage({
               <p className={cn('text-[14px] text-text-secondary leading-relaxed', !showFullOverview && 'line-clamp-4')}>
                 {show.overview}
               </p>
-              {show.overview.length > 250 && (
-                <button onClick={() => setShowFullOverview(v => !v)} className="text-accent text-[13px] mt-1 hover:underline">
-                  {showFullOverview ? 'Show less' : 'Read more'}
-                </button>
-              )}
             </div>
 
             {/* Quick Facts */}
@@ -269,7 +264,7 @@ export default function ShowPage({
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href={
-                  watchlistItem?.progress 
+                  watchlistItem?.progress
                     ? `/watch/show/${id}?s=${watchlistItem.progress.season || 1}&e=${watchlistItem.progress.episode || 1}${watchlistItem.progress.timestamp ? `&t=${Math.floor(watchlistItem.progress.timestamp)}` : ''}`
                     : `/watch/show/${id}?s=${selectedSeason}&e=1`
                 }
@@ -312,7 +307,7 @@ export default function ShowPage({
                 </button>
                 {showWatchlistMenu && (
                   <div className="absolute top-full left-0 mt-2 w-44 panel-glass rounded-[12px] p-1.5 z-10 animate-scale-in">
-                    {(['planned', 'watching', 'completed', 'dropped', 'on-hold'] as WatchlistStatus[]).map((status) => (
+                    {(['Planned', 'Watching', 'Completed', 'Dropped', 'On-Hold'] as WatchlistStatus[]).map((status) => (
                       <button
                         key={status}
                         onClick={() => { handleWatchlistAction(status); setShowWatchlistMenu(false); }}
@@ -478,7 +473,7 @@ export default function ShowPage({
           {seasonData?.episodes?.map((ep, index) => {
             const isCurrentProgress = watchlistItem?.progress?.season === selectedSeason && watchlistItem?.progress?.episode === ep.episodeNumber;
             const resumeTime = isCurrentProgress ? watchlistItem?.progress?.timestamp : 0;
-            
+
             return (
               <Link
                 key={`${ep.id}-${ep.episodeNumber}-${index}`}

@@ -1,19 +1,19 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { MediaRow, MediaRowSkeleton } from './MediaCard';
 import { getRecommendations } from '@/lib/tmdb';
-import { useWatchlistStore } from '@/stores/watchlist';
-import { useBlockedContentStore } from '@/stores/blockedContent';
 import { cn } from '@/lib/utils';
+import { useBlockedContentStore } from '@/stores/blockedContent';
+import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import { MediaRow, MediaRowSkeleton } from './MediaCard';
 
 export function RecommendationRows() {
   const { items } = useWatchlistStore();
-  
+
   const eligibleItems = useMemo(() => {
     return items
-      .filter((i) => (i.progress?.percentage || 0) > 10 || i.status === 'completed')
+      .filter((i) => (i.progress?.percentage || 0) > 10 || i.status === 'Completed')
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5);
   }, [items]);
@@ -33,8 +33,8 @@ export function RecommendationRows() {
     }
   }, [eligibleItems, selectedId]);
 
-  const selectedItem = useMemo(() => 
-    eligibleItems.find(i => i.id === selectedId), 
+  const selectedItem = useMemo(() =>
+    eligibleItems.find(i => i.id === selectedId),
     [eligibleItems, selectedId]
   );
 
@@ -50,7 +50,7 @@ export function RecommendationRows() {
         const apiType = selectedItem.mediaType === 'show' ? 'tv' : 'movie';
         const recs = await getRecommendations(apiType, selectedItem.tmdbId);
         const filteredRecs = recs.filter(
-          (rec) => 
+          (rec) =>
             !items.some((i) => String(i.tmdbId) === String(rec.tmdbId)) &&
             !isBlocked(rec.tmdbId, rec.mediaType)
         );
@@ -73,7 +73,7 @@ export function RecommendationRows() {
       <h2 className="text-[20px] font-semibold text-white tracking-tight">
         Because you watched <span className="text-accent">{selectedItem?.title}</span>
       </h2>
-      
+
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {eligibleItems.map((item) => (
           <button

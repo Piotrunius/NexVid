@@ -4,7 +4,7 @@
 
 'use client';
 
-import { cn, tmdbImage, formatTime } from '@/lib/utils';
+import { cn, formatTime, tmdbImage } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem, WatchlistStatus } from '@/types';
 import Image from 'next/image';
@@ -17,7 +17,7 @@ interface MediaCardProps {
   showType?: boolean;
 }
 
-const STATUSES: WatchlistStatus[] = ['planned', 'watching', 'completed', 'dropped', 'on-hold'];
+const STATUSES: WatchlistStatus[] = ['Planned', 'Watching', 'Completed', 'Dropped', 'On-Hold'];
 
 function formatRelativeTime(dateString: string): string {
   try {
@@ -37,15 +37,15 @@ function formatRelativeTime(dateString: string): string {
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
   switch (status) {
-    case 'planned':
+    case 'Planned':
       return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>;
-    case 'watching':
+    case 'Watching':
       return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-    case 'completed':
+    case 'Completed':
       return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>;
-    case 'dropped':
+    case 'Dropped':
       return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>;
-    case 'on-hold':
+    case 'On-Hold':
       return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>;
   }
 }
@@ -60,7 +60,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
   const isShow = item.mediaType === 'show' || watchlistItem?.mediaType === 'show';
 
   const defaultHref = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
-  
+
   const watchUrl = hasProgress
     ? `/watch/${item.mediaType || watchlistItem?.mediaType}/${item.tmdbId}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
     : defaultHref;
@@ -230,12 +230,12 @@ interface MediaRowProps {
   seeAllLabel?: string;
 }
 
-export function MediaRow({ 
-  title, 
-  items, 
-  href, 
-  showType, 
-  enableControls = false, 
+export function MediaRow({
+  title,
+  items,
+  href,
+  showType,
+  enableControls = false,
   seeAllAsButton = false,
   noPadding = false,
   noHeader = false,

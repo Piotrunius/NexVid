@@ -2,9 +2,9 @@
 
 import { MediaRow } from '@/components/media/MediaCard';
 import { RecommendationRows } from '@/components/media/RecommendationRows';
-import { useWatchlistStore } from '@/stores/watchlist';
 import { useBlockedContentStore } from '@/stores/blockedContent';
-import { useRef, useMemo } from 'react';
+import { useWatchlistStore } from '@/stores/watchlist';
+import { useMemo, useRef } from 'react';
 
 export function HomePageClient() {
   const { items } = useWatchlistStore();

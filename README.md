@@ -24,7 +24,7 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 - Source aggregation from built-in providers (FebBox, VixSrc, Videasy, VidLink).
 - HLS.js-based player with keyboard shortcuts, quality selection, captions, and seek.
 - Optional skip intro/outro via TheIntroDataBase (TIDB).
-- Watchlist (planned/watching/completed/dropped/on-hold) with import/export support.
+- Watchlist (Planned/Watching/Completed/Dropped/On-Hold) with import/export support.
 - User settings persisted in localStorage + synchronized to Cloudflare D1.
 - Cloudflare Worker proxy for CORS, HLS manifest re-writing, and authentication.
 - Responsive UI with toggleable “Liquid Glass” theme and multiple accent colors.

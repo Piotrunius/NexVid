@@ -5,19 +5,19 @@
 'use client';
 
 import { cn, tmdbImage } from '@/lib/utils';
-import { useWatchlistStore } from '@/stores/watchlist';
 import { useBlockedContentStore } from '@/stores/blockedContent';
+import { useWatchlistStore } from '@/stores/watchlist';
 import type { WatchlistItem, WatchlistStatus } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 const STATUSES: { key: WatchlistStatus; label: string; emoji: string; color: string }[] = [
-  { key: 'watching', label: 'Watching', emoji: '▶', color: 'text-blue-400' },
-  { key: 'planned', label: 'Planned', emoji: '＋', color: 'text-yellow-400' },
-  { key: 'completed', label: 'Completed', emoji: '✓', color: 'text-green-400' },
-  { key: 'on-hold', label: 'On Hold', emoji: '⏸', color: 'text-orange-400' },
-  { key: 'dropped', label: 'Dropped', emoji: '✕', color: 'text-red-400' },
+  { key: 'Watching', label: 'Watching', emoji: '▶', color: 'text-blue-400' },
+  { key: 'Planned', label: 'Planned', emoji: '＋', color: 'text-yellow-400' },
+  { key: 'Completed', label: 'Completed', emoji: '✓', color: 'text-green-400' },
+  { key: 'On-Hold', label: 'On Hold', emoji: '⏸', color: 'text-orange-400' },
+  { key: 'Dropped', label: 'Dropped', emoji: '✕', color: 'text-red-400' },
 ];
 
 export default function WatchlistPage() {
@@ -28,7 +28,7 @@ export default function WatchlistPage() {
 
   const continueWatching = useMemo(
     () => items
-      .filter((item: WatchlistItem) => 
+      .filter((item: WatchlistItem) =>
         (item.progress?.percentage || 0) > 0.1 &&
         !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'show' ? 'tv' : 'movie'))
       )
@@ -39,15 +39,15 @@ export default function WatchlistPage() {
 
   const filteredItems = useMemo(() => {
     // Exclude items with status 'none' (those are only for Continue Watching)
-    let list = items.filter(i => 
+    let list = items.filter(i =>
       i.status !== 'none' &&
       !blockedItems.some(b => String(b.tmdbId) === String(i.tmdbId) && b.mediaType === (i.mediaType === 'show' ? 'tv' : 'movie'))
     );
-    
+
     if (activeStatus !== 'all') {
       list = list.filter((i: WatchlistItem) => i.status === activeStatus);
     }
-    
+
     list = [...list].sort((a: WatchlistItem, b: WatchlistItem) => {
       if (sortBy === 'title') return a.title.localeCompare(b.title);
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
@@ -57,7 +57,7 @@ export default function WatchlistPage() {
   }, [items, activeStatus, sortBy]);
 
   const statusCounts = useMemo(() => {
-    const activeItems = items.filter(i => 
+    const activeItems = items.filter(i =>
       i.status !== 'none' &&
       !blockedItems.some(b => String(b.tmdbId) === String(i.tmdbId) && b.mediaType === (i.mediaType === 'show' ? 'tv' : 'movie'))
     );

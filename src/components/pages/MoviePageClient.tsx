@@ -232,11 +232,6 @@ export default function MoviePage({
               <p className={cn('text-[14px] text-text-secondary leading-relaxed', !showFullOverview && 'line-clamp-4')}>
                 {movie.overview}
               </p>
-              {movie.overview.length > 300 && (
-                <button onClick={() => setShowFullOverview(v => !v)} className="text-accent text-[13px] mt-1 hover:underline">
-                  {showFullOverview ? 'Show less' : 'Read more'}
-                </button>
-              )}
             </div>
 
             {/* Quick Facts */}
@@ -323,7 +318,7 @@ export default function MoviePage({
                 </button>
                 {showWatchlistMenu && (
                   <div className="absolute top-full left-0 mt-2 w-44 panel-glass rounded-[12px] p-1.5 z-10 animate-scale-in">
-                    {(['planned', 'watching', 'completed', 'dropped', 'on-hold'] as WatchlistStatus[]).map((status) => (
+                    {(['Planned', 'Watching', 'Completed', 'Dropped', 'On-Hold'] as WatchlistStatus[]).map((status) => (
                       <button
                         key={status}
                         onClick={() => { handleWatchlistAction(status); setShowWatchlistMenu(false); }}
