@@ -18,6 +18,7 @@ export interface Env {
   RESEND_API_KEY?: string;
   BREVO_API_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
+  GROQ_API_KEY?: string;
 }
 
 const PASSWORD_ITERATIONS = 100_000;
@@ -3203,6 +3204,115 @@ async function handleAiLimits(request: Request, env: Env): Promise<Response> {
   return json(request, env, { error: 'Method not allowed' }, 405);
 }
 
+async function handleAiRecommend(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+
+  if (!env.GROQ_API_KEY) {
+    return json(request, env, { error: 'AI not configured on server' }, 500);
+  }
+
+  await ensureAiUsageTable(env);
+  const today = new Date().toISOString().split('T')[0];
+
+  // 1. Check Limits
+  const record = await env.DB.prepare('SELECT count FROM ai_usage WHERE user_id = ? AND date = ?')
+    .bind(session.user.id, today)
+    .first<{ count: number }>();
+
+  const count = record?.count || 0;
+  if (count >= 5) {
+    return json(request, env, { error: 'Daily limit reached (5/5). Come back tomorrow!' }, 429);
+  }
+
+  // 2. Process Request
+  const body = await readJson<{ mood?: string; type?: string; selectedGenres?: string[]; selectedMoods?: string[]; era?: string }>(request);
+  const { mood, type, selectedGenres, selectedMoods, era } = body;
+
+  const systemPrompt = `You are a movie expert. Your goal is to find 10 movies or TV shows based on the user's specific genre, vibe, and era preferences.
+
+Selected Genres: ${selectedGenres?.join(', ') || 'Any'}
+Selected Moods/Vibes: ${selectedMoods?.join(', ') || 'Any'}
+Preferred Era: ${era || 'Any'}
+Additional Description: ${mood || 'None'}
+
+Return ONLY raw JSON in the following format (10 recommendations):
+{
+  "recommendations": [
+    {
+      "title": "Exact English or Original Title",
+      "year": 2024,
+      "genres": ["Genre1", "Genre2"],
+      "reason": "Short, one-sentence reason why this fits (in English).",
+      "match_score": 95
+    }
+  ]
+}
+
+IMPORTANT:
+1. Provide exactly 10 recommendations.
+2. The 'title' MUST be the official English title or the Original title as listed on TMDB.
+3. 'genres' should be an array of 2-3 main genres.
+4. 'match_score' is a number between 1 and 100.
+5. 'reason' must be in English.
+6. Strictly respect the 'Era' filter if provided (e.g., if '90s', only recommend titles from 1990-1999).`;
+
+  const userPrompt = `I am looking for a: ${type === 'show' ? 'TV Show' : 'Movie'}.
+Focus on these Genres: ${selectedGenres?.join(', ') || 'Any'}.
+Vibe: ${selectedMoods?.join(', ') || 'Any'}.
+Era: ${era || 'Any'}.
+${mood ? `Extra details: ${mood}` : ''}
+
+Task: Recommend 10 titles that perfectly match these criteria.`;
+
+  try {
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.6,
+        max_tokens: 2048,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!groqRes.ok) {
+      const errorText = await groqRes.text();
+      console.error('Groq API Error:', errorText);
+      return json(request, env, { error: 'AI Connection Error' }, 502);
+    }
+
+    const data = await groqRes.json() as any;
+    const content = data.choices[0]?.message?.content;
+
+    if (!content) {
+      return json(request, env, { error: 'Empty response from AI' }, 500);
+    }
+
+    const jsonResponse = JSON.parse(content);
+
+    // 3. Increment Limit on Success
+    await env.DB.prepare(`
+      INSERT INTO ai_usage (user_id, date, count) VALUES (?, ?, 1)
+      ON CONFLICT(user_id, date) DO UPDATE SET count = count + 1
+    `).bind(session.user.id, today).run();
+
+    return json(request, env, jsonResponse);
+
+  } catch (error: any) {
+    console.error('AI Recommend Error:', error);
+    return json(request, env, { error: 'AI Generation failed' }, 500);
+  }
+}
+
 /* ──── Router ──── */
 
 /* ──── Surveys & Feedback ──── */
@@ -3485,6 +3595,9 @@ export default {
           return await handleHlsProxy(request, env);
         case '/direct-resolver':
           return await handleDirectResolver(request, env);
+        case '/ai/recommend':
+          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAiRecommend(request, env);
         default:
           return new Response(JSON.stringify({ error: 'Not found' }), {
             status: 404,
