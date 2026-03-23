@@ -3481,9 +3481,6 @@ export default {
         case '/auth/me':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleMe(request, env);
-        case '/user/ai-limits':
-          if (!['GET', 'POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
-          return await handleAiLimits(request, env);
         case '/user/settings':
           if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleSettings(request, env);

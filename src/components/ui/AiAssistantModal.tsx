@@ -200,14 +200,6 @@ export function AiAssistantModal({
                         <Sparkles className="w-5 h-5 text-accent" />
                         AI Assistant
                       </Dialog.Title>
-                      {usage && (
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-wider mt-0.5 ml-7",
-                          usage.count >= usage.limit ? "text-red-400" : "text-white/40"
-                        )}>
-                          Daily Limit: {usage.count}/{usage.limit}
-                        </span>
-                      )}
                     </div>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors">
                       <X className="w-5 h-5" />
@@ -456,11 +448,11 @@ export function AiAssistantModal({
                       {step === 'input' ? (
                         <button
                           onClick={handleGenerate}
-                          disabled={isLocalUser || (selectedGenres.length === 0 && selectedMoods.length === 0 && !mood.trim()) || (usage?.count || 0) >= (usage?.limit || 5)}
+                          disabled={isLocalUser || (selectedGenres.length === 0 && selectedMoods.length === 0 && !mood.trim())}
                           className="group w-full py-4 bg-accent text-white font-bold text-sm sm:text-base uppercase tracking-wider rounded-xl hover:bg-accent/90 hover:shadow-[0_0_25px_var(--accent-glow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3"
                         >
                           <Sparkles className="w-5 h-5 sm:w-4 sm:h-4" />
-                          {isLocalUser ? "Cloud Account Required" : (usage && usage.count >= usage.limit ? "Daily Limit Reached" : "Generate recommendations")}
+                          {isLocalUser ? "Cloud Account Required" : "Generate recommendations"}
                         </button>
                       ) : (
                         <button
