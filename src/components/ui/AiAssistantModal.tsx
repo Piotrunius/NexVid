@@ -42,7 +42,6 @@ export function AiAssistantModal({
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [type, setType] = useState<'movie' | 'show'>('movie');
   const [era, setEra] = useState('All Time');
-  const [isEraOpen, setIsEraOpen] = useState(false);
   const [recommendations, setRecommendations] = useState<AiRecommendation[]>([]);
   const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -76,7 +75,7 @@ export function AiAssistantModal({
   };
 
 const handleGenerate = async () => {
-    if (selectedGenres.length === 0 && !mood.trim()) return;
+    // mood is optional, it can add context but genres are the main filter.
 
     setStep('loading');
     setRecommendations([]);
@@ -223,44 +222,21 @@ setEra('All Time');
                           </div>
 
                           {/* Era Dropdown */}
-                          <div className="relative">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-white/40 uppercase">Era:</span>
-                              <button
-                                onClick={() => setIsEraOpen(!isEraOpen)}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all"
-                              >
-                                {era}
-                                <ChevronDown className={cn("w-3 h-3 transition-transform", isEraOpen && "rotate-180")} />
-                              </button>
+                          <div className="w-full overflow-x-auto py-2">
+                            <div className="flex gap-2 px-1">
+                              {ERAS.map((e) => (
+                                <button
+                                  key={e}
+                                  onClick={() => setEra(e)}
+                                  className={cn(
+                                    "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
+                                    era === e ? "bg-accent text-black" : "bg-white/10 text-white/70 hover:bg-white/20"
+                                  )}
+                                >
+                                  {e}
+                                </button>
+                              ))}
                             </div>
-
-                            <AnimatePresence>
-                              {isEraOpen && (
-                                <>
-                                  <div className="fixed inset-0 z-40" onClick={() => setIsEraOpen(false)} />
-                                  <motion.div
-                                    initial={{ opacity: 0, y: 5, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                                    className="absolute right-0 top-full mt-2 w-32 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 py-1"
-                                  >
-                                    {ERAS.map((e) => (
-                                      <button
-                                        key={e}
-                                        onClick={() => { setEra(e); setIsEraOpen(false); }}
-                                        className={cn(
-                                          "w-full text-left px-4 py-2 text-xs font-medium transition-colors hover:bg-white/10",
-                                          era === e ? "text-accent" : "text-white/70"
-                                        )}
-                                      >
-                                        {e}
-                                      </button>
-                                    ))}
-                                  </motion.div>
-                                </>
-                              )}
-                            </AnimatePresence>
                           </div>
                         </div>
 
