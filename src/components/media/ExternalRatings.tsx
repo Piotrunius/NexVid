@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useAuthStore } from '@/stores/auth';
 
 interface Rating {
   Source: string;
@@ -19,6 +20,7 @@ interface OMDBResponse {
 }
 
 export default function ExternalRatings({ imdbId, title, year, vertical = false }: { imdbId?: string, title?: string, year?: string | number, vertical?: boolean }) {
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const [ratings, setRatings] = useState<Rating[] | null>(null);
   const [imdbScore, setImdbScore] = useState<string | null>(null);
   const [metascore, setMetascore] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
   }, [imdbId]);
 
   const fetchRatings = async () => {
-    if (!imdbId || isLoading || isUnavailable) return;
+    if (!imdbId || isLoading || isUnavailable || !isLoggedIn) return;
     setIsLoading(true);
 
     try {
@@ -70,7 +72,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
     }
   };
 
-  if (!imdbId || isUnavailable) return null;
+  if (!imdbId || isUnavailable || !isLoggedIn) return null;
 
   const showMeta = metascore && metascore !== 'N/A';
   const hasMetacriticInArray = ratings?.some(r => r.Source.toLowerCase().includes('metacritic'));
