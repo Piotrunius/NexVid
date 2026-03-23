@@ -948,7 +948,10 @@ async function writeAdminAuditLog(
 
 async function getSessionUser(request: Request, env: Env): Promise<SessionUser | null> {
   const token = getBearerToken(request);
-  if (!token) return null;
+  if (!token) {
+    console.log('[Auth] No token found in request');
+    return null;
+  }
 
   const row = await env.DB.prepare(
     `SELECT u.id, u.username, u.created_at, u.requires_password_change
@@ -959,17 +962,22 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
     .bind(token, new Date().toISOString())
     .first<{ id: string; username: string; created_at: string; requires_password_change: number }>();
 
-  if (!row) return null;
+  if (!row) {
+    console.log('[Auth] Invalid or expired token');
+    return null;
+  }
 
   const identifiers = await getRequestIdentifiers(request);
   const bannedIdentifierReason = await getBannedIdentifierReason(env, identifiers);
   if (bannedIdentifierReason) {
+    console.log('[Auth] Banned identifier:', bannedIdentifierReason);
     await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
     return null;
   }
 
   const usernameBan = await getUsernameBanInfo(env, row.username);
   if (usernameBan.banned) {
+    console.log('[Auth] Banned username:', row.username);
     await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
     return null;
   }

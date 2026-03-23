@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-const WORKER_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://nexvid-proxy.piotrunius.workers.dev').replace(/\/+$/, '');
+const WORKER_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://nexvid-proxy.piotrunius.workers.dev').trim().replace(/\/+$/, '');
 
 export async function POST(req: Request) {
   try {
+    console.log('[AI-Assistant] Target Worker:', WORKER_URL);
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
     
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: { 
         'Authorization': authHeader,
-        'User-Agent': 'NexVid-AI-Assistant/1.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json'
       }
     });
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
       }
       
       const errorText = await limitRes.text().catch(() => 'No error body');
-      console.error(`Worker Limit Error (${limitRes.status}):`, errorText);
+      console.error(`[AI-Assistant] Worker Limit Error (${limitRes.status}):`, errorText);
       
       const snippet = errorText.substring(0, 100).replace(/<[^>]*>/g, '').trim();
       
