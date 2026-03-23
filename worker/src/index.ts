@@ -243,6 +243,23 @@ let securityTablesInit: Promise<void> | null = null;
 let feedbackTablesInit: Promise<void> | null = null;
 let watchPartyTablesInit: Promise<void> | null = null;
 let blockedMediaTableInit: Promise<void> | null = null;
+let aiUsageTableInit: Promise<void> | null = null;
+
+async function ensureAiUsageTable(env: Env): Promise<void> {
+  if (!aiUsageTableInit) {
+    aiUsageTableInit = (async () => {
+      await env.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS ai_usage (
+           user_id TEXT NOT NULL,
+           date TEXT NOT NULL,
+           count INTEGER NOT NULL DEFAULT 0,
+           PRIMARY KEY (user_id, date)
+         )`
+      ).run();
+    })();
+  }
+  await aiUsageTableInit;
+}
 
 async function ensureBlockedMediaTable(env: Env): Promise<void> {
   if (!blockedMediaTableInit) {
@@ -3138,6 +3155,7 @@ async function handleAiLimits(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
 
+  await ensureAiUsageTable(env);
   const today = new Date().toISOString().split('T')[0];
 
   if (request.method === 'GET') {
