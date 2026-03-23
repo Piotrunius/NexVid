@@ -3134,6 +3134,44 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
   }
 }
 
+async function handleAiLimits(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  if (request.method === 'GET') {
+    const record = await env.DB.prepare('SELECT count FROM ai_usage WHERE user_id = ? AND date = ?')
+      .bind(session.user.id, today)
+      .first<{ count: number }>();
+    
+    const count = record?.count || 0;
+    const limit = 5;
+    return json(request, env, { count, limit, remaining: Math.max(0, limit - count) });
+  }
+
+  if (request.method === 'POST') {
+    const record = await env.DB.prepare('SELECT count FROM ai_usage WHERE user_id = ? AND date = ?')
+      .bind(session.user.id, today)
+      .first<{ count: number }>();
+    
+    const count = record?.count || 0;
+    if (count >= 5) {
+      return json(request, env, { error: 'Daily limit reached' }, 429);
+    }
+
+    // Upsert logic
+    await env.DB.prepare(`
+      INSERT INTO ai_usage (user_id, date, count) VALUES (?, ?, 1)
+      ON CONFLICT(user_id, date) DO UPDATE SET count = count + 1
+    `).bind(session.user.id, today).run();
+
+    return json(request, env, { ok: true, count: count + 1 });
+  }
+
+  return json(request, env, { error: 'Method not allowed' }, 405);
+}
+
 /* ──── Router ──── */
 
 /* ──── Surveys & Feedback ──── */
@@ -3302,6 +3340,9 @@ export default {
         case '/auth/me':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleMe(request, env);
+        case '/user/ai-limits':
+          if (!['GET', 'POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAiLimits(request, env);
         case '/user/settings':
           if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleSettings(request, env);

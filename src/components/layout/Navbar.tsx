@@ -4,6 +4,7 @@
 
 'use client';
 
+import { AiAssistantModal } from '@/components/ui/AiAssistantModal';
 import { loadPublicAnnouncements, loadUserNotifications, markUserNotificationsRead } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -61,6 +62,7 @@ export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isBellOpen, setIsBellOpen] = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
   const [partyCode, setPartyCode] = useState('');
   const [showProfilePartyInput, setShowProfilePartyInput] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -187,7 +189,7 @@ export function Navbar() {
     const isHovered = hoveredItem === item.id;
 
     const content = (
-      <div className="relative flex flex-col items-center gap-1">
+      <div className="relative flex flex-col items-center">
         {/* Tooltip */}
         <span className={cn(
           'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
@@ -230,6 +232,8 @@ export function Navbar() {
 
   return (
     <>
+      <AiAssistantModal isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
+
       {/* ── Search Overlay ── */}
       {isSearchOpen && (
         <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[20vh] bg-black/60 backdrop-blur-2xl animate-fade-in" onClick={() => setIsSearchOpen(false)}>
@@ -271,6 +275,36 @@ export function Navbar() {
           {dockItems.map((item) => (
             <DockIcon key={item.id} item={item} />
           ))}
+
+          {/* AI Assistant */}
+          {isLoggedIn && (
+            <button
+              onClick={() => setIsAiOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
+              aria-label="AI Assistant"
+              onMouseEnter={() => setHoveredItem('ai')}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              <div className="relative flex flex-col items-center">
+                <span className={cn(
+                  'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
+                  'bg-black/70 backdrop-blur-xl',
+                  hoveredItem === 'ai' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+                )}>
+                  AI Assistant
+                </span>
+                <div className={cn(
+                  "transition-all duration-500",
+                  isAiOpen ? "text-accent scale-110" : ""
+                )}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m12 3-1.9 5.8a2 2 0 0 1-1.2 1.3L3.1 12l5.8 1.9a2 2 0 0 1 1.3 1.2L12 20.9l1.9-5.8a2 2 0 0 1 1.2-1.3l5.8-1.9-5.8-1.9a2 2 0 0 1-1.3-1.2L12 3Z" />
+                    <path d="M7 5H3" /><path d="M5 3v4" />
+                  </svg>
+                </div>
+              </div>
+            </button>
+          )}
 
           {/* Divider */}
           <div className="mx-1 hidden h-8 w-px bg-white/[0.08] sm:block" />

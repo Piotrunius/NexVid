@@ -266,3 +266,12 @@ CREATE TABLE IF NOT EXISTS watch_party_participants (
 );
 
 CREATE INDEX IF NOT EXISTS idx_watch_party_participants_room ON watch_party_participants(room_id, last_seen_at DESC);
+
+-- 8. AI Limits
+CREATE TABLE IF NOT EXISTS ai_usage (
+  user_id TEXT NOT NULL,
+  date TEXT NOT NULL, -- Format YYYY-MM-DD
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, date),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
