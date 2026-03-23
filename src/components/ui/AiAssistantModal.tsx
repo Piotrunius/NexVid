@@ -61,17 +61,17 @@ export function AiAssistantModal({
   
   const bodyRef = useRef<HTMLDivElement>(null);
   const { glassEffect } = useSettingsStore((s) => s.settings);
-  const { token, isLoggedIn } = useAuthStore();
-  const isLocalUser = isLoggedIn && !token;
+  const { authToken, isLoggedIn } = useAuthStore();
+  const isLocalUser = isLoggedIn && !authToken;
 
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
   }, [step]);
 
   useEffect(() => {
-    if (isOpen && token) {
+    if (isOpen && authToken) {
       fetch('/api/ai-assistant/usage', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${authToken}` }
       })
       .then(res => res.json())
       .then(data => {
@@ -79,7 +79,7 @@ export function AiAssistantModal({
       })
       .catch(() => {});
     }
-  }, [isOpen, token]);
+  }, [isOpen, authToken]);
 
   const handleToggleGenre = (genre: string) => {
     setSelectedGenres(prev => 
@@ -105,7 +105,7 @@ export function AiAssistantModal({
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ 
           mood, 
