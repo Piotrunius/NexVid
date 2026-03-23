@@ -16,13 +16,20 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(`${WORKER_URL}/user/ai-limits`, {
       method: 'GET',
-      headers: { 'Authorization': authHeader }
+      headers: { 
+        'Authorization': authHeader,
+        'User-Agent': 'NexVid-AI-Assistant/1.0',
+        'Accept': 'application/json'
+      }
     });
-    
+
     if (!res.ok) {
-        return NextResponse.json({ error: 'Failed to fetch usage' }, { status: res.status });
-    }
-    
+        const errorText = await res.text().catch(() => 'No error body');
+        const snippet = errorText.substring(0, 100).replace(/<[^>]*>/g, '').trim();
+        return NextResponse.json({ 
+          error: `Failed to fetch usage (Worker Status: ${res.status}${snippet ? `: ${snippet}` : ''})` 
+        }, { status: res.status });
+    }    
     const data = await res.json();
     return NextResponse.json(data);
   } catch (e) {

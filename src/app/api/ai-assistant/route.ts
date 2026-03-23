@@ -16,7 +16,11 @@ export async function POST(req: Request) {
     // 1. Check & Increment Limit in Worker
     const limitRes = await fetch(`${WORKER_URL}/user/ai-limits`, {
       method: 'POST',
-      headers: { 'Authorization': authHeader }
+      headers: { 
+        'Authorization': authHeader,
+        'User-Agent': 'NexVid-AI-Assistant/1.0',
+        'Accept': 'application/json'
+      }
     });
 
     if (!limitRes.ok) {
@@ -27,8 +31,10 @@ export async function POST(req: Request) {
       const errorText = await limitRes.text().catch(() => 'No error body');
       console.error(`Worker Limit Error (${limitRes.status}):`, errorText);
       
+      const snippet = errorText.substring(0, 100).replace(/<[^>]*>/g, '').trim();
+      
       return NextResponse.json({ 
-        error: `Failed to verify usage limit (Worker Status: ${limitRes.status})`,
+        error: `Failed to verify usage limit (Worker Status: ${limitRes.status}${snippet ? `: ${snippet}` : ''})`,
         details: errorText
       }, { status: 500 });
     }
