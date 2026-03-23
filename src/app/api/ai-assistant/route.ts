@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'AI Assistant requires a Cloud account. Please log in.' }, { status: 401 });
     }
 
-    const { mood, type, selectedGenres, selectedMoods, era } = await req.json();
+    const { mood, type, selectedGenres, era } = await req.json();
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
@@ -23,7 +23,6 @@ export async function POST(req: Request) {
     const systemPrompt = `You are a movie expert. Your goal is to find 10 movies or TV shows based on the user's specific genre, vibe, and era preferences.
 
 Selected Genres: ${selectedGenres?.join(', ') || 'Any'}
-Selected Moods/Vibes: ${selectedMoods?.join(', ') || 'Any'}
 Preferred Era: ${era || 'Any'}
 Additional Description: ${mood || 'None'}
 
@@ -50,7 +49,6 @@ IMPORTANT:
 
     const userPrompt = `I am looking for a: ${type === 'show' ? 'TV Show' : 'Movie'}.
 Focus on these Genres: ${selectedGenres?.join(', ') || 'Any'}.
-Vibe: ${selectedMoods?.join(', ') || 'Any'}.
 Era: ${era || 'Any'}.
 ${mood ? `Extra details: ${mood}` : ''}
 
