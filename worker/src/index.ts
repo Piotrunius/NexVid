@@ -3160,7 +3160,11 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleAiLimits(request: Request, env: Env): Promise<Response> {
-  console.log(`[AI-Limits] Request: ${request.method} ${new URL(request.url).pathname}`);
+  const url = new URL(request.url);
+  const headersObj: Record<string, string> = {};
+  request.headers.forEach((v, k) => { headersObj[k] = k.toLowerCase().includes('auth') ? '***' : v; });
+  console.log(`[AI-Limits] Request: ${request.method} ${url.pathname}`, headersObj);
+  
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
 
