@@ -2,14 +2,12 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-const WORKER_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://nexvid-proxy.piotrunius.workers.dev').replace(/\/+$/, '');
+const WORKER_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://nexvid-proxy.piotrunius.workers.dev').trim().replace(/\/+$/, '');
 
 export async function GET(req: Request) {
+  console.log('[AI-Usage] Target Worker:', WORKER_URL);
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
-    // Try cookie if header missing
-    // But usually frontend sends header.
-    // Let's assume frontend sends header for now as it does for other endpoints.
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -18,13 +16,14 @@ export async function GET(req: Request) {
       method: 'GET',
       headers: { 
         'Authorization': authHeader,
-        'User-Agent': 'NexVid-AI-Assistant/1.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json'
       }
     });
 
     if (!res.ok) {
         const errorText = await res.text().catch(() => 'No error body');
+        console.error(`[AI-Usage] Worker Limit Error (${res.status}):`, errorText);
         const snippet = errorText.substring(0, 100).replace(/<[^>]*>/g, '').trim();
         return NextResponse.json({ 
           error: `Failed to fetch usage (Worker Status: ${res.status}${snippet ? `: ${snippet}` : ''})` 
