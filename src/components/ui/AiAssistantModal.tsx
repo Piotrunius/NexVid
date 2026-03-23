@@ -221,8 +221,8 @@ setEra('All Time');
                             </button>
                           </div>
 
-                          {/* Era Chips */}
-                          <div className="w-full sm:w-auto">
+                          {/* Era Chips (desktop) */}
+                          <div className="hidden sm:block w-full sm:w-auto">
                             <div className="flex items-center justify-end overflow-x-auto gap-2 py-2 px-1 touch-pan-x scrollbar-none">
                               {ERAS.map((e) => (
                                 <button
@@ -239,6 +239,21 @@ setEra('All Time');
                                 </button>
                               ))}
                             </div>
+                          </div>
+
+                          {/* Era select (mobile) */}
+                          <div className="block sm:hidden w-full">
+                            <select
+                              value={era}
+                              onChange={(e) => setEra(e.target.value)}
+                              className="w-full bg-white/5 border border-white/20 text-white text-xs rounded-lg px-3 py-2 outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                            >
+                              {ERAS.map((e) => (
+                                <option key={e} value={e} className="bg-[#0a0a0a] text-white">
+                                  {e}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
 
@@ -379,7 +394,6 @@ setEra('All Time');
                           disabled={isLocalUser || (selectedGenres.length === 0 && !mood.trim())}
                           className="group w-full py-4 bg-accent text-white font-bold text-sm sm:text-base uppercase tracking-wider rounded-xl hover:bg-accent/90 hover:shadow-[0_0_25px_var(--accent-glow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3"
                         >
-                          <Sparkles className="w-5 h-5 sm:w-4 sm:h-4" />
                           {isLocalUser ? "Cloud Account Required" : "Generate recommendations"}
                         </button>
                       ) : (
