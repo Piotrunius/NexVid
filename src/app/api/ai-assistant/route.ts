@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
-    
+
     // Feature is still restricted to Cloud accounts to ensure basic security
     if (!token || token === 'undefined' || token === 'null' || token === '') {
       return NextResponse.json({ error: 'AI Assistant requires a Cloud account. Please log in.' }, { status: 401 });

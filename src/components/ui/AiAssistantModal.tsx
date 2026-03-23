@@ -7,7 +7,7 @@ import { useSettingsStore } from '@/stores/settings';
 import type { MediaItem } from '@/types';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, Loader2, Search, Sparkles, Star, X } from 'lucide-react';
+import { Loader2, Search, Sparkles, Star, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -222,8 +222,8 @@ setEra('All Time');
                           </div>
 
                           {/* Era Chips */}
-                          <div className="flex items-center justify-end w-full sm:w-auto overflow-x-auto py-2">
-                            <div className="flex gap-2">
+                          <div className="w-full sm:w-auto">
+                            <div className="flex items-center justify-end overflow-x-auto gap-2 py-2 px-1 touch-pan-x scrollbar-none">
                               {ERAS.map((e) => (
                                 <button
                                   key={e}

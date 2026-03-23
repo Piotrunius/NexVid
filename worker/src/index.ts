@@ -381,7 +381,7 @@ async function ensureSecurityTables(env: Env): Promise<void> {
       } catch { /* already exists */ }
 
       // Error tracking for player health - REMOVED
-      
+
       // Daily stats for success rate - REMOVED
 
       // Table for tracking real-time active users
@@ -414,24 +414,24 @@ async function handleAdminFebboxTokens(request: Request, env: Env): Promise<Resp
   if (request.method === 'POST') {
     const body = await readJson<{ token: string; label?: string }>(request);
     if (!body.token) return json(request, env, { error: 'Token is required' }, 400);
-    
+
     await env.DB.prepare(
       'INSERT INTO febbox_tokens (token, label, created_at) VALUES (?, ?, ?)'
     ).bind(body.token, body.label || 'Public Token', new Date().toISOString()).run();
-    
+
     return json(request, env, { ok: true });
   }
 
   if (request.method === 'PUT') {
     const body = await readJson<{ token: string; isActive?: boolean; isBanned?: boolean }>(request);
-    
+
     if (typeof body.isActive === 'boolean') {
       await env.DB.prepare('UPDATE febbox_tokens SET is_active = ? WHERE token = ?').bind(body.isActive ? 1 : 0, body.token).run();
     }
     if (typeof body.isBanned === 'boolean') {
       await env.DB.prepare('UPDATE febbox_tokens SET is_banned = ? WHERE token = ?').bind(body.isBanned ? 1 : 0, body.token).run();
     }
-    
+
     return json(request, env, { ok: true });
   }
 
@@ -451,7 +451,7 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
   try {
     const nowMs = Date.now();
     const identifier = userId || `guest_${await sha256Hex(request.headers.get('CF-Connecting-IP') || '0.0.0.0')}`;
-    
+
     // In-memory throttle to 2 minutes
     const last = lastSeenCache.get(`active:${identifier}`);
     if (last && nowMs - last < 2 * 60 * 1000) return;
@@ -460,8 +460,8 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
     const now = new Date().toISOString();
     // Throttle updates in DB to once every 3 minutes
     await env.DB.prepare(
-      `INSERT INTO active_users (user_id, last_seen_at) 
-       VALUES (?, ?) 
+      `INSERT INTO active_users (user_id, last_seen_at)
+       VALUES (?, ?)
        ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
        WHERE excluded.last_seen_at > datetime(last_seen_at, '+3 minutes')`
     ).bind(identifier, now).run();
@@ -477,11 +477,11 @@ async function getActiveUsersCount(env: Env): Promise<{ users: number; guests: n
     const rows = await env.DB.prepare(
       'SELECT user_id FROM active_users WHERE last_seen_at > ?'
     ).bind(activeWindowAgo).all<{ user_id: string }>();
-    
+
     const results = rows.results || [];
     const users = results.filter(r => !r.user_id.startsWith('guest_')).length;
     const guests = results.filter(r => r.user_id.startsWith('guest_')).length;
-    
+
     return { users, guests };
   } catch {
     return { users: 0, guests: 0 };
@@ -615,7 +615,7 @@ function getWatchPartyExpiryIso(hours = 8): string {
 async function cleanupExpiredWatchParties(env: Env): Promise<void> {
   // Only run cleanup with a 5% chance per request to save D1 writes
   if (Math.random() > 0.05) return;
-  
+
   await ensureWatchPartyTables(env);
   await env.DB.batch([
     env.DB.prepare(
@@ -1531,7 +1531,7 @@ async function handleWatchPartyUpdate(request: Request, env: Env): Promise<Respo
 
   // Optimization: Only update DB if state actually changed significantly
   const currentState = JSON.parse(room.state_json || '{}');
-  const hasSignificantChange = 
+  const hasSignificantChange =
     newState.paused !== currentState.paused ||
     newState.mediaKey !== currentState.mediaKey ||
     newState.playbackRate !== currentState.playbackRate ||
@@ -2495,7 +2495,7 @@ async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
     const body = await readJson<{ username?: string; role?: string; expiresInDays?: number }>(request);
     const username = normalizeUsername(body.username || '');
     const requestedRole = (body.role || 'moderator').toLowerCase();
-    
+
     if (!['owner', 'admin', 'moderator'].includes(requestedRole)) {
       return json(request, env, { error: 'Invalid role' }, 400);
     }
@@ -2897,7 +2897,7 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
     });
 
     // Special handling for subtitle providers that are slow/flaky (like sub.wyzie.ru / .io)
-    const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) || 
+    const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
                        parsedTarget.hostname.includes('wyzie.ru') ||
                        parsedTarget.hostname.includes('wyzie.io');
 
@@ -3186,9 +3186,9 @@ async function handleAdminSurveys(request: Request, env: Env): Promise<Response>
     await env.DB.prepare('INSERT INTO surveys (id, title, description, questions, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)')
       .bind(id, body.title, body.description || '', JSON.stringify(body.questions), now, now)
       .run();
-    
+
     await writeAdminAuditLog(env, session.user.id, 'create_survey', 'survey', id, { title: body.title });
-    
+
     return json(request, env, { ok: true, id });
   }
 
@@ -3299,7 +3299,7 @@ export default {
       // Track activity for all requests except health checks and preflights
       if (!['/', '/health'].includes(pathname)) {
         await ensureSecurityTables(env);
-        
+
         if (!request.headers.get('Authorization')) {
           await updateActiveUser(env, request);
         }
