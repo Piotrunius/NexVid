@@ -61,7 +61,8 @@ export function AiAssistantModal({
   
   const bodyRef = useRef<HTMLDivElement>(null);
   const { glassEffect } = useSettingsStore((s) => s.settings);
-  const { token } = useAuthStore();
+  const { token, isLoggedIn } = useAuthStore();
+  const isLocalUser = isLoggedIn && !token;
 
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
@@ -217,14 +218,13 @@ export function AiAssistantModal({
                   <div ref={bodyRef} className="flex-1 overflow-y-auto custom-scrollbar">
                     {step === 'input' && (
                       <div className="flex flex-col h-full">
-                        {errorMsg && (
+                        {(errorMsg || isLocalUser) && (
                           <div className="px-6 pt-4">
                             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-medium text-center">
-                              {errorMsg}
+                              {isLocalUser ? 'AI Assistant requires a Cloud account. Please log in to your account.' : errorMsg}
                             </div>
                           </div>
                         )}
-
                         {/* Top Bar: Type & Era */}
                         <div className="px-6 py-4 flex flex-wrap gap-4 items-center justify-between border-b border-white/5 bg-white/[0.02]">
                           <div className="flex bg-white/5 rounded-lg p-1">
@@ -456,11 +456,11 @@ export function AiAssistantModal({
                       {step === 'input' ? (
                         <button
                           onClick={handleGenerate}
-                          disabled={selectedGenres.length === 0 && selectedMoods.length === 0 && !mood.trim() || (usage?.count || 0) >= (usage?.limit || 5)}
+                          disabled={isLocalUser || (selectedGenres.length === 0 && selectedMoods.length === 0 && !mood.trim()) || (usage?.count || 0) >= (usage?.limit || 5)}
                           className="group w-full py-4 bg-accent text-white font-bold text-sm sm:text-base uppercase tracking-wider rounded-xl hover:bg-accent/90 hover:shadow-[0_0_25px_var(--accent-glow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3"
                         >
                           <Sparkles className="w-5 h-5 sm:w-4 sm:h-4" />
-                          {usage && usage.count >= usage.limit ? "Daily Limit Reached" : "Generate recommendations"}
+                          {isLocalUser ? "Cloud Account Required" : (usage && usage.count >= usage.limit ? "Daily Limit Reached" : "Generate recommendations")}
                         </button>
                       ) : (
                         <button
