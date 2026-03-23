@@ -205,7 +205,7 @@ setEra('All Time');
                               onClick={() => setType('movie')}
                               className={cn(
                                 "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                                type === 'movie' ? "bg-accent text-white shadow-md" : "text-white/50 hover:text-white"
+                                type === 'movie' ? "bg-accent text-black shadow-md" : "text-white/80 hover:text-white"
                               )}
                             >
                               Movies
@@ -214,23 +214,25 @@ setEra('All Time');
                               onClick={() => setType('show')}
                               className={cn(
                                 "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                                type === 'show' ? "bg-accent text-white shadow-md" : "text-white/50 hover:text-white"
+                                type === 'show' ? "bg-accent text-black shadow-md" : "text-white/80 hover:text-white"
                               )}
                             >
                               TV Shows
                             </button>
                           </div>
 
-                          {/* Era Dropdown */}
-                          <div className="w-full overflow-x-auto py-2">
-                            <div className="flex gap-2 px-1">
+                          {/* Era Chips */}
+                          <div className="flex items-center justify-end w-full sm:w-auto overflow-x-auto py-2">
+                            <div className="flex gap-2">
                               {ERAS.map((e) => (
                                 <button
                                   key={e}
                                   onClick={() => setEra(e)}
                                   className={cn(
-                                    "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap",
-                                    era === e ? "bg-accent text-black" : "bg-white/10 text-white/70 hover:bg-white/20"
+                                    "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border",
+                                    era === e
+                                      ? "bg-accent text-black border-accent"
+                                      : "bg-transparent text-white/80 border-white/20 hover:bg-white/10 hover:text-white"
                                   )}
                                 >
                                   {e}
