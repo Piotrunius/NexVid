@@ -9,7 +9,7 @@
 
 import { toast } from '@/components/ui/Toaster';
 import { createWatchParty, joinWatchParty, leaveWatchParty, loadWatchPartyState, reportPlayerError, reportPlayerSuccess, updateWatchPartyState, type WatchPartyPlaybackState, type WatchPartyRole } from '@/lib/cloudSync';
-import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER } from '@/lib/febbox';
+import { resolveFebboxToken } from '@/lib/febbox';
 import type { MediaSegments } from '@/lib/tidb';
 import { submitSegment } from '@/lib/tidb';
 import { getSeasonDetails } from '@/lib/tmdb';
@@ -398,17 +398,14 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey, disableEmbeds } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
-  const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
+  const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
+  const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
   const effectiveShowTokenNotice = typeof showTokenNotice === 'boolean' ? showTokenNotice : !hasAnyFebboxToken;
-  const effectiveTokenNoticeText = tokenNoticeText || 'No own FebBox token configured. Playback may still work, but often with much worse quality and stability.';
-  const effectiveTokenNoticeActionLabel = tokenNoticeActionLabel || (isPublicFebboxToken(febboxApiKey) ? undefined : 'Use public token now');
+  const effectiveTokenNoticeText = tokenNoticeText || 'No FebBox token configured. Playback may still work, but often with much worse quality and stability.';
+  const effectiveTokenNoticeActionLabel = tokenNoticeActionLabel;
   const effectiveTokenNoticeSettingsLabel = tokenNoticeSettingsLabel || 'Settings';
   const effectiveTokenNoticeDismissLabel = tokenNoticeDismissLabel || 'Dismiss for this title';
-  const handleTokenNoticeAction = onTokenNoticeAction || (!isPublicFebboxToken(febboxApiKey)
-    ? () => {
-        updateSettings({ febboxApiKey: PUBLIC_FEBBOX_TOKEN_PLACEHOLDER });
-      }
-    : undefined);
+  const handleTokenNoticeAction = onTokenNoticeAction;
 
   const [settingsPanel, setSettingsPanel] = useState<'main' | 'quality' | 'speed' | 'subtitles' | 'subAppearance' | 'episodes' | 'info' | 'segments' | 'playback' | 'skip' | 'watchParty' | 'alternative' | 'sources' | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);

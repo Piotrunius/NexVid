@@ -6,7 +6,7 @@
 
 import { VideoPlayer } from '@/components/player/VideoPlayer';
 import { toast } from '@/components/ui/Toaster';
-import { isPublicFebboxToken, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER, resolveFebboxToken } from '@/lib/febbox';
+import { resolveFebboxToken } from '@/lib/febbox';
 import { scrapeAllSources, SOURCES } from '@/lib/providers';
 import type { MediaSegments } from '@/lib/tidb';
 import { getExternalIds, getMovieDetails, getSeasonDetails, getShowDetails } from '@/lib/tmdb';
@@ -183,8 +183,8 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const { getByTmdbId, updateProgress, addItem } = useWatchlistStore();
   const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
-  const hasAnyFebboxToken = Boolean(String(febboxApiKey || '').trim());
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
+  const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
 
   const currentMediaKey = `${type}-${id}`;
 
@@ -535,17 +535,6 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     setStream(withMergedCaptions(currentStream, externalCaptions));
   }, [sourceResults, externalCaptions]);
 
-  const applyPublicFebboxToken = useCallback(() => {
-    if (!isLoggedIn) {
-      toast('Sign in to use the public FebBox token', 'info');
-      router.push('/login');
-      return;
-    }
-    if (isPublicFebboxToken(febboxApiKey)) return;
-    setDismissedTokenNoticeMediaKey(currentMediaKey);
-    setScrapeStatus('loading');
-    updateSettings({ febboxApiKey: PUBLIC_FEBBOX_TOKEN_PLACEHOLDER });
-  }, [isLoggedIn, febboxApiKey, currentMediaKey, updateSettings, router]);
 
   const openSettings = useCallback(() => {
     router.push('/settings');

@@ -175,7 +175,6 @@ From `worker/`:
 | `NEXT_PUBLIC_TMDB_API_KEY` | yes | TMDB API key for metadata.
 | `NEXT_PUBLIC_PROXY_URL` | yes | Worker proxy URL used for scraping and HLS rewriting.
 | `NEXT_PUBLIC_API_URL` | yes | Worker API base URL for auth/settings/watchlist.
-| `NEXT_PUBLIC_FEBBOX_TOKEN` / `PUBLIC_FEBBOX_TOKEN` | no | Febbox public token (client fallback for `__PUBLIC_FEBBOX_TOKEN__`).
 | `NEXT_PUBLIC_DEV_MODE` | no | `true` enables mock sources and bypasses proxy.
 | `NEXT_PUBLIC_DIRECT_RESOLVER_URL` | no | Optional resolver URL for direct stream access (see below).
 

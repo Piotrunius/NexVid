@@ -6,7 +6,7 @@
 
 import { toast } from '@/components/ui/Toaster';
 import { clearCloudEverything, hasCloudBackend } from '@/lib/cloudSync';
-import { normalizeFebboxTokenForStorage, PUBLIC_FEBBOX_TOKEN_PLACEHOLDER } from '@/lib/febbox';
+import { normalizeFebboxTokenForStorage } from '@/lib/febbox';
 import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -19,7 +19,6 @@ import { useMemo, useState } from 'react';
 export default function SettingsPage() {
   const store = useSettingsStore();
   const settings = store.settings;
-  const publicTokenActive = settings.febboxApiKey === PUBLIC_FEBBOX_TOKEN_PLACEHOLDER;
   const { user, isLoggedIn, updateProfile, updateNicknameWithBackend, changePasswordWithBackend, logout } = useAuthStore();
   const { exportItems, importItems, clearAll } = useWatchlistStore();
   const [proxyTestStatus, setProxyTestStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
@@ -341,37 +340,15 @@ export default function SettingsPage() {
             </SettingsRow>
 
             <SettingsRow label="FebBox UI Token">
-              <p className="text-[11px] text-text-muted mb-1.5">Set up your own FebBox UI token by pasting the full cookie string or just the ui token</p>
+              <p className="text-[11px] text-text-muted mb-1.5">Set up your own FebBox UI token by pasting the full cookie string or just the ui token.</p>
               <input
                 type="password"
-                value={publicTokenActive ? 'PUBLIC_TOKEN_ACTIVE' : settings.febboxApiKey || ''}
+                value={settings.febboxApiKey || ''}
                 onChange={(e) => store.updateSettings({ febboxApiKey: normalizeFebboxTokenForStorage(e.target.value) })}
-                placeholder={publicTokenActive ? 'Public token active (hidden)' : 'ui=...'}
+                placeholder="ui=..."
                 className="input w-full"
                 autoComplete="new-password"
               />
-              <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                <p className="text-[11px] text-text-muted">Public FebBox token is available only for signed-in users.</p>
-                {isLoggedIn && !publicTokenActive ? (
-                  <button
-                    onClick={() => {
-                      store.updateSettings({ febboxApiKey: PUBLIC_FEBBOX_TOKEN_PLACEHOLDER });
-                      toast('Public FebBox token enabled (slow and potentially unstable)', 'info');
-                    }}
-                    className="btn-glass mt-2 w-full text-[12px]"
-                  >
-                    Use public FebBox token
-                  </button>
-                ) : isLoggedIn && publicTokenActive ? (
-                  <button
-                    onClick={() => { store.updateSettings({ febboxApiKey: '' }); toast('Public token cleared', 'info'); }}
-                    className="btn-glass mt-2 w-full text-[12px]"
-                  >
-                    Clear public token
-                  </button>
-                ) : null}
-              </div>
-
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
                 <p className="text-[11px] font-medium text-text-secondary mb-1.5">How to get your own FebBox token</p>
                 <ol className="list-decimal pl-4 space-y-1 text-[11px] text-text-muted leading-relaxed">
