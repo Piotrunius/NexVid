@@ -18,7 +18,6 @@ import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
-import ExternalRatings from '@/components/media/ExternalRatings';
 import type { AudioTrack, Caption, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -2359,8 +2358,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
                           <div className="mt-3 flex flex-wrap gap-2">
                             <div className="relative">
-                              <button 
-                                onClick={() => setShowInfoWatchlistMenu((value) => !value)} 
+                              <button
+                                onClick={() => setShowInfoWatchlistMenu((value) => !value)}
                                 className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
                               >
                                 {infoWatchlistItem && infoWatchlistItem.status !== 'none' ? (

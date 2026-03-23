@@ -10,13 +10,13 @@ import { resolveFebboxToken } from '@/lib/febbox';
 import { scrapeAllSources, SOURCES } from '@/lib/providers';
 import type { MediaSegments } from '@/lib/tidb';
 import { getExternalIds, getMovieDetails, getSeasonDetails, getShowDetails } from '@/lib/tmdb';
+import { formatTime } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
-import { useBlockedContentStore } from '@/stores/blockedContent';
 import type { Caption, Episode, Movie, Season, Show, SourceResult, Stream } from '@/types';
-import { formatTime } from '@/lib/utils';
 import Head from 'next/head';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -364,12 +364,12 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     setSourceResults([]);
     setSourceIndex(0);
     setShowResumeOverlay(false);
-    
+
     // Fallback to stored progress if URL doesn't have a timestamp
     let initialSeek = resumeTimeFromUrl;
     const item = getByTmdbId(id);
     const prog = item?.progress;
-    
+
     const isSameType = item?.mediaType === type;
     const isSameId = String(item?.tmdbId) === String(id);
     const isSameEpisode = type === 'movie' || (prog?.season === seasonNum && prog?.episode === episodeNum);
@@ -378,7 +378,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     if (initialSeek === 0 && hasMeaningfulProgress && prog?.timestamp) {
         initialSeek = prog.timestamp;
     }
-    
+
     setAppliedSeekTime(initialSeek);
 
     try {
@@ -611,13 +611,13 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         onSelectSource={selectSource}
         externalCaptions={memoizedExternalCaptions}
         scrapeErrorTitle={shouldShowMissingFebboxTokenPrompt ? 'No FebBox token configured' : undefined}
-        scrapeErrorDescription={shouldShowMissingFebboxTokenPrompt ? 'Add your own token in settings, or sign in to use the public token.' : undefined}
-        scrapeErrorActionLabel={shouldShowMissingFebboxTokenPrompt ? (isLoggedIn ? 'Use public FebBox token' : 'Sign in to use public token') : undefined}
-        onScrapeErrorAction={shouldShowMissingFebboxTokenPrompt ? (isLoggedIn ? applyPublicFebboxToken : (() => router.push('/login'))) : undefined}
+        scrapeErrorDescription={shouldShowMissingFebboxTokenPrompt ? 'Add your own token in settings' : undefined}
+        scrapeErrorActionLabel={shouldShowMissingFebboxTokenPrompt ? 'Open settings' : undefined}
+        onScrapeErrorAction={shouldShowMissingFebboxTokenPrompt ? () => router.push('/settings') : undefined}
         showTokenNotice={shouldShowPersistentTokenNotice}
-        tokenNoticeText={shouldShowPersistentTokenNotice ? 'No personal FebBox token is set in settings. Add your own token, or sign in to use the public token.' : undefined}
-        tokenNoticeActionLabel={shouldShowPersistentTokenNotice ? (isLoggedIn ? 'Use public FebBox token' : 'Sign in') : undefined}
-        onTokenNoticeAction={shouldShowPersistentTokenNotice ? (isLoggedIn ? applyPublicFebboxToken : (() => router.push('/login'))) : undefined}
+        tokenNoticeText={shouldShowPersistentTokenNotice ? 'No personal FebBox token is set in settings. Add your own FebBox token in settings.' : undefined}
+        tokenNoticeActionLabel={shouldShowPersistentTokenNotice ? 'Open settings' : undefined}
+        onTokenNoticeAction={shouldShowPersistentTokenNotice ? () => router.push('/settings') : undefined}
         tokenNoticeSettingsLabel={shouldShowPersistentTokenNotice ? 'Open settings' : undefined}
         onTokenNoticeSettings={shouldShowPersistentTokenNotice ? openSettings : undefined}
         tokenNoticeDismissLabel={shouldShowPersistentTokenNotice ? 'Dismiss for this title' : undefined}
