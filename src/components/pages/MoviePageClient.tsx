@@ -5,6 +5,7 @@
 'use client';
 
 import { MediaRow } from '@/components/media/MediaCard';
+import ExternalRatings from '@/components/media/ExternalRatings';
 import { DownloadModal } from '@/components/ui/DownloadModal';
 import { getMovieDetails, getRecommendations, getSimilar } from '@/lib/tmdb';
 import { cn, formatRuntime, tmdbImage } from '@/lib/utils';
@@ -180,37 +181,45 @@ export default function MoviePage({
               <p className="mt-1 text-[13px] italic text-text-muted">&ldquo;{movie.tagline}&rdquo;</p>
             )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-[13px] text-text-secondary">
-              <span>{movie.releaseYear}</span>
-              {movie.certification && (
-                <>
-                  <span className="text-text-muted">&bull;</span>
-                  <span className="rounded-[8px] bg-white/10 px-2.5 py-0.5 text-[11px] font-medium">{movie.certification}</span>
-                </>
-              )}
-              {movie.runtime > 0 && (
-                <>
-                  <span className="text-text-muted">&bull;</span>
-                  <span>{formatRuntime(movie.runtime)}</span>
-                </>
-              )}
-              {movie.rating > 0 && (
-                <>
-                  <span className="text-text-muted">&bull;</span>
-                  <span className="flex items-center gap-1 text-amber-400">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                    {movie.rating.toFixed(1)}
-                  </span>
-                </>
-              )}
-              {movie.status && (
-                <>
-                  <span className="text-text-muted">&bull;</span>
-                  <span className="rounded-[8px] bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">{movie.status}</span>
-                </>
-              )}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3 text-[13px] text-text-secondary">
+                <span>{movie.releaseYear}</span>
+                {movie.certification && (
+                  <>
+                    <span className="text-text-muted">&bull;</span>
+                    <span className="rounded-[8px] bg-white/10 px-2.5 py-0.5 text-[11px] font-medium">{movie.certification}</span>
+                  </>
+                )}
+                {movie.runtime > 0 && (
+                  <>
+                    <span className="text-text-muted">&bull;</span>
+                    <span>{formatRuntime(movie.runtime)}</span>
+                  </>
+                )}
+                {movie.rating > 0 && (
+                  <>
+                    <span className="text-text-muted">&bull;</span>
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      {movie.rating.toFixed(1)}
+                    </span>
+                  </>
+                )}
+                {movie.status && (
+                  <>
+                    <span className="text-text-muted">&bull;</span>
+                    <span className="rounded-[8px] bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">{movie.status}</span>
+                  </>
+                )}
+              </div>
+              
+              <ExternalRatings 
+                imdbId={movie.imdbId} 
+                title={movie.title} 
+                year={movie.releaseYear} 
+              />
             </div>
 
             {/* Genres */}
