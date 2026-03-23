@@ -618,8 +618,6 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         tokenNoticeText={shouldShowPersistentTokenNotice ? 'No personal FebBox token is set in settings. Add your own FebBox token in settings.' : undefined}
         tokenNoticeActionLabel={shouldShowPersistentTokenNotice ? 'Open settings' : undefined}
         onTokenNoticeAction={shouldShowPersistentTokenNotice ? () => router.push('/settings') : undefined}
-        tokenNoticeSettingsLabel={shouldShowPersistentTokenNotice ? 'Open settings' : undefined}
-        onTokenNoticeSettings={shouldShowPersistentTokenNotice ? openSettings : undefined}
         tokenNoticeDismissLabel={shouldShowPersistentTokenNotice ? 'Dismiss for this title' : undefined}
         onTokenNoticeDismiss={shouldShowPersistentTokenNotice ? dismissTokenNoticeForCurrentMedia : undefined}
         tokenNoticePermanentDismissLabel={shouldShowPersistentTokenNotice ? 'Dismiss sitewide' : undefined}
