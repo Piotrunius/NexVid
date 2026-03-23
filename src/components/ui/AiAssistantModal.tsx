@@ -19,24 +19,13 @@ interface AiRecommendation {
   genres?: string[];
   reason: string;
   match_score?: number;
-  mediaItem?: MediaItem; 
+  mediaItem?: MediaItem;
 }
 
 const GENRES = [
-  'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary', 'Drama', 
-  'Family', 'Fantasy', 'History', 'Horror', 'Music', 'Mystery', 'Romance', 
+  'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary', 'Drama',
+  'Family', 'Fantasy', 'History', 'Horror', 'Music', 'Mystery', 'Romance',
   'Sci-Fi', 'Thriller', 'War', 'Western'
-];
-
-const VIBE_GROUPS = [
-  {
-    name: 'Atmosphere',
-    tags: ['Dark', 'Gritty', 'Chill', 'Dreamy', 'Intense', 'Nostalgic', 'Bizarre', 'Futuristic', 'Romantic']
-  },
-  {
-    name: 'Style',
-    tags: ['Slow burn', 'Fast-paced', 'Mind-bending', 'Gory', 'Wholesome', 'Epic', 'Indie', 'Noir', 'Surreal']
-  }
 ];
 
 const ERAS = ['All Time', '2020s', '2010s', '2000s', '90s', '80s', 'Classics'];
@@ -51,14 +40,13 @@ export function AiAssistantModal({
   const [step, setStep] = useState<'input' | 'loading' | 'results'>('input');
   const [mood, setMood] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [type, setType] = useState<'movie' | 'show'>('movie');
   const [era, setEra] = useState('All Time');
   const [isEraOpen, setIsEraOpen] = useState(false);
   const [recommendations, setRecommendations] = useState<AiRecommendation[]>([]);
   const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
+
   const bodyRef = useRef<HTMLDivElement>(null);
   const { glassEffect } = useSettingsStore((s) => s.settings);
   const { authToken, isLoggedIn } = useAuthStore();
@@ -82,19 +70,13 @@ export function AiAssistantModal({
   }, [isOpen, authToken]);
 
   const handleToggleGenre = (genre: string) => {
-    setSelectedGenres(prev => 
+    setSelectedGenres(prev =>
       prev.includes(genre) ? prev.filter(x => x !== genre) : [...prev, genre]
     );
   };
 
-  const handleToggleMood = (tag: string) => {
-    setSelectedMoods(prev => 
-      prev.includes(tag) ? prev.filter(x => x !== tag) : [...prev, tag]
-    );
-  };
-
-  const handleGenerate = async () => {
-    if (selectedGenres.length === 0 && selectedMoods.length === 0 && !mood.trim()) return;
+const handleGenerate = async () => {
+    if (selectedGenres.length === 0 && !mood.trim()) return;
 
     setStep('loading');
     setRecommendations([]);
@@ -103,15 +85,15 @@ export function AiAssistantModal({
     try {
       const res = await fetch('/api/ai-assistant', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({ 
-          mood, 
-          type, 
+        body: JSON.stringify({
+          mood,
+          type,
           selectedGenres,
-          selectedMoods,
+
           era
         }),
       });
@@ -139,7 +121,8 @@ export function AiAssistantModal({
             return null;
           }
         })
-      )).filter((rec): rec is AiRecommendation => rec !== null);
+      ))
+        .filter((rec) => rec !== null) as AiRecommendation[];
 
       setRecommendations(enrichedRecs);
       setUsage(prev => prev ? { ...prev, count: prev.count + 1 } : null);
@@ -155,8 +138,7 @@ export function AiAssistantModal({
     setStep('input');
     setMood('');
     setSelectedGenres([]);
-    setSelectedMoods([]);
-    setEra('All Time');
+setEra('All Time');
     setRecommendations([]);
     setErrorMsg(null);
   };
@@ -183,11 +165,11 @@ export function AiAssistantModal({
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="fixed left-1/2 top-1/2 z-50 w-full max-w-[min(95vw,950px)] p-3 sm:p-4 outline-none"
               >
-                <div 
+                <div
                   className={cn(
                     "relative flex flex-col w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl transition-all",
-                    glassEffect 
-                      ? "bg-black/80 backdrop-blur-xl border-white/10" 
+                    glassEffect
+                      ? "bg-black/80 backdrop-blur-xl border-white/10"
                       : "bg-[#0a0a0a] border-white/10"
                   )}
                 >
@@ -283,8 +265,7 @@ export function AiAssistantModal({
                         </div>
 
                         {/* Split View */}
-                        <div className="grid md:grid-cols-2 gap-6 p-6">
-                          {/* Left: Genres */}
+                        <div className="grid gap-6 p-6">
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
                               <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Genres</label>
@@ -304,37 +285,6 @@ export function AiAssistantModal({
                                 >
                                   {genre}
                                 </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Right: Vibes */}
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Vibe & Style</label>
-                              <span className="text-[10px] text-white/30">{selectedMoods.length} selected</span>
-                            </div>
-                            <div className="space-y-4 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
-                              {VIBE_GROUPS.map(group => (
-                                <div key={group.name} className="space-y-2">
-                                  <span className="text-[10px] font-bold text-accent/70 uppercase">{group.name}</span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {group.tags.map(tag => (
-                                      <button
-                                        key={tag}
-                                        onClick={() => handleToggleMood(tag)}
-                                        className={cn(
-                                          "px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all",
-                                          selectedMoods.includes(tag)
-                                            ? "bg-white text-black border-white"
-                                            : "bg-transparent border-white/10 text-white/50 hover:border-white/30 hover:text-white"
-                                        )}
-                                      >
-                                        {tag}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
                               ))}
                             </div>
                           </div>
@@ -403,7 +353,7 @@ export function AiAssistantModal({
                                       </span>
                                     )}
                                   </div>
-                                  
+
                                   <div className="flex flex-wrap items-center gap-2 mt-1.5 sm:mt-1">
                                     <span className="text-xs font-bold text-white/30">{rec.year || rec.mediaItem?.releaseYear}</span>
                                     <div className="h-0.5 w-0.5 rounded-full bg-white/10" />
@@ -448,7 +398,7 @@ export function AiAssistantModal({
                       {step === 'input' ? (
                         <button
                           onClick={handleGenerate}
-                          disabled={isLocalUser || (selectedGenres.length === 0 && selectedMoods.length === 0 && !mood.trim())}
+                          disabled={isLocalUser || (selectedGenres.length === 0 && !mood.trim())}
                           className="group w-full py-4 bg-accent text-white font-bold text-sm sm:text-base uppercase tracking-wider rounded-xl hover:bg-accent/90 hover:shadow-[0_0_25px_var(--accent-glow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3"
                         >
                           <Sparkles className="w-5 h-5 sm:w-4 sm:h-4" />
