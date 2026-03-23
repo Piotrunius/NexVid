@@ -372,9 +372,9 @@ export function AiAssistantModal({
                           {recommendations.map((rec, idx) => (
                             <div
                               key={idx}
-                              className="group flex gap-3 sm:gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/10 rounded-2xl p-3 sm:p-4 transition-all"
+                              className="group flex flex-col sm:flex-row gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/10 rounded-2xl p-4 transition-all"
                             >
-                              <div className="shrink-0 w-20 sm:w-24 aspect-[2/3] bg-black/40 rounded-xl overflow-hidden relative shadow-2xl">
+                              <div className="shrink-0 w-full sm:w-24 aspect-[2/3] sm:aspect-[2/3] bg-black/40 rounded-xl overflow-hidden relative shadow-2xl mx-auto sm:mx-0 max-w-[160px] sm:max-w-none">
                                 {rec.mediaItem?.posterPath ? (
                                   <Image
                                     src={`https://image.tmdb.org/t/p/w200${rec.mediaItem.posterPath}`}
@@ -391,12 +391,12 @@ export function AiAssistantModal({
                               <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                                 <div>
                                   <div className="flex justify-between items-start gap-2">
-                                    <h3 className="font-extrabold text-white text-base sm:text-lg leading-tight truncate pr-2">
+                                    <h3 className="font-extrabold text-white text-lg sm:text-lg leading-tight truncate pr-2">
                                       {rec.mediaItem?.title || rec.title}
                                     </h3>
                                     {rec.match_score && (
                                       <span className={cn(
-                                        "shrink-0 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-black uppercase",
+                                        "shrink-0 px-1.5 py-0.5 rounded text-[10px] font-black uppercase",
                                         rec.match_score > 85 ? "bg-green-500 text-black shadow-[0_0_10px_rgba(34,197,94,0.3)]" : "bg-yellow-500 text-black"
                                       )}>
                                         {rec.match_score}%
@@ -404,33 +404,33 @@ export function AiAssistantModal({
                                     )}
                                   </div>
                                   
-                                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                                    <span className="text-[10px] sm:text-xs font-bold text-white/30">{rec.year || rec.mediaItem?.releaseYear}</span>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1.5 sm:mt-1">
+                                    <span className="text-xs font-bold text-white/30">{rec.year || rec.mediaItem?.releaseYear}</span>
                                     <div className="h-0.5 w-0.5 rounded-full bg-white/10" />
                                     {rec.genres?.slice(0, 2).map(g => (
-                                      <span key={g} className="text-[9px] sm:text-[10px] font-bold text-accent uppercase tracking-wider">{g}</span>
+                                      <span key={g} className="text-[10px] font-bold text-accent uppercase tracking-wider">{g}</span>
                                     ))}
                                     {rec.mediaItem && (
-                                      <div className="ml-auto flex items-center gap-1 text-yellow-500 font-black text-[10px] sm:text-xs">
+                                      <div className="ml-auto flex items-center gap-1 text-yellow-500 font-black text-xs">
                                         <Star className="w-3 h-3 fill-current" />
                                         <span>{rec.mediaItem.rating.toFixed(1)}</span>
                                       </div>
                                     )}
                                   </div>
 
-                                  <p className="text-xs sm:text-sm text-white/50 mt-2 line-clamp-2 leading-relaxed font-medium">
+                                  <p className="text-sm text-white/50 mt-3 sm:mt-2 line-clamp-3 sm:line-clamp-2 leading-relaxed font-medium">
                                     {rec.reason}
                                   </p>
                                 </div>
 
-                                <div className="mt-3 flex gap-3">
+                                <div className="mt-4 sm:mt-3 flex gap-3">
                                   {rec.mediaItem && (
                                     <Link
                                       href={rec.mediaItem.mediaType === 'movie' ? `/movie/${rec.mediaItem.id}` : `/show/${rec.mediaItem.id}`}
                                       onClick={onClose}
-                                      className="px-4 sm:px-6 py-1.5 sm:py-2 bg-accent text-white text-[10px] sm:text-xs font-black rounded-xl hover:brightness-110 transition-all shadow-lg shadow-accent/20 uppercase tracking-widest"
+                                      className="w-full sm:w-auto text-center px-6 py-2.5 sm:py-2 bg-accent text-white text-xs font-black rounded-xl hover:brightness-110 transition-all shadow-lg shadow-accent/20 uppercase tracking-widest"
                                     >
-                                      Watch
+                                      Watch Now
                                     </Link>
                                   )}
                                 </div>
