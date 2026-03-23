@@ -163,7 +163,7 @@ setEra('All Time');
                 animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
                 exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed left-1/2 top-1/2 z-50 w-full max-w-[min(82vw,860px)] p-2 sm:p-3 outline-none"
+                className="fixed left-1/2 top-1/2 z-50 w-full max-w-[min(95vw,820px)] p-3 sm:p-4 outline-none"
               >
                 <div
                   className={cn(
