@@ -111,7 +111,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
           {ratings?.map((r) => {
             const isRT = r.Source.toLowerCase().includes('rotten');
             const isMeta = r.Source.toLowerCase().includes('metacritic') || r.Source.toLowerCase().includes('metascore');
-            
+
             let iconPath = '';
             if (isRT) {
               const val = parseInt(r.Value.replace('%', ''));
@@ -121,7 +121,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
             } else {
               return null;
             }
-            
+
             return (
               <div key={r.Source} className="flex items-center gap-2.5 rounded-full bg-white/[0.05] px-3.5 py-1.5 border border-white/5 backdrop-blur-xl shadow-sm">
                 <div className="relative h-5 w-5">
