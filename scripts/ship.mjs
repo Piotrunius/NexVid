@@ -71,7 +71,8 @@ async function ship() {
       if (deployChoice.trim() === '2' || deployChoice.trim() === '3') {
         const branch = await getPagesBranch();
         console.log(`\n📄 Deploying Pages to branch "${branch}"...`);
-        execSync(`npm run pages:deploy -- --branch ${branch}`, { stdio: 'inherit' });
+        // Force npm usage for consistent environment
+        execSync(`npm run pages:build-output && npm run pages:prepare && wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`, { stdio: 'inherit' });
       }
     } else {
       console.log('\n✅ Skipping deploy.');
