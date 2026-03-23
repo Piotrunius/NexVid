@@ -181,11 +181,11 @@ export function AiAssistantModal({
                 animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
                 exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed left-1/2 top-1/2 z-50 w-full max-w-3xl p-4 outline-none"
+                className="fixed left-1/2 top-1/2 z-50 w-full max-w-[min(95vw,950px)] p-3 sm:p-4 outline-none"
               >
                 <div 
                   className={cn(
-                    "relative flex flex-col w-full max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl transition-all",
+                    "relative flex flex-col w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl transition-all",
                     glassEffect 
                       ? "bg-black/80 backdrop-blur-xl border-white/10" 
                       : "bg-[#0a0a0a] border-white/10"
@@ -372,9 +372,9 @@ export function AiAssistantModal({
                           {recommendations.map((rec, idx) => (
                             <div
                               key={idx}
-                              className="group flex flex-col sm:flex-row gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/10 rounded-2xl p-4 transition-all"
+                              className="group flex w-full min-w-0 flex-col sm:flex-row gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/10 rounded-2xl p-4 transition-all"
                             >
-                              <div className="shrink-0 w-full sm:w-24 aspect-[2/3] sm:aspect-[2/3] bg-black/40 rounded-xl overflow-hidden relative shadow-2xl mx-auto sm:mx-0 max-w-[160px] sm:max-w-none">
+                              <div className="shrink-0 w-full sm:w-24 aspect-[2/3] sm:aspect-[2/3] bg-black/40 rounded-xl overflow-hidden relative shadow-2xl mx-auto sm:mx-0 max-w-[120px] sm:max-w-[160px]">
                                 {rec.mediaItem?.posterPath ? (
                                   <Image
                                     src={`https://image.tmdb.org/t/p/w200${rec.mediaItem.posterPath}`}
@@ -391,7 +391,7 @@ export function AiAssistantModal({
                               <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                                 <div>
                                   <div className="flex justify-between items-start gap-2">
-                                    <h3 className="font-extrabold text-white text-lg sm:text-lg leading-tight truncate pr-2">
+                                    <h3 className="font-extrabold text-white text-base sm:text-lg leading-tight truncate pr-2">
                                       {rec.mediaItem?.title || rec.title}
                                     </h3>
                                     {rec.match_score && (
