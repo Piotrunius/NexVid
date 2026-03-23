@@ -67,7 +67,6 @@ export function Navbar() {
   const [showProfilePartyInput, setShowProfilePartyInput] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLElement>(null);
@@ -186,38 +185,20 @@ export function Navbar() {
 
   const DockIcon = ({ item, isButton }: { item: typeof dockItems[0]; isButton?: boolean }) => {
     const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
-    const isHovered = hoveredItem === item.id;
 
     const content = (
       <div className="relative flex flex-col items-center">
-        {/* Tooltip */}
-        <span className={cn(
-          'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-          'bg-black/70 backdrop-blur-xl',
-          isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-        )}>
-          {item.label}
-        </span>
-
         {/* Icon container */}
         <div
           className={cn(
             'flex h-10 w-10 items-center justify-center rounded-[14px] transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]',
             isActive
               ? 'bg-accent/20 text-accent shadow-[0_0_20px_var(--accent-glow)]'
-              : 'text-white/40 hover:text-white/80 hover:bg-white/[0.08]',
-            isHovered && !isActive && 'scale-110',
+              : 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110',
           )}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
         >
           {item.icon}
         </div>
-
-        {/* Active indicator dot */}
-        {isActive && (
-          <div className="h-1 w-1 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
-        )}
       </div>
     );
 
@@ -280,19 +261,10 @@ export function Navbar() {
           {isLoggedIn && (
             <button
               onClick={() => setIsAiOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
               aria-label="AI Assistant"
-              onMouseEnter={() => setHoveredItem('ai')}
-              onMouseLeave={() => setHoveredItem(null)}
             >
               <div className="relative flex flex-col items-center">
-                <span className={cn(
-                  'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-                  'bg-black/70 backdrop-blur-xl',
-                  hoveredItem === 'ai' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-                )}>
-                  AI Assistant
-                </span>
                 <div className={cn(
                   "transition-all duration-500",
                   isAiOpen ? "text-accent scale-110" : ""
@@ -315,19 +287,10 @@ export function Navbar() {
               setIsSearchOpen(true);
               setTimeout(() => searchRef.current?.focus(), 100);
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
+            className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
             aria-label="Search (press /)"
-            onMouseEnter={() => setHoveredItem('search')}
-            onMouseLeave={() => setHoveredItem(null)}
           >
             <div className="relative flex flex-col items-center">
-              <span className={cn(
-                'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-                'bg-black/70 backdrop-blur-xl',
-                hoveredItem === 'search' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-              )}>
-                Search
-              </span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
@@ -338,19 +301,10 @@ export function Navbar() {
           <div className="relative hidden sm:block">
             <button
               onClick={() => { setIsBellOpen((v) => !v); setIsProfileOpen(false); }}
-              className="relative flex h-12 w-12 items-center justify-center rounded-[16px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500"
+              className="relative flex h-12 w-12 items-center justify-center rounded-[16px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500"
               aria-label="Notifications"
-              onMouseEnter={() => setHoveredItem('notifications')}
-              onMouseLeave={() => setHoveredItem(null)}
             >
               <div className="relative flex flex-col items-center">
-                <span className={cn(
-                  'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-                  'bg-black/70 backdrop-blur-xl',
-                  hoveredItem === 'notifications' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-                )}>
-                  Notifications
-                </span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                 </svg>
@@ -420,10 +374,10 @@ export function Navbar() {
                               {a.message}
                             </p>
                             {a.link && (
-                              <a 
-                                href={a.link.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
+                              <a
+                                href={a.link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="mt-1.5 inline-flex items-center text-[12px] font-semibold text-accent hover:underline decoration-2 underline-offset-2"
                               >
                                 {a.link.label}
@@ -431,8 +385,8 @@ export function Navbar() {
                               </a>
                             )}
                           </div>
-                          <button 
-                            onClick={() => { dismissId(a.id); setAnnouncements((prev) => prev.filter((x) => x.id !== a.id)); }} 
+                          <button
+                            onClick={() => { dismissId(a.id); setAnnouncements((prev) => prev.filter((x) => x.id !== a.id)); }}
                             className="absolute top-2.5 right-2.5 rounded-full p-1.5 opacity-0 group-hover:opacity-100 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all duration-300"
                             title="Dismiss"
                           >
@@ -450,19 +404,10 @@ export function Navbar() {
           </div>
           <Link
             href="/settings"
-            className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 sm:h-12 sm:w-12 sm:rounded-[16px]"
+            className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 sm:h-12 sm:w-12 sm:rounded-[16px]"
             aria-label="Settings"
-            onMouseEnter={() => setHoveredItem('settings')}
-            onMouseLeave={() => setHoveredItem(null)}
           >
             <div className="relative flex flex-col items-center">
-              <span className={cn(
-                'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-                'bg-black/70 backdrop-blur-xl',
-                hoveredItem === 'settings' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-              )}>
-                Settings
-              </span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                 <circle cx="12" cy="12" r="3" />
@@ -474,23 +419,14 @@ export function Navbar() {
           {isLoggedIn && (
             <>
               <div className="mx-0.5 h-6 w-px bg-white/[0.08]" />
-              
+
               {user?.isAdmin && (
                 <Link
                   href="/admin"
-                  className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 sm:h-12 sm:w-12"
+                  className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 sm:h-12 sm:w-12"
                   aria-label="Admin"
-                  onMouseEnter={() => setHoveredItem('admin')}
-                  onMouseLeave={() => setHoveredItem(null)}
                 >
                   <div className="relative flex flex-col items-center">
-                    <span className={cn(
-                      'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-                      'bg-black/70 backdrop-blur-xl',
-                      hoveredItem === 'admin' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-                    )}>
-                      Admin
-                    </span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
@@ -500,19 +436,10 @@ export function Navbar() {
 
               <Link
                 href="/contact"
-                className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all duration-500 sm:h-12 sm:w-12"
+                className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 sm:h-12 sm:w-12"
                 aria-label="Contact"
-                onMouseEnter={() => setHoveredItem('contact')}
-                onMouseLeave={() => setHoveredItem(null)}
               >
                 <div className="relative flex flex-col items-center">
-                  <span className={cn(
-                    'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-                    'bg-black/70 backdrop-blur-xl',
-                    hoveredItem === 'contact' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-                  )}>
-                    Contact
-                  </span>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
@@ -525,21 +452,12 @@ export function Navbar() {
               <button
                 onClick={() => { setShowProfilePartyInput(!showProfilePartyInput); setIsBellOpen(false); }}
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-[14px] transition-all duration-500 sm:h-12 sm:w-12",
+                  "flex h-10 w-10 items-center justify-center rounded-[14px] transition-all duration-500 sm:h-12 sm:w-12 hover:scale-110",
                   showProfilePartyInput ? "bg-accent/20 text-accent" : "text-white/40 hover:text-white/80 hover:bg-white/[0.08]"
                 )}
                 aria-label="Watch Together"
-                onMouseEnter={() => setHoveredItem('watch')}
-                onMouseLeave={() => setHoveredItem(null)}
               >
                 <div className="relative flex flex-col items-center">
-                  <span className={cn(
-                    'absolute -bottom-8 px-2.5 py-1 rounded-[10px] text-[11px] font-medium text-white/90 whitespace-nowrap pointer-events-none transition-all duration-300',
-                    'bg-black/70 backdrop-blur-xl',
-                    hoveredItem === 'watch' ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-                  )}>
-                    Watch Together
-                  </span>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                     <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5z" />
                     <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11z" />
