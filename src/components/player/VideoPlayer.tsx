@@ -18,6 +18,7 @@ import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
+import ExternalRatings from '@/components/media/ExternalRatings';
 import type { AudioTrack, Caption, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -2325,7 +2326,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                             media.tagline && <p className="mt-1 text-[13px] text-white/65">{media.tagline}</p>
                           )}
 
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
                             {media.releaseYear && (
                               <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
                                 {media.releaseYear}
@@ -2361,13 +2362,21 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
                           <div className="mt-3 flex flex-wrap gap-2">
                             <div className="relative">
-                              <button onClick={() => setShowInfoWatchlistMenu((value) => !value)} className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
-                                {infoWatchlistItem ? (
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                              <button 
+                                onClick={() => setShowInfoWatchlistMenu((value) => !value)} 
+                                className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                              >
+                                {infoWatchlistItem && infoWatchlistItem.status !== 'none' ? (
+                                  <>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                                    {infoWatchlistItem.status}
+                                  </>
                                 ) : (
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                                  <>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                                    Add to List
+                                  </>
                                 )}
-                                {infoWatchlistItem ? infoWatchlistItem.status : 'Add to List'}
                               </button>
                             </div>
 
