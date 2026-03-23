@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-const WORKER_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+const WORKER_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://nexvid-proxy.piotrunius.workers.dev').replace(/\/+$/, '');
 
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized - Please log in' }, { status: 401 });
+    const token = authHeader?.split(' ')[1];
+    
+    if (!token || token === 'undefined' || token === 'null' || token === '') {
+      return NextResponse.json({ error: 'AI Assistant requires a Cloud account. Please log in to your account.' }, { status: 401 });
     }
 
     // 1. Check & Increment Limit in Worker
@@ -21,7 +23,14 @@ export async function POST(req: Request) {
       if (limitRes.status === 429) {
         return NextResponse.json({ error: 'Daily limit reached (5/5). Come back tomorrow!' }, { status: 429 });
       }
-      return NextResponse.json({ error: 'Failed to verify usage limit' }, { status: 500 });
+      
+      const errorText = await limitRes.text().catch(() => 'No error body');
+      console.error(`Worker Limit Error (${limitRes.status}):`, errorText);
+      
+      return NextResponse.json({ 
+        error: `Failed to verify usage limit (Worker Status: ${limitRes.status})`,
+        details: errorText
+      }, { status: 500 });
     }
 
     const { mood, type, selectedGenres, selectedMoods, era } = await req.json();
