@@ -27,7 +27,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   autoSkipSegments: true,
   autoSwitchSource: true,
   idlePauseOverlay: true,
-  proxyUrl: '',
   febboxApiKey: '',
   disableEmbeds: false,
   introDbApiKey: PUBLIC_TIDB_API_KEY_PLACEHOLDER,
@@ -45,7 +44,6 @@ interface SettingsStore {
   setTheme: (theme: 'dark' | 'light') => void;
   setAccentColor: (color: AccentColor) => void;
   toggleGlass: () => void;
-  setProxyUrl: (url: string) => void;
   setDefaultQuality: (quality: StreamQuality) => void;
   toggleSource: (sourceId: string) => void;
   reorderSources: (sourceIds: string[]) => void;
@@ -90,9 +88,6 @@ export const useSettingsStore = create<SettingsStore>()(
 
       toggleGlass: () =>
         get().updateSettings({ glassEffect: !get().settings.glassEffect }),
-
-      setProxyUrl: (proxyUrl) =>
-        get().updateSettings({ proxyUrl }),
 
       setDefaultQuality: (defaultQuality) =>
         get().updateSettings({ defaultQuality }),
