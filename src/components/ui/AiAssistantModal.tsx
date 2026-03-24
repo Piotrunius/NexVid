@@ -171,7 +171,7 @@ setEra('All Time');
                     "relative flex flex-col w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl transition-all",
                     glassEffect
                       ? "bg-black/80 backdrop-blur-xl border-white/10"
-                      : "bg-[#0a0a0a] border-white/10"
+                      : "bg-black/90 border-white/10"
                   )}
                 >
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-accent/20 blur-[100px] pointer-events-none" />
