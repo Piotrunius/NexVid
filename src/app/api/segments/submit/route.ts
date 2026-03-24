@@ -4,11 +4,9 @@ export const runtime = 'edge';
 
 const TIDB_V2_BASE = 'https://api.theintrodb.org/v2';
 const PUBLIC_TIDB_API_KEY_PLACEHOLDER = '__PUBLIC_TIDB_KEY__';
-// NOTE: This is a public (shared) key that is intentionally hardcoded so that
-// users can submit segments without needing to supply their own API key.
-// The client-side UI should still show the placeholder value to end users.
-const PUBLIC_TIDB_API_KEY_HARDCODED =
-  'theintrodb:user_3B7cSOVdPMaOgNF64iugv4b6yj5:ilo_pdil6Ojt-S_NHOy9K8-RrHTiLoLPPECA7HbbgQM';
+// NOTE: This is a public (shared) key placeholder. Use your Cloudflare secret value in env:
+// TIDB_API_KEY
+const PUBLIC_TIDB_API_KEY_HARDCODED = process.env.TIDB_API_KEY || '';
 
 export async function POST(request: NextRequest) {
   try {
