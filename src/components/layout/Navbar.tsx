@@ -71,7 +71,9 @@ export function Navbar() {
   const searchRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLElement>(null);
   const { user, isLoggedIn, logout } = useAuthStore();
-  const { glassEffect } = useSettingsStore((s) => s.settings);
+  const { glassEffect, groqApiKey } = useSettingsStore((s) => s.settings);
+
+  const hasOwnAiKey = groqApiKey && groqApiKey !== '__PUBLIC_GROQ_KEY__';
 
   useEffect(() => {
     setMounted(true);
@@ -258,7 +260,7 @@ export function Navbar() {
           ))}
 
           {/* AI Assistant */}
-          {isLoggedIn && (
+          {(isLoggedIn || hasOwnAiKey) && (
             <button
               onClick={() => setIsAiOpen(true)}
               className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
