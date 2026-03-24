@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useAuthStore } from '@/stores/auth';
+import { useSettingsStore } from '@/stores/settings';
 
 interface Rating {
   Source: string;
@@ -21,6 +22,7 @@ interface OMDBResponse {
 
 export default function ExternalRatings({ imdbId, title, year, vertical = false }: { imdbId?: string, title?: string, year?: string | number, vertical?: boolean }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const { omdbApiKey } = useSettingsStore((s) => s.settings);
   const [ratings, setRatings] = useState<Rating[] | null>(null);
   const [imdbScore, setImdbScore] = useState<string | null>(null);
   const [metascore, setMetascore] = useState<string | null>(null);
@@ -43,6 +45,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
       url.searchParams.set('i', imdbId);
       if (title) url.searchParams.set('t', title);
       if (year) url.searchParams.set('y', String(year));
+      if (omdbApiKey) url.searchParams.set('apikey', omdbApiKey);
 
       const res = await fetch(url.toString());
       const data: OMDBResponse = await res.json();

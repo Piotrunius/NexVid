@@ -4,16 +4,18 @@ export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
+    const { mood, type, selectedGenres, era, groqApiKey: userApiKey } = await req.json();
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
 
-    // Feature is still restricted to Cloud accounts to ensure basic security
-    if (!token || token === 'undefined' || token === 'null' || token === '') {
-      return NextResponse.json({ error: 'AI Assistant requires a Cloud account. Please log in.' }, { status: 401 });
+    // If user provided their own key, we don't strictly need a Cloud account
+    if (!userApiKey || userApiKey === '__PUBLIC_GROQ_KEY__') {
+      if (!token || token === 'undefined' || token === 'null' || token === '') {
+        return NextResponse.json({ error: 'AI Assistant requires a Cloud account or your own Groq API key in Settings.' }, { status: 401 });
+      }
     }
 
-    const { mood, type, selectedGenres, era } = await req.json();
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = (!userApiKey || userApiKey === '__PUBLIC_GROQ_KEY__') ? process.env.GROQ_API_KEY : userApiKey;
 
     if (!apiKey) {
       console.error('[AI] Missing GROQ_API_KEY in Pages Environment Variables');

@@ -7,8 +7,11 @@ export async function GET(req: NextRequest) {
   const imdbId = searchParams.get('i');
   const title = searchParams.get('t');
   const year = searchParams.get('y');
+  const userApiKey = searchParams.get('apikey');
 
-  const apiKey = process.env.OMDB_API_KEY || process.env.NEXT_PUBLIC_OMDB_API_KEY;
+  const apiKey = (!userApiKey || userApiKey === '__PUBLIC_OMDB_KEY__') 
+    ? (process.env.OMDB_API_KEY || process.env.NEXT_PUBLIC_OMDB_API_KEY)
+    : userApiKey;
 
   if (!apiKey) {
     return NextResponse.json({ error: 'OMDB API key not configured' }, { status: 500 });

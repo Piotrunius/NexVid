@@ -11,7 +11,7 @@ import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
-import { useSettingsStore } from '@/stores/settings';
+import { PUBLIC_GROQ_API_KEY_PLACEHOLDER, PUBLIC_OMDB_API_KEY_PLACEHOLDER, useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AccentColor } from '@/types';
 import { useMemo, useState } from 'react';
@@ -299,6 +299,90 @@ export default function SettingsPage() {
         <SettingsCard title="API Keys" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>}>
           <p className="text-[12px] text-text-muted mb-4">Keys are saved in your account when logged in.</p>
           <div className="space-y-4">
+            {isLoggedIn && (
+              <>
+                <SettingsRow label="Groq AI API Key">
+                  <p className="text-[11px] text-text-muted mb-1.5">
+                    Powers the AI Assistant. Get your own at{' '}
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">console.groq.com</a>
+                  </p>
+                  <input
+                    type="password"
+                    value={settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER ? 'PUBLIC_KEY_ACTIVE' : settings.groqApiKey || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      store.updateSettings({ groqApiKey: val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_GROQ_API_KEY_PLACEHOLDER : val });
+                    }}
+                    placeholder={settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER ? 'Public key active (hidden)' : 'gsk_...'}
+                    className="input w-full"
+                    autoComplete="new-password"
+                  />
+                  <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
+                    <p className="text-[11px] text-text-muted leading-relaxed">Public Groq key is available only for signed-in users.</p>
+                    {settings.groqApiKey !== PUBLIC_GROQ_API_KEY_PLACEHOLDER && (
+                      <button
+                        onClick={() => {
+                          store.updateSettings({ groqApiKey: PUBLIC_GROQ_API_KEY_PLACEHOLDER });
+                          toast('Public Groq key enabled', 'info');
+                        }}
+                        className="btn-glass mt-2 w-full text-[12px]"
+                      >
+                        Use public Groq key
+                      </button>
+                    )}
+                    {settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER && (
+                      <button
+                        onClick={() => { store.updateSettings({ groqApiKey: '' }); toast('Public key cleared', 'info'); }}
+                        className="btn-glass mt-2 w-full text-[12px]"
+                      >
+                        Clear public key
+                      </button>
+                    )}
+                  </div>
+                </SettingsRow>
+
+                <SettingsRow label="OMDb API Key">
+                  <p className="text-[11px] text-text-muted mb-1.5">
+                    Used for external ratings (IMDb, Rotten Tomatoes, Metacritic). Get your own at{' '}
+                    <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">omdbapi.com</a>
+                  </p>
+                  <input
+                    type="password"
+                    value={settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER ? 'PUBLIC_KEY_ACTIVE' : settings.omdbApiKey || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      store.updateSettings({ omdbApiKey: val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_OMDB_API_KEY_PLACEHOLDER : val });
+                    }}
+                    placeholder={settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER ? 'Public key active (hidden)' : '8 digits, e.g. abcdef12'}
+                    className="input w-full"
+                    autoComplete="new-password"
+                  />
+                  <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
+                    <p className="text-[11px] text-text-muted leading-relaxed">Public OMDb key is available only for signed-in users.</p>
+                    {settings.omdbApiKey !== PUBLIC_OMDB_API_KEY_PLACEHOLDER && (
+                      <button
+                        onClick={() => {
+                          store.updateSettings({ omdbApiKey: PUBLIC_OMDB_API_KEY_PLACEHOLDER });
+                          toast('Public OMDb key enabled', 'info');
+                        }}
+                        className="btn-glass mt-2 w-full text-[12px]"
+                      >
+                        Use public OMDb key
+                      </button>
+                    )}
+                    {settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER && (
+                      <button
+                        onClick={() => { store.updateSettings({ omdbApiKey: '' }); toast('Public key cleared', 'info'); }}
+                        className="btn-glass mt-2 w-full text-[12px]"
+                      >
+                        Clear public key
+                      </button>
+                    )}
+                  </div>
+                </SettingsRow>
+              </>
+            )}
+
             <SettingsRow label="TheIntroDB">
               <p className="text-[11px] text-text-muted mb-1.5">
                 Required to submit timestamps. Get your own at{' '}

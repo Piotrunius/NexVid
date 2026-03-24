@@ -47,9 +47,9 @@ export function AiAssistantModal({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const bodyRef = useRef<HTMLDivElement>(null);
-  const { glassEffect } = useSettingsStore((s) => s.settings);
+  const { groqApiKey, glassEffect } = useSettingsStore((s) => s.settings);
   const { authToken, isLoggedIn } = useAuthStore();
-  const isLocalUser = isLoggedIn && !authToken;
+  const isLocalUser = isLoggedIn && !authToken && !groqApiKey;
 
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = 0;
@@ -74,7 +74,7 @@ export function AiAssistantModal({
     );
   };
 
-const handleGenerate = async () => {
+  const handleGenerate = async () => {
     // mood is optional, it can add context but genres are the main filter.
 
     setStep('loading');
@@ -92,8 +92,8 @@ const handleGenerate = async () => {
           mood,
           type,
           selectedGenres,
-
-          era
+          era,
+          groqApiKey
         }),
       });
 
@@ -194,7 +194,7 @@ setEra('All Time');
                         {(errorMsg || isLocalUser) && (
                           <div className="px-6 pt-4">
                             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-medium text-center">
-                              {isLocalUser ? 'AI Assistant requires a Cloud account. Please log in to your account.' : errorMsg}
+                              {isLocalUser ? 'AI Assistant requires a Cloud account or your own Groq API key in Settings.' : errorMsg}
                             </div>
                           </div>
                         )}
@@ -394,7 +394,7 @@ setEra('All Time');
                           disabled={isLocalUser || (selectedGenres.length === 0 && !mood.trim())}
                           className="group w-full py-4 bg-accent text-white font-bold text-sm sm:text-base uppercase tracking-wider rounded-xl hover:bg-accent/90 hover:shadow-[0_0_25px_var(--accent-glow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3"
                         >
-                          {isLocalUser ? "Cloud Account Required" : "Generate recommendations"}
+                          {isLocalUser ? "Cloud Account or API Key Required" : "Generate recommendations"}
                         </button>
                       ) : (
                         <button

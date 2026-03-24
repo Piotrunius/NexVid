@@ -27,7 +27,7 @@ export function configureProviders(newConfig: ProviderConfig) {
 }
 
 export const SOURCES: SourceMeta[] = [
-  { id: 'febbox', name: 'FebBox', rank: 300, type: 'source' },
+  { id: 'febbox', name: 'FebBox', rank: 1000, type: 'source' },
   { id: 'vixsrc', name: 'VixSrc', rank: 275, type: 'source' },
   { id: 'videasy', name: 'Videasy', rank: 250, type: 'embed' },
   { id: 'vidlink', name: 'VidLink Pro', rank: 200, type: 'embed' },
@@ -259,6 +259,10 @@ export async function scrapeAllSources(options: ScrapeOptions): Promise<SourceRe
   const results: SourceResult[] = [];
 
   for (const source of SOURCES) {
+    if (source.id === 'febbox' && !options.febboxCookie) {
+      continue;
+    }
+
     const result = await scrapeSource(options, source.id);
     if (result) {
       results.push(result);
