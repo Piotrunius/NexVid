@@ -35,6 +35,22 @@ export default function SettingsPage() {
     return '#6366f1';
   }, [settings.customAccentHex]);
 
+  const isPublicGroqKeyRaw = settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER;
+  const isPublicOmdbKeyRaw = settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER;
+  const isPublicTidbKeyRaw = isPublicTidbKey(settings.introDbApiKey);
+
+  const isPublicGroqKey = isLoggedIn && isPublicGroqKeyRaw;
+  const isPublicOmdbKey = isLoggedIn && isPublicOmdbKeyRaw;
+  const isPublicTidbKeyActive = isLoggedIn && isPublicTidbKeyRaw;
+
+  const groqInputValue = isLoggedIn ? (isPublicGroqKeyRaw ? 'PUBLIC_KEY_ACTIVE' : settings.groqApiKey || '') : (isPublicGroqKeyRaw ? '' : settings.groqApiKey || '');
+  const omdbInputValue = isLoggedIn ? (isPublicOmdbKeyRaw ? 'PUBLIC_KEY_ACTIVE' : settings.omdbApiKey || '') : (isPublicOmdbKeyRaw ? '' : settings.omdbApiKey || '');
+  const tidbInputValue = isLoggedIn ? (isPublicTidbKeyRaw ? 'PUBLIC_KEY_ACTIVE' : settings.introDbApiKey || '') : (isPublicTidbKeyRaw ? '' : settings.introDbApiKey || '');
+
+  const groqPlaceholder = isLoggedIn && isPublicGroqKeyRaw ? 'Public key active (hidden)' : 'gsk_...';
+  const omdbPlaceholder = isLoggedIn && isPublicOmdbKeyRaw ? 'Public key active (hidden)' : '8 digits, e.g. abcdef12';
+  const tidbPlaceholder = isLoggedIn && isPublicTidbKeyRaw ? 'Public key active (hidden)' : 'theintrodb:user_...';
+
   const accentColors: { key: AccentColor; label: string; color: string }[] = [
     { key: 'indigo', label: 'Indigo', color: '#6366f1' },
     { key: 'violet', label: 'Violet', color: '#8b5cf6' },
@@ -306,12 +322,12 @@ export default function SettingsPage() {
               </p>
               <input
                 type="password"
-                value={settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER ? 'PUBLIC_KEY_ACTIVE' : settings.groqApiKey || ''}
+                value={groqInputValue}
                 onChange={(e) => {
                   const val = e.target.value;
                   store.updateSettings({ groqApiKey: val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_GROQ_API_KEY_PLACEHOLDER : val });
                 }}
-                placeholder={settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER ? 'Public key active (hidden)' : 'gsk_...'}
+                placeholder={groqPlaceholder}
                 className="input w-full"
                 autoComplete="new-password"
               />
@@ -346,12 +362,12 @@ export default function SettingsPage() {
               </p>
               <input
                 type="password"
-                value={settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER ? 'PUBLIC_KEY_ACTIVE' : settings.omdbApiKey || ''}
+                value={omdbInputValue}
                 onChange={(e) => {
                   const val = e.target.value;
                   store.updateSettings({ omdbApiKey: val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_OMDB_API_KEY_PLACEHOLDER : val });
                 }}
-                placeholder={settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER ? 'Public key active (hidden)' : '8 digits, e.g. abcdef12'}
+                placeholder={omdbPlaceholder}
                 className="input w-full"
                 autoComplete="new-password"
               />
@@ -386,18 +402,18 @@ export default function SettingsPage() {
               </p>
               <input
                 type="password"
-                value={isPublicTidbKey(settings.introDbApiKey) ? 'PUBLIC_KEY_ACTIVE' : settings.introDbApiKey || ''}
+                value={tidbInputValue}
                 onChange={(e) => {
                   const val = e.target.value;
                   store.updateSettings({ introDbApiKey: val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_TIDB_API_KEY_PLACEHOLDER : val });
                 }}
-                placeholder={isPublicTidbKey(settings.introDbApiKey) ? 'Public key active (hidden)' : 'theintrodb:user_...'}
+                placeholder={tidbPlaceholder}
                 className="input w-full"
                 autoComplete="new-password"
               />
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
                 <p className="text-[11px] text-text-muted leading-relaxed">Public TheIntroDB key is available only for signed-in users.</p>
-                {isLoggedIn && !isPublicTidbKey(settings.introDbApiKey) && (
+                {isLoggedIn && !isPublicTidbKeyActive && (
                   <button
                     onClick={() => {
                       store.updateSettings({ introDbApiKey: PUBLIC_TIDB_API_KEY_PLACEHOLDER });
@@ -408,7 +424,7 @@ export default function SettingsPage() {
                     Use public TheIntroDB key
                   </button>
                 )}
-                {isLoggedIn && isPublicTidbKey(settings.introDbApiKey) && (
+                {isLoggedIn && isPublicTidbKeyActive && (
                   <button
                     onClick={() => { store.updateSettings({ introDbApiKey: '' }); toast('Public key cleared', 'info'); }}
                     className="btn-glass mt-2 w-full text-[12px]"
