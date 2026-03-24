@@ -226,8 +226,8 @@ export default function SettingsPage() {
                 className="w-full flex items-center justify-between rounded-full bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.06]"
               >
                 <div className="text-left">
-                  <p className="text-[13px] font-medium text-text-primary">Disable transparency</p>
-                  <p className="text-[11px] text-text-muted mt-0.5">Switches UI to a flatter, simpler style (less glass depth).</p>
+                  <p className="text-[13px] font-medium text-text-primary">Simpler UI style</p>
+                  <p className="text-[11px] text-text-muted mt-0.5">Switches UI to a flatter, simpler style.</p>
                 </div>
                 <div className={cn('relative w-11 h-[24px] rounded-full transition-colors duration-200', !settings.glassEffect ? 'bg-accent' : 'bg-white/10')}>
                   <div className={cn('absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200', !settings.glassEffect ? 'translate-x-[22px]' : 'translate-x-[2px]')} />
@@ -286,6 +286,37 @@ export default function SettingsPage() {
                 ))}
               </select>
               <p className="mt-1.5 text-[11px] text-text-muted">Default subtitle selection in player. Can be changed per video.</p>
+            </SettingsRow>
+
+            <SettingsRow label="Preferred Quality">
+              <select
+                value={settings.defaultQuality}
+                onChange={(e) => store.updateSettings({ defaultQuality: e.target.value as any })}
+                className="input w-full"
+              >
+                <option value="4k">4K</option>
+                <option value="2k">2K</option>
+                <option value="1080">1080p</option>
+                <option value="720">720p</option>
+                <option value="480">480p</option>
+                <option value="360">360p</option>
+              </select>
+              <p className="mt-1.5 text-[11px] text-text-muted">Default video quality preference when multiple streams are available.</p>
+            </SettingsRow>
+
+            <SettingsRow label="Seek Time">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={settings.seekTime}
+                  onChange={(e) => store.updateSettings({ seekTime: Math.max(1, Math.min(120, Number(e.target.value) || 1)) })}
+                  className="input w-24"
+                />
+                <span className="text-[12px] text-text-muted">seconds</span>
+              </div>
+              <p className="mt-1.5 text-[11px] text-text-muted">Amount of time to seek forward/backward with arrow keys or skip buttons.</p>
             </SettingsRow>
           </div>
         </SettingsCard>

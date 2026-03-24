@@ -1091,14 +1091,6 @@ async function handlePasswordChange(request: Request, env: Env): Promise<Respons
   return json(request, env, { ok: true });
 }
 
-async function handleVerifyEmail(request: Request, env: Env): Promise<Response> {
-  return json(request, env, { ok: true, message: 'Email verification is disabled.' });
-}
-
-async function handleResendVerification(request: Request, env: Env): Promise<Response> {
-  return json(request, env, { ok: true, message: 'Email verification is disabled.' });
-}
-
 async function handleLogin(request: Request, env: Env): Promise<Response> {
   const body = await readJson<{ username?: string; password?: string; turnstileToken?: string }>(request);
   const username = (body.username || '').trim();
@@ -3318,12 +3310,6 @@ export default {
         case '/auth/change-password':
           if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handlePasswordChange(request, env);
-        case '/auth/verify-email':
-          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
-          return await handleVerifyEmail(request, env);
-        case '/auth/resend-verification':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
-          return await handleResendVerification(request, env);
         case '/auth/logout':
           if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleLogout(request, env);

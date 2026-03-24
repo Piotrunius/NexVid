@@ -394,7 +394,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, subtitleLanguage, febboxApiKey, disableEmbeds } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, seekTime, subtitleLanguage, febboxApiKey, disableEmbeds } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
@@ -1771,13 +1771,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
   const skipForward = useCallback(() => {
     const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
-    seek(start + 10);
-  }, [currentTime, seek]);
+    seek(start + seekTime);
+  }, [currentTime, seek, seekTime]);
 
   const skipBackward = useCallback(() => {
     const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
-    seek(start - 10);
-  }, [currentTime, seek]);
+    seek(start - seekTime);
+  }, [currentTime, seek, seekTime]);
   const handleSkipIntro = useCallback(() => {
     const introSegment = normalizeSegment(introOutro?.introStart, introOutro?.introEnd);
     if (!introSegment || !videoRef.current) return;
