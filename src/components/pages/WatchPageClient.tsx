@@ -516,7 +516,23 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     setDismissedTokenNoticeMediaKey((prev) => (prev === currentMediaKey ? prev : null));
   }, [currentMediaKey]);
 
+  const lastNavigateRef = useRef<{ ts: number; season: number; episode: number }>({ ts: 0, season: seasonNum, episode: episodeNum });
+
   const navigateEpisode = (s: number, e: number) => {
+    const now = Date.now();
+    const last = lastNavigateRef.current;
+
+    // Avoid immediate double-jump glitches caused by edge-case auto-next race
+    if (now - last.ts < 1200 && last.season === s && Math.abs(e - last.episode) <= 1) {
+      return;
+    }
+    if (now - last.ts < 1200 && Math.abs(e - episodeNum) > 1) {
+      // guard against accidental two-step skip (e.g. 2->4) during fast auto-next sequence
+      console.warn('Blocked suspicious fast navigation', { current: episodeNum, target: e, last });
+      return;
+    }
+
+    lastNavigateRef.current = { ts: now, season: s, episode: e };
     router.push(`/watch/show/${id}?s=${s}&e=${e}`);
   };
 
@@ -574,16 +590,13 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   }, [type, currentEpisode, season, episodeNum]);
 
   const getTitle = () => {
-    if (type === 'show') {
-      return currentEpisodeComputed?.name || media?.title || '';
-    }
     return media?.title || '';
   };
 
   const getSubtitle = () => {
     if (type === 'show') {
-      const showTitle = media?.title || '';
-      return `S${seasonNum}:E${episodeNum}${showTitle ? ` - ${showTitle}` : ''}`;
+      const episodeName = currentEpisodeComputed?.name || '';
+      return `S${seasonNum}:E${episodeNum}${episodeName ? ` - ${episodeName}` : ''}`;
     }
     return '';
   };

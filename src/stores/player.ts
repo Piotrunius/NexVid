@@ -103,12 +103,26 @@ export const usePlayerStore = create<PlayerStore>()((set, get) => ({
     let showSkipIntro = false;
     let showSkipOutro = false;
 
+    const resolveEnd = (end: number | undefined) => {
+      if (end === undefined) return undefined;
+      if (end === 0 && state.duration > 0) return state.duration;
+      return end;
+    };
+
     if (io) {
       if (io.introStart !== undefined && io.introEnd !== undefined) {
-        showSkipIntro = currentTime >= io.introStart && currentTime < io.introEnd;
+        const introStart = Math.max(0, io.introStart);
+        const introEnd = resolveEnd(io.introEnd);
+        if (introEnd !== undefined && introEnd > introStart) {
+          showSkipIntro = currentTime >= introStart && currentTime < introEnd;
+        }
       }
       if (io.outroStart !== undefined && io.outroEnd !== undefined) {
-        showSkipOutro = currentTime >= io.outroStart && currentTime < io.outroEnd;
+        const outroStart = Math.max(0, io.outroStart);
+        const outroEnd = resolveEnd(io.outroEnd);
+        if (outroEnd !== undefined && outroEnd > outroStart) {
+          showSkipOutro = currentTime >= outroStart && currentTime < outroEnd;
+        }
       }
     }
 

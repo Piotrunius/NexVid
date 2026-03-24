@@ -447,8 +447,11 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [isEmbedNoticeDismissed, setIsEmbedNoticeDismissed] = useState(false);
   const [idleSnapshot, setIdleSnapshot] = useState<string | null>(null);
   const [isFinished, setIsFinished] = useState(false);
+  const [autoNextLocked, setAutoNextLocked] = useState(false);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
+  const nextEpisodeAutoNavRef = useRef(false);
+  const autoNextTimeoutRef = useRef<number | null>(null);
   const lastAutoSkippedSegmentRef = useRef('');
   const lastAutoSkipAtRef = useRef(0);
   const lastInteractionAtRef = useRef(Date.now());
@@ -1129,6 +1132,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length) return;
     const nextEpisode = season.episodes.find((ep) => ep.episodeNumber === episodeNum + 1);
     if (nextEpisode) {
+      if (nextEpisodeAutoNavRef.current) return;
+      nextEpisodeAutoNavRef.current = true;
       setIsEpisodeNavigating(true);
       onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
     }
@@ -1143,16 +1148,20 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const handleEnded = useCallback(() => {
     setPlaying(false);
     setIsFinished(true);
-    // Auto-next logic when video actually ends
-    if (mediaType === 'show' && autoNext) {
-      setTimeout(() => {
-        // Only navigate if still on the end screen
-        if (videoRef.current?.ended || videoRef.current?.currentTime === videoRef.current?.duration) {
-          navigateNextEpisode();
-        }
-      }, 3000);
+    setAutoNextLocked(true);
+
+    if (autoNextTimeoutRef.current) {
+      window.clearTimeout(autoNextTimeoutRef.current);
+      autoNextTimeoutRef.current = null;
     }
-  }, [mediaType, autoNext, navigateNextEpisode]);
+
+    // Don't auto-play next from finished overlay automatically.
+    // User can still click Next Episode manually.
+    if (isEpisodeNavigating) return;
+
+    // When finished overlay is shown, do not auto-play next episode automatically.
+    // User can use the Next Episode button on the finished screen.
+  }, [mediaType, autoNext, autoNextLocked, navigateNextEpisode, isEpisodeNavigating]);
 
   const handleError = useCallback(() => {
     setPlaying(false);
@@ -1238,9 +1247,16 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   };
 
   useEffect(() => {
+    nextEpisodeAutoNavRef.current = false;
+    setAutoNextLocked(false);
+    if (autoNextTimeoutRef.current) {
+      window.clearTimeout(autoNextTimeoutRef.current);
+      autoNextTimeoutRef.current = null;
+    }
     setShowNextPrompt(false);
     setNextCountdown(8);
     setIsEpisodeNavigating(false);
+    setIsFinished(false);
   }, [promptKey]);
 
   useEffect(() => {
@@ -1250,6 +1266,10 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   }, [scrapeStatus]);
 
   useEffect(() => {
+    if (isFinished || autoNextLocked) {
+      if (showNextPrompt) setShowNextPrompt(false);
+      return;
+    }
     if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length || !duration || !currentTime) {
       if (showNextPrompt) setShowNextPrompt(false);
       return;
@@ -1279,6 +1299,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       ) {
         nextPromptHandledForRef.current = promptKey;
         setIsEpisodeNavigating(true);
+        nextEpisodeAutoNavRef.current = true;
         onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
       }
     } else {
@@ -1302,37 +1323,37 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       return;
     }
 
-    const timelineSegments = [
-      ...effectiveSegments.intro.map((segment, index) => ({
-        key: `intro-${index}-${segment.startMs}-${segment.endMs}`,
-        startSec: segment.startMs / 1000,
-        endSec: segment.endMs / 1000,
-      })),
-      ...effectiveSegments.recap.map((segment, index) => ({
-        key: `recap-${index}-${segment.startMs}-${segment.endMs}`,
-        startSec: segment.startMs / 1000,
-        endSec: segment.endMs / 1000,
-      })),
-      ...effectiveSegments.credits.map((segment, index) => ({
-        key: `credits-${index}-${segment.startMs}-${segment.endMs}`,
-        startSec: segment.startMs / 1000,
-        endSec: segment.endMs / 1000,
-      })),
-      ...effectiveSegments.preview.map((segment, index) => ({
-        key: `preview-${index}-${segment.startMs}-${segment.endMs}`,
-        startSec: segment.startMs / 1000,
-        endSec: segment.endMs / 1000,
-      })),
-    ];
+    const addSegment = (key: string, startMs: number, endMs: number) => {
+      const startSec = Math.max(0, startMs / 1000);
+      let endSec = endMs === 0 ? duration : endMs / 1000;
+      if (Number.isFinite(duration)) {
+        endSec = Math.min(endSec, duration);
+      }
+      return endSec > startSec ? { key, startSec, endSec } : null;
+    };
 
-    if (introOutro?.introEnd && introOutro.introEnd > 0) {
-      timelineSegments.push({ key: `legacy-intro-${introOutro.introEnd}`, startSec: 0, endSec: introOutro.introEnd });
-    }
-    if (introOutro?.outroStart && introOutro?.outroEnd && introOutro.outroEnd > introOutro.outroStart) {
+    const timelineSegments = [
+      ...effectiveSegments.intro.map((segment, index) => addSegment(`intro-${index}-${segment.startMs}-${segment.endMs}`, segment.startMs, segment.endMs)).filter(Boolean),
+      ...effectiveSegments.recap.map((segment, index) => addSegment(`recap-${index}-${segment.startMs}-${segment.endMs}`, segment.startMs, segment.endMs)).filter(Boolean),
+      ...effectiveSegments.credits.map((segment, index) => addSegment(`credits-${index}-${segment.startMs}-${segment.endMs}`, segment.startMs, segment.endMs)).filter(Boolean),
+      ...effectiveSegments.preview.map((segment, index) => addSegment(`preview-${index}-${segment.startMs}-${segment.endMs}`, segment.startMs, segment.endMs)).filter(Boolean),
+    ].flat() as Array<{ key: string; startSec: number; endSec: number }>;
+
+    const introSegment = normalizeSegment(introOutro?.introStart, introOutro?.introEnd);
+    if (introSegment) {
       timelineSegments.push({
-        key: `legacy-outro-${introOutro.outroStart}-${introOutro.outroEnd}`,
-        startSec: introOutro.outroStart,
-        endSec: introOutro.outroEnd,
+        key: `legacy-intro-${introSegment.start}-${introSegment.end}`,
+        startSec: introSegment.start,
+        endSec: introSegment.end,
+      });
+    }
+
+    const outroSegment = normalizeSegment(introOutro?.outroStart, introOutro?.outroEnd);
+    if (outroSegment) {
+      timelineSegments.push({
+        key: `legacy-outro-${outroSegment.start}-${outroSegment.end}`,
+        startSec: outroSegment.start,
+        endSec: outroSegment.end,
       });
     }
 
@@ -1712,8 +1733,19 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     };
   }, [watchPartyRoomId, watchPartyParticipantId]);
 
+  const normalizeSegment = useCallback((start?: number, end?: number) => {
+    if (start === undefined || end === undefined) return null;
+    const normalizedStart = Math.max(0, start);
+    const normalizedEnd = end === 0 ? duration : end;
+    if (!Number.isFinite(normalizedEnd) || normalizedEnd <= normalizedStart) return null;
+    return { start: normalizedStart, end: normalizedEnd };
+  }, [duration]);
+
+  const enabledPlaybackSettingsCount = [autoPlay, autoNext, autoSkipSegments, autoSwitchSource, idlePauseOverlay].filter(Boolean).length;
+
   const hasSkipSegments = Boolean(
-    introOutro?.introEnd || introOutro?.outroEnd ||
+    normalizeSegment(introOutro?.introStart, introOutro?.introEnd) ||
+    normalizeSegment(introOutro?.outroStart, introOutro?.outroEnd) ||
     effectiveSegments.intro.length > 0 || effectiveSegments.credits.length > 0,
   );
 
@@ -1746,8 +1778,26 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
     seek(start - 10);
   }, [currentTime, seek]);
-  const handleSkipIntro = useCallback(() => { if (introOutro?.introEnd) seek(introOutro.introEnd); }, [introOutro]);
-  const handleSkipOutro = useCallback(() => { if (introOutro?.outroEnd) seek(introOutro.outroEnd); }, [introOutro]);
+  const handleSkipIntro = useCallback(() => {
+    const introSegment = normalizeSegment(introOutro?.introStart, introOutro?.introEnd);
+    if (!introSegment || !videoRef.current) return;
+
+    if (videoRef.current.currentTime < introSegment.start) {
+      seek(introSegment.start);
+      return;
+    }
+
+    // If segment is from 0 to duration (or end), skip to end.
+    seek(introSegment.end);
+  }, [introOutro, normalizeSegment, seek]);
+
+  const handleSkipOutro = useCallback(() => {
+    const outroSegment = normalizeSegment(introOutro?.outroStart, introOutro?.outroEnd);
+    if (!outroSegment) return;
+
+    // If end is duration (outroEnd=0), `normalizeSegment` converted.
+    seek(outroSegment.end);
+  }, [introOutro, normalizeSegment, seek]);
 
   const selectQuality = useCallback((quality: StreamQuality) => {
     applyFileQuality(quality, { persistDefault: true });
@@ -2145,23 +2195,35 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           {segments && duration > 0 && (
             <>
               {segments.intro.map((s, i) => {
-                const left = (s.startMs / 1000 / duration) * 100;
-                const width = ((s.endMs - s.startMs) / 1000 / duration) * 100;
+                const startSec = Math.max(0, s.startMs / 1000);
+                const endSec = s.endMs === 0 ? duration : s.endMs / 1000;
+                if (endSec <= startSec) return null;
+                const left = (startSec / duration) * 100;
+                const width = ((endSec - startSec) / duration) * 100;
                 return <div key={`intro-${i}`} className="absolute top-0 h-full bg-yellow-400/50 rounded-sm z-[1]" style={{ left: `${left}%`, width: `${width}%` }} title="Intro" />;
               })}
               {segments.recap.map((s, i) => {
-                const left = (s.startMs / 1000 / duration) * 100;
-                const width = ((s.endMs - s.startMs) / 1000 / duration) * 100;
+                const startSec = Math.max(0, s.startMs / 1000);
+                const endSec = s.endMs === 0 ? duration : s.endMs / 1000;
+                if (endSec <= startSec) return null;
+                const left = (startSec / duration) * 100;
+                const width = ((endSec - startSec) / duration) * 100;
                 return <div key={`recap-${i}`} className="absolute top-0 h-full bg-blue-400/50 rounded-sm z-[1]" style={{ left: `${left}%`, width: `${width}%` }} title="Recap" />;
               })}
               {segments.credits.map((s, i) => {
-                const left = (s.startMs / 1000 / duration) * 100;
-                const width = ((s.endMs - s.startMs) / 1000 / duration) * 100;
-                return <div key={`credits-${i}`} className="absolute top-0 h-full bg-gray-400/50 rounded-sm z-[1]" style={{ left: `${left}%`, width: `${width}%` }} title="Credits" />;
+                const startSec = Math.max(0, s.startMs / 1000);
+                const endSec = s.endMs === 0 ? duration : s.endMs / 1000;
+                if (endSec <= startSec) return null;
+                const left = (startSec / duration) * 100;
+                const width = ((endSec - startSec) / duration) * 100;
+                return <div key={`credits-${i}`} className="absolute top-0 h-full bg-gray-400/80 rounded-sm z-[1]" style={{ left: `${left}%`, width: `${width}%` }} title="Credits" />;
               })}
               {segments.preview.map((s, i) => {
-                const left = (s.startMs / 1000 / duration) * 100;
-                const width = ((s.endMs - s.startMs) / 1000 / duration) * 100;
+                const startSec = Math.max(0, s.startMs / 1000);
+                const endSec = s.endMs === 0 ? duration : s.endMs / 1000;
+                if (endSec <= startSec) return null;
+                const left = (startSec / duration) * 100;
+                const width = ((endSec - startSec) / duration) * 100;
                 return <div key={`preview-${i}`} className="absolute top-0 h-full bg-green-400/50 rounded-sm z-[1]" style={{ left: `${left}%`, width: `${width}%` }} title="Preview" />;
               })}
             </>
@@ -2523,7 +2585,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                             <polyline points="10 8 16 12 10 16 10 8" />
                           </svg>
                           <span className="text-[10px] text-white/60">Playback</span>
-                          <span className="text-[10px] font-semibold text-white/80">Auto</span>
+                          <span className="text-[10px] font-semibold text-white/80">
+                          {enabledPlaybackSettingsCount}
+                        </span>
                         </button>
 
                         {/* Watch Together Tile */}
@@ -3019,28 +3083,34 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               {mediaType === 'show' && season?.episodes?.some(ep => ep.episodeNumber === episodeNum + 1) && (
                 <button
                   onClick={() => {
+                    setAutoNextLocked(false);
                     setIsFinished(false);
                     navigateNextEpisode();
                   }}
                   disabled={isEpisodeNavigating}
-                  className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px]"
+                  className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px] font-semibold"
                 >
                   {isEpisodeNavigating ? 'Loading...' : 'Next Episode'}
                 </button>
               )}
               <button
                 onClick={() => {
+                  setAutoNextLocked(false);
                   setIsFinished(false);
                   seek(0);
                   videoRef.current?.play().catch(() => {});
                 }}
-                className="w-full sm:w-auto rounded-[14px] bg-white/10 px-8 py-3 text-[14px] font-bold text-white hover:bg-white/15 transition-all"
+                className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px] font-semibold"
               >
                 Rewatch
               </button>
               <button
-                onClick={onBack}
-                className="w-full sm:w-auto rounded-[14px] border border-white/10 px-8 py-3 text-[14px] font-bold text-white/70 hover:text-white transition-all"
+                onClick={() => {
+                  setAutoNextLocked(false);
+                  setIsFinished(false);
+                  if (onBack) onBack();
+                }}
+                className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px] font-semibold"
               >
                 Go Back
               </button>
