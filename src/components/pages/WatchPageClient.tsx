@@ -567,10 +567,23 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const shouldShowMissingFebboxTokenPrompt = scrapeStatus === 'error' && !stream && !hasAnyFebboxToken;
   const shouldShowPersistentTokenNotice = !hasAnyFebboxToken && !dismissedTokenNoticeSitewide && dismissedTokenNoticeMediaKey !== currentMediaKey;
 
-  const getTitle = () => media?.title || '';
+  const currentEpisodeComputed = useMemo(() => {
+    if (type !== 'show') return null;
+    if (currentEpisode?.episodeNumber === episodeNum) return currentEpisode;
+    return season?.episodes?.find((ep) => ep.episodeNumber === episodeNum) || null;
+  }, [type, currentEpisode, season, episodeNum]);
+
+  const getTitle = () => {
+    if (type === 'show') {
+      return currentEpisodeComputed?.name || media?.title || '';
+    }
+    return media?.title || '';
+  };
+
   const getSubtitle = () => {
-    if (type === 'show' && currentEpisode) {
-      return `S${seasonNum}:E${episodeNum} - ${currentEpisode.name}`;
+    if (type === 'show') {
+      const showTitle = media?.title || '';
+      return `S${seasonNum}:E${episodeNum}${showTitle ? ` - ${showTitle}` : ''}`;
     }
     return '';
   };
