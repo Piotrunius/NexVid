@@ -78,8 +78,8 @@ export function Toaster() {
   const { glassEffect } = useSettingsStore((s) => s.settings);
 
   const toastStyle = glassEffect
-    ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.7)]'
-    : 'bg-black/90 border border-white/0 shadow-[0_8px_40px_rgba(0,0,0,0.85)]';
+    ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]'
+    : 'bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]';
 
   return (
     <div className="fixed bottom-20 left-1/2 z-[100] flex flex-col items-center gap-2" style={{ transform: 'translateX(-50%)' }}>
