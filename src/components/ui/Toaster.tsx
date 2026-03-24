@@ -62,10 +62,10 @@ export function Toaster() {
   }, [addToast]);
 
   const typeStyles: Record<string, string> = {
-    success: 'border-emerald-500/20 bg-emerald-500/10',
-    error: 'border-red-500/20 bg-red-500/10',
-    info: 'border-accent/20 border-accent/30',
-    warning: 'border-amber-500/20 bg-amber-500/10',
+    success: 'bg-emerald-500/15 text-emerald-300',
+    error: 'bg-red-500/15 text-red-300',
+    info: 'bg-accent/15 text-accent',
+    warning: 'bg-amber-500/15 text-amber-300',
   };
 
   const typeIcons: Record<string, string> = {
@@ -77,15 +77,18 @@ export function Toaster() {
 
   const { glassEffect } = useSettingsStore((s) => s.settings);
 
+  const toastStyle = glassEffect
+    ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.7)]'
+    : 'bg-black/90 border border-white/0 shadow-[0_8px_40px_rgba(0,0,0,0.85)]';
+
   return (
     <div className="fixed bottom-20 left-1/2 z-[100] flex flex-col items-center gap-2" style={{ transform: 'translateX(-50%)' }}>
       {toasts.map((t) => (
         <div
           key={t.id}
           className={cn(
-            'glass-card animate-slide-up flex items-center gap-3 px-4 py-3',
-            'min-w-[280px] max-w-[400px] cursor-pointer',
-            glassEffect && 'glass-liquid backdrop-blur-[40px]',
+            'animate-slide-up flex items-center gap-3 px-4 py-3 rounded-[20px] min-w-[280px] max-w-[400px] cursor-pointer transition-all',
+            toastStyle,
             typeStyles[t.type]
           )}
           onClick={() => removeToast(t.id)}

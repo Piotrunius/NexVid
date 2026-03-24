@@ -185,15 +185,18 @@ export function Navbar() {
     )},
   ];
 
+  const iconContainerBase = 'flex items-center justify-center rounded-[12px] transition-all duration-500 ease-[var(--spring)] min-w-0';
+  const iconSize = 'h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10';
+
   const DockIcon = ({ item, isButton }: { item: typeof dockItems[0]; isButton?: boolean }) => {
     const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
 
     const content = (
-      <div className="relative flex flex-col items-center">
+      <div className="relative flex flex-col items-center flex-1 min-w-0 basis-0">
         {/* Icon container */}
         <div
           className={cn(
-            'flex h-10 w-10 items-center justify-center rounded-[14px] transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]',
+            `${iconContainerBase} ${iconSize}`,
             isActive
               ? 'bg-accent/20 text-accent shadow-[0_0_20px_var(--accent-glow)]'
               : 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110',
@@ -207,7 +210,7 @@ export function Navbar() {
     if (isButton) return content;
 
     return (
-      <Link href={item.href} className="flex flex-col items-center" aria-label={item.label}>
+      <Link href={item.href} className="flex flex-col items-center flex-1 min-w-0 basis-0" aria-label={item.label}>
         {content}
       </Link>
     );
@@ -248,7 +251,7 @@ export function Navbar() {
       <nav ref={dockRef} className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
         <div
           className={cn(
-            'flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-[24px] px-2 py-1.5 sm:gap-1 sm:rounded-[28px] sm:px-3 sm:py-2 transition-all duration-500',
+            'flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-[24px] px-2 py-1.5 sm:gap-1 sm:rounded-[28px] sm:px-3 sm:py-2 transition-all duration-500 overflow-x-auto snap-x snap-mandatory touch-pan-x',
             glassEffect
               ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.06)]'
               : 'bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.04)]',
@@ -259,16 +262,37 @@ export function Navbar() {
             <DockIcon key={item.id} item={item} />
           ))}
 
+          {/* Search */}
+          <button
+            onClick={() => {
+              setIsSearchOpen(true);
+              setTimeout(() => searchRef.current?.focus(), 100);
+            }}
+            className="flex flex-col items-center flex-1 min-w-0 basis-0"
+            aria-label="Search (press /)"
+          >
+            <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+              <div className="relative flex flex-col items-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+            </div>
+          </button>
+
+          {/* Divider */}
+          <div className="mx-1 hidden h-8 w-px bg-white/[0.08] sm:block" />
+
           {/* AI Assistant */}
           {(isLoggedIn || hasOwnAiKey) && (
             <button
               onClick={() => setIsAiOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
+              className="flex flex-col items-center flex-1 min-w-0 basis-0"
               aria-label="AI Assistant"
             >
-              <div className="relative flex flex-col items-center">
+              <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
                 <div className={cn(
-                  "transition-all duration-500",
+                  "relative flex flex-col items-center transition-all duration-500",
                   isAiOpen ? "text-accent scale-110" : ""
                 )}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -280,30 +304,11 @@ export function Navbar() {
             </button>
           )}
 
-          {/* Divider */}
-          <div className="mx-1 hidden h-8 w-px bg-white/[0.08] sm:block" />
-
-          {/* Search */}
-          <button
-            onClick={() => {
-              setIsSearchOpen(true);
-              setTimeout(() => searchRef.current?.focus(), 100);
-            }}
-            className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 ease-[var(--spring)] sm:h-12 sm:w-12 sm:rounded-[16px]"
-            aria-label="Search (press /)"
-          >
-            <div className="relative flex flex-col items-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-            </div>
-          </button>
-
           {/* Notifications */}
-          <div className="relative hidden sm:block">
+          <div className="flex flex-col items-center flex-1 min-w-0 basis-0">
             <button
               onClick={() => { setIsBellOpen((v) => !v); setIsProfileOpen(false); }}
-              className="relative flex h-12 w-12 items-center justify-center rounded-[16px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500"
+              className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}
               aria-label="Notifications"
             >
               <div className="relative flex flex-col items-center">
@@ -313,7 +318,7 @@ export function Navbar() {
                 {totalNotifCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
                 )}
-                </div>
+              </div>
 
             </button>
 
@@ -406,68 +411,77 @@ export function Navbar() {
           </div>
           <Link
             href="/settings"
-            className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 sm:h-12 sm:w-12 sm:rounded-[16px]"
+            className="flex flex-col items-center flex-1 min-w-0 basis-0"
             aria-label="Settings"
           >
-            <div className="relative flex flex-col items-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+            <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+              <div className="relative flex flex-col items-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
             </div>
           </Link>
 
           {/* Logged in direct actions */}
           {isLoggedIn && (
             <>
-              <div className="mx-0.5 h-6 w-px bg-white/[0.08]" />
+              <div className="mx-0.5 h-6 w-px bg-white/[0.08] hidden sm:block" />
 
               {user?.isAdmin && (
                 <Link
                   href="/admin"
-                  className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 sm:h-12 sm:w-12"
+                  className="flex flex-col items-center flex-1 min-w-0 basis-0"
                   aria-label="Admin"
                 >
-                  <div className="relative flex flex-col items-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
+                  <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+                    <div className="relative flex flex-col items-center">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                    </div>
                   </div>
                 </Link>
               )}
 
               <Link
                 href="/contact"
-                className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110 transition-all duration-500 sm:h-12 sm:w-12"
+                className="flex flex-col items-center flex-1 min-w-0 basis-0"
                 aria-label="Contact"
               >
-                <div className="relative flex flex-col items-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  {hasUnreadFeedback && (
-                    <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
-                  )}
+                <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+                  <div className="relative flex flex-col items-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    {hasUnreadFeedback && (
+                      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
+                    )}
+                  </div>
                 </div>
               </Link>
 
-              <button
-                onClick={() => { setShowProfilePartyInput(!showProfilePartyInput); setIsBellOpen(false); }}
-                className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-[14px] transition-all duration-500 sm:h-12 sm:w-12 hover:scale-110",
-                  showProfilePartyInput ? "bg-accent/20 text-accent" : "text-white/40 hover:text-white/80 hover:bg-white/[0.08]"
-                )}
-                aria-label="Watch Together"
-              >
-                <div className="relative flex flex-col items-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5z" />
-                    <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11z" />
-                    <path d="M2 20v-1c0-2.2 2.69-4 6-4" /><path d="M22 20v-1c0-2.2-2.69-4-6-4" />
-                    <path d="M8 20v-1c0-2.2 1.79-4 4-4s4 1.8 4 4v1" />
-                  </svg>
-                </div>
-              </button>
+              <div className="flex flex-col items-center flex-1 min-w-0 basis-0">
+                <button
+                  onClick={() => { setShowProfilePartyInput(!showProfilePartyInput); setIsBellOpen(false); }}
+                  className={cn(
+                    `${iconContainerBase} ${iconSize}`,
+                    showProfilePartyInput ? "bg-accent/20 text-accent" : "text-white/40 hover:text-white/80 hover:bg-white/[0.08]",
+                    "hover:scale-110"
+                  )}
+                  aria-label="Watch Together"
+                >
+                  <div className="relative flex flex-col items-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5z" />
+                      <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11z" />
+                      <path d="M2 20v-1c0-2.2 2.69-4 6-4" /><path d="M22 20v-1c0-2.2-2.69-4-6-4" />
+                      <path d="M8 20v-1c0-2.2 1.79-4 4-4s4 1.8 4 4v1" />
+                    </svg>
+                  </div>
+                </button>
+              </div>
 
               {showProfilePartyInput && (
                 <>
