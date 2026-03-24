@@ -216,6 +216,8 @@ export interface UserSettings {
   febboxApiKey: string;
   disableEmbeds: boolean;
   introDbApiKey: string;
+  groqApiKey: string;
+  omdbApiKey: string;
   preferredSources: string[];
   disabledSources: string[];
 }

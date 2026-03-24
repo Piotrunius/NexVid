@@ -8,6 +8,9 @@ import type { AccentColor, StreamQuality, UserSettings } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export const PUBLIC_GROQ_API_KEY_PLACEHOLDER = '__PUBLIC_GROQ_KEY__';
+export const PUBLIC_OMDB_API_KEY_PLACEHOLDER = '__PUBLIC_OMDB_KEY__';
+
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'dark',
   accentColor: 'indigo',
@@ -27,7 +30,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
   proxyUrl: '',
   febboxApiKey: '',
   disableEmbeds: false,
-  introDbApiKey: '',
+  introDbApiKey: PUBLIC_TIDB_API_KEY_PLACEHOLDER,
+  groqApiKey: PUBLIC_GROQ_API_KEY_PLACEHOLDER,
+  omdbApiKey: PUBLIC_OMDB_API_KEY_PLACEHOLDER,
   preferredSources: [],
   disabledSources: [],
 };
