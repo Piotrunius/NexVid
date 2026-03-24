@@ -21,7 +21,6 @@ export default function SettingsPage() {
   const settings = store.settings;
   const { user, isLoggedIn, updateProfile, updateNicknameWithBackend, changePasswordWithBackend, logout } = useAuthStore();
   const { exportItems, importItems, clearAll } = useWatchlistStore();
-  const [proxyTestStatus, setProxyTestStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
   const [newUsername, setNewUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -77,26 +76,6 @@ export default function SettingsPage() {
     { value: 'uk', label: 'Українська' },
     { value: 'tr', label: 'Türkçe' },
   ];
-
-  const testProxy = async () => {
-    if (!settings.proxyUrl) { toast('Please enter a proxy URL first', 'error'); return; }
-    setProxyTestStatus('testing');
-    try {
-      const base = settings.proxyUrl.replace(/\/+$/, '');
-      const res = await fetch(`/api/proxy-health?url=${encodeURIComponent(base)}`, { signal: AbortSignal.timeout(7000) });
-      const body = await res.json().catch(() => ({} as any));
-      if (res.ok && body?.ok) {
-        setProxyTestStatus('ok');
-        toast(`Proxy is reachable (${body.path})`, 'success');
-      } else {
-        setProxyTestStatus('error');
-        toast(body?.error || 'Proxy check failed', 'error');
-      }
-    } catch {
-      setProxyTestStatus('error');
-      toast('Could not reach proxy', 'error');
-    }
-  };
 
   const handleExportWatchlist = () => {
     const data = exportItems();
@@ -455,31 +434,6 @@ export default function SettingsPage() {
                 </ol>
               </div>
             </SettingsRow>
-          </div>
-        </SettingsCard>
-
-        {/* ── Proxy ── */}
-        <SettingsCard title="Proxy" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}>
-          <p className="text-[12px] text-text-muted mb-3">Cloudflare Worker proxy for bypassing restrictions.</p>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={settings.proxyUrl}
-              onChange={(e) => store.updateSettings({ proxyUrl: e.target.value })}
-              placeholder="https://your-proxy.workers.dev"
-              className="input flex-1"
-            />
-            <button
-              onClick={testProxy}
-              disabled={proxyTestStatus === 'testing'}
-              className={cn(
-                'btn-glass whitespace-nowrap text-[13px]',
-                proxyTestStatus === 'ok' && '!text-emerald-400',
-                proxyTestStatus === 'error' && '!text-red-400',
-              )}
-            >
-              {proxyTestStatus === 'testing' ? 'Testing...' : proxyTestStatus === 'ok' ? '✓ OK' : proxyTestStatus === 'error' ? '✗ Fail' : 'Test'}
-            </button>
           </div>
         </SettingsCard>
 

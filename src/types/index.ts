@@ -212,7 +212,6 @@ export interface UserSettings {
   autoSkipSegments: boolean;
   autoSwitchSource: boolean;
   idlePauseOverlay: boolean;
-  proxyUrl: string;
   febboxApiKey: string;
   disableEmbeds: boolean;
   introDbApiKey: string;
