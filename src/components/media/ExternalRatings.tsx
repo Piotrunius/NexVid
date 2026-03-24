@@ -29,6 +29,9 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
   const [isLoading, setIsLoading] = useState(false);
   const [isUnavailable, setIsUnavailable] = useState(false);
 
+  const hasOwnKey = Boolean(omdbApiKey && omdbApiKey !== '__PUBLIC_OMDB_KEY__');
+  const canShow = isLoggedIn || hasOwnKey;
+
   useEffect(() => {
     setRatings(null);
     setImdbScore(null);
@@ -37,7 +40,8 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
   }, [imdbId]);
 
   const fetchRatings = async () => {
-    if (!imdbId || isLoading || isUnavailable || !isLoggedIn) return;
+    if (!imdbId || isLoading || isUnavailable || !canShow) return;
+
     setIsLoading(true);
 
     try {
@@ -51,15 +55,17 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
       const data: OMDBResponse = await res.json();
 
       if (data.Response === 'True') {
-        const hasImdb = data.imdbRating && data.imdbRating !== 'N/A';
-        const hasRatingsArray = data.Ratings && data.Ratings.length > 0;
-        const hasMetascore = data.Metascore && data.Metascore !== 'N/A';
+        const hasImdb = Boolean(data.imdbRating && data.imdbRating !== 'N/A');
+        const hasRatingsArray = Boolean(data.Ratings && data.Ratings.length > 0);
+        const hasMetascore = Boolean(data.Metascore && data.Metascore !== 'N/A');
 
-        // Filter out IMDb from the ratings array to avoid duplicates
-        const otherRatings = data.Ratings?.filter(r => !r.Source.toLowerCase().includes('internet movie')) || [];
+        const otherRatings = data.Ratings?.filter((r) => !r.Source.toLowerCase().includes('internet movie')) || [];
 
         if (!hasImdb && otherRatings.length === 0 && !hasMetascore) {
           setIsUnavailable(true);
+          setRatings(null);
+          setImdbScore(null);
+          setMetascore(null);
         } else {
           setRatings(otherRatings);
           setImdbScore(hasImdb ? data.imdbRating! : null);
@@ -67,21 +73,25 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
         }
       } else {
         setIsUnavailable(true);
+        setRatings(null);
+        setImdbScore(null);
+        setMetascore(null);
       }
     } catch (err) {
-      console.error('Rating fetch error');
+      console.error('Rating fetch error', err);
+      setIsUnavailable(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!imdbId || isUnavailable || !isLoggedIn) return null;
+  if (!imdbId || isUnavailable || !canShow) return null;
 
   const showMeta = metascore && metascore !== 'N/A';
-  const hasMetacriticInArray = ratings?.some(r => r.Source.toLowerCase().includes('metacritic'));
+  const hasMetacriticInArray = ratings?.some((r) => r.Source.toLowerCase().includes('metacritic'));
 
   return (
-    <div className={cn("flex items-center gap-3", vertical ? "flex-col items-end" : "flex-wrap")}>
+    <div className={cn('flex items-center gap-3', vertical ? 'flex-col items-end' : 'flex-wrap')}>
       {!ratings && !imdbScore && !metascore ? (
         <button
           onClick={fetchRatings}
@@ -101,7 +111,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
           {isLoading ? 'Loading...' : 'External Ratings'}
         </button>
       ) : (
-        <div className={cn("flex animate-scale-in", vertical ? "flex-col gap-1.5" : "flex-wrap items-center gap-2")}>
+        <div className={cn('flex animate-scale-in', vertical ? 'flex-col gap-1.5' : 'flex-wrap items-center gap-2')}>
           {imdbScore && (
             <div className="flex items-center gap-2.5 rounded-full bg-white/[0.05] px-3.5 py-1.5 border border-white/5 backdrop-blur-xl shadow-sm">
               <div className="relative h-4 w-8">
@@ -117,7 +127,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
 
             let iconPath = '';
             if (isRT) {
-              const val = parseInt(r.Value.replace('%', ''));
+              const val = parseInt(r.Value.replace('%', ''), 10);
               iconPath = val >= 60 ? '/Rotten_Tomatoes.svg' : '/Rotten_Tomatoes_rotten.svg';
             } else if (isMeta) {
               iconPath = '/Metacritic.svg';
