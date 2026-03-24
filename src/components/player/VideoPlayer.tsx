@@ -2501,7 +2501,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 onClick={() => setSettingsPanel(settingsPanel ? null : 'main')}
                 className={cn(
                   'rounded-[8px] p-2 transition-colors',
-                  settingsPanel ? 'text-accent' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                  settingsPanel && !['info', 'episodes'].includes(settingsPanel)
+                    ? 'text-accent'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
                 )}
                 title="Settings"
               >
