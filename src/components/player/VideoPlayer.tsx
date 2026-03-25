@@ -2390,6 +2390,14 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                                 {media.releaseYear}
                               </span>
                             )}
+                            {media.certification && (
+                              <>
+                                <span className="text-white/55">•</span>
+                                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                                  {media.certification}
+                                </span>
+                              </>
+                            )}
                             {mediaType === 'show' && currentEpisodeInfo?.airDate && (
                               <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
                                 {currentEpisodeInfo.airDate}
@@ -2401,10 +2409,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                               </span>
                             )}
                             {media.rating && (
-                              <span className="flex items-center gap-1 rounded-full bg-yellow-400/10 px-2 py-0.5 text-yellow-300 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" /></svg>
-                                {media.rating.toFixed(1)}
-                              </span>
+                              <>
+                                {media.certification && <span className="text-white/55">•</span>}
+                                <span className="flex items-center gap-1 rounded-full bg-yellow-400/10 px-2 py-0.5 text-yellow-300 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" /></svg>
+                                  {media.rating.toFixed(1)}
+                                </span>
+                              </>
                             )}
                           </div>
 

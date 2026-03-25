@@ -196,7 +196,7 @@ export default function ShowPage({
                 {show.certification && (
                   <>
                     <span className="text-text-muted">&bull;</span>
-                    <span className="rounded-[8px] bg-white/10 px-2.5 py-0.5 text-[11px] font-medium">{show.certification}</span>
+                    <span className="rounded-[8px] px-2.5 py-0.5 text-[11px] font-medium">{show.certification}</span>
                   </>
                 )}
                 <span className="text-text-muted">&bull;</span>

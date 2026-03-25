@@ -96,7 +96,7 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
         <button
           onClick={fetchRatings}
           disabled={isLoading}
-          className="group flex items-center gap-2 rounded-full bg-white/[0.05] px-4 py-2 text-[12px] font-medium text-text-secondary transition-all hover:bg-white/[0.1] hover:text-text-primary border border-white/5 backdrop-blur-md"
+          className="group flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/70 transition-all hover:bg-white/20 hover:text-white shadow-[0_1px_4px_rgba(0,0,0,0.3)]"
         >
           {isLoading ? (
             <svg className="h-3 w-3 animate-spin text-accent" viewBox="0 0 24 24">
@@ -113,11 +113,11 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
       ) : (
         <div className={cn('flex animate-scale-in', vertical ? 'flex-col gap-1.5' : 'flex-wrap items-center gap-2')}>
           {imdbScore && (
-            <div className="flex items-center gap-2.5 rounded-full bg-white/[0.05] px-3.5 py-1.5 border border-white/5 backdrop-blur-xl shadow-sm">
+            <div className="flex items-center gap-2 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-bold text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
               <div className="relative h-4 w-8">
                 <Image src="/IMDB.svg" alt="IMDb" fill className="object-contain" />
               </div>
-              <span className="text-[13px] font-bold text-text-primary tracking-tight">{imdbScore}</span>
+              <span className="text-[10px] font-bold text-white">{imdbScore}</span>
             </div>
           )}
 
@@ -136,21 +136,21 @@ export default function ExternalRatings({ imdbId, title, year, vertical = false 
             }
 
             return (
-              <div key={r.Source} className="flex items-center gap-2.5 rounded-full bg-white/[0.05] px-3.5 py-1.5 border border-white/5 backdrop-blur-xl shadow-sm">
-                <div className="relative h-5 w-5">
+              <div key={r.Source} className="flex items-center gap-2 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-bold text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                <div className="relative h-4 w-4">
                   <Image src={iconPath} alt={r.Source} fill className="object-contain" />
                 </div>
-                <span className="text-[13px] font-bold text-text-primary tracking-tight">{r.Value}</span>
+                <span className="text-[10px] text-white">{r.Value}</span>
               </div>
             );
           })}
 
           {showMeta && !hasMetacriticInArray && (
-            <div className="flex items-center gap-2.5 rounded-full bg-white/[0.05] px-3.5 py-1.5 border border-white/5 backdrop-blur-xl shadow-sm">
-              <div className="relative h-5 w-5">
+            <div className="flex items-center gap-2 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-bold text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+              <div className="relative h-4 w-4">
                 <Image src="/Metacritic.svg" alt="Metacritic" fill className="object-contain" />
               </div>
-              <span className="text-[13px] font-bold text-text-primary tracking-tight">{metascore}/100</span>
+              <span className="text-[10px] text-white">{metascore}/100</span>
             </div>
           )}
         </div>
