@@ -2391,7 +2391,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                               </span>
                             )}
                             {media.certification && (
-                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
                                 {media.certification}
                               </span>
                             )}
