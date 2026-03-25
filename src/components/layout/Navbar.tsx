@@ -303,25 +303,21 @@ export function Navbar() {
           )}
 
           {/* Only admin is additional */}
-          {isLoggedIn && (
+          {isLoggedIn && user?.isAdmin && (
             <>
-              <div className="mx-0.5 h-6 w-px bg-white/[0.08] hidden sm:block" />
-
-              {user?.isAdmin && (
-                <Link
-                  href="/admin"
-                  className="flex flex-col items-center flex-1 min-w-0 basis-0"
-                  aria-label="Admin"
-                >
-                  <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
-                    <div className="relative flex flex-col items-center">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                      </svg>
-                    </div>
+              <Link
+                href="/admin"
+                className="flex flex-col items-center flex-1 min-w-0 basis-0"
+                aria-label="Admin"
+              >
+                <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+                  <div className="relative flex flex-col items-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
                   </div>
-                </Link>
-              )}
+                </div>
+              </Link>
             </>
           )}
 
