@@ -5,7 +5,7 @@
 'use client';
 
 import { AiAssistantModal } from '@/components/ui/AiAssistantModal';
-import { loadPublicAnnouncements, loadUserNotifications, markUserNotificationsRead } from '@/lib/cloudSync';
+import { loadPublicAnnouncements } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
@@ -38,7 +38,7 @@ const ICONS: Record<Announcement['type'], React.ReactNode> = {
 };
 
 const TYPE_STYLES = {
-  info: { icon: 'text-accent', bg: 'bg-accent/10' },
+  info: { icon: 'text-accent', bg: 'bg-transparent' },
   warning: { icon: 'text-yellow-500', bg: 'bg-yellow-500/10' },
   update: { icon: 'text-blue-500', bg: 'bg-blue-500/10' },
   success: { icon: 'text-green-500', bg: 'bg-green-500/10' },
@@ -54,19 +54,13 @@ function dismissId(id: string) {
 }
 
 export function Navbar() {
-  const WATCH_PARTY_CODE_KEY = 'nexvid-watch-party-code';
-
   const router = useRouter();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isBellOpen, setIsBellOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
-  const [partyCode, setPartyCode] = useState('');
-  const [showProfilePartyInput, setShowProfilePartyInput] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [mounted, setMounted] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLElement>(null);
@@ -84,10 +78,7 @@ export function Navbar() {
     const dismissed = getDismissedIds();
 
     const load = async () => {
-      const [publicRes, userRes] = await Promise.all([
-        loadPublicAnnouncements(),
-        isLoggedIn ? loadUserNotifications().catch(() => ({ items: [] as UserNotification[] })) : Promise.resolve({ items: [] as UserNotification[] }),
-      ]);
+      const publicRes = await loadPublicAnnouncements();
       if (!mounted) return;
 
       const activeAnnouncements = (publicRes.announcements || [])
@@ -96,19 +87,12 @@ export function Navbar() {
         .filter((a: Announcement) => a.message)
         .filter((a: Announcement) => !dismissed.includes(a.id));
 
-      const userNotifications = (userRes.items || []).map((item: any) => ({
-        id: String(item.id), type: String(item.type || 'info'), title: String(item.title || 'Notification'),
-        message: String(item.message || ''), threadId: item.threadId ? String(item.threadId) : undefined,
-        isRead: Boolean(item.isRead), createdAt: String(item.createdAt || ''),
-      }));
-
       setAnnouncements(activeAnnouncements);
-      setNotifications(userNotifications);
     };
 
     load();
     return () => { mounted = false; };
-  }, [isLoggedIn]);
+  }, []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -127,9 +111,7 @@ export function Navbar() {
     const handleClickOutside = (event: MouseEvent) => {
       if (!dockRef.current) return;
       if (!dockRef.current.contains(event.target as Node)) {
-        setIsBellOpen(false);
         setIsProfileOpen(false);
-        setShowProfilePartyInput(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -145,27 +127,9 @@ export function Navbar() {
     }
   };
 
-  const handleWatchPartyJoin = () => {
-    if (!isLoggedIn) return;
-    const normalized = partyCode.trim().toUpperCase();
-    if (!normalized) return;
-
-    try {
-      localStorage.setItem(WATCH_PARTY_CODE_KEY, normalized);
-    } catch {}
-
-    setShowProfilePartyInput(false);
-    setPartyCode(normalized);
-    router.push(`/browse?party=${encodeURIComponent(normalized)}`);
-  };
-
   const isWatchPage = pathname?.startsWith('/watch');
   if (!mounted) return null;
   if (isWatchPage) return null;
-
-  const unreadNotifications = notifications.filter((item) => !item.isRead && item.type !== 'feedback_reply');
-  const hasUnreadFeedback = notifications.some((item) => !item.isRead && item.type === 'feedback_reply');
-  const totalNotifCount = announcements.length + unreadNotifications.length;
 
   const dockItems = [
     { href: '/', id: 'home', label: 'Home', icon: (
@@ -304,111 +268,7 @@ export function Navbar() {
             </button>
           )}
 
-          {/* Notifications */}
-          <div className="flex flex-col items-center flex-1 min-w-0 basis-0">
-            <button
-              onClick={() => { setIsBellOpen((v) => !v); setIsProfileOpen(false); }}
-              className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}
-              aria-label="Notifications"
-            >
-              <div className="relative flex flex-col items-center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                </svg>
-                {totalNotifCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
-                )}
-              </div>
-
-            </button>
-
-            {isBellOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsBellOpen(false)} />
-                <div className="fixed top-[88px] left-1/2 z-50 w-80" style={{ transform: 'translateX(-50%)' }}>
-                  <div className="panel-glass w-full overflow-hidden animate-scale-in">
-                <div className="px-4 py-3">
-                  <p className="text-[13px] font-semibold text-white">Notifications</p>
-                </div>
-                {notifications.length === 0 && announcements.length === 0 ? (
-                  <div className="px-4 py-8 text-center">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto text-white/20 mb-2">
-                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                    </svg>
-                    <p className="text-[11px] text-white/30">All caught up</p>
-                  </div>
-                ) : (
-                  <div className="max-h-80 overflow-y-auto p-2 space-y-1">
-                    {notifications.filter(n => n.type !== 'feedback_reply').map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={async () => {
-                          if (!item.isRead) {
-                            try { await markUserNotificationsRead([item.id]); } catch {}
-                            setNotifications((prev) => prev.map((entry) => (entry.id === item.id ? { ...entry, isRead: true } : entry)));
-                          }
-                          if (item.threadId) { router.push(`/contact?thread=${encodeURIComponent(item.threadId)}`); setIsBellOpen(false); }
-                        }}
-                        className={cn(
-                          'w-full flex items-start gap-2.5 rounded-[14px] px-3 py-2.5 text-left transition-all duration-300',
-                          item.isRead ? 'hover:bg-white/[0.06]' : 'bg-accent/10 hover:bg-accent/15',
-                        )}
-                      >
-                        <div className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full', item.isRead ? 'bg-white/[0.06]' : 'bg-accent/15')}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent">
-                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-medium text-white line-clamp-1">{item.title}</p>
-                          <p className="mt-0.5 text-[11px] text-white/40 line-clamp-2 leading-relaxed">{item.message}</p>
-                        </div>
-                        {!item.isRead && <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />}
-                      </button>
-                    ))}
-
-                    {announcements.map((a) => {
-                      const styles = TYPE_STYLES[a.type] || TYPE_STYLES.info;
-                      return (
-                        <div key={a.id} className="group relative flex items-start gap-3 rounded-[16px] bg-white/[0.03] p-3.5 border border-white/[0.05] transition-all duration-300 hover:bg-white/[0.06]">
-                          <div className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full", styles.bg)}>
-                            <div className={cn("text-accent", styles.icon)}>
-                              {ICONS[a.type] || ICONS.info}
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0 pr-4">
-                            <p className="break-words whitespace-pre-wrap text-[13px] leading-relaxed text-white/90 font-medium">
-                              {a.message}
-                            </p>
-                            {a.link && (
-                              <a
-                                href={a.link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-1.5 inline-flex items-center text-[12px] font-semibold text-accent hover:underline decoration-2 underline-offset-2"
-                              >
-                                {a.link.label}
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="ml-1 opacity-70"><path d="M7 17l10-10M7 7h10v10"/></svg>
-                              </a>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => { dismissId(a.id); setAnnouncements((prev) => prev.filter((x) => x.id !== a.id)); }}
-                            className="absolute top-2.5 right-2.5 rounded-full p-1.5 opacity-0 group-hover:opacity-100 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all duration-300"
-                            title="Dismiss"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              </div>
-              </>
-            )}
-          </div>
+          {/* Settings always visible */}
           <Link
             href="/settings"
             className="flex flex-col items-center flex-1 min-w-0 basis-0"
@@ -424,7 +284,25 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Logged in direct actions */}
+          {/* Contact only when logged in */}
+          {isLoggedIn && (
+            <Link
+              href="/contact"
+              className="flex flex-col items-center flex-1 min-w-0 basis-0"
+              aria-label="Contact"
+            >
+              <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+                <div className="relative flex flex-col items-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Only admin is additional */}
           {isLoggedIn && (
             <>
               <div className="mx-0.5 h-6 w-px bg-white/[0.08] hidden sm:block" />
@@ -443,72 +321,6 @@ export function Navbar() {
                     </div>
                   </div>
                 </Link>
-              )}
-
-              <Link
-                href="/contact"
-                className="flex flex-col items-center flex-1 min-w-0 basis-0"
-                aria-label="Contact"
-              >
-                <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
-                  <div className="relative flex flex-col items-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                    {hasUnreadFeedback && (
-                      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
-                    )}
-                  </div>
-                </div>
-              </Link>
-
-              <div className="flex flex-col items-center flex-1 min-w-0 basis-0">
-                <button
-                  onClick={() => { setShowProfilePartyInput(!showProfilePartyInput); setIsBellOpen(false); }}
-                  className={cn(
-                    `${iconContainerBase} ${iconSize}`,
-                    showProfilePartyInput ? "bg-accent/20 text-accent" : "text-white/40 hover:text-white/80 hover:bg-white/[0.08]",
-                    "hover:scale-110"
-                  )}
-                  aria-label="Watch Together"
-                >
-                  <div className="relative flex flex-col items-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5z" />
-                      <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11z" />
-                      <path d="M2 20v-1c0-2.2 2.69-4 6-4" /><path d="M22 20v-1c0-2.2-2.69-4-6-4" />
-                      <path d="M8 20v-1c0-2.2 1.79-4 4-4s4 1.8 4 4v1" />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-
-              {showProfilePartyInput && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowProfilePartyInput(false)} />
-                  <div className="fixed top-[88px] left-1/2 z-50 w-64 -translate-x-1/2">
-                    <div className="panel-glass p-3 animate-scale-in">
-                      <p className="text-[13px] font-semibold text-white mb-2">Join Watch Together</p>
-                      <label htmlFor="party-code-input" className="sr-only">Room code</label>
-                      <input
-                        id="party-code-input"
-                        value={partyCode}
-                        onChange={(e) => setPartyCode(e.target.value.toUpperCase())}
-                        placeholder="Room code"
-                        className="w-full rounded-[10px] bg-white/[0.08] px-3 py-2 text-[12px] text-white placeholder:text-white/35 outline-none mb-2"
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleWatchPartyJoin(); }}
-                        autoFocus
-                      />
-                      <button
-                        onClick={handleWatchPartyJoin}
-                        disabled={!partyCode.trim()}
-                        className="w-full rounded-[10px] bg-accent px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50 transition-all hover:brightness-110 active:scale-95"
-                      >
-                        Join Room
-                      </button>
-                    </div>
-                  </div>
-                </>
               )}
             </>
           )}

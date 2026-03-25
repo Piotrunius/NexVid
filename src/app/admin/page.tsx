@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-    addAdminBlockedMedia,
-    banAdminTarget,
-    clearAllActiveSessions,
-    cloudFetch,
-    createAdminAnnouncement,
-    deleteAdminAccountLimit,
-    deleteAdminAnnouncement,
-    deleteAdminBlockedMedia,
-    deleteAdminFeedbackThread,
-    deleteAdminUserByUsername,
-    grantAdminPermission,
-    loadAdminAccountLimits,
-    loadAdminAnnouncements,
-    loadAdminAuditLogs,
-    loadAdminBans,
-    loadAdminBlockedMedia,
-    loadAdminFeedbackMessages,
-    loadAdminFeedbackThreads,
-    loadAdminGrantList,
-    loadAdminOverview,
-    loadAdminUsers,
-    lookupAdminAccounts,
-    replyAdminFeedbackThread,
-    resetUserPassword,
-    revokeAdminPermission,
-    setAdminAccountLimit,
-    unbanAdminTarget,
-    updateAdminAnnouncement,
+  addAdminBlockedMedia,
+  banAdminTarget,
+  clearAllActiveSessions,
+  cloudFetch,
+  createAdminAnnouncement,
+  deleteAdminAccountLimit,
+  deleteAdminAnnouncement,
+  deleteAdminBlockedMedia,
+  deleteAdminFeedbackThread,
+  deleteAdminUserByUsername,
+  grantAdminPermission,
+  loadAdminAccountLimits,
+  loadAdminAnnouncements,
+  loadAdminAuditLogs,
+  loadAdminBans,
+  loadAdminBlockedMedia,
+  loadAdminFeedbackMessages,
+  loadAdminFeedbackThreads,
+  loadAdminGrantList,
+  loadAdminOverview,
+  loadAdminUsers,
+  lookupAdminAccounts,
+  replyAdminFeedbackThread,
+  resetUserPassword,
+  revokeAdminPermission,
+  setAdminAccountLimit,
+  unbanAdminTarget,
+  updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -207,15 +207,9 @@ export default function AdminPage() {
   const [announcementType, setAnnouncementType] = useState<AnnouncementType>('info');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
-  const [isImportant, setIsImportant] = useState(false);
+  const isImportant = true;
 
   const canManage = hasAdminPanelAccess;
-
-  useEffect(() => {
-    if (!isImportant) {
-      setAnnouncementType('info');
-    }
-  }, [isImportant]);
 
   useEffect(() => {
     if (!selectedFeedbackThreadId || !canManage) return;
@@ -597,7 +591,6 @@ export default function AdminPage() {
       setLinkUrl('');
       setLinkLabel('');
       setAnnouncementType('info');
-      setIsImportant(false);
       await loadAll();
       toast('Announcement created (hidden by default)', 'success');
     } catch (error: any) {
@@ -972,24 +965,17 @@ export default function AdminPage() {
               />
               <p className="text-right text-[11px] text-text-muted">{announcementLength}/{ANNOUNCEMENT_MAX_CHARS}</p>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="transition-all duration-300" style={{ opacity: isImportant ? 1 : 0.5, pointerEvents: isImportant ? 'auto' : 'none' }}>
-                  <select
-                    className="input w-full"
-                    value={announcementType}
-                    onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}
-                    disabled={!isImportant}
-                  >
-                    <option value="info">Info</option>
-                    <option value="warning">Warning</option>
-                    <option value="update">Update</option>
-                    <option value="success">Success</option>
-                  </select>
-                </div>
-                <label className="flex items-center gap-2 rounded-[10px] bg-[var(--bg-glass-light)] px-3 py-2 text-[13px] text-text-secondary cursor-pointer hover:bg-white/5 transition-colors">
-                  <input type="checkbox" checked={isImportant} onChange={(e) => setIsImportant(e.target.checked)} />
-                  Important (Full Screen)
-                </label>
+              <div className="grid grid-cols-1 gap-2">
+                <select
+                  className="input w-full"
+                  value={announcementType}
+                  onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}
+                >
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="update">Update</option>
+                  <option value="success">Success</option>
+                </select>
               </div>
 
               <input className="input w-full" placeholder="Optional link URL (https://...)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
@@ -998,14 +984,12 @@ export default function AdminPage() {
               <button disabled={isSubmitting} onClick={handleCreateAnnouncement} className="btn-accent w-full">
                 Create announcement
               </button>
-              <p className="text-[10px] text-text-muted text-center italic">Announcements are created as hidden and must be activated manually below.</p>
             </section>
 
             <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
                 <div className="flex-1 rounded-[20px] bg-[var(--bg-glass-light)] p-5 backdrop-blur-sm">
                   <h2 className="text-[15px] font-semibold text-text-primary">Block content</h2>
-                  <p className="text-[11px] text-text-muted">Completely block access and hide from search by TMDB ID.</p>
 
                   <div className="mt-4 space-y-4">
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -1097,7 +1081,6 @@ export default function AdminPage() {
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
             <div>
               <h2 className="text-[15px] font-semibold text-text-primary">Staff permissions</h2>
-              <p className="text-[11px] text-text-muted">Grant or revoke access. Admins can only grant Moderator role.</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
@@ -1196,7 +1179,6 @@ export default function AdminPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-[15px] font-semibold text-text-primary">Users</h2>
-            <p className="text-[11px] text-text-muted">Nick, ID and activity logs.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5">
             <div className="relative">
@@ -1279,7 +1261,6 @@ export default function AdminPage() {
       {canManageModeration && (
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
           <h2 className="text-[15px] font-semibold text-text-primary">Audit log</h2>
-          <p className="text-[11px] text-text-muted">Latest admin actions recorded by backend.</p>
           <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
             {isLoading ? (
               <p className="p-3 text-[13px] text-text-muted">Loading...</p>
@@ -1317,7 +1298,6 @@ export default function AdminPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-[15px] font-semibold text-text-primary">Feedback inbox</h2>
-            <p className="text-[11px] text-text-muted">User reports and chat threads.</p>
           </div>
           <div className="flex gap-1.5 p-1 rounded-xl bg-white/5 w-fit">
             <button
@@ -1497,7 +1477,6 @@ export default function AdminPage() {
                         )}>
                           {item.type}
                         </span>
-                        {item.isImportant && <span className="text-[9px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Full Screen</span>}
                       </div>
                       {item.isActive && <span className="text-[9px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase">Active</span>}
                     </div>
