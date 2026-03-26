@@ -1950,7 +1950,16 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               </button>
 
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  const firstDirectIndex = safeSourceResults.findIndex((r) => r.stream.type !== 'embed');
+                  if (firstDirectIndex !== -1 && onSelectSource) {
+                    onSelectSource(firstDirectIndex);
+                    setSettingsPanel(null);
+                    setEmbedLockState('locked');
+                  } else {
+                    window.location.reload();
+                  }
+                }}
                 className="flex items-center justify-center gap-2 rounded-[12px] bg-white/10 px-3 py-2.5 text-[11px] text-white font-bold hover:bg-white/15 transition-all border border-white/5"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" suppressHydrationWarning><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
