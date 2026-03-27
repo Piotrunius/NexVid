@@ -1147,6 +1147,17 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
   const handleEnded = useCallback(() => {
     setPlaying(false);
+
+    // When autoNext is enabled, directly navigate to next episode once the current one ends.
+    // Do not show the finished overlay in this flow.
+    if (autoNext && mediaType === 'show' && !isEpisodeNavigating) {
+      const nextEp = season?.episodes?.find((ep) => ep.episodeNumber === episodeNum + 1);
+      if (nextEp) {
+        navigateNextEpisode();
+        return;
+      }
+    }
+
     setIsFinished(true);
     setAutoNextLocked(true);
 
@@ -1161,7 +1172,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
     // When finished overlay is shown, do not auto-play next episode automatically.
     // User can use the Next Episode button on the finished screen.
-  }, [mediaType, autoNext, autoNextLocked, navigateNextEpisode, isEpisodeNavigating]);
+  }, [mediaType, autoNext, season, episodeNum, navigateNextEpisode, isEpisodeNavigating]);
 
   const handleError = useCallback(() => {
     setPlaying(false);
@@ -3088,14 +3099,21 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
       {/* End Screen / Finished Overlay */}
       {isFinished && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in">
-          <div className="text-center max-w-md px-6 animate-scale-in">
-            <p className="text-[13px] font-bold uppercase tracking-widest text-accent mb-2">Finished</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6">
-              {mediaType === 'show' ? `Completed S${seasonNum}:E${episodeNum}` : 'Movie Finished'}
-            </h2>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
+          <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 animate-scale-in">
+            <div className="mb-4 flex justify-center">
+              <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+            </div>
+            <h2 className="text-xl font-black text-white tracking-tighter mb-1 uppercase italic">Finished</h2>
+            <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
+              {mediaType === 'show'
+                ? `Completed S${seasonNum}:E${episodeNum}`
+                : 'Movie finished'}
+            </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
+            <div className="flex justify-center items-center gap-2 w-full mb-2">
               {mediaType === 'show' && season?.episodes?.some(ep => ep.episodeNumber === episodeNum + 1) && (
                 <button
                   onClick={() => {
@@ -3104,11 +3122,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                     navigateNextEpisode();
                   }}
                   disabled={isEpisodeNavigating}
-                  className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px] font-semibold"
+                  className="btn-accent min-w-[120px] !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest"
                 >
-                  {isEpisodeNavigating ? 'Loading...' : 'Next Episode'}
+                  {isEpisodeNavigating ? 'Loading…' : 'Next Episode'}
                 </button>
               )}
+
               <button
                 onClick={() => {
                   setAutoNextLocked(false);
@@ -3116,21 +3135,24 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                   seek(0);
                   videoRef.current?.play().catch(() => {});
                 }}
-                className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px] font-semibold"
+                className={mediaType === 'show' ? 'btn-glass min-w-[120px] !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest' : 'btn-accent min-w-[120px] !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest'}
               >
                 Rewatch
               </button>
+            </div>
+
+            {onBack && (
               <button
                 onClick={() => {
                   setAutoNextLocked(false);
                   setIsFinished(false);
-                  if (onBack) onBack();
+                  onBack();
                 }}
-                className="w-full sm:w-auto btn-accent rounded-[14px] px-8 py-3 text-[14px] font-semibold"
+                className="mt-3 text-[10px] font-black text-white/30 uppercase tracking-[0.3em] hover:text-white/60 transition-colors"
               >
                 Go Back
               </button>
-            </div>
+            )}
           </div>
         </div>
       )}
