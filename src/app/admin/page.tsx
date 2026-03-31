@@ -1210,7 +1210,7 @@ export default function AdminPage() {
               )}
             </div>
             <select
-              className="input-minimal py-1.5 px-3 text-[12px] w-auto bg-transparent border-none text-white/70 font-bold cursor-pointer hover:text-white transition-colors"
+              className="input"
               value={`${userSortKey}-${userSortOrder}`}
               onChange={(e) => {
                 const [key, order] = e.target.value.split('-') as [any, any];
