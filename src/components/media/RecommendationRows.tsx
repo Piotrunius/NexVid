@@ -20,7 +20,9 @@ export function RecommendationRows() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<MediaItem[]>([]);
+  const [activeRecommendations, setActiveRecommendations] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { blockedItems, isBlocked } = useBlockedContentStore();
 
   useEffect(() => {
@@ -57,9 +59,9 @@ export function RecommendationRows() {
         setRecommendations(filteredRecs.slice(0, 20));
       } catch (err) {
         console.error(`Failed to load recommendations for ${selectedItem?.title}:`, err);
-        setRecommendations([]);
       } finally {
         setIsLoading(false);
+        setIsInitialLoad(false);
       }
     }
 
@@ -80,9 +82,9 @@ export function RecommendationRows() {
             key={item.id}
             onClick={() => setSelectedId(item.id)}
             className={cn(
-              "whitespace-nowrap px-4 py-1.5 rounded-full text-[12px] font-bold transition-all duration-300 border backdrop-blur-md",
+              "whitespace-nowrap px-4 py-1.5 rounded-full text-[12px] font-bold transition-all duration-300 border-2",
               selectedId === item.id
-                ? "bg-accent/20 border-accent/40 text-accent shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]"
+                ? "bg-accent/20 border-accent text-accent shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]"
                 : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/70 hover:bg-white/10"
             )}
           >
@@ -95,7 +97,7 @@ export function RecommendationRows() {
 
   return (
     <div className="relative">
-      {isLoading ? (
+      {isLoading && isInitialLoad ? (
         <MediaRowSkeleton title={header} />
       ) : recommendations.length > 0 ? (
         <MediaRow

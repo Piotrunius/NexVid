@@ -6,8 +6,8 @@
 
 import { MediaCard, MediaCardSkeleton } from '@/components/media/MediaCard';
 import { discover, getGenres, getPopular, getTrending } from '@/lib/tmdb';
-import { useBlockedContentStore } from '@/stores/blockedContent';
 import { cn } from '@/lib/utils';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import type { Genre, MediaItem } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -58,7 +58,7 @@ export default function BrowsePage() {
       try {
         let results: MediaItem[] = [];
         const mediaType = tab === 'movies' ? 'movie' : tab === 'shows' ? 'tv' : 'all';
-        
+
         if (tab === 'trending') {
           results = await getTrending(mediaType, 'week', p);
         } else {
@@ -66,7 +66,7 @@ export default function BrowsePage() {
             page: String(p),
             sort_by: 'popularity.desc', // Domyślne sortowanie
           };
-          
+
           if (filter !== 'popular' && filter !== 'top_rated') {
             params.with_genres = filter;
           } else if (filter === 'top_rated') {
@@ -186,10 +186,10 @@ export default function BrowsePage() {
                 key={f.key}
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  'rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200',
+                  'rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200 border',
                   filter === f.key
-                    ? 'bg-accent/10 text-accent shadow-[0_0_0_1px_var(--accent-muted)]'
-                    : 'bg-white/[0.02] border border-white/5 text-text-muted hover:text-text-secondary hover:bg-white/[0.06]',
+                    ? 'bg-accent/10 text-accent border-transparent shadow-[0_0_0_1px_var(--accent-muted)]'
+                    : 'bg-white/[0.02] border-white/10 text-text-muted hover:text-text-secondary hover:bg-white/[0.06] hover:border-white/10',
                 )}
               >
                 {f.label}
@@ -201,10 +201,10 @@ export default function BrowsePage() {
                 key={g.id}
                 onClick={() => setFilter(String(g.id))}
                 className={cn(
-                  'rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200',
+                  'rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200 border',
                   filter === String(g.id)
-                    ? 'bg-accent/10 text-accent shadow-[0_0_0_1px_var(--accent-muted)]'
-                    : 'bg-white/[0.02] border border-white/5 text-text-muted hover:text-text-secondary hover:bg-white/[0.06]',
+                    ? 'bg-accent/10 text-accent border-transparent shadow-[0_0_0_1px_var(--accent-muted)]'
+                    : 'bg-white/[0.02] text-text-muted hover:text-text-secondary hover:bg-white/[0.06] hover:border-white/10 border-white/10',
                 )}
               >
                 {g.name}

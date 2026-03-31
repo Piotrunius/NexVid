@@ -8,16 +8,17 @@ import { cn, tmdbImage } from '@/lib/utils';
 import { useBlockedContentStore } from '@/stores/blockedContent';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { WatchlistItem, WatchlistStatus } from '@/types';
+import { CheckCircle2, Clock, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
-const STATUSES: { key: WatchlistStatus; label: string; emoji: string; color: string }[] = [
-  { key: 'Watching', label: 'Watching', emoji: '▶', color: 'text-blue-400' },
-  { key: 'Planned', label: 'Planned', emoji: '＋', color: 'text-yellow-400' },
-  { key: 'Completed', label: 'Completed', emoji: '✓', color: 'text-green-400' },
-  { key: 'On-Hold', label: 'On Hold', emoji: '⏸', color: 'text-orange-400' },
-  { key: 'Dropped', label: 'Dropped', emoji: '✕', color: 'text-red-400' },
+const STATUSES: { key: WatchlistStatus; label: string; icon: React.ReactNode; color: string }[] = [
+  { key: 'Watching', label: 'Watching', icon: <PlayCircle className="h-[12px] w-[12px]" />, color: 'text-blue-400' },
+  { key: 'Planned', label: 'Planned', icon: <Clock className="h-[12px] w-[12px]" />, color: 'text-yellow-400' },
+  { key: 'Completed', label: 'Completed', icon: <CheckCircle2 className="h-[12px] w-[12px]" />, color: 'text-green-400' },
+  { key: 'On-Hold', label: 'On Hold', icon: <PauseCircle className="h-[12px] w-[12px]" />, color: 'text-orange-400' },
+  { key: 'Dropped', label: 'Dropped', icon: <XCircle className="h-[12px] w-[12px]" />, color: 'text-red-400' },
 ];
 
 export default function WatchlistPage() {
@@ -103,7 +104,7 @@ export default function WatchlistPage() {
                   : 'border-white/6 text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
               )}
             >
-              <span className="text-[12px]">{s.emoji}</span>
+              <span className="text-[12px]">{s.icon}</span>
               {s.label}
               <span className={cn('rounded-full px-2 py-0.5 text-[11px]', activeStatus === s.key ? 'bg-white/20' : 'bg-[var(--bg-glass-light)]')}>{statusCounts[s.key]}</span>
             </button>
@@ -151,7 +152,7 @@ function ContinueWatchingCard({ item, href, onRemove }: { item: WatchlistItem; h
     <div className="glass-card glass-liquid group relative">
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
-        className="absolute right-2 top-2 z-10 rounded-[8px] bg-[var(--bg-primary)]/75 p-1.5 text-text-secondary opacity-0 backdrop-blur-sm transition-all hover:text-red-400 group-hover:opacity-100"
+        className="absolute right-2 top-2 z-10 rounded-[8px] bg-[var(--bg-primary)]/75 p-1.5 text-text-secondary backdrop-blur-sm transition-all hover:text-red-400 opacity-100"
         title="Remove"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -202,7 +203,7 @@ function WatchlistCard({ item, onRemove, onStatusChange }: { item: WatchlistItem
           <p className="text-[13px] font-semibold text-text-primary truncate">{item.title}</p>
           <p className="text-[11px] text-text-muted mt-0.5 capitalize">{item.mediaType}</p>
           <div className="flex items-center gap-1.5 mt-2">
-            <span className="text-[12px]">{statusInfo?.emoji}</span>
+            <span className="text-[12px]">{statusInfo?.icon}</span>
             <span className={cn('text-[12px] font-medium capitalize', statusInfo?.color)}>{item.status.replace('-', ' ')}</span>
           </div>
           {item.progress && item.progress.percentage != null && (
@@ -226,7 +227,7 @@ function WatchlistCard({ item, onRemove, onStatusChange }: { item: WatchlistItem
       </Link>
 
       {/* Hover menu */}
-      <div className={cn('absolute right-2 top-2 transition-opacity', showMenu ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}>
+      <div className={cn('absolute right-2 top-2 transition-opacity opacity-100')}>
         <div className="relative">
           <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
@@ -245,7 +246,7 @@ function WatchlistCard({ item, onRemove, onStatusChange }: { item: WatchlistItem
                     item.status === s.key ? 'bg-accent/15 text-accent' : 'text-text-secondary hover:bg-[var(--bg-glass-light)]',
                   )}
                 >
-                  <span>{s.emoji}</span>
+                  <span>{s.icon}</span>
                   {s.label}
                 </button>
               ))}
