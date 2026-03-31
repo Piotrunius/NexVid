@@ -180,7 +180,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
 
         {/* Type badge */}
         {showType && (
-          <div className="absolute top-3 left-3 rounded-full bg-accent/85 px-2.5 py-1 backdrop-blur-[20px] shadow-[0_0_16px_var(--accent-glow)]">
+          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-[20px] px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
             <span className="text-[10px] font-bold uppercase text-white tracking-[0.12em]">
               {item.mediaType === 'movie' ? 'Movie' : 'TV'}
             </span>
@@ -291,7 +291,7 @@ export function MediaRow({
   return (
     <section className={cn(noPadding ? "py-2" : "py-8", "relative overflow-x-hidden")}>
       {!noHeader && (
-        <div className={cn("flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto", noPadding ? "mb-3" : "mb-5")}>
+        <div className={cn("flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full", noPadding ? "mb-3" : "mb-5")}>
           <div className="flex-1 min-w-0 mr-4">
             {typeof title === 'string' ? (
               <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">{title}</h2>

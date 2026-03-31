@@ -4,8 +4,8 @@
 
 import { MediaRow } from '@/components/media/MediaCard';
 import { HomePageClient } from '@/components/pages/HomePageClient';
-import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
 import { loadPublicBlockedMedia } from '@/lib/cloudSync';
+import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { MediaItem } from '@/types';
 import Image from 'next/image';
@@ -31,14 +31,14 @@ export default async function HomePage() {
     ]);
 
     const blocked = blockedRes.items || [];
-    const filterBlocked = (items: MediaItem[]) => 
+    const filterBlocked = (items: MediaItem[]) =>
       items.filter(item => !blocked.some((b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'show' ? 'tv' : 'movie')));
 
     trending = filterBlocked(t);
     popular = filterBlocked(p);
     topMovies = filterBlocked(m);
     topShows = filterBlocked(s);
-    
+
     if (trending.length > 0) {
       featured = trending[Math.floor(Math.random() * Math.min(5, trending.length))];
     }
@@ -67,21 +67,20 @@ export default async function HomePage() {
           </div>
 
           {/* Hero Content */}
-          <div className="absolute inset-0 flex items-center pt-20">
-            <div className="mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-10">
-              <div className="max-w-2xl space-y-6">
-                <div className="flex flex-wrap items-center gap-3 animate-fade-in opacity-80">
-                  <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-black uppercase tracking-widest text-white backdrop-blur-md shadow-[0_0_0_0.5px_rgba(255,255,255,0.1)]">
-                    {featured.mediaType === 'movie' ? 'Movie' : 'TV Series'}
+          <div className="absolute inset-0 flex items-center justify-start pt-20">
+            <div className="w-full px-6 sm:px-8 lg:px-10">
+              <div className="max-w-[40rem] space-y-6">
+                <div className="flex flex-wrap items-center gap-3 animate-fade-in opacity-90">
+                  <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
+                    {featured.mediaType === 'movie' ? 'Movie' : 'TV'}
                   </span>
-                  <span className="text-[13px] font-bold text-white/60">
-                    {featured.releaseDate?.split('-')[0]}
+                  <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
+                    {featured.releaseYear || 'N/A'}
                   </span>
                   {featured.voteAverage > 0 && (
-                    <div className="flex items-center gap-1 text-emerald-400">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                      <span className="text-[13px] font-black tracking-tighter">{(featured.voteAverage * 10).toFixed(0)}% Match</span>
-                    </div>
+                    <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-emerald-200 backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
+                      {(featured.voteAverage * 10).toFixed(0)}% Match
+                    </span>
                   )}
                 </div>
 

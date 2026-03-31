@@ -216,7 +216,11 @@ export default function BrowsePage() {
         {/* Grid */}
         <div className="media-grid">
           {items.map((item) => (
-            <MediaCard key={`${item.id}-${item.mediaType}`} item={item} />
+            <MediaCard
+              key={`${item.id}-${item.mediaType}`}
+              item={item}
+              showType={tab === 'trending'}
+            />
           ))}
           {isLoading &&
             Array.from({ length: 12 }).map((_, i) => <MediaCardSkeleton key={`skel-${i}`} />)}
