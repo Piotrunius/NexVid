@@ -71,12 +71,12 @@ export function RecommendationRows() {
   if (eligibleItems.length === 0) return null;
 
   const header = (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-[20px] font-semibold text-white tracking-tight">
+    <div className="flex flex-col gap-3 overflow-hidden">
+      <h2 className="text-[20px] font-semibold text-white tracking-tight break-words break-all">
         Because you watched <span className="text-accent">{selectedItem?.title}</span>
       </h2>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-y">
         {eligibleItems.map((item) => (
           <button
             key={item.id}

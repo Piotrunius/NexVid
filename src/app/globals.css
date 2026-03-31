@@ -110,6 +110,9 @@ html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
 }
 
 body {
@@ -117,6 +120,8 @@ body {
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
     letter-spacing: -0.02em;
     line-height: 1.5;
 }
@@ -560,6 +565,12 @@ select.input option {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    touch-action: pan-y;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
 }
 
 .scroll-row::-webkit-scrollbar {

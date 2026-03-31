@@ -289,7 +289,7 @@ export function MediaRow({
   }, [enableControls, items.length, title]);
 
   return (
-    <section className={cn(noPadding ? "py-2" : "py-8")}>
+    <section className={cn(noPadding ? "py-2" : "py-8", "relative overflow-x-hidden")}>
       {!noHeader && (
         <div className={cn("flex items-center justify-between px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto", noPadding ? "mb-3" : "mb-5")}>
           <div className="flex-1 min-w-0 mr-4">
