@@ -169,6 +169,28 @@ export const usePlayerStore = create<PlayerStore>()((set, get) => ({
   reset: () => {
     const state = get();
     if (state.controlsTimeout) clearTimeout(state.controlsTimeout);
-    set({ ...initialState });
+
+    const isFullscreen = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
+
+    if (isFullscreen) {
+      const timeout = setTimeout(() => {
+        set({ controlsVisible: false, controlsTimeout: null });
+      }, 3000);
+
+      set({
+        ...initialState,
+        isFullscreen,
+        controlsVisible: true,
+        controlsTimeout: timeout,
+      });
+      return;
+    }
+
+    set({
+      ...initialState,
+      isFullscreen,
+      controlsVisible: initialState.controlsVisible,
+      controlsTimeout: null,
+    });
   },
 }));

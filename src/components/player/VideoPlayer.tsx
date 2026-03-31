@@ -1856,6 +1856,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       }
     };
 
+    // initial sync (route-change/auto-next may invoke reset())
+    syncFullscreenState();
+
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, [setFullscreen, showControls]);
