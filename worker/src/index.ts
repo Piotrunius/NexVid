@@ -2042,6 +2042,11 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
           return json(request, env, { error: 'You cannot ban your own account' }, 403);
         }
 
+        const targetRole = await getUserRole(env, targetUser.id);
+        if (isAdminRole(targetRole)) {
+          return json(request, env, { error: 'Cannot ban Owner/Admin/Moderator accounts' }, 403);
+        }
+
         const protectedTarget = await isUserProtectedFromBan(env, targetUser.id);
         if (protectedTarget) {
           return json(request, env, { error: 'Cannot ban administrators or accounts created by administrators' }, 403);
@@ -2073,6 +2078,14 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
     if (type === 'ip') {
       if (!isValidIp(value)) return json(request, env, { error: 'Invalid IP format' }, 400);
       const ipHash = await sha256Hex(`ip:${value}`);
+
+      const usersWithIp = await env.DB.prepare('SELECT user_id FROM user_identifiers WHERE identifier = ? AND id_type = ?').bind(ipHash, 'ip').all<{ user_id: string }>();
+      for (const row of usersWithIp.results || []) {
+        const targetRole = await getUserRole(env, row.user_id);
+        if (isAdminRole(targetRole)) {
+          return json(request, env, { error: 'Cannot ban an IP linked to administrative accounts' }, 403);
+        }
+      }
 
       await env.DB.prepare(
         `INSERT INTO banned_ip_hashes (ip_hash, ip_label, reason, created_at, created_by_user_id)
