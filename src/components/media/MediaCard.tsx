@@ -118,12 +118,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
           </div>
         )}
 
-        {/* Hover overlay — now softer, brand-consistent */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-          <div className="h-14 w-14 rounded-full bg-white/10 text-accent shadow-[0_0_20px_rgba(99,102,241,0.25)] flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-500">
-            <PlayCircle className="h-8 w-8 text-accent transition-colors" />
-          </div>
-        </div>
+        {/* Removed center play overlay on hover as requested */}
 
         {/* Watchlist Button */}
         {mounted && (
