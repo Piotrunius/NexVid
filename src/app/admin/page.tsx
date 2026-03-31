@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-    addAdminBlockedMedia,
-    banAdminTarget,
-    clearAllActiveSessions,
-    cloudFetch,
-    createAdminAnnouncement,
-    deleteAdminAccountLimit,
-    deleteAdminAnnouncement,
-    deleteAdminBlockedMedia,
-    deleteAdminFeedbackThread,
-    deleteAdminUserByUsername,
-    grantAdminPermission,
-    loadAdminAccountLimits,
-    loadAdminAnnouncements,
-    loadAdminAuditLogs,
-    loadAdminBans,
-    loadAdminBlockedMedia,
-    loadAdminFeedbackMessages,
-    loadAdminFeedbackThreads,
-    loadAdminGrantList,
-    loadAdminOverview,
-    loadAdminUsers,
-    lookupAdminAccounts,
-    replyAdminFeedbackThread,
-    resetUserPassword,
-    revokeAdminPermission,
-    setAdminAccountLimit,
-    unbanAdminTarget,
-    updateAdminAnnouncement,
+  addAdminBlockedMedia,
+  banAdminTarget,
+  clearAllActiveSessions,
+  cloudFetch,
+  createAdminAnnouncement,
+  deleteAdminAccountLimit,
+  deleteAdminAnnouncement,
+  deleteAdminBlockedMedia,
+  deleteAdminFeedbackThread,
+  deleteAdminUserByUsername,
+  grantAdminPermission,
+  loadAdminAccountLimits,
+  loadAdminAnnouncements,
+  loadAdminAuditLogs,
+  loadAdminBans,
+  loadAdminBlockedMedia,
+  loadAdminFeedbackMessages,
+  loadAdminFeedbackThreads,
+  loadAdminGrantList,
+  loadAdminOverview,
+  loadAdminUsers,
+  lookupAdminAccounts,
+  replyAdminFeedbackThread,
+  resetUserPassword,
+  revokeAdminPermission,
+  setAdminAccountLimit,
+  unbanAdminTarget,
+  updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -1056,7 +1056,6 @@ export default function AdminPage() {
                         value={blockedSearch}
                         onChange={(e) => setBlockedSearch(e.target.value)}
                       />
-                      <span className="text-[11px] text-text-muted">{filteredBlockedMedia.length} items</span>
                     </div>
                   </div>
 
