@@ -503,6 +503,27 @@ async function getUserRole(env: Env, userId: string): Promise<string | null> {
   }
 }
 
+function isAdminRole(role: string | null): boolean {
+  return role === 'owner' || role === 'admin' || role === 'moderator';
+}
+
+async function isUserProtectedFromBan(env: Env, userId: string): Promise<boolean> {
+  const role = await getUserRole(env, userId);
+  if (isAdminRole(role)) return true;
+
+  try {
+    const createdBy = await env.DB.prepare('SELECT created_by_user_id FROM users WHERE id = ?').bind(userId).first<{ created_by_user_id: string | null }>();
+    if (createdBy && createdBy.created_by_user_id) {
+      const creatorRole = await getUserRole(env, createdBy.created_by_user_id);
+      if (isAdminRole(creatorRole)) return true;
+    }
+  } catch {
+    // ignore if the column does not exist or another error
+  }
+
+  return false;
+}
+
 async function ensureFeedbackTables(env: Env): Promise<void> {
   if (!feedbackTablesInit) {
     feedbackTablesInit = (async () => {
@@ -2015,13 +2036,24 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
       if (!isValidUsername(value)) return json(request, env, { error: 'Invalid nickname format' }, 400);
       const username = normalizeUsername(value);
 
+      const targetUser = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
+      if (targetUser?.id) {
+        if (targetUser.id === session.user.id) {
+          return json(request, env, { error: 'You cannot ban your own account' }, 403);
+        }
+
+        const protectedTarget = await isUserProtectedFromBan(env, targetUser.id);
+        if (protectedTarget) {
+          return json(request, env, { error: 'Cannot ban administrators or accounts created by administrators' }, 403);
+        }
+      }
+
       await env.DB.prepare(
         `INSERT INTO banned_usernames (username, reason, created_at, created_by_user_id)
          VALUES (?, ?, ?, ?)
          ON CONFLICT(username) DO UPDATE SET reason = excluded.reason, created_at = excluded.created_at, created_by_user_id = excluded.created_by_user_id`
       ).bind(username, reason || null, now, session.user.id).run();
 
-      const targetUser = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
       if (targetUser?.id) {
         await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUser.id).run();
         const identifiers = await env.DB.prepare('SELECT identifier, id_type FROM user_identifiers WHERE user_id = ?').bind(targetUser.id).all<{ identifier: string; id_type: string }>();

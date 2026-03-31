@@ -7,6 +7,7 @@
 import { cn, formatTime, tmdbImage } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem, WatchlistStatus } from '@/types';
+import { Check, CheckCircle2, Clock, PauseCircle, PlayCircle, Plus, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -38,15 +39,15 @@ function formatRelativeTime(dateString: string): string {
 function StatusIcon({ status }: { status: WatchlistStatus }) {
   switch (status) {
     case 'Planned':
-      return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>;
+      return <Clock className="h-3 w-3" />;
     case 'Watching':
-      return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
+      return <PlayCircle className="h-3 w-3" />;
     case 'Completed':
-      return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>;
+      return <CheckCircle2 className="h-3 w-3" />;
     case 'Dropped':
-      return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>;
+      return <XCircle className="h-3 w-3" />;
     case 'On-Hold':
-      return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>;
+      return <PauseCircle className="h-3 w-3" />;
   }
 }
 
@@ -117,18 +118,16 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
           </div>
         )}
 
-        {/* Hover overlay - Simplified */}
-        <div className="media-card-overlay">
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-             <div className="h-12 w-12 rounded-full bg-accent/90 text-white flex items-center justify-center shadow-[0_0_20px_var(--accent-glow)] transform scale-90 group-hover:scale-100 transition-transform duration-500">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21" /></svg>
-             </div>
+        {/* Hover overlay — now softer, brand-consistent */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+          <div className="h-14 w-14 rounded-full bg-white/10 text-accent shadow-[0_0_20px_rgba(99,102,241,0.25)] flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-500">
+            <PlayCircle className="h-8 w-8 text-accent transition-colors" />
           </div>
         </div>
 
         {/* Watchlist Button */}
         {mounted && (
-          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-400 z-10">
+          <div className="absolute bottom-3 right-3 opacity-80 group-hover:opacity-100 transition-opacity duration-200 z-10">
             <div className="relative">
               <button
                 onClick={handleToggleMenu}
@@ -141,9 +140,9 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
                 title={watchlistItem ? watchlistItem.status : 'Add to List'}
               >
                 {watchlistItem ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>
+                  <Check className="h-4 w-4" />
                 ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+                  <Plus className="h-4 w-4" />
                 )}
               </button>
               {showMenu && (
@@ -267,9 +266,9 @@ export function MediaRow({
 
   useLayoutEffect(() => {
     if (!rowRef.current) return;
-    rowRef.current.scrollTo({ left: 0, behavior: 'auto' });
+    // Keep current scroll position while preserving scroll-button state.
     updateScrollState();
-  }, [title, items.length]);
+  }, [items.length]);
 
   useEffect(() => {
     if (!enableControls) return;

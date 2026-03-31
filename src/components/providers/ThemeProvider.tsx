@@ -5,12 +5,12 @@
 
 'use client';
 
-import { getCloudToken, hasCloudBackend, loadCloudSettings, loadCloudWatchlist } from '@/lib/cloudSync';
 import { toast } from '@/components/ui/Toaster';
+import { getCloudToken, hasCloudBackend, loadCloudSettings, loadCloudWatchlist } from '@/lib/cloudSync';
 import { useAuthStore } from '@/stores/auth';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import { DEFAULT_SETTINGS, useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
-import { useBlockedContentStore } from '@/stores/blockedContent';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
@@ -55,7 +55,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
     root.setAttribute('data-accent', accentColor);
-    root.setAttribute('data-glass', glassEffect ? 'on' : 'off');
+    // Force simpler UI style all the time
+    root.setAttribute('data-glass', 'off');
 
     if (accentColor === 'custom') {
       const normalized = normalizeHex(customAccentHex) || '#6366f1';

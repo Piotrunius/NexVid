@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'dark',
   accentColor: 'indigo',
   customAccentHex: '#6366f1',
-  glassEffect: true,
+  glassEffect: false,
   language: 'en',
   subtitleLanguage: 'en',
   autoPlay: true,

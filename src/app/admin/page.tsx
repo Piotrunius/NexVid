@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-  addAdminBlockedMedia,
-  banAdminTarget,
-  clearAllActiveSessions,
-  cloudFetch,
-  createAdminAnnouncement,
-  deleteAdminAccountLimit,
-  deleteAdminAnnouncement,
-  deleteAdminBlockedMedia,
-  deleteAdminFeedbackThread,
-  deleteAdminUserByUsername,
-  grantAdminPermission,
-  loadAdminAccountLimits,
-  loadAdminAnnouncements,
-  loadAdminAuditLogs,
-  loadAdminBans,
-  loadAdminBlockedMedia,
-  loadAdminFeedbackMessages,
-  loadAdminFeedbackThreads,
-  loadAdminGrantList,
-  loadAdminOverview,
-  loadAdminUsers,
-  lookupAdminAccounts,
-  replyAdminFeedbackThread,
-  resetUserPassword,
-  revokeAdminPermission,
-  setAdminAccountLimit,
-  unbanAdminTarget,
-  updateAdminAnnouncement,
+    addAdminBlockedMedia,
+    banAdminTarget,
+    clearAllActiveSessions,
+    cloudFetch,
+    createAdminAnnouncement,
+    deleteAdminAccountLimit,
+    deleteAdminAnnouncement,
+    deleteAdminBlockedMedia,
+    deleteAdminFeedbackThread,
+    deleteAdminUserByUsername,
+    grantAdminPermission,
+    loadAdminAccountLimits,
+    loadAdminAnnouncements,
+    loadAdminAuditLogs,
+    loadAdminBans,
+    loadAdminBlockedMedia,
+    loadAdminFeedbackMessages,
+    loadAdminFeedbackThreads,
+    loadAdminGrantList,
+    loadAdminOverview,
+    loadAdminUsers,
+    lookupAdminAccounts,
+    replyAdminFeedbackThread,
+    resetUserPassword,
+    revokeAdminPermission,
+    setAdminAccountLimit,
+    unbanAdminTarget,
+    updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -172,6 +172,8 @@ export default function AdminPage() {
   const [grantExpiresDays, setGrantExpiresDays] = useState(0);
   const [feedbackThreads, setFeedbackThreads] = useState<AdminFeedbackThread[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogItem[]>([]);
+  const [auditActionFilter, setAuditActionFilter] = useState('');
+  const [auditAdminFilter, setAuditAdminFilter] = useState('');
   const [selectedFeedbackThreadId, setSelectedFeedbackThreadId] = useState<string | null>(null);
   const [feedbackInboxTab, setFeedbackInboxTab] = useState<'active' | 'archive'>('active');
   const [feedbackMessages, setFeedbackMessages] = useState<AdminFeedbackMessage[]>([]);
@@ -200,6 +202,19 @@ export default function AdminPage() {
       item.reason?.toLowerCase().includes(query.toLowerCase())
     );
   }, [blockedMedia, blockedSearch]);
+
+  const filteredAuditLogs = useMemo(() => {
+    const actionQuery = auditActionFilter.trim().toLowerCase();
+    const adminQuery = auditAdminFilter.trim().toLowerCase();
+
+    return auditLogs.filter((item) => {
+      const actionMatch = actionQuery ? item.action.toLowerCase().includes(actionQuery) : true;
+      const adminName = (item.adminUsername || item.adminUserId).toLowerCase();
+      const adminMatch = adminQuery ? adminName.includes(adminQuery) : true;
+      return actionMatch && adminMatch;
+    });
+  }, [auditLogs, auditActionFilter, auditAdminFilter]);
+
   const [lookupValue, setLookupValue] = useState('');
   const [lookupResult, setLookupResult] = useState<AccountLookupResult | null>(null);
 
@@ -251,9 +266,11 @@ export default function AdminPage() {
   }, [announcementLength, message]);
 
   const filteredAndSortedUsers = useMemo(() => {
-    const filtered = adminUsers.filter(u =>
-      u.username.toLowerCase().includes(userSearchQuery.toLowerCase())
-    );
+    const nameFilter = userSearchQuery.trim().toLowerCase();
+
+    const filtered = adminUsers.filter((u) => {
+      return nameFilter ? u.username.toLowerCase().includes(nameFilter) : true;
+    });
 
     return filtered.sort((a, b) => {
       const valA = a[userSortKey] || '';
@@ -1180,10 +1197,10 @@ export default function AdminPage() {
           <div>
             <h2 className="text-[15px] font-semibold text-text-primary">Users</h2>
           </div>
-          <div className="flex flex-wrap items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
             <div className="relative">
               <input
-                className="input-minimal py-1.5 px-3 text-[12px] w-40 sm:w-48 bg-white/5 border border-white/10 rounded-[8px] focus:bg-white/10 transition-all"
+                className="input w-full py-1.5 px-3 text-[12px] bg-[var(--bg-glass-light)] border border-white/10 rounded-[8px] focus:bg-white/10 transition-all"
                 placeholder="Nick search..."
                 value={userSearchQuery}
                 onChange={(e) => setUserSearchQuery(e.target.value)}
@@ -1261,6 +1278,22 @@ export default function AdminPage() {
       {canManageModeration && (
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
           <h2 className="text-[15px] font-semibold text-text-primary">Audit log</h2>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <input
+              className="input w-full"
+              placeholder="Filter action..."
+              value={auditActionFilter}
+              onChange={(e) => setAuditActionFilter(e.target.value)}
+            />
+            <input
+              className="input w-full"
+              placeholder="Filter admin..."
+              value={auditAdminFilter}
+              onChange={(e) => setAuditAdminFilter(e.target.value)}
+            />
+          </div>
+
           <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
             {isLoading ? (
               <p className="p-3 text-[13px] text-text-muted">Loading...</p>
@@ -1278,7 +1311,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {auditLogs.map((item) => (
+                  {filteredAuditLogs.map((item) => (
                     <tr key={item.id} className="border-t border-[var(--border)]">
                       <td className="px-3 py-2 text-text-muted whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</td>
                       <td className="px-3 py-2 text-text-primary">{item.adminUsername || item.adminUserId.slice(0, 12)}</td>

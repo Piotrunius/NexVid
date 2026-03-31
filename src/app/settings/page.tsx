@@ -217,23 +217,6 @@ export default function SettingsPage() {
               </div>
             </SettingsRow>
 
-            <SettingsRow label="Visual Effects">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!settings.glassEffect}
-                onClick={() => store.updateSettings({ glassEffect: !settings.glassEffect })}
-                className="w-full flex items-center justify-between rounded-full bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.06]"
-              >
-                <div className="text-left">
-                  <p className="text-[13px] font-medium text-text-primary">Simpler UI style</p>
-                  <p className="text-[11px] text-text-muted mt-0.5">Switches UI to a flatter, simpler style.</p>
-                </div>
-                <div className={cn('relative w-11 h-[24px] rounded-full transition-colors duration-200', !settings.glassEffect ? 'bg-accent' : 'bg-white/10')}>
-                  <div className={cn('absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200', !settings.glassEffect ? 'translate-x-[22px]' : 'translate-x-[2px]')} />
-                </div>
-              </button>
-            </SettingsRow>
 
             <SettingsRow label="Streaming Sources">
               <button
