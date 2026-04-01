@@ -372,12 +372,14 @@ export function MediaRowSkeleton({
 }) {
   return (
     <section className={cn(noPadding ? 'py-2' : 'py-8')}>
-      <div className="mb-5 px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
-        {title ? (
-          <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">{title}</h2>
-        ) : (
-          <div className="skeleton h-5 w-40 rounded-[8px]" />
-        )}
+      <div className={cn('flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full', noPadding ? 'mb-3' : 'mb-5')}>
+        <div className="flex-1 min-w-0 mr-4">
+          {title ? (
+            <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">{title}</h2>
+          ) : (
+            <div className="skeleton h-5 w-40 rounded-[8px]" />
+          )}
+        </div>
       </div>
       <div className="scroll-row px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
         {Array.from({ length: count }).map((_, i) => (
