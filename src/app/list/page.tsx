@@ -68,54 +68,80 @@ export default function WatchlistPage() {
   }, [items, blockedItems]);
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-6 sm:px-8 lg:px-10">
+    <div className="min-h-screen pt-20 pb-12 px-6 sm:px-8 lg:px-10">
       <div className="w-full">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-[28px] font-bold text-text-primary tracking-tight">My List</h1>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="input !py-2 !text-[13px]">
-            <option value="added">Recently Added</option>
-            <option value="title">Title A-Z</option>
-            <option value="rating">Rating</option>
-          </select>
+        {/* Modern Header */}
+        <div className="mb-8 rounded-[28px] bg-gradient-to-br from-accent/10 via-accent/5 to-transparent p-8 border border-accent/10 backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-[36px] font-bold text-text-primary tracking-tight mb-2">My List</h1>
+              <p className="text-[14px] text-text-muted">Track and manage your watchlist</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="glass-card px-4 py-2 rounded-full">
+                <p className="text-[13px] text-text-muted">Total: <span className="font-bold text-accent">{statusCounts.all}</span></p>
+              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="input !py-2.5 !px-4 !text-[13px] !rounded-full"
+              >
+                <option value="added">Recently Added</option>
+                <option value="title">Title A-Z</option>
+                <option value="rating">Rating</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        {/* macOS segmented status tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
+        {/* Enhanced Status Tabs */}
+        <div className="mb-8 p-2 rounded-[24px] bg-[var(--bg-glass)] backdrop-blur-xl border border-white/5 inline-flex gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveStatus('all')}
             className={cn(
-              'flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200',
+              'flex items-center gap-2 rounded-[16px] px-6 py-3 text-[13px] font-semibold whitespace-nowrap transition-all duration-300',
               activeStatus === 'all'
-                ? 'bg-accent text-white border-accent shadow-[0_2px_12px_var(--accent-glow)]'
-                : 'border-white/6 text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
+                ? 'bg-gradient-to-br from-accent to-accent-hover text-white shadow-[0_4px_20px_var(--accent-glow)]'
+                : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
             )}
           >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+            </svg>
             All
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px]">{statusCounts.all}</span>
+            <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold', activeStatus === 'all' ? 'bg-white/20' : 'bg-[var(--bg-glass-light)]')}>{statusCounts.all}</span>
           </button>
           {STATUSES.map((s) => (
             <button
               key={s.key}
               onClick={() => setActiveStatus(s.key)}
               className={cn(
-                'flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200',
+                'flex items-center gap-2 rounded-[16px] px-6 py-3 text-[13px] font-semibold whitespace-nowrap transition-all duration-300',
                 activeStatus === s.key
-                  ? 'bg-accent text-white border-accent shadow-[0_2px_12px_var(--accent-glow)]'
-                  : 'border-white/6 text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
+                  ? 'bg-gradient-to-br from-accent to-accent-hover text-white shadow-[0_4px_20px_var(--accent-glow)]'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
               )}
             >
-              <span className="text-[12px]">{s.icon}</span>
+              <span className="text-[14px]">{s.icon}</span>
               {s.label}
-              <span className={cn('rounded-full px-2 py-0.5 text-[11px]', activeStatus === s.key ? 'bg-white/20' : 'bg-[var(--bg-glass-light)]')}>{statusCounts[s.key]}</span>
+              <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold', activeStatus === s.key ? 'bg-white/20' : 'bg-[var(--bg-glass-light)]')}>{statusCounts[s.key]}</span>
             </button>
           ))}
         </div>
 
         {/* Continue Watching */}
         {continueWatching.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-[15px] font-semibold text-text-primary mb-3">Continue Watching</h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <section className="mb-10">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-[20px] font-bold text-text-primary">Continue Watching</h2>
+              <div className="flex items-center gap-1.5 text-[12px] text-text-muted">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="5 3 19 12 5 21"/>
+                </svg>
+                {continueWatching.length} in progress
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {continueWatching.map((item) => {
                 const href = item.mediaType === 'movie'
                   ? `/watch/movie/${item.tmdbId}${item.progress?.timestamp ? `?t=${item.progress.timestamp}` : ''}`
@@ -127,20 +153,33 @@ export default function WatchlistPage() {
         )}
 
         {filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bg-glass-light)] mb-4">
-              <svg className="text-text-muted" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12h6M12 9v6" /></svg>
+          <div className="flex flex-col items-center justify-center py-32 text-center">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-accent/20 to-accent/5 mb-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+              <svg className="text-accent" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 12h6M12 9v6" />
+              </svg>
             </div>
-            <p className="text-[15px] font-medium text-text-secondary">No items in your list</p>
-            <p className="text-[13px] text-text-muted mt-1">Start browsing to add movies & shows</p>
-            <Link href="/browse" className="btn-accent mt-4">Browse Content</Link>
+            <p className="text-[18px] font-bold text-text-primary mb-2">Your watchlist is empty</p>
+            <p className="text-[14px] text-text-muted max-w-md">Start adding movies and shows to keep track of what you want to watch</p>
+            <Link href="/browse" className="btn-accent mt-6 !px-8 !py-3">Browse Content</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-[20px] font-bold text-text-primary">
+                {activeStatus === 'all' ? 'All Items' : STATUSES.find(s => s.key === activeStatus)?.label}
+              </h2>
+              <div className="text-[12px] text-text-muted">
+                {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
             {filteredItems.map((item: WatchlistItem) => (
               <WatchlistCard key={item.id} item={item} onRemove={removeItem} onStatusChange={setStatus} />
             ))}
           </div>
+          </>
         )}
       </div>
     </div>
@@ -149,33 +188,38 @@ export default function WatchlistPage() {
 
 function ContinueWatchingCard({ item, href, onRemove }: { item: WatchlistItem; href: string; onRemove: (id: string) => void }) {
   return (
-    <div className="glass-card glass-liquid group relative">
+    <div className="glass-card glass-liquid group relative rounded-[20px] overflow-hidden hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300">
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
-        className="absolute right-2 top-2 z-10 rounded-[8px] bg-[var(--bg-primary)]/75 p-1.5 text-text-secondary backdrop-blur-sm transition-all hover:text-red-400 opacity-100"
-        title="Remove"
+        className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-2 text-white/70 backdrop-blur-md transition-all hover:bg-black/80 hover:text-red-400 opacity-0 group-hover:opacity-100"
+        title="Remove from Continue Watching"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
-      <Link href={href} className="flex gap-3 p-3">
-        <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-[10px] bg-[var(--bg-tertiary)]">
+      <Link href={href} className="block">
+        <div className="relative aspect-[2/3] overflow-hidden bg-[var(--bg-tertiary)]">
           {item.posterPath ? (
-            <Image src={tmdbImage(item.posterPath, 'w200')} alt={item.title} fill sizes="80px" className="object-cover" />
+            <Image src={tmdbImage(item.posterPath, 'w500')} alt={item.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-text-muted">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="m10 8 6 4-6 4z"/></svg>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="m10 8 6 4-6 4z"/></svg>
             </div>
           )}
+          {/* Progress Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-8">
+            <div className="mb-2">
+              <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+                <div className="h-full bg-accent rounded-full shadow-[0_0_12px_var(--accent-glow)]" style={{ width: `${item.progress?.percentage || 0}%` }} />
+              </div>
+            </div>
+            <p className="text-[11px] font-semibold text-white/90">{Math.round(item.progress?.percentage || 0)}% complete</p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1 py-1">
-          <p className="truncate text-[13px] font-semibold text-text-primary">{item.title}</p>
-          <p className="mt-0.5 text-[11px] text-text-muted">
+        <div className="p-4">
+          <p className="font-bold text-[14px] text-text-primary line-clamp-2 mb-1">{item.title}</p>
+          <p className="text-[12px] text-text-muted">
             {item.mediaType === 'show' && item.progress?.season && item.progress?.episode ? `S${item.progress.season} E${item.progress.episode}` : 'Movie'}
           </p>
-          <div className="mt-2 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-            <div className="h-full bg-accent rounded-full shadow-[0_0_6px_var(--accent-glow)]" style={{ width: `${item.progress?.percentage || 0}%` }} />
-          </div>
-          <p className="mt-1.5 text-[10px] text-text-muted">{Math.round(item.progress?.percentage || 0)}% watched</p>
         </div>
       </Link>
     </div>
@@ -188,79 +232,93 @@ function WatchlistCard({ item, onRemove, onStatusChange }: { item: WatchlistItem
   const link = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
 
   return (
-    <div className={cn('glass-card group relative', showMenu && 'z-40 overflow-visible')}>
-      <Link href={link} className="flex gap-3 p-3">
-        <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-[10px] bg-[var(--bg-tertiary)]">
+    <div className={cn('glass-card glass-liquid group relative rounded-[20px] overflow-hidden hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-300', showMenu && 'z-50')}>
+      <Link href={link} className="block">
+        <div className="relative aspect-[2/3] overflow-hidden bg-[var(--bg-tertiary)]">
           {item.posterPath ? (
-            <Image src={tmdbImage(item.posterPath, 'w200')} alt={item.title} fill sizes="80px" className="object-cover" />
+            <Image src={tmdbImage(item.posterPath, 'w500')} alt={item.title} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-text-muted">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="m10 8 6 4-6 4z"/></svg>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="m10 8 6 4-6 4z"/></svg>
+            </div>
+          )}
+
+          {/* Status Badge */}
+          <div className="absolute top-3 left-3">
+            <div className={cn('flex items-center gap-1.5 rounded-full bg-black/70 backdrop-blur-md px-3 py-1.5', statusInfo?.color)}>
+              <span className="text-[12px]">{statusInfo?.icon}</span>
+              <span className="text-[11px] font-semibold">{item.status.replace('-', ' ')}</span>
+            </div>
+          </div>
+
+          {/* Progress Bar if available */}
+          {item.progress && item.progress.percentage != null && (
+            <div className="absolute bottom-0 left-0 right-0">
+              <div className="h-1.5">
+                <div className="h-full bg-accent shadow-[0_0_12px_var(--accent-glow)] transition-all" style={{ width: `${item.progress.percentage}%` }} />
+              </div>
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0 py-1">
-          <p className="text-[13px] font-semibold text-text-primary truncate">{item.title}</p>
-          <p className="text-[11px] text-text-muted mt-0.5 capitalize">{item.mediaType}</p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="text-[12px]">{statusInfo?.icon}</span>
-            <span className={cn('text-[12px] font-medium capitalize', statusInfo?.color)}>{item.status.replace('-', ' ')}</span>
-          </div>
-          {item.progress && item.progress.percentage != null && (
-            <div className="mt-2">
-              <div className="h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                <div className="h-full bg-accent rounded-full shadow-[0_0_6px_var(--accent-glow)] transition-all" style={{ width: `${item.progress.percentage}%` }} />
-              </div>
-              <p className="text-[10px] text-text-muted mt-1">{item.progress.season && item.progress.episode ? `S${item.progress.season} E${item.progress.episode}` : `${Math.round(item.progress.percentage)}%`}</p>
-            </div>
-          )}
-          {item.rating && (
-            <div className="flex items-center gap-1 mt-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i < item.rating! ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" className={cn(i < item.rating! ? 'text-amber-400' : 'text-text-muted')}>
+
+        <div className="p-4">
+          <p className="font-bold text-[14px] text-text-primary line-clamp-2 mb-1.5">{item.title}</p>
+          <div className="flex items-center justify-between text-[12px] text-text-muted">
+            <span className="capitalize">{item.mediaType}</span>
+            {item.rating && (
+              <div className="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
-              ))}
-            </div>
+                <span className="font-semibold">{item.rating.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+          {item.progress?.season && item.progress?.episode && (
+            <p className="text-[11px] text-accent font-medium mt-1">S{item.progress.season} E{item.progress.episode}</p>
           )}
         </div>
       </Link>
 
-      {/* Hover menu */}
-      <div className={cn('absolute right-2 top-2 transition-opacity opacity-100')}>
-        <div className="relative">
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="rounded-[8px] bg-[var(--bg-primary)]/80 p-1.5 text-text-secondary hover:text-text-primary backdrop-blur-sm"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
-          </button>
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-1 panel-glass w-40 p-1.5 z-50 animate-scale-in rounded-[12px]">
+      {/* Hover Menu Button */}
+      <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(!showMenu); }}
+          className="rounded-full bg-black/70 backdrop-blur-md p-2 text-white/80 hover:text-white transition-all"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+        </button>
+        {showMenu && (
+          <>
+            <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
+            <div className="absolute right-0 top-full mt-2 panel-glass w-48 p-2 z-50 animate-scale-in rounded-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+              <div className="mb-1 px-3 py-2">
+                <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Change Status</p>
+              </div>
               {STATUSES.map((s) => (
                 <button
                   key={s.key}
                   onClick={(e) => { e.stopPropagation(); onStatusChange(item.id, s.key); setShowMenu(false); }}
                   className={cn(
-                    'w-full rounded-[8px] px-3 py-1.5 text-left text-[12px] transition-colors flex items-center gap-2',
-                    item.status === s.key ? 'bg-accent/15 text-accent' : 'text-text-secondary hover:bg-[var(--bg-glass-light)]',
+                    'w-full rounded-[12px] px-3 py-2.5 text-left text-[13px] transition-colors flex items-center gap-2.5',
+                    item.status === s.key ? 'bg-accent/15 text-accent font-semibold' : 'text-text-secondary hover:bg-[var(--bg-glass-light)]',
                   )}
                 >
-                  <span>{s.icon}</span>
-                  {s.label}
+                  <span className="text-[14px]">{s.icon}</span>
+                  <span>{s.label}</span>
                 </button>
               ))}
-              <hr className="my-1 border-white/[0.06]" />
+              <div className="my-2 h-px bg-white/[0.06]" />
               <button
                 onClick={(e) => { e.stopPropagation(); onRemove(item.id); setShowMenu(false); }}
-                className="w-full rounded-[8px] px-3 py-1.5 text-left text-[12px] text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                className="w-full rounded-[12px] px-3 py-2.5 text-left text-[13px] text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2.5 font-medium"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                Remove
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Remove from List
               </button>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
