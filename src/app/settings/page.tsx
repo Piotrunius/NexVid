@@ -14,12 +14,13 @@ import { usePlayerStore } from '@/stores/player';
 import { PUBLIC_GROQ_API_KEY_PLACEHOLDER, PUBLIC_OMDB_API_KEY_PLACEHOLDER, useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AccentColor } from '@/types';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function SettingsPage() {
   const store = useSettingsStore();
   const settings = store.settings;
   const { user, isLoggedIn, updateProfile, updateNicknameWithBackend, changePasswordWithBackend, logout } = useAuthStore();
+  const watchlistItems = useWatchlistStore((state) => state.items);
   const { exportItems, importItems, clearAll } = useWatchlistStore();
   const [newUsername, setNewUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -51,14 +52,59 @@ export default function SettingsPage() {
   const tidbPlaceholder = isLoggedIn && isPublicTidbKeyRaw ? 'Public key active (hidden)' : 'theintrodb:user_...';
 
   const accentColors: { key: AccentColor; label: string; color: string }[] = [
-    { key: 'indigo', label: 'Indigo', color: '#6366f1' },
-    { key: 'violet', label: 'Violet', color: '#8b5cf6' },
-    { key: 'rose', label: 'Rose', color: '#f43f5e' },
-    { key: 'emerald', label: 'Emerald', color: '#10b981' },
-    { key: 'amber', label: 'Amber', color: '#f59e0b' },
-    { key: 'cyan', label: 'Cyan', color: '#06b6d4' },
-    { key: 'custom', label: 'Custom', color: normalizedCustomAccentHex },
+    { key: 'indigo', label: 'indigo', color: '#6366f1' },
+    { key: 'violet', label: 'violet', color: '#8b5cf6' },
+    { key: 'rose', label: 'rose', color: '#f43f5e' },
+    { key: 'emerald', label: 'emerald', color: '#10b981' },
+    { key: 'amber', label: 'amber', color: '#f59e0b' },
+    { key: 'cyan', label: 'cyan', color: '#06b6d4' },
+    { key: 'sky', label: 'sky', color: '#0ea5e9' },
+    { key: 'lime', label: 'lime', color: '#84cc16' },
+    { key: 'orange', label: 'orange', color: '#f97316' },
+    { key: 'fuchsia', label: 'fuchsia', color: '#d946ef' },
+    { key: 'teal', label: 'teal', color: '#14b8a6' },
+    { key: 'red', label: 'red', color: '#ef4444' },
+    { key: 'custom', label: 'custom', color: normalizedCustomAccentHex },
   ];
+
+  const accountCreatedDate = useMemo(() => {
+    if (!user?.createdAt) return null;
+    const parsed = new Date(user.createdAt);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }, [user?.createdAt]);
+
+  const accountAgeDays = useMemo(() => {
+    if (!accountCreatedDate) return 0;
+    const diffMs = Date.now() - accountCreatedDate.getTime();
+    return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  }, [accountCreatedDate]);
+
+  const profileStats = useMemo(() => {
+    const myListItems = watchlistItems.filter((item) => item.status !== 'none' && !item.hidden).length;
+    const completed = watchlistItems.filter((item) => item.status === 'Completed').length;
+    const inProgress = watchlistItems.filter((item) => (item.progress?.percentage || 0) > 0 && (item.progress?.percentage || 0) < 95).length;
+
+    return {
+      myListItems,
+      completed,
+      inProgress,
+    };
+  }, [watchlistItems]);
+
+  const accountCreatedLabel = accountCreatedDate
+    ? accountCreatedDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+    : 'Unknown';
+
+  useEffect(() => {
+    const currentAccent = String(settings.accentColor || '');
+    if (currentAccent === 'blue') {
+      store.updateSettings({ accentColor: 'sky' });
+    }
+    if (currentAccent === 'pink') {
+      store.updateSettings({ accentColor: 'rose' });
+    }
+  }, [settings.accentColor, store]);
 
   const subtitleLanguageOptions = [
     { value: 'off', label: 'Off' },
@@ -156,17 +202,20 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-4">
+    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
+      <div className="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         {/* Page header */}
-        <div className="mb-2">
-          <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Settings</h1>
-          <p className="text-[13px] text-text-muted mt-1">Manage your preferences and account</p>
+        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
+          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Settings</h1>
+          <p className="mt-1 text-[13px] text-text-muted">Manage your preferences and account</p>
         </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
 
         {/* ── Profile ── */}
         {isLoggedIn && (
-          <SettingsCard title="Profile" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}>
+          <SettingsCard title="Profile" className="xl:col-span-4" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}>
             <div className="flex items-center gap-4 mb-5">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-hover text-lg font-bold text-white shadow-[0_2px_12px_var(--accent-glow)]">
                 {user?.username?.[0]?.toUpperCase() || 'U'}
@@ -177,6 +226,13 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <ProfileStatTile label="Account age" value={`${accountAgeDays}d`} sub={`since ${accountCreatedLabel}`} />
+                <ProfileStatTile label="On My List" value={String(profileStats.myListItems)} sub="active titles" />
+                <ProfileStatTile label="Completed" value={String(profileStats.completed)} sub="finished" />
+                <ProfileStatTile label="In progress" value={String(profileStats.inProgress)} sub="continue watching" />
+              </div>
+
               <SettingsRow label="Change Nickname">
                 <div className="flex gap-2">
                   <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="New nickname" className="input flex-1" />
@@ -195,7 +251,7 @@ export default function SettingsPage() {
         )}
 
         {/* ── Appearance ── */}
-        <SettingsCard title="Appearance" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>}>
+        <SettingsCard title="Appearance" className={cn('xl:col-span-8', !isLoggedIn && 'xl:col-span-12')} icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>}>
           <div className="space-y-5">
             <SettingsRow label="Accent Color">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -305,9 +361,9 @@ export default function SettingsPage() {
         </SettingsCard>
 
         {/* ── API Keys ── */}
-        <SettingsCard title="API Keys" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>}>
+        <SettingsCard title="API Keys" className="xl:col-span-12" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>}>
           <p className="text-[12px] text-text-muted mb-4">Keys are saved in your account when logged in.</p>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <SettingsRow label="Groq AI API Key">
               <p className="text-[11px] text-text-muted mb-1.5">
                 Powers the AI Assistant. Get your own at{' '}
@@ -452,7 +508,7 @@ export default function SettingsPage() {
         </SettingsCard>
 
         {/* ── Data ── */}
-        <SettingsCard title="Data" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>}>
+        <SettingsCard title="Data" className="xl:col-span-5" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>}>
           <div className="space-y-3">
             <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
               <button
@@ -485,23 +541,15 @@ export default function SettingsPage() {
         </SettingsCard>
 
         {/* ── FAQ ── */}
-        <SettingsCard title="FAQ" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}>
+        <SettingsCard title="FAQ" className="xl:col-span-7" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}>
           <div className="space-y-3 text-[12px] leading-relaxed">
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
               <p className="text-text-primary font-medium">Why should I use my own FebBox UI Cookie?</p>
               <p className="mt-1 text-text-muted">A personal cookie bypasses the slow and unstable public proxy, providing instant loading, better quality, and a much smoother experience.</p>
             </div>
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-              <p className="text-text-primary font-medium">What are Alternative Sources?</p>
-              <p className="mt-1 text-text-muted">These are external players used as backups when the primary source is unavailable. Interaction is locked by default for your security.</p>
-            </div>
-            <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
               <p className="text-text-primary font-medium">Is my data synced?</p>
               <p className="mt-1 text-text-muted">If you are logged in, your settings, watchlist, and progress are securely synced to your account across all your devices.</p>
-            </div>
-            <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-              <p className="text-text-primary font-medium">How do I fix playback issues?</p>
-              <p className="mt-1 text-text-muted">Try clearing your local data in the Data section above, or switch to an alternative source using the button in the player.</p>
             </div>
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
               <p className="text-text-primary font-medium">Why is there no author in the credits?</p>
@@ -510,6 +558,7 @@ export default function SettingsPage() {
           </div>
         </SettingsCard>
 
+        </div>
       </div>
     </div>
   );
@@ -517,12 +566,12 @@ export default function SettingsPage() {
 
 /* ──── Reusable Settings Components – macOS style ──── */
 
-function SettingsCard({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function SettingsCard({ title, icon, className, children }: { title: string; icon?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
-    <div className="glass-card p-5 glass-liquid">
-      <div className="flex items-center gap-2.5 mb-4">
-        {icon && <span className="text-accent">{icon}</span>}
-        <h3 className="text-[15px] font-semibold text-text-primary">{title}</h3>
+    <div className={cn('glass-card glass-liquid rounded-[24px] border border-white/10 p-4 sm:p-5 shadow-[0_12px_34px_rgba(0,0,0,0.35)]', className)}>
+      <div className="mb-4 flex items-center gap-2.5">
+        {icon && <span className="text-accent/90">{icon}</span>}
+        <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">{title}</h3>
       </div>
       {children}
     </div>
@@ -532,8 +581,18 @@ function SettingsCard({ title, icon, children }: { title: string; icon?: React.R
 function SettingsRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[12px] font-medium text-text-secondary mb-2">{label}</p>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">{label}</p>
       {children}
+    </div>
+  );
+}
+
+function ProfileStatTile({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-[12px] border border-white/10 bg-white/[0.03] px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-text-secondary">{label}</p>
+      <p className="mt-1 text-[18px] font-bold leading-none text-text-primary">{value}</p>
+      <p className="mt-1 text-[11px] text-text-muted">{sub}</p>
     </div>
   );
 }

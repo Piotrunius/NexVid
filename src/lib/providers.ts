@@ -128,7 +128,13 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
         rose: 'f43f5e',
         emerald: '10b981',
         amber: 'f59e0b',
-        cyan: '06b6d4'
+        cyan: '06b6d4',
+        sky: '0ea5e9',
+        lime: '84cc16',
+        orange: 'f97316',
+        fuchsia: 'd946ef',
+        teal: '14b8a6',
+        red: 'ef4444'
       };
 
       let color = '6366f1';
