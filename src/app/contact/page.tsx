@@ -247,8 +247,9 @@ export default function ContactPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
-        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
+      <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-2xl">
+          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)]">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           </div>
@@ -260,13 +261,15 @@ export default function ContactPage() {
           </div>
           <Link href="/login" className="btn-accent mt-6 inline-flex">Go to login</Link>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 space-y-6">
-      <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10">
+      <div className="w-full">
+        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
           <p className="mt-1 text-[13px] text-text-muted">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
@@ -281,7 +284,7 @@ export default function ContactPage() {
             <a href="mailto:security@nexvid.online" className="font-medium text-accent hover:underline">security@nexvid.online</a>
           </div>
         </div>
-      </div>
+        </div>
 
       <div className="grid items-stretch gap-6 xl:grid-cols-3">
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4 h-full xl:min-h-[680px]">

@@ -68,8 +68,8 @@ export default function WatchlistPage() {
   }, [items, blockedItems]);
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen pt-24 pb-8 px-6 sm:px-8 lg:px-10">
+      <div className="w-full">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-[28px] font-bold text-text-primary tracking-tight">My List</h1>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="input !py-2 !text-[13px]">

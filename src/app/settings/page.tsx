@@ -156,8 +156,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-4">
+    <div className="min-h-screen pt-24 pb-8 px-6 sm:px-8 lg:px-10">
+      <div className="mx-auto max-w-4xl space-y-4">
         {/* Page header */}
         <div className="mb-2">
           <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Settings</h1>

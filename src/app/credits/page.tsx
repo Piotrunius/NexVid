@@ -49,9 +49,10 @@ const SECTIONS = [
 
 export default function CreditsPage() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-20">
-      <header className="mb-12 text-center">
-        <h1 className="text-[32px] font-bold text-text-primary tracking-tight">Credits</h1>
+    <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10">
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-12 text-center">
+          <h1 className="text-[32px] font-bold text-text-primary tracking-tight">Credits</h1>
         <p className="mt-3 text-[14px] text-text-muted leading-relaxed mx-auto max-w-md">
           NexVid is built with gratitude towards these creators, providers, and open-source projects.
         </p>
@@ -94,6 +95,7 @@ export default function CreditsPage() {
           Respect to everyone contributing to the ecosystem.
         </p>
       </footer>
+      </div>
     </div>
   );
 }

@@ -784,10 +784,12 @@ export default function AdminPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
-        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
+      <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-2xl">
+          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
           <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Admin Panel</h1>
           <p className="mt-2 text-[13px] text-text-muted">Sign in first to access administration tools.</p>
+        </div>
         </div>
       </div>
     );
@@ -795,18 +797,21 @@ export default function AdminPage() {
 
   if (!hasAdminPanelAccess) {
     return (
-      <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
-        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
+      <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-2xl">
+          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
           <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Access denied</h1>
           <p className="mt-2 text-[13px] text-text-muted">This page is available only for authorized staff.</p>
+        </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 space-y-6">
-      <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10">
+      <div className="w-full space-y-6">
+        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Admin Panel</h1>
           <p className="mt-1 text-[13px] text-text-muted">Moderation and management as <span className="text-accent font-semibold">{userRole}</span>.</p>

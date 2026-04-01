@@ -6,8 +6,9 @@ export const metadata = { title: 'DMCA - NexVid' };
 
 export default function DmcaPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-24">
-      <h1 className="text-[28px] font-bold text-text-primary tracking-tight">DMCA Notice</h1>
+    <div className="min-h-screen pt-24 pb-12 px-6 sm:px-8 lg:px-10">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="text-[28px] font-bold text-text-primary tracking-tight">DMCA Notice</h1>
       <p className="mt-2 text-[13px] text-text-muted">Digital Millennium Copyright Act</p>
 
       <div className="mt-8 space-y-6 text-text-secondary text-[13px] leading-relaxed">
@@ -59,6 +60,7 @@ export default function DmcaPage() {
           <p className="mt-4 mb-2">For general support and other inquiries:</p>
           <a href="mailto:support@nexvid.online" className="text-accent hover:underline font-medium">support@nexvid.online</a>
         </section>
+      </div>
       </div>
     </div>
   );

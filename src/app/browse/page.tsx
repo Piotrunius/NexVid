@@ -133,8 +133,8 @@ export default function BrowsePage() {
   ];
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen pt-24 pb-8 px-6 sm:px-8 lg:px-10">
+      <div className="w-full">
         <h1 className="text-[28px] font-bold text-text-primary tracking-tight mb-6">Browse</h1>
 
         {/* macOS segmented control */}

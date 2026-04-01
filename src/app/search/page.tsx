@@ -21,8 +21,8 @@ export default function SearchPage() {
 
 function SearchFallback() {
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen pt-24 pb-8 px-6 sm:px-8 lg:px-10">
+      <div className="w-full">
         <div className="mb-8 max-w-xl mx-auto">
           <div className="skeleton h-14 rounded-[14px]" />
         </div>
@@ -75,8 +75,8 @@ function SearchContent() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen pt-24 pb-8 px-6 sm:px-8 lg:px-10">
+      <div className="w-full">
         {/* Spotlight-style search bar */}
         <form onSubmit={handleSubmit} className="mb-8">
           <div className="relative max-w-xl mx-auto">
