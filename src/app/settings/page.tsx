@@ -156,13 +156,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-6 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-4xl space-y-4">
-        {/* Page header */}
-        <div className="mb-2">
-          <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Settings</h1>
-          <p className="text-[13px] text-text-muted mt-1">Manage your preferences and account</p>
+    <div className="min-h-screen pt-20 pb-12 px-6 sm:px-8 lg:px-10">
+      <div className="w-full">
+        {/* Modern Header with gradient */}
+        <div className="mb-8 rounded-[28px] bg-gradient-to-br from-accent/10 via-accent/5 to-transparent p-8 border border-accent/10 backdrop-blur-xl">
+          <h1 className="text-[36px] font-bold text-text-primary tracking-tight mb-2">Settings</h1>
+          <p className="text-[14px] text-text-muted">Customize your NexVid experience</p>
         </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Main Settings Column */}
+          <div className="xl:col-span-2 space-y-6">
 
         {/* ── Profile ── */}
         {isLoggedIn && (
@@ -451,38 +455,96 @@ export default function SettingsPage() {
           </div>
         </SettingsCard>
 
-        {/* ── Data ── */}
-        <SettingsCard title="Data" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>}>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
-              <button
-                onClick={handleExportWatchlist}
-                className="btn-accent flex items-center justify-center gap-1.5 text-[13px] !shadow-[0_6px_16px_rgba(0,0,0,0.35)] hover:!shadow-[0_10px_22px_rgba(0,0,0,0.45)] py-2.5"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export Watchlist
-              </button>
-              <button onClick={handleImportWatchlist} className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Import Watchlist
-              </button>
-              <button
-                onClick={() => { store.resetSettings(); toast('Settings reset to defaults', 'success'); }}
-                className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                Reset Settings
-              </button>
+        </div>
+
+          {/* Sidebar Column */}
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            {isLoggedIn && (
+              <div className="glass-card p-6 glass-liquid rounded-[24px]">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-hover text-2xl font-bold text-white shadow-[0_4px_20px_var(--accent-glow)]">
+                    {user?.username?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <p className="text-[17px] font-bold text-text-primary">{user?.username}</p>
+                    <p className="text-[13px] text-text-muted">Signed in</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="rounded-[16px] bg-[var(--bg-glass-light)] p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[12px] text-text-muted uppercase tracking-wider font-semibold">Status</p>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                        <p className="text-[13px] text-green-400 font-medium">Active</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-[16px] bg-[var(--bg-glass-light)] p-4">
+                    <p className="text-[12px] text-text-muted uppercase tracking-wider font-semibold mb-2">Account</p>
+                    <p className="text-[13px] text-text-primary font-medium">{user?.username}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="glass-card p-5 glass-liquid rounded-[24px]">
+              <h3 className="text-[15px] font-semibold text-text-primary mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={handleExportWatchlist}
+                  className="w-full btn-glass flex items-center gap-3 text-left py-3 px-4 hover:bg-white/[0.08]"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span className="text-[13px] font-medium">Export Watchlist</span>
+                </button>
+                <button
+                  onClick={handleImportWatchlist}
+                  className="w-full btn-glass flex items-center gap-3 text-left py-3 px-4 hover:bg-white/[0.08]"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span className="text-[13px] font-medium">Import Watchlist</span>
+                </button>
+                <button
+                  onClick={() => { store.resetSettings(); toast('Settings reset to defaults', 'success'); }}
+                  className="w-full btn-glass flex items-center gap-3 text-left py-3 px-4 hover:bg-white/[0.08]"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                  <span className="text-[13px] font-medium">Reset Settings</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Danger Zone */}
+            <div className="glass-card p-5 glass-liquid rounded-[24px] border border-red-500/20">
+              <h3 className="text-[15px] font-semibold text-red-400 mb-4">Danger Zone</h3>
               <button
                 onClick={handleClearEverything}
-                className="flex items-center justify-center gap-1.5 rounded-[10px] bg-red-500/10 px-3.5 py-2.5 text-[13px] font-medium text-red-400 hover:bg-red-500/18 active:scale-[0.98] transition-all duration-200"
+                className="w-full flex items-center justify-center gap-2 rounded-[16px] bg-red-500/10 px-4 py-3 text-[13px] font-medium text-red-400 hover:bg-red-500/20 transition-all duration-200"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
                 Clear Everything
               </button>
+              <p className="mt-3 text-[11px] text-red-400/70 text-center">This action cannot be undone</p>
             </div>
           </div>
-        </SettingsCard>
+        </div>
 
         {/* ── FAQ ── */}
         <SettingsCard title="FAQ" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}>
@@ -519,10 +581,10 @@ export default function SettingsPage() {
 
 function SettingsCard({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="glass-card p-5 glass-liquid">
-      <div className="flex items-center gap-2.5 mb-4">
-        {icon && <span className="text-accent">{icon}</span>}
-        <h3 className="text-[15px] font-semibold text-text-primary">{title}</h3>
+    <div className="glass-card p-6 glass-liquid rounded-[24px]">
+      <div className="flex items-center gap-3 mb-5">
+        {icon && <span className="text-accent flex items-center justify-center w-8 h-8 rounded-full bg-accent/10">{icon}</span>}
+        <h3 className="text-[17px] font-bold text-text-primary">{title}</h3>
       </div>
       {children}
     </div>

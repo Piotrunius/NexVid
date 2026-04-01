@@ -124,7 +124,7 @@ export default function ShowPage({
         </section>
 
         {/* ── Show Info Skeleton ── */}
-        <div className="relative -mt-36 mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="relative -mt-36 px-6 sm:px-8 lg:px-10">
           <div className="flex gap-8">
             <div className="hidden flex-shrink-0 md:block">
               <div className="skeleton h-[330px] w-[220px] rounded-[24px]" />
@@ -167,7 +167,7 @@ export default function ShowPage({
       </div>
 
       {/* Content */}
-      <div className="relative -mt-36 mx-auto max-w-7xl px-4 sm:px-6">
+      <div className="relative -mt-36 px-6 sm:px-8 lg:px-10">
         <div className="flex gap-8 animate-slide-up">
           {/* Poster */}
           <div className="hidden flex-shrink-0 md:block">
@@ -378,7 +378,7 @@ export default function ShowPage({
 
       {/* Cast Section */}
       {show.cast && show.cast.length > 0 && (
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
+        <div className="px-6 sm:px-8 lg:px-10 mt-10">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-text-primary">Cast</h2>
             <div className="flex items-center gap-1.5">
@@ -419,7 +419,7 @@ export default function ShowPage({
       )}
 
       {/* Season & Episode Selector */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
+      <div className="px-6 sm:px-8 lg:px-10 mt-10">
         <h2 className="text-[15px] font-semibold text-text-primary mb-4">Episodes</h2>
         {useSeasonDropdown ? (
           <div className="mb-5 flex items-center gap-2">
