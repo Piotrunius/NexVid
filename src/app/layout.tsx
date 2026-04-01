@@ -2,13 +2,13 @@
    Root Layout – Apple Sequoia Pitch Black
    ============================================ */
 
+import ChunkLoadErrorHandler from '@/components/ChunkLoadErrorHandler';
 import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
-import ChunkLoadErrorHandler from '@/components/ChunkLoadErrorHandler';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { ImportantAnnouncementModal } from '@/components/ui/ImportantAnnouncementModal';
 import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import { SurveyModal } from '@/components/ui/SurveyModal';
-import { ImportantAnnouncementModal } from '@/components/ui/ImportantAnnouncementModal';
 import { Toaster } from '@/components/ui/Toaster';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
@@ -19,6 +19,7 @@ const inter = Inter({ subsets: ['latin'], display: 'swap' });
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://nexvid.online').replace(/\/$/, '');
 const SITE_NAME = 'NexVid';
 const SITE_DESCRIPTION = 'Watch trending movies and TV shows online in one fast, modern streaming hub with smart search, watchlists, and seamless playback.';
+const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/opengraph-image`;
 
 export const viewport: Viewport = {
   themeColor: '#000000',
@@ -62,11 +63,21 @@ export const metadata: Metadata = {
     type: 'website',
     url: SITE_URL,
     locale: 'en_US',
+    images: [
+      {
+        url: DEFAULT_SOCIAL_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: 'NexVid',
+        type: 'image/png',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'NexVid — Watch Movies and TV Shows Online Streaming',
     description: SITE_DESCRIPTION,
+    images: [DEFAULT_SOCIAL_IMAGE],
   },
   icons: {
     icon: [

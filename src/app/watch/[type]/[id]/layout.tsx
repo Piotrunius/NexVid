@@ -28,7 +28,10 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
     const description = (media.overview || `Watch ${media.title} online free on NexVid.`).slice(0, 160);
     const canonicalPath = isShow ? `/watch/show/${id}` : `/watch/movie/${id}`;
     const imagePath = media.backdropPath || media.posterPath;
-    const imageUrl = imagePath ? tmdbImage(imagePath, 'w780') : `${SITE_URL}/opengraph-image`;
+    const imageUrl = imagePath ? tmdbImage(imagePath, 'w1280') : `${SITE_URL}/opengraph-image`;
+    const imageType = imagePath ? 'image/jpeg' : 'image/png';
+    const imageWidth = imagePath ? 1280 : 1200;
+    const imageHeight = imagePath ? 720 : 630;
 
     return {
       title,
@@ -41,7 +44,7 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
         description,
         url: `${SITE_URL}${canonicalPath}`,
         type: isShow ? 'video.tv_show' : 'video.movie',
-        images: [{ url: imageUrl, width: 780, height: 439, alt: media.title }],
+        images: [{ url: imageUrl, width: imageWidth, height: imageHeight, alt: media.title, type: imageType }],
       },
       twitter: {
         card: 'summary_large_image',
@@ -66,7 +69,7 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
         description: fallbackDescription,
         url: `${SITE_URL}${fallbackCanonical}`,
         type: isShow ? 'video.tv_show' : 'video.movie',
-        images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630, alt: 'NexVid' }],
+        images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630, alt: 'NexVid', type: 'image/png' }],
       },
       twitter: {
         card: 'summary_large_image',

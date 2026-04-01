@@ -1,9 +1,9 @@
 import MoviePageClient from '@/components/pages/MoviePageClient';
-import { getMovieDetails, getRecommendations, getSimilar } from '@/lib/tmdb';
 import { loadPublicBlockedMedia } from '@/lib/cloudSync';
+import { getMovieDetails, getRecommendations, getSimilar } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
-import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 export const runtime = 'edge';
 
@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const title = `Watch - ${movie.title}${releaseSuffix} free on NexVid`;
     const description = (movie.overview || `Watch ${movie.title} online free on NexVid. See cast, details, and recommendations.`).slice(0, 160);
     const imagePath = movie.backdropPath || movie.posterPath;
+    const imageUrl = imagePath ? tmdbImage(imagePath, 'w1280') : `${SITE_URL}/opengraph-image`;
 
     return {
       title,
@@ -51,15 +52,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         description,
         url: `${SITE_URL}/movie/${id}`,
         type: 'video.movie',
-        images: imagePath
-          ? [{ url: tmdbImage(imagePath, 'w780'), width: 780, height: 439, alt: movie.title }]
-          : undefined,
+        images: [{ url: imageUrl, width: 1280, height: 720, alt: movie.title, type: 'image/jpeg' }],
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description,
-        images: imagePath ? [tmdbImage(imagePath, 'w780')] : undefined,
+        images: [imageUrl],
       },
     };
   } catch {
@@ -77,6 +76,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
       alternates: {
         canonical: `/movie/${id}`,
+      },
+      openGraph: {
+        title: 'Watch Movies free on NexVid',
+        description: 'Watch movie details, cast, and recommendations on NexVid.',
+        url: `${SITE_URL}/movie/${id}`,
+        type: 'video.movie',
+        images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630, alt: 'NexVid', type: 'image/png' }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Watch Movies free on NexVid',
+        description: 'Watch movie details, cast, and recommendations on NexVid.',
+        images: [`${SITE_URL}/opengraph-image`],
       },
     };
   }
@@ -104,10 +116,10 @@ export default async function MoviePage({ params }: PageProps) {
     ]);
 
     return (
-      <MoviePageClient 
-        initialMovie={movie} 
-        initialRecommendations={recommendations} 
-        initialSimilar={similar} 
+      <MoviePageClient
+        initialMovie={movie}
+        initialRecommendations={recommendations}
+        initialSimilar={similar}
       />
     );
   } catch (err) {
