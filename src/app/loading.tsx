@@ -25,7 +25,7 @@ export default function Loading() {
 
       {/* ── Rows Skeleton ── */}
       <div className="relative z-10 -mt-32 space-y-4 pb-24 sm:-mt-36">
-        <MediaRowSkeleton title="Trending Now" />
+        <MediaRowSkeleton title="Trending This Week" />
         <MediaRowSkeleton title="Popular Movies" />
         <MediaRowSkeleton title="Top Rated Movies" />
       </div>

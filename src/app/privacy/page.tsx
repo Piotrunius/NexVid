@@ -22,7 +22,7 @@ export default function PrivacyPage() {
 
         <section className="mt-8">
           <p className="text-[13px] text-text-muted">
-            · © {new Date().getFullYear()} NexVid · All rights reserved.
+            © {new Date().getFullYear()} NexVid · All rights reserved.
           </p>
         </section>
 
