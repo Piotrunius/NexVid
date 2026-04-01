@@ -96,6 +96,48 @@
     --accent-glow: rgba(6, 182, 212, 0.45);
 }
 
+[data-accent='sky'] {
+    --accent: #0ea5e9;
+    --accent-hover: #38bdf8;
+    --accent-muted: rgba(14, 165, 233, 0.2);
+    --accent-glow: rgba(14, 165, 233, 0.45);
+}
+
+[data-accent='lime'] {
+    --accent: #84cc16;
+    --accent-hover: #a3e635;
+    --accent-muted: rgba(132, 204, 22, 0.2);
+    --accent-glow: rgba(132, 204, 22, 0.45);
+}
+
+[data-accent='orange'] {
+    --accent: #f97316;
+    --accent-hover: #fb923c;
+    --accent-muted: rgba(249, 115, 22, 0.2);
+    --accent-glow: rgba(249, 115, 22, 0.45);
+}
+
+[data-accent='fuchsia'] {
+    --accent: #d946ef;
+    --accent-hover: #e879f9;
+    --accent-muted: rgba(217, 70, 239, 0.2);
+    --accent-glow: rgba(217, 70, 239, 0.45);
+}
+
+[data-accent='teal'] {
+    --accent: #14b8a6;
+    --accent-hover: #2dd4bf;
+    --accent-muted: rgba(20, 184, 166, 0.2);
+    --accent-glow: rgba(20, 184, 166, 0.45);
+}
+
+[data-accent='red'] {
+    --accent: #ef4444;
+    --accent-hover: #f87171;
+    --accent-muted: rgba(239, 68, 68, 0.2);
+    --accent-glow: rgba(239, 68, 68, 0.45);
+}
+
 /* ============================================
    Base Styles – Pitch Black Canvas
    ============================================ */

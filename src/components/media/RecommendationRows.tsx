@@ -112,8 +112,8 @@ export function RecommendationRows() {
         />
       ) : selectedItem ? (
         <div className="space-y-4 py-4">
-          <div className="px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">{header}</div>
-          <div className="px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto h-32 flex items-center justify-center rounded-[24px] bg-white/[0.02] border border-white/5 border-dashed">
+          <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">{header}</div>
+          <div className="mx-4 sm:mx-6 lg:mx-10 xl:mx-14 2xl:mx-16 h-32 flex items-center justify-center rounded-[24px] bg-white/[0.02] border border-white/5 border-dashed">
             <p className="text-white/30 text-[13px]">No recommendations found for this title</p>
           </div>
         </div>

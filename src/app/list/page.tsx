@@ -68,11 +68,17 @@ export default function WatchlistPage() {
   }, [items, blockedItems]);
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-[28px] font-bold text-text-primary tracking-tight">My List</h1>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="input !py-2 !text-[13px]">
+    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
+      <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
+        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
+          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">My List</h1>
+          <p className="mt-1 text-[13px] text-text-muted">Track what you watch and continue where you left off</p>
+        </div>
+
+        <div className="mt-2 mb-7 flex items-center justify-between gap-4">
+          <h2 className="text-[20px] font-semibold text-text-primary tracking-tight">Watchlist</h2>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="input !w-auto min-w-[170px] !py-2 !px-3 !text-[12px]">
             <option value="added">Recently Added</option>
             <option value="title">Title A-Z</option>
             <option value="rating">Rating</option>

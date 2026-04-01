@@ -154,28 +154,31 @@ function transformEpisode(data: any): Episode {
   };
 }
 
-function transformSearchItem(data: any): MediaItem {
-  const type = data.media_type === 'tv' ? 'show' : 'movie';
+function transformSearchItem(data: any, forcedType?: 'movie' | 'tv'): MediaItem {
+  const type = forcedType ? (forcedType === 'tv' ? 'show' : 'movie') : (data.media_type === 'tv' ? 'show' : 'movie');
   if (type === 'show') return transformShow({ ...data, media_type: undefined });
   return transformMovie({ ...data, media_type: undefined });
 }
 
 // ---- Public API ----
 
-export async function searchMedia(query: string, page = 1): Promise<{
+export async function searchMedia(query: string, page = 1, mediaType: 'all' | 'movie' | 'tv' = 'all'): Promise<{
   results: MediaItem[];
   totalPages: number;
   totalResults: number;
 }> {
-  const data = await tmdbFetch<any>('/search/multi', {
+  const path = mediaType === 'all' ? '/search/multi' : `/search/${mediaType}`;
+  const data = await tmdbFetch<any>(path, {
     query,
     page: String(page),
     include_adult: 'false',
   });
 
-  const results = data.results
-    .filter((r: any) => r.media_type === 'movie' || r.media_type === 'tv')
-    .map(transformSearchItem);
+  const results = mediaType === 'all'
+    ? data.results
+        .filter((r: any) => r.media_type === 'movie' || r.media_type === 'tv')
+        .map((r: any) => transformSearchItem(r))
+    : data.results.map((r: any) => transformSearchItem(r, mediaType));
 
   return {
     results,

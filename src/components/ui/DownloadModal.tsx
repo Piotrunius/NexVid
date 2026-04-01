@@ -1,10 +1,9 @@
 'use client';
 
 import { scrapeAllSources } from '@/lib/providers';
-import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
-import type { MediaType, SourceResult, StreamQuality } from '@/types';
+import type { MediaType, SourceResult } from '@/types';
 import { useEffect, useMemo, useState } from 'react';
 
 interface DownloadModalProps {
@@ -42,7 +41,18 @@ export function DownloadModal({
   const resolvedAccentHex = useMemo(() => {
     if (accentColor === 'custom') return customAccentHex || '#6366f1';
     const mapping: Record<string, string> = {
-      indigo: '#6366f1', violet: '#8b5cf6', rose: '#f43f5e', emerald: '#10b981', amber: '#f59e0b', cyan: '#06b6d4',
+      indigo: '#6366f1',
+      violet: '#8b5cf6',
+      rose: '#f43f5e',
+      emerald: '#10b981',
+      amber: '#f59e0b',
+      cyan: '#06b6d4',
+      sky: '#0ea5e9',
+      lime: '#84cc16',
+      orange: '#f97316',
+      fuchsia: '#d946ef',
+      teal: '#14b8a6',
+      red: '#ef4444',
     };
     return mapping[accentColor] || '#6366f1';
   }, [accentColor, customAccentHex]);
@@ -104,8 +114,8 @@ export function DownloadModal({
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-[11px] font-bold text-white/30 uppercase tracking-widest mb-2">Season</label>
-              <select 
-                value={season} 
+              <select
+                value={season}
                 onChange={e => { setSeason(Number(e.target.value)); setEpisode(1); }}
                 className="input w-full bg-white/5 border-white/10"
               >
@@ -116,8 +126,8 @@ export function DownloadModal({
             </div>
             <div>
               <label className="block text-[11px] font-bold text-white/30 uppercase tracking-widest mb-2">Episode</label>
-              <select 
-                value={episode} 
+              <select
+                value={episode}
                 onChange={e => setEpisode(Number(e.target.value))}
                 className="input w-full bg-white/5 border-white/10"
               >
@@ -151,7 +161,7 @@ export function DownloadModal({
                       const stream = res.stream;
                       if (stream.type === 'file') {
                         return Object.entries(stream.qualities).map(([quality, file]) => (
-                          <a 
+                          <a
                             key={`${res.sourceId}-${quality}`}
                             href={file?.url}
                             target="_blank"
@@ -170,7 +180,7 @@ export function DownloadModal({
                       }
                       if (stream.type === 'hls') {
                         return (
-                          <a 
+                          <a
                             key={res.sourceId}
                             href={stream.playlist}
                             target="_blank"

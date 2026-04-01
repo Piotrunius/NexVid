@@ -129,7 +129,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
                 className={cn(
                   'flex items-center justify-center h-8 w-8 rounded-[12px] backdrop-blur-[20px] transition-all duration-400 ease-[var(--spring)] active:scale-90',
                   watchlistItem
-                    ? 'bg-accent/80 text-white shadow-[0_0_16px_var(--accent-glow)]'
+                    ? 'bg-accent/80 text-white'
                     : 'bg-black/40 text-white/80 hover:bg-black/60',
                 )}
                 title={watchlistItem ? watchlistItem.status : 'Add to List'}
@@ -286,7 +286,7 @@ export function MediaRow({
   return (
     <section className={cn(noPadding ? "py-2" : "py-8", "relative overflow-x-hidden")}>
       {!noHeader && (
-        <div className={cn("flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full", noPadding ? "mb-3" : "mb-5")}>
+        <div className={cn("flex items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 w-full", noPadding ? "mb-3" : "mb-5")}>
           <div className="flex-1 min-w-0 mr-4">
             {typeof title === 'string' ? (
               <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">{title}</h2>
@@ -332,7 +332,7 @@ export function MediaRow({
           </div>
         </div>
       )}
-      <div ref={rowRef} className="scroll-row home-scroll-row px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
+      <div ref={rowRef} className="scroll-row home-scroll-row px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         {items.map((item, index) => (
           <MediaCard key={`${item.mediaType}-${item.id}-${item.tmdbId}-${index}`} item={item} showType={showType} />
         ))}
@@ -372,7 +372,7 @@ export function MediaRowSkeleton({
 }) {
   return (
     <section className={cn(noPadding ? 'py-2' : 'py-8')}>
-      <div className={cn('flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full', noPadding ? 'mb-3' : 'mb-5')}>
+      <div className={cn('flex items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 w-full', noPadding ? 'mb-3' : 'mb-5')}>
         <div className="flex-1 min-w-0 mr-4">
           {title ? (
             <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">{title}</h2>
@@ -381,7 +381,7 @@ export function MediaRowSkeleton({
           )}
         </div>
       </div>
-      <div className="scroll-row px-6 sm:px-8 lg:px-10 max-w-7xl mx-auto">
+      <div className="scroll-row px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         {Array.from({ length: count }).map((_, i) => (
           <MediaCardSkeleton key={i} size={size} />
         ))}

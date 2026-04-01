@@ -222,7 +222,7 @@ export interface UserSettings {
   disabledSources: string[];
 }
 
-export type AccentColor = 'indigo' | 'violet' | 'rose' | 'emerald' | 'amber' | 'cyan' | 'custom';
+export type AccentColor = 'indigo' | 'violet' | 'rose' | 'emerald' | 'amber' | 'cyan' | 'sky' | 'lime' | 'orange' | 'fuchsia' | 'teal' | 'red' | 'custom';
 export type Theme = 'dark' | 'light';
 // ---- Watchlist Types ----
 

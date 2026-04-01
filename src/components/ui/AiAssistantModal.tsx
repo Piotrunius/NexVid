@@ -139,7 +139,7 @@ export function AiAssistantModal({
     setStep('input');
     setMood('');
     setSelectedGenres([]);
-setEra('All Time');
+    setEra('All Time');
     setRecommendations([]);
     setErrorMsg(null);
   };
@@ -154,7 +154,7 @@ setEra('All Time');
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+                className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md"
               />
             </Dialog.Overlay>
 
@@ -164,25 +164,24 @@ setEra('All Time');
                 animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
                 exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed left-1/2 top-1/2 z-50 w-full max-w-[min(95vw,820px)] p-3 sm:p-4 outline-none"
+                className="fixed left-1/2 top-1/2 z-50 w-full max-w-[min(96vw,900px)] p-3 sm:p-4 outline-none"
               >
                 <div
                   className={cn(
-                    "relative flex flex-col w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl transition-all",
+                    "relative flex w-full max-h-[95vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all",
                     glassEffect
-                      ? "bg-black/80 backdrop-blur-xl border-white/10"
-                      : "bg-black/90 border-white/10"
+                      ? "bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl"
+                      : "bg-[#050608]/95"
                   )}
                 >
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-accent/20 blur-[100px] pointer-events-none" />
-
                   {/* Header */}
-                  <div className="relative flex items-center justify-between px-6 py-4 shrink-0 z-10 border-b border-white/5 bg-black/20">
+                  <div className="relative z-10 flex shrink-0 items-center justify-between bg-black/25 px-5 py-4 sm:px-6">
                     <div className="flex flex-col">
                       <Dialog.Title className="text-lg font-bold flex items-center gap-2 text-white">
                         <Sparkles className="w-5 h-5 text-accent" />
                         AI Assistant
                       </Dialog.Title>
+                      <p className="mt-0.5 text-[11px] text-white/45">Curated picks based on genre and vibe</p>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors">
                       <X className="w-5 h-5" />
@@ -201,13 +200,13 @@ setEra('All Time');
                           </div>
                         )}
                         {/* Top Bar: Type & Era */}
-                        <div className="px-6 py-4 flex flex-wrap gap-4 items-center justify-between border-b border-white/5 bg-white/[0.02]">
-                          <div className="flex bg-white/5 rounded-lg p-1">
+                        <div className="flex flex-wrap items-center justify-between gap-4 bg-white/[0.02] px-5 py-4 sm:px-6">
+                          <div className="flex rounded-full bg-white/[0.05] p-1">
                             <button
                               onClick={() => setType('movie')}
                               className={cn(
-                                "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                                type === 'movie' ? "bg-accent text-black shadow-md" : "text-white/80 hover:text-white"
+                                "rounded-full px-4 py-1.5 text-xs font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
+                                type === 'movie' ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]" : "text-white/80 hover:text-white"
                               )}
                             >
                               Movies
@@ -215,8 +214,8 @@ setEra('All Time');
                             <button
                               onClick={() => setType('show')}
                               className={cn(
-                                "px-4 py-1.5 rounded-md text-xs font-medium transition-all",
-                                type === 'show' ? "bg-accent text-black shadow-md" : "text-white/80 hover:text-white"
+                                "rounded-full px-4 py-1.5 text-xs font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
+                                type === 'show' ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]" : "text-white/80 hover:text-white"
                               )}
                             >
                               TV Shows
@@ -225,16 +224,16 @@ setEra('All Time');
 
                           {/* Era Chips (desktop) */}
                           <div className="hidden sm:block w-full sm:w-auto">
-                            <div className="flex items-center justify-end overflow-x-auto gap-2 py-2 px-1 touch-pan-x scrollbar-none">
+                            <div className="flex items-center justify-end gap-2 overflow-x-auto px-1 py-2 touch-pan-x scrollbar-none">
                               {ERAS.map((e) => (
                                 <button
                                   key={e}
                                   onClick={() => setEra(e)}
                                   className={cn(
-                                    "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border",
+                                    "flex-shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap outline-none transition-all focus:outline-none focus-visible:outline-none",
                                     era === e
-                                      ? "bg-accent text-black border-accent"
-                                      : "bg-transparent text-white/80 border-white/20 hover:bg-white/10 hover:text-white"
+                                      ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
+                                      : "bg-transparent text-white/80 hover:bg-white/10 hover:text-white"
                                   )}
                                 >
                                   {e}
@@ -248,7 +247,7 @@ setEra('All Time');
                             <select
                               value={era}
                               onChange={(e) => setEra(e.target.value)}
-                              className="w-full bg-white/5 border border-white/20 text-white text-xs rounded-lg px-3 py-2 outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                              className="w-full rounded-lg bg-white/5 px-3 py-2 text-xs text-white outline-none focus:ring-1 focus:ring-accent"
                             >
                               {ERAS.map((e) => (
                                 <option key={e} value={e} className="bg-[#0a0a0a] text-white">
@@ -260,22 +259,22 @@ setEra('All Time');
                         </div>
 
                         {/* Split View */}
-                        <div className="grid gap-6 p-6">
+                        <div className="grid gap-5 p-5 sm:p-6">
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
                               <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Genres</label>
                               <span className="text-[10px] text-white/30">{selectedGenres.length} selected</span>
                             </div>
-                            <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto custom-scrollbar content-start">
+                            <div className="max-h-[220px] content-start overflow-y-auto custom-scrollbar flex flex-wrap gap-2">
                               {GENRES.map(genre => (
                                 <button
                                   key={genre}
                                   onClick={() => handleToggleGenre(genre)}
                                   className={cn(
-                                    "px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-all grow text-center",
+                                    "grow rounded-full px-3 py-1.5 text-center text-[11px] font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
                                     selectedGenres.includes(genre)
-                                      ? "bg-accent border-accent text-white shadow-sm"
-                                      : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
+                                      ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
+                                      : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
                                   )}
                                 >
                                   {genre}
@@ -286,7 +285,7 @@ setEra('All Time');
                         </div>
 
                         {/* Search Input */}
-                        <div className="px-6 pb-6 mt-auto">
+                        <div className="mt-auto px-5 pb-5 sm:px-6 sm:pb-6">
                           <div className="relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-accent transition-colors" />
                             <input
@@ -294,7 +293,7 @@ setEra('All Time');
                               onChange={(e) => setMood(e.target.value)}
                               onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                               placeholder="Type specific keywords (e.g. 'Cyberpunk', 'Time Travel')..."
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all shadow-inner"
+                              className="h-12 w-full appearance-none rounded-xl border border-transparent bg-white/5 pl-11 pr-4 text-sm text-white shadow-inner outline-none transition-all placeholder:text-white/20 focus:border-accent/45 focus:outline-none focus:ring-0 focus-visible:outline-none"
                             />
                           </div>
                         </div>
@@ -312,12 +311,12 @@ setEra('All Time');
                     )}
 
                     {step === 'results' && (
-                      <div className="p-4 sm:p-6 space-y-4 animate-fade-in">
+                      <div className="animate-fade-in space-y-4 p-4 sm:p-6">
                         <div className="grid gap-3 sm:gap-4">
                           {recommendations.map((rec, idx) => (
                             <div
                               key={idx}
-                              className="group flex w-full min-w-0 flex-col sm:flex-row gap-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/10 rounded-2xl p-4 transition-all"
+                              className="group flex w-full min-w-0 flex-col gap-4 rounded-2xl bg-white/[0.03] p-4 transition-all hover:bg-white/[0.06] sm:flex-row"
                             >
                               <div className="shrink-0 w-full sm:w-24 aspect-[2/3] sm:aspect-[2/3] bg-black/40 rounded-xl overflow-hidden relative shadow-2xl mx-auto sm:mx-0 max-w-[120px] sm:max-w-[160px]">
                                 {rec.mediaItem?.posterPath ? (
@@ -373,7 +372,7 @@ setEra('All Time');
                                     <Link
                                       href={rec.mediaItem.mediaType === 'movie' ? `/movie/${rec.mediaItem.id}` : `/show/${rec.mediaItem.id}`}
                                       onClick={onClose}
-                                      className="w-full sm:w-auto text-center px-6 py-2.5 sm:py-2 bg-accent text-white text-xs font-black rounded-xl hover:brightness-110 transition-all shadow-lg shadow-accent/20 uppercase tracking-widest"
+                                      className="w-full rounded-xl bg-accent px-6 py-2.5 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-accent/20 transition-all hover:brightness-110 sm:w-auto sm:py-2"
                                     >
                                       Watch Now
                                     </Link>
@@ -389,12 +388,12 @@ setEra('All Time');
 
                   {/* Footer */}
                   {(step === 'input' || step === 'results') && (
-                    <div className="px-6 py-4 border-t border-white/5 bg-black/40 shrink-0 z-10">
+                    <div className="z-10 shrink-0 bg-black/35 px-5 py-4 sm:px-6">
                       {step === 'input' ? (
                         <button
                           onClick={handleGenerate}
                           disabled={isLocked || (selectedGenres.length === 0 && !mood.trim())}
-                          className="group w-full py-4 bg-accent text-white font-bold text-sm sm:text-base uppercase tracking-wider rounded-xl hover:bg-accent/90 hover:shadow-[0_0_25px_var(--accent-glow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3"
+                          className="group flex w-full items-center justify-center gap-3 rounded-xl bg-accent py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:text-base"
                         >
                           {isLocked ? "Cloud Account or API Key Required" : "Generate recommendations"}
                         </button>

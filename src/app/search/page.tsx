@@ -6,6 +6,7 @@
 
 import { MediaCard, MediaCardSkeleton } from '@/components/media/MediaCard';
 import { searchMedia } from '@/lib/tmdb';
+import { cn } from '@/lib/utils';
 import { useBlockedContentStore } from '@/stores/blockedContent';
 import type { MediaItem } from '@/types';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -21,8 +22,8 @@ export default function SearchPage() {
 
 function SearchFallback() {
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
+      <div>
         <div className="mb-8 max-w-xl mx-auto">
           <div className="skeleton h-14 rounded-[14px]" />
         </div>
@@ -40,25 +41,32 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams?.get('q') || '';
+  const typeParam = (searchParams?.get('type') || 'all') as 'all' | 'movie' | 'tv';
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [results, setResults] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [localQuery, setLocalQuery] = useState(query);
+  const [searchType, setSearchType] = useState<'all' | 'movie' | 'tv'>(typeParam);
   const { blockedItems, isBlocked } = useBlockedContentStore();
 
   useEffect(() => {
-    if (query) doSearch(query);
-    inputRef.current?.focus();
-  }, [query]);
+    setLocalQuery(query);
+    setSearchType(typeParam === 'movie' || typeParam === 'tv' ? typeParam : 'all');
+  }, [query, typeParam]);
 
-  async function doSearch(q: string) {
+  useEffect(() => {
+    if (query) doSearch(query, searchType);
+    inputRef.current?.focus();
+  }, [query, searchType]);
+
+  async function doSearch(q: string, type: 'all' | 'movie' | 'tv') {
     if (!q.trim()) return;
     setIsLoading(true);
     setSearched(true);
     try {
-      const { results } = await searchMedia(q.trim());
+      const { results } = await searchMedia(q.trim(), 1, type);
       // Filter out blocked items
       const filtered = results.filter(item => !isBlocked(item.tmdbId, item.mediaType));
       setResults(filtered);
@@ -71,14 +79,23 @@ function SearchContent() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (localQuery.trim()) router.push(`/search?q=${encodeURIComponent(localQuery.trim())}`);
+    if (!localQuery.trim()) return;
+    const encoded = encodeURIComponent(localQuery.trim());
+    router.push(searchType === 'all' ? `/search?q=${encoded}` : `/search?q=${encoded}&type=${searchType}`);
+  };
+
+  const applyType = (type: 'all' | 'movie' | 'tv') => {
+    setSearchType(type);
+    if (!localQuery.trim()) return;
+    const encoded = encodeURIComponent(localQuery.trim());
+    router.push(type === 'all' ? `/search?q=${encoded}` : `/search?q=${encoded}&type=${type}`);
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen pt-24 pb-8 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
+      <div>
         {/* Spotlight-style search bar */}
-        <form onSubmit={handleSubmit} className="mb-8">
+        <form onSubmit={handleSubmit} className="mb-7">
           <div className="relative max-w-xl mx-auto">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -103,6 +120,30 @@ function SearchContent() {
           </div>
         </form>
 
+        <div className="mb-6 flex items-center justify-center">
+          <div className="inline-flex rounded-full bg-white/[0.04] p-1 backdrop-blur-2xl">
+            {([
+              { key: 'all', label: 'All' },
+              { key: 'movie', label: 'Movies' },
+              { key: 'tv', label: 'TV Shows' },
+            ] as const).map((item) => (
+              <button
+                key={item.key}
+                onClick={() => applyType(item.key)}
+                className={cn(
+                  'rounded-full px-5 py-2 text-[13px] font-medium transition-all duration-200',
+                  searchType === item.key
+                    ? 'bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]'
+                    : 'text-text-secondary hover:bg-white/[0.06] hover:text-text-primary',
+                )}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Results */}
         {isLoading ? (
           <div className="media-grid">
@@ -113,6 +154,12 @@ function SearchContent() {
             <p className="text-[13px] text-text-secondary mb-4">
               Found <span className="text-text-primary font-medium">{results.length}</span> results for{' '}
               <span className="text-accent font-medium">&quot;{query}&quot;</span>
+              {searchType !== 'all' && (
+                <>
+                  {' '}in{' '}
+                  <span className="text-text-primary font-medium">{searchType === 'movie' ? 'Movies' : 'TV Shows'}</span>
+                </>
+              )}
             </p>
             <div className="media-grid">
               {results.map((item) => (

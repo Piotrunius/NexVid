@@ -4,8 +4,8 @@
 
 'use client';
 
-import { MediaRow } from '@/components/media/MediaCard';
 import ExternalRatings from '@/components/media/ExternalRatings';
+import { MediaRow } from '@/components/media/MediaCard';
 import { DownloadModal } from '@/components/ui/DownloadModal';
 import { getRecommendations, getSeasonDetails, getShowDetails, getSimilar } from '@/lib/tmdb';
 import { cn, tmdbImage } from '@/lib/utils';
@@ -124,22 +124,37 @@ export default function ShowPage({
         </section>
 
         {/* ── Show Info Skeleton ── */}
-        <div className="relative -mt-36 mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex gap-8">
-            <div className="hidden flex-shrink-0 md:block">
+        <div className="relative -mt-36 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
+          <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)] md:gap-8">
+            <div className="hidden md:block">
               <div className="skeleton h-[330px] w-[220px] rounded-[24px]" />
             </div>
-            <div className="flex-1 min-w-0 space-y-4 pt-10">
-              <div className="skeleton h-10 w-3/4 rounded-xl" />
+            <div className="min-w-0 space-y-4 pt-8 md:pt-10">
+              <div className="skeleton h-10 w-3/4 rounded-xl sm:h-12" />
               <div className="flex gap-3">
                 <div className="skeleton h-5 w-20 rounded-md" />
                 <div className="skeleton h-5 w-16 rounded-md" />
                 <div className="skeleton h-5 w-12 rounded-md" />
               </div>
+              <div className="flex flex-wrap gap-2">
+                <div className="skeleton h-6 w-24 rounded-full" />
+                <div className="skeleton h-6 w-20 rounded-full" />
+                <div className="skeleton h-6 w-28 rounded-full" />
+              </div>
               <div className="space-y-2 pt-4">
                 <div className="skeleton h-4 w-full rounded-md" />
                 <div className="skeleton h-4 w-full rounded-md" />
                 <div className="skeleton h-4 w-2/3 rounded-md" />
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-3">
+                <div className="skeleton h-20 rounded-[20px]" />
+                <div className="skeleton h-20 rounded-[20px]" />
+                <div className="skeleton h-20 rounded-[20px]" />
+              </div>
+              <div className="flex flex-wrap gap-3 pt-1">
+                <div className="skeleton h-11 w-40 rounded-[14px]" />
+                <div className="skeleton h-11 w-28 rounded-[14px]" />
+                <div className="skeleton h-11 w-28 rounded-[14px]" />
               </div>
             </div>
           </div>
@@ -167,7 +182,7 @@ export default function ShowPage({
       </div>
 
       {/* Content */}
-      <div className="relative -mt-36 mx-auto max-w-7xl px-4 sm:px-6">
+      <div className="relative -mt-36 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         <div className="flex gap-8 animate-slide-up">
           {/* Poster */}
           <div className="hidden flex-shrink-0 md:block">
@@ -221,11 +236,11 @@ export default function ShowPage({
                   </>
                 )}
               </div>
-              
-              <ExternalRatings 
-                imdbId={show.imdbId} 
-                title={show.title} 
-                year={show.releaseYear} 
+
+              <ExternalRatings
+                imdbId={show.imdbId}
+                title={show.title}
+                year={show.releaseYear}
               />
             </div>
 
@@ -301,7 +316,8 @@ export default function ShowPage({
                   className="btn-glass !px-6 !py-3"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="5 3 19 12 5 21" />
+                    <rect x="3" y="7" width="18" height="14" rx="2" />
+                    <path d="m7 7 3 4M12 7l3 4M17 7l3 4" />
                   </svg>
                   Trailer
                 </button>
@@ -378,7 +394,7 @@ export default function ShowPage({
 
       {/* Cast Section */}
       {show.cast && show.cast.length > 0 && (
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
+        <div className="mt-10 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[15px] font-semibold text-text-primary">Cast</h2>
             <div className="flex items-center gap-1.5">
@@ -419,7 +435,7 @@ export default function ShowPage({
       )}
 
       {/* Season & Episode Selector */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 mt-10">
+      <div className="mt-10 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         <h2 className="text-[15px] font-semibold text-text-primary mb-4">Episodes</h2>
         {useSeasonDropdown ? (
           <div className="mb-5 flex items-center gap-2">

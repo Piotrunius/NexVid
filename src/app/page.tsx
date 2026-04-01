@@ -68,7 +68,7 @@ export default async function HomePage() {
 
           {/* Hero Content */}
           <div className="absolute inset-0 flex items-center justify-start pt-20">
-            <div className="w-full px-6 sm:px-8 lg:px-10">
+            <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
               <div className="max-w-[40rem] space-y-6">
                 <div className="flex flex-wrap items-center gap-3 animate-fade-in opacity-90">
                   <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">

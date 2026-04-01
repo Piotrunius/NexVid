@@ -197,6 +197,12 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
       emerald: '#10b981',
       amber: '#f59e0b',
       cyan: '#06b6d4',
+      sky: '#0ea5e9',
+      lime: '#84cc16',
+      orange: '#f97316',
+      fuchsia: '#d946ef',
+      teal: '#14b8a6',
+      red: '#ef4444',
     };
     return mapping[accentColor] || '#6366f1';
   }, [accentColor, customAccentHex]);
@@ -654,7 +660,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
 
       {showResumeOverlay && (
         <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
-          <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 animate-scale-in">
+          <div className="mx-4 w-full max-w-xl rounded-[28px] border border-white/10 bg-white/[0.03] px-4 py-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl sm:px-8 sm:py-8 animate-scale-in">
             {resumeType === 'high' ? (
               <>
                 <div className="mb-4 flex justify-center">
@@ -667,7 +673,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                   You've watched <span className="text-accent font-bold">{Math.round(resumeData?.percentage || 0)}%</span> of this {type === 'movie' ? 'movie' : 'episode'}.
                 </p>
 
-                <div className="flex flex-col gap-2 w-full max-w-[320px] mx-auto">
+                <div className="mx-auto flex w-full max-w-[360px] flex-col gap-2">
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleResumeChoice('watch')}
@@ -705,7 +711,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                   You're just getting started. Resume from where you left off or start over.
                 </p>
 
-                <div className="grid grid-cols-2 gap-2 w-full max-w-[320px] mx-auto">
+                <div className="mx-auto grid w-full max-w-[360px] grid-cols-2 gap-2">
                   <button
                     onClick={() => handleResumeChoice('watch')}
                     className="btn-accent !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full"
