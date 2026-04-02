@@ -402,49 +402,6 @@ async function handleAdminHealth(request: Request, env: Env): Promise<Response> 
   return json(request, env, { today: { attempts: 0, successes: 0, failures: 0 }, errors: [] });
 }
 
-async function handleAdminFebboxTokens(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin']);
-  if (session instanceof Response) return session;
-
-  if (request.method === 'GET') {
-    const tokens = await env.DB.prepare('SELECT * FROM febbox_tokens ORDER BY created_at DESC').all();
-    return json(request, env, { items: tokens.results || [] });
-  }
-
-  if (request.method === 'POST') {
-    const body = await readJson<{ token: string; label?: string }>(request);
-    if (!body.token) return json(request, env, { error: 'Token is required' }, 400);
-
-    await env.DB.prepare(
-      'INSERT INTO febbox_tokens (token, label, created_at) VALUES (?, ?, ?)'
-    ).bind(body.token, body.label || 'Public Token', new Date().toISOString()).run();
-
-    return json(request, env, { ok: true });
-  }
-
-  if (request.method === 'PUT') {
-    const body = await readJson<{ token: string; isActive?: boolean; isBanned?: boolean }>(request);
-
-    if (typeof body.isActive === 'boolean') {
-      await env.DB.prepare('UPDATE febbox_tokens SET is_active = ? WHERE token = ?').bind(body.isActive ? 1 : 0, body.token).run();
-    }
-    if (typeof body.isBanned === 'boolean') {
-      await env.DB.prepare('UPDATE febbox_tokens SET is_banned = ? WHERE token = ?').bind(body.isBanned ? 1 : 0, body.token).run();
-    }
-
-    return json(request, env, { ok: true });
-  }
-
-  if (request.method === 'DELETE') {
-    const url = new URL(request.url);
-    const token = url.searchParams.get('token');
-    await env.DB.prepare('DELETE FROM febbox_tokens WHERE token = ?').bind(token).run();
-    return json(request, env, { ok: true });
-  }
-
-  return json(request, env, { error: 'Method not allowed' }, 405);
-}
-
 const lastSeenCache = new Map<string, number>();
 
 async function updateActiveUser(env: Env, request: Request, userId?: string): Promise<void> {

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import { loadPublicAnnouncements } from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface Announcement {
   id: string;
@@ -16,28 +16,28 @@ interface Announcement {
 
 const TYPE_CONFIG = {
   info: {
-    title: 'Announcement',
+    title: 'Notice',
     icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>,
     color: 'text-accent',
     bg: 'bg-accent/10',
     border: 'border-accent/20'
   },
   warning: {
-    title: 'Important Warning',
+    title: 'Warning',
     icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4M12 17h.01" /></svg>,
     color: 'text-yellow-500',
     bg: 'bg-yellow-500/10',
     border: 'border-yellow-500/20'
   },
   update: {
-    title: 'System Update',
+    title: 'Update',
     icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" /></svg>,
     color: 'text-blue-500',
     bg: 'bg-blue-500/10',
     border: 'border-blue-500/20'
   },
   success: {
-    title: 'Great News!',
+    title: 'Announcement',
     icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
     color: 'text-green-500',
     bg: 'bg-green-500/10',
