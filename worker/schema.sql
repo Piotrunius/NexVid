@@ -38,29 +38,6 @@ CREATE TABLE IF NOT EXISTS watchlist (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS watch_history (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  tmdb_id TEXT NOT NULL,
-  media_type TEXT NOT NULL,
-  season INTEGER,
-  episode INTEGER,
-  progress_seconds REAL NOT NULL DEFAULT 0,
-  duration_seconds REAL,
-  watched_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_history_user ON watch_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_history_tmdb ON watch_history(tmdb_id);
-
-CREATE TABLE IF NOT EXISTS febbox_tokens (
-  token TEXT PRIMARY KEY,
-  label TEXT NOT NULL DEFAULT 'Public Token',
-  is_active INTEGER NOT NULL DEFAULT 1,
-  is_banned INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
 -- 3. Security, Bans & Anti-Abuse
 CREATE TABLE IF NOT EXISTS login_attempts (
   key TEXT PRIMARY KEY,
