@@ -1552,7 +1552,7 @@ export default function AdminPage() {
                     </p>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
                     {selectedFeedbackStatus !== 'closed' ? (
                       <button
                         disabled={isSubmitting}
@@ -1577,7 +1577,7 @@ export default function AdminPage() {
                       <button
                         disabled={isSubmitting}
                         onClick={handleForceDeleteFeedbackThread}
-                        className="btn-glass ml-auto px-4 py-2 text-[12px] text-red-400"
+                        className="btn-glass px-4 py-2 text-[12px] text-red-400"
                       >
                         Force delete
                       </button>
