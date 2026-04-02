@@ -11,10 +11,26 @@ import { getRecommendations, getSeasonDetails, getShowDetails, getSimilar } from
 import { cn, tmdbImage } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem, Season, Show, WatchlistStatus } from '@/types';
+import { CheckCircle2, Clock, PauseCircle, Play, PlayCircle, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+function StatusIcon({ status }: { status: WatchlistStatus }) {
+  switch (status) {
+    case 'Planned':
+      return <Clock className="h-3.5 w-3.5" />;
+    case 'Watching':
+      return <PlayCircle className="h-3.5 w-3.5" />;
+    case 'Completed':
+      return <CheckCircle2 className="h-3.5 w-3.5" />;
+    case 'Dropped':
+      return <XCircle className="h-3.5 w-3.5" />;
+    case 'On-Hold':
+      return <PauseCircle className="h-3.5 w-3.5" />;
+  }
+}
 
 export default function ShowPage({
   initialShow,
@@ -294,9 +310,7 @@ export default function ShowPage({
                 }
                 className="btn-accent !px-8 !py-3 text-[14px]"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21" />
-                </svg>
+                <Play className="h-5 w-5 fill-current stroke-[1.85]" />
                 {watchlistItem?.progress?.percentage && watchlistItem.progress.percentage < 95 ? 'Resume Watching' : 'Watch Now'}
               </Link>
 
@@ -328,7 +342,7 @@ export default function ShowPage({
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
-                  {watchlistItem ? watchlistItem.status : 'Add to List'}
+                  {watchlistItem && watchlistItem.status !== 'none' ? watchlistItem.status : 'Add to List'}
                 </button>
                 {showWatchlistMenu && (
                   <div className="absolute top-full left-0 mt-2 w-44 panel-glass rounded-[12px] p-1.5 z-10 animate-scale-in">
@@ -337,11 +351,12 @@ export default function ShowPage({
                         key={status}
                         onClick={() => { handleWatchlistAction(status); setShowWatchlistMenu(false); }}
                         className={cn(
-                          'w-full rounded-[8px] px-3 py-2 text-left text-[13px] capitalize transition-colors',
+                          'w-full flex items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] capitalize transition-colors',
                           watchlistItem?.status === status ? 'bg-accent/15 text-accent' : 'text-text-secondary hover:bg-[var(--bg-glass-light)]'
                         )}
                       >
-                        {status.replace('-', ' ')}
+                        <StatusIcon status={status} />
+                        <span>{status.replace('-', ' ')}</span>
                       </button>
                     ))}
                   </div>
@@ -510,15 +525,11 @@ export default function ShowPage({
                   <Image src={tmdbImage(ep.stillPath, 'w300')} alt={ep.name} fill sizes="144px" className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-text-muted">
-                      <polygon points="5 3 19 12 5 21" />
-                    </svg>
+                    <Play className="h-6 w-6 fill-current stroke-[1.85] text-text-muted" />
                   </div>
                 )}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-[10px]">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                    <polygon points="5 3 19 12 5 21" />
-                  </svg>
+                  <Play className="h-6 w-6 fill-current stroke-[1.85] text-white" />
                 </div>
               </div>
               <div className="flex-1 min-w-0 py-1">
