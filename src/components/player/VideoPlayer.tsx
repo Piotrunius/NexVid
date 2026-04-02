@@ -1144,16 +1144,34 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       });
     }
   }, [autoPlay, initialSeekTime, isMuted, watchPartyRole]);
-  const navigateNextEpisode = useCallback(() => {
-    if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length) return;
-    const nextEpisode = season.episodes.find((ep) => ep.episodeNumber === episodeNum + 1);
-    if (nextEpisode) {
-      if (nextEpisodeAutoNavRef.current) return;
-      nextEpisodeAutoNavRef.current = true;
-      setIsEpisodeNavigating(true);
-      onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
+  const getNextEpisodeTarget = useCallback(() => {
+    if (!onNavigateEpisode || mediaType !== 'show') return null;
+
+    const nextEpisodeInSeason = season?.episodes?.find((ep) => ep.episodeNumber === episodeNum + 1);
+    if (nextEpisodeInSeason) {
+      return { season: seasonNum, episode: nextEpisodeInSeason.episodeNumber };
     }
-  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
+
+    const showSeasons = media && 'seasons' in media ? media.seasons : [];
+    const nextSeason = showSeasons.find((s) => s.seasonNumber === seasonNum + 1 && (s.episodeCount || 0) > 0);
+    if (nextSeason) {
+      return { season: nextSeason.seasonNumber, episode: 1 };
+    }
+
+    return null;
+  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum, media]);
+
+  const navigateNextEpisode = useCallback(() => {
+    if (!onNavigateEpisode || mediaType !== 'show') return false;
+    const target = getNextEpisodeTarget();
+    if (!target) return false;
+    if (nextEpisodeAutoNavRef.current) return false;
+
+    nextEpisodeAutoNavRef.current = true;
+    setIsEpisodeNavigating(true);
+    onNavigateEpisode(target.season, target.episode);
+    return true;
+  }, [onNavigateEpisode, mediaType, getNextEpisodeTarget]);
 
   const navigatePrevEpisode = useCallback(() => {
     if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length || episodeNum <= 1) return;
@@ -1167,9 +1185,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     // When autoNext is enabled, directly navigate to next episode once the current one ends.
     // Do not show the finished overlay in this flow.
     if (autoNext && mediaType === 'show' && !isEpisodeNavigating) {
-      const nextEp = season?.episodes?.find((ep) => ep.episodeNumber === episodeNum + 1);
-      if (nextEp) {
-        navigateNextEpisode();
+      if (navigateNextEpisode()) {
         return;
       }
     }
@@ -1188,7 +1204,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
     // When finished overlay is shown, do not auto-play next episode automatically.
     // User can use the Next Episode button on the finished screen.
-  }, [mediaType, autoNext, season, episodeNum, navigateNextEpisode, isEpisodeNavigating]);
+  }, [mediaType, autoNext, navigateNextEpisode, isEpisodeNavigating]);
 
   const handleError = useCallback(() => {
     setPlaying(false);
@@ -1302,8 +1318,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       return;
     }
 
-    const nextEpisode = season.episodes.find((ep) => ep.episodeNumber === episodeNum + 1);
-    if (!nextEpisode) {
+    const nextEpisodeTarget = getNextEpisodeTarget();
+    if (!nextEpisodeTarget) {
       if (showNextPrompt) setShowNextPrompt(false);
       return;
     }
@@ -1327,14 +1343,14 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         nextPromptHandledForRef.current = promptKey;
         setIsEpisodeNavigating(true);
         nextEpisodeAutoNavRef.current = true;
-        onNavigateEpisode(seasonNum, nextEpisode.episodeNumber);
+        onNavigateEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
       }
     } else {
       if (showNextPrompt) setShowNextPrompt(false);
       setNextCountdown(8);
       nextPromptHandledForRef.current = null;
     }
-  }, [currentTime, duration, autoNext, nextCountdown, mediaType, onNavigateEpisode, season, seasonNum, episodeNum, showNextPrompt, promptKey]);
+  }, [currentTime, duration, autoNext, nextCountdown, mediaType, onNavigateEpisode, season, showNextPrompt, promptKey, getNextEpisodeTarget]);
 
   useEffect(() => {
     if (!showNextPrompt || !autoNext) return;
@@ -3122,7 +3138,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             </p>
 
             <div className="flex justify-center items-center gap-2 w-full mb-2">
-              {mediaType === 'show' && season?.episodes?.some(ep => ep.episodeNumber === episodeNum + 1) && (
+              {mediaType === 'show' && Boolean(getNextEpisodeTarget()) && (
                 <button
                   onClick={() => {
                     setAutoNextLocked(false);

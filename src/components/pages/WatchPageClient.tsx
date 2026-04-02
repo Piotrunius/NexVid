@@ -357,7 +357,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   }, [type, id, seasonNum, episodeNum, media, imdbId, effectiveFebboxToken, fetchSegments, sessionToken, resolvedAccentHex, idlePauseOverlay, disableEmbeds, externalCaptions, setIntroOutro]);
 
   const loadMedia = useCallback(async () => {
-    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}`;
+    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}-${effectiveFebboxToken ? 'fb1' : 'fb0'}`;
     if (loadingRef.current || lastLoadKey.current === loadKey) return;
     loadingRef.current = true;
     lastLoadKey.current = loadKey;
@@ -412,7 +412,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     } finally {
       loadingRef.current = false;
     }
-  }, [type, id, seasonNum, episodeNum, getByTmdbId, reset, proceedWithScrape, resumeTimeFromUrl]);
+  }, [type, id, seasonNum, episodeNum, effectiveFebboxToken, getByTmdbId, reset, proceedWithScrape, resumeTimeFromUrl]);
 
   useEffect(() => {
     loadMedia();
