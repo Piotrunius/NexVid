@@ -281,7 +281,7 @@ export async function clearAllActiveSessions() {
 }
 
 export async function loadAdminAuditLogs(params?: { limit?: number; offset?: number }) {
-  const limit = Math.max(1, Math.min(100, params?.limit ?? 10));
+  const limit = Math.max(1, Math.min(100, params?.limit ?? 20));
   const offset = Math.max(0, params?.offset ?? 0);
   return cloudFetch<{
     items: {
