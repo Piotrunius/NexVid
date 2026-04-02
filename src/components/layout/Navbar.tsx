@@ -5,7 +5,7 @@
 'use client';
 
 import { AiAssistantModal } from '@/components/ui/AiAssistantModal';
-import { loadPublicAnnouncements } from '@/lib/cloudSync';
+import { loadPublicAnnouncements, loadUserNotifications } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
@@ -61,6 +61,7 @@ export function Navbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [hasUnreadSupportReply, setHasUnreadSupportReply] = useState(false);
   const [mounted, setMounted] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLElement>(null);
@@ -93,6 +94,34 @@ export function Navbar() {
     load();
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setHasUnreadSupportReply(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const syncSupportUnread = async () => {
+      try {
+        const res = await loadUserNotifications();
+        if (isCancelled) return;
+        const hasUnread = (res.items || []).some((item) => !item.isRead && item.type === 'feedback_reply');
+        setHasUnreadSupportReply(hasUnread);
+      } catch {
+        if (!isCancelled) setHasUnreadSupportReply(false);
+      }
+    };
+
+    syncSupportUnread();
+    const interval = setInterval(syncSupportUnread, 10000);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [isLoggedIn, pathname]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -296,7 +325,9 @@ export function Navbar() {
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
-
+                  {hasUnreadSupportReply && pathname !== '/contact' && (
+                    <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_10px_var(--accent-glow)]" />
+                  )}
                 </div>
               </div>
             </Link>
