@@ -130,6 +130,7 @@ type BlockedMediaItem = {
 };
 
 const ANNOUNCEMENT_MAX_CHARS = 260;
+const AUDIT_PAGE_SIZE = 10;
 const FEEDBACK_ARCHIVE_MESSAGE = 'Thank you for your message. This thread has been reviewed and archived. If you need more help, please open a new feedback thread.';
 const FEEDBACK_UNARCHIVE_MESSAGE = 'This thread has been reopened by support. You can continue this conversation here.';
 
@@ -174,6 +175,9 @@ export default function AdminPage() {
   const [grantExpiresDays, setGrantExpiresDays] = useState(0);
   const [feedbackThreads, setFeedbackThreads] = useState<AdminFeedbackThread[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogItem[]>([]);
+  const [auditHasMore, setAuditHasMore] = useState(false);
+  const [auditNextOffset, setAuditNextOffset] = useState(0);
+  const [isLoadingMoreAudit, setIsLoadingMoreAudit] = useState(false);
   const [auditActionFilter, setAuditActionFilter] = useState('');
   const [auditAdminFilter, setAuditAdminFilter] = useState('');
   const [selectedFeedbackThreadId, setSelectedFeedbackThreadId] = useState<string | null>(null);
@@ -325,7 +329,7 @@ export default function AdminPage() {
         promises.push(loadAdminBans());
         promises.push(loadAdminAnnouncements());
         promises.push(loadAdminAccountLimits());
-        promises.push(loadAdminAuditLogs());
+        promises.push(loadAdminAuditLogs({ limit: AUDIT_PAGE_SIZE, offset: 0 }));
         promises.push(loadAdminBlockedMedia());
       }
 
@@ -344,6 +348,8 @@ export default function AdminPage() {
         setAnnouncements(results[3].items || []);
         setAccountLimits(results[4].items || []);
         setAuditLogs(results[5].items || []);
+        setAuditHasMore(Boolean(results[5].hasMore));
+        setAuditNextOffset(Number(results[5].nextOffset || (results[5].items || []).length || 0));
         setBlockedMedia(results[6].items || []);
       }
 
@@ -889,6 +895,28 @@ export default function AdminPage() {
     }
   };
 
+  const handleLoadMoreAuditLogs = async () => {
+    if (!canManageModeration || !auditHasMore || isLoadingMoreAudit) return;
+
+    setIsLoadingMoreAudit(true);
+    try {
+      const res = await loadAdminAuditLogs({ limit: AUDIT_PAGE_SIZE, offset: auditNextOffset });
+      const incoming = res.items || [];
+
+      setAuditLogs((prev) => {
+        const existingIds = new Set(prev.map((item) => item.id));
+        const uniqueIncoming = incoming.filter((item) => !existingIds.has(item.id));
+        return [...prev, ...uniqueIncoming];
+      });
+      setAuditHasMore(Boolean(res.hasMore));
+      setAuditNextOffset(Number(res.nextOffset || (auditNextOffset + incoming.length)));
+    } catch (error: any) {
+      toast(error?.message || 'Failed to load more audit logs', 'error');
+    } finally {
+      setIsLoadingMoreAudit(false);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
@@ -1412,8 +1440,9 @@ export default function AdminPage() {
                     <th className="px-3 py-2 font-medium">Time</th>
                     <th className="px-3 py-2 font-medium">Admin</th>
                     <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Target</th>
-                    <th className="px-3 py-2 font-medium">Meta</th>
+                    <th className="px-3 py-2 font-medium sm:hidden">Details</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Target</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Meta</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1422,14 +1451,35 @@ export default function AdminPage() {
                       <td className="px-3 py-2 text-text-muted whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</td>
                       <td className="px-3 py-2 text-text-primary">{item.adminUsername || item.adminUserId.slice(0, 12)}</td>
                       <td className="px-3 py-2 text-text-muted">{item.action}</td>
-                      <td className="px-3 py-2 text-text-muted break-all">{item.targetType}:{item.targetId || '-'}</td>
-                      <td className="px-3 py-2 text-text-muted break-all">{formatAuditMeta(item.meta)}</td>
+                      <td className="px-3 py-2 text-text-muted sm:hidden">
+                        <span className="block max-w-[180px] truncate">
+                          {item.targetType}:{item.targetId || '-'} | {formatAuditMeta(item.meta)}
+                        </span>
+                      </td>
+                      <td className="hidden px-3 py-2 text-text-muted sm:table-cell">
+                        <span className="block max-w-[260px] truncate">{item.targetType}:{item.targetId || '-'}</span>
+                      </td>
+                      <td className="hidden px-3 py-2 text-text-muted sm:table-cell">
+                        <span className="block max-w-[320px] truncate">{formatAuditMeta(item.meta)}</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </div>
+
+          {auditHasMore && (
+            <div className="pt-2">
+              <button
+                className="btn-glass w-full text-[12px]"
+                disabled={isLoadingMoreAudit}
+                onClick={handleLoadMoreAuditLogs}
+              >
+                {isLoadingMoreAudit ? 'Loading...' : 'Load 10 more'}
+              </button>
+            </div>
+          )}
         </section>
       )}
 

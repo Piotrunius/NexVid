@@ -2751,11 +2751,18 @@ async function handleAdminAuditLogs(request: Request, env: Env): Promise<Respons
 
   if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
 
+  const url = new URL(request.url);
+  const rawLimit = Number(url.searchParams.get('limit') || '10');
+  const rawOffset = Number(url.searchParams.get('offset') || '0');
+  const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.floor(rawLimit))) : 10;
+  const offset = Number.isFinite(rawOffset) ? Math.max(0, Math.floor(rawOffset)) : 0;
+
   const rows = await env.DB.prepare(
     `SELECT id, admin_user_id, action, target_type, target_id, meta_json, created_at
      FROM admin_audit_logs
      ORDER BY datetime(created_at) DESC
-     LIMIT 300`
+     LIMIT ? OFFSET ?`
+  ).bind(limit + 1, offset
   ).all<{
     id: string;
     admin_user_id: string;
@@ -2766,7 +2773,11 @@ async function handleAdminAuditLogs(request: Request, env: Env): Promise<Respons
     created_at: string;
   }>();
 
-  const adminIds = Array.from(new Set((rows.results || []).map((row) => row.admin_user_id))).filter(Boolean);
+  const fetchedRows = rows.results || [];
+  const hasMore = fetchedRows.length > limit;
+  const pageRows = hasMore ? fetchedRows.slice(0, limit) : fetchedRows;
+
+  const adminIds = Array.from(new Set(pageRows.map((row) => row.admin_user_id))).filter(Boolean);
   let usernamesById = new Map<string, string>();
 
   if (adminIds.length > 0) {
@@ -2781,7 +2792,7 @@ async function handleAdminAuditLogs(request: Request, env: Env): Promise<Respons
   }
 
   return json(request, env, {
-    items: (rows.results || []).map((row) => {
+    items: pageRows.map((row) => {
       let meta: Record<string, unknown> | null = null;
       if (row.meta_json) {
         try {
@@ -2802,6 +2813,8 @@ async function handleAdminAuditLogs(request: Request, env: Env): Promise<Respons
         createdAt: row.created_at,
       };
     }),
+    hasMore,
+    nextOffset: offset + pageRows.length,
   });
 }
 
