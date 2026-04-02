@@ -130,6 +130,7 @@ type BlockedMediaItem = {
 };
 
 const ANNOUNCEMENT_MAX_CHARS = 260;
+const FEEDBACK_ARCHIVE_MESSAGE = 'Thank you for your message. This thread has been reviewed and archived. If you need more help, please open a new feedback thread.';
 
 type FebboxTokenItem = {
   token: string;
@@ -178,8 +179,6 @@ export default function AdminPage() {
   const [feedbackInboxTab, setFeedbackInboxTab] = useState<'active' | 'archive'>('active');
   const [feedbackMessages, setFeedbackMessages] = useState<AdminFeedbackMessage[]>([]);
   const [selectedFeedbackThreadMeta, setSelectedFeedbackThreadMeta] = useState<{ status: 'open' | 'answered' | 'closed'; closedExpiresAt?: string; closedRemainingMs?: number } | null>(null);
-  const [feedbackReply, setFeedbackReply] = useState('');
-  const [feedbackReplyStatus, setFeedbackReplyStatus] = useState<'open' | 'answered' | 'closed'>('answered');
 
   const [banType, setBanType] = useState<'username' | 'ip'>('username');
   const [banValue, setBanValue] = useState('');
@@ -243,17 +242,17 @@ export default function AdminPage() {
     [announcements]
   );
 
-  const selectedFeedbackThread = useMemo(
-    () => feedbackThreads.find((item) => item.id === selectedFeedbackThreadId) || null,
-    [feedbackThreads, selectedFeedbackThreadId]
-  );
-
   const sortedFeedbackThreads = useMemo(() => {
     const filtered = feedbackThreads.filter(t =>
       feedbackInboxTab === 'active' ? t.status !== 'closed' : t.status === 'closed'
     );
     return [...filtered].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   }, [feedbackThreads, feedbackInboxTab]);
+
+  const selectedFeedbackThread = useMemo(
+    () => sortedFeedbackThreads.find((item) => item.id === selectedFeedbackThreadId) || null,
+    [sortedFeedbackThreads, selectedFeedbackThreadId]
+  );
 
   const selectedFeedbackStatus = selectedFeedbackThreadMeta?.status || selectedFeedbackThread?.status || 'open';
   const selectedFeedbackClosedExpiresAt = selectedFeedbackThreadMeta?.closedExpiresAt || selectedFeedbackThread?.closedExpiresAt;
@@ -353,8 +352,12 @@ export default function AdminPage() {
         }
       }
 
-      if (!selectedFeedbackThreadId || !nextFeedbackThreads.some((item: any) => item.id === selectedFeedbackThreadId)) {
-        setSelectedFeedbackThreadId(nextFeedbackThreads[0]?.id || null);
+      const nextVisibleThreads = nextFeedbackThreads
+        .filter((item: AdminFeedbackThread) => feedbackInboxTab === 'active' ? item.status !== 'closed' : item.status === 'closed')
+        .sort((a: AdminFeedbackThread, b: AdminFeedbackThread) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+
+      if (!selectedFeedbackThreadId || !nextVisibleThreads.some((item: AdminFeedbackThread) => item.id === selectedFeedbackThreadId)) {
+        setSelectedFeedbackThreadId(nextVisibleThreads[0]?.id || null);
       }
     } catch (error: any) {
       toast(error?.message || 'Failed to load admin data', 'error');
@@ -393,6 +396,19 @@ export default function AdminPage() {
 
     loadThreadMessages();
   }, [selectedFeedbackThreadId, canManage]);
+
+  useEffect(() => {
+    if (!canManage) return;
+
+    if (sortedFeedbackThreads.length === 0) {
+      if (selectedFeedbackThreadId !== null) setSelectedFeedbackThreadId(null);
+      return;
+    }
+
+    if (!selectedFeedbackThreadId || !sortedFeedbackThreads.some((item) => item.id === selectedFeedbackThreadId)) {
+      setSelectedFeedbackThreadId(sortedFeedbackThreads[0].id);
+    }
+  }, [sortedFeedbackThreads, selectedFeedbackThreadId, canManage]);
 
   const handleBanTarget = async () => {
     const value = banValue.trim();
@@ -685,15 +701,14 @@ export default function AdminPage() {
     }
   };
 
-  const handleReplyFeedbackThread = async () => {
+  const handleArchiveFeedbackThread = async () => {
     if (!selectedFeedbackThreadId) {
       toast('Select a feedback thread first', 'error');
       return;
     }
 
-    const body = feedbackReply.trim();
-    if (!body) {
-      toast('Reply cannot be empty', 'error');
+    if (selectedFeedbackStatus === 'closed') {
+      toast('This thread is already archived', 'warning');
       return;
     }
 
@@ -701,10 +716,9 @@ export default function AdminPage() {
     try {
       await replyAdminFeedbackThread({
         threadId: selectedFeedbackThreadId,
-        message: body,
-        status: feedbackReplyStatus,
+        message: FEEDBACK_ARCHIVE_MESSAGE,
+        status: 'closed',
       });
-      setFeedbackReply('');
       const [threadsRes, messagesRes] = await Promise.all([
         loadAdminFeedbackThreads(),
         loadAdminFeedbackMessages(selectedFeedbackThreadId),
@@ -718,9 +732,9 @@ export default function AdminPage() {
           closedRemainingMs: messagesRes.thread.closedRemainingMs,
         });
       }
-      toast('Reply sent to user', 'success');
+      toast('Thread archived and user notified', 'success');
     } catch (error: any) {
-      toast(error?.message || 'Failed to reply to feedback thread', 'error');
+      toast(error?.message || 'Failed to archive feedback thread', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -773,7 +787,6 @@ export default function AdminPage() {
       setSelectedFeedbackThreadId(remainingThreads[0]?.id || null);
       setFeedbackMessages([]);
       setSelectedFeedbackThreadMeta(null);
-      setFeedbackReply('');
       toast('Feedback thread force deleted', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to force delete feedback thread', 'error');
@@ -1420,53 +1433,16 @@ export default function AdminPage() {
                 </div>
 
                 <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setFeedbackReplyStatus('answered')}
-                      className={cn(
-                        "rounded-full px-3 py-1 text-[11px] font-bold transition-all border",
-                        feedbackReplyStatus === 'answered' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-white/5 text-white/40 border-transparent hover:text-white"
-                      )}
-                    >
-                      Resolve on send
-                    </button>
-                    <button
-                      onClick={() => setFeedbackReplyStatus('open')}
-                      className={cn(
-                        "rounded-full px-3 py-1 text-[11px] font-bold transition-all border",
-                        feedbackReplyStatus === 'open' ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-white/5 text-white/40 border-transparent hover:text-white"
-                      )}
-                    >
-                      Keep Open
-                    </button>
-                    <button
-                      onClick={() => setFeedbackReplyStatus('closed')}
-                      className={cn(
-                        "rounded-full px-3 py-1 text-[11px] font-bold transition-all border text-red-400 hover:bg-red-500/10",
-                        feedbackReplyStatus === 'closed' ? "bg-red-500/20 border-red-500/30" : "border-transparent"
-                      )}
-                    >
-                      Archive
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <textarea
-                      className="input min-h-12 max-h-32 flex-1"
-                      value={feedbackReply}
-                      onChange={(event) => setFeedbackReply(event.target.value)}
-                      placeholder="Write message..."
-                      maxLength={4000}
-                      rows={1}
-                    />
-                    <button
-                      disabled={isSubmitting || !feedbackReply.trim()}
-                      onClick={handleReplyFeedbackThread}
-                      className="btn-accent px-5 shrink-0"
-                    >
-                      Send
-                    </button>
-                  </div>
+                  <p className="text-[11px] text-text-muted">
+                    Archive sends a predefined final response and moves this thread to archived.
+                  </p>
+                  <button
+                    disabled={isSubmitting || selectedFeedbackStatus === 'closed'}
+                    onClick={handleArchiveFeedbackThread}
+                    className="btn-glass w-full text-red-400 hover:bg-red-500/10"
+                  >
+                    {selectedFeedbackStatus === 'closed' ? 'Archived' : 'Archive'}
+                  </button>
                   {isOwner && (
                     <button
                       disabled={isSubmitting}
