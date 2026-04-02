@@ -76,7 +76,7 @@ export function RecommendationRows() {
         Because you watched <span className="text-accent">{selectedItem?.title}</span>
       </h2>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-y">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
         {eligibleItems.map((item) => (
           <button
             key={item.id}

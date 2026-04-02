@@ -1527,9 +1527,9 @@ export default function AdminPage() {
                 </div>
 
                 <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
-                  <div className="flex flex-wrap items-stretch gap-2">
+                  <div>
                     <textarea
-                      className="input min-h-12 max-h-32 flex-1"
+                      className="input min-h-12 max-h-32 w-full"
                       value={feedbackReply}
                       onChange={(event) => setFeedbackReply(event.target.value)}
                       placeholder={selectedFeedbackStatus === 'closed' ? 'Thread is archived. Unarchive to reply...' : 'Write message...'}
@@ -1537,10 +1537,13 @@ export default function AdminPage() {
                       rows={1}
                       disabled={selectedFeedbackStatus === 'closed'}
                     />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       disabled={isSubmitting || selectedFeedbackStatus === 'closed' || !feedbackReply.trim()}
                       onClick={handleSendFeedbackReply}
-                      className="btn-accent px-5 shrink-0"
+                      className="btn-accent flex-1 min-w-[92px] px-3 py-2 text-[12px]"
                     >
                       Send
                     </button>
@@ -1548,7 +1551,7 @@ export default function AdminPage() {
                       <button
                         disabled={isSubmitting}
                         onClick={handleArchiveFeedbackThread}
-                        className="btn-glass px-4 py-2 text-[12px] text-red-400 hover:bg-red-500/10"
+                        className="btn-glass flex-1 min-w-[92px] px-3 py-2 text-[12px] text-red-400 hover:bg-red-500/10"
                       >
                         Archive
                       </button>
@@ -1556,7 +1559,7 @@ export default function AdminPage() {
                       <button
                         disabled={isSubmitting}
                         onClick={handleUnarchiveFeedbackThread}
-                        className="btn-glass px-4 py-2 text-[12px] text-emerald-400 hover:bg-emerald-500/10"
+                        className="btn-glass flex-1 min-w-[92px] px-3 py-2 text-[12px] text-emerald-400 hover:bg-emerald-500/10"
                       >
                         Unarchive
                       </button>
@@ -1568,7 +1571,7 @@ export default function AdminPage() {
                       <button
                         disabled={isSubmitting}
                         onClick={handleForceDeleteFeedbackThread}
-                        className="btn-glass px-4 py-2 text-[12px] text-red-400"
+                        className="btn-glass flex-1 min-w-[110px] px-3 py-2 text-[12px] text-red-400"
                       >
                         Force delete
                       </button>
