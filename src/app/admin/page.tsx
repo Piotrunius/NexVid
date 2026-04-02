@@ -131,6 +131,7 @@ type BlockedMediaItem = {
 
 const ANNOUNCEMENT_MAX_CHARS = 260;
 const FEEDBACK_ARCHIVE_MESSAGE = 'Thank you for your message. This thread has been reviewed and archived. If you need more help, please open a new feedback thread.';
+const FEEDBACK_UNARCHIVE_MESSAGE = 'This thread has been reopened by support. You can continue this conversation here.';
 
 type FebboxTokenItem = {
   token: string;
@@ -179,6 +180,7 @@ export default function AdminPage() {
   const [feedbackInboxTab, setFeedbackInboxTab] = useState<'active' | 'archive'>('active');
   const [feedbackMessages, setFeedbackMessages] = useState<AdminFeedbackMessage[]>([]);
   const [selectedFeedbackThreadMeta, setSelectedFeedbackThreadMeta] = useState<{ status: 'open' | 'answered' | 'closed'; closedExpiresAt?: string; closedRemainingMs?: number } | null>(null);
+  const [feedbackReply, setFeedbackReply] = useState('');
 
   const [banType, setBanType] = useState<'username' | 'ip'>('username');
   const [banValue, setBanValue] = useState('');
@@ -735,6 +737,98 @@ export default function AdminPage() {
       toast('Thread archived and user notified', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to archive feedback thread', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendFeedbackReply = async () => {
+    if (!selectedFeedbackThreadId) {
+      toast('Select a feedback thread first', 'error');
+      return;
+    }
+
+    if (selectedFeedbackStatus === 'closed') {
+      toast('Thread is archived. Unarchive it first.', 'warning');
+      return;
+    }
+
+    const body = feedbackReply.trim();
+    if (!body) {
+      toast('Reply cannot be empty', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await replyAdminFeedbackThread({
+        threadId: selectedFeedbackThreadId,
+        message: body,
+        status: 'answered',
+      });
+      setFeedbackReply('');
+
+      const [threadsRes, messagesRes] = await Promise.all([
+        loadAdminFeedbackThreads(),
+        loadAdminFeedbackMessages(selectedFeedbackThreadId),
+      ]);
+      setFeedbackThreads(threadsRes.items || []);
+      setFeedbackMessages(messagesRes.items || []);
+      if (messagesRes.thread) {
+        setSelectedFeedbackThreadMeta({
+          status: messagesRes.thread.status,
+          closedExpiresAt: messagesRes.thread.closedExpiresAt,
+          closedRemainingMs: messagesRes.thread.closedRemainingMs,
+        });
+      }
+      toast('Reply sent', 'success');
+    } catch (error: any) {
+      toast(error?.message || 'Failed to send reply', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUnarchiveFeedbackThread = async () => {
+    if (!selectedFeedbackThreadId) {
+      toast('Select a feedback thread first', 'error');
+      return;
+    }
+
+    if (!canManageModeration) {
+      toast('Only admin+ can unarchive threads', 'error');
+      return;
+    }
+
+    if (selectedFeedbackStatus !== 'closed') {
+      toast('Thread is already active', 'warning');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await replyAdminFeedbackThread({
+        threadId: selectedFeedbackThreadId,
+        message: FEEDBACK_UNARCHIVE_MESSAGE,
+        status: 'open',
+      });
+
+      const [threadsRes, messagesRes] = await Promise.all([
+        loadAdminFeedbackThreads(),
+        loadAdminFeedbackMessages(selectedFeedbackThreadId),
+      ]);
+      setFeedbackThreads(threadsRes.items || []);
+      setFeedbackMessages(messagesRes.items || []);
+      if (messagesRes.thread) {
+        setSelectedFeedbackThreadMeta({
+          status: messagesRes.thread.status,
+          closedExpiresAt: messagesRes.thread.closedExpiresAt,
+          closedRemainingMs: messagesRes.thread.closedRemainingMs,
+        });
+      }
+      toast('Thread unarchived', 'success');
+    } catch (error: any) {
+      toast(error?.message || 'Failed to unarchive thread', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -1433,25 +1527,62 @@ export default function AdminPage() {
                 </div>
 
                 <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
-                  <p className="text-[11px] text-text-muted">
-                    Archive sends a predefined final response and moves this thread to archived.
-                  </p>
-                  <button
-                    disabled={isSubmitting || selectedFeedbackStatus === 'closed'}
-                    onClick={handleArchiveFeedbackThread}
-                    className="btn-glass w-full text-red-400 hover:bg-red-500/10"
-                  >
-                    {selectedFeedbackStatus === 'closed' ? 'Archived' : 'Archive'}
-                  </button>
-                  {isOwner && (
+                  <div className="flex gap-2">
+                    <textarea
+                      className="input min-h-12 max-h-32 flex-1"
+                      value={feedbackReply}
+                      onChange={(event) => setFeedbackReply(event.target.value)}
+                      placeholder={selectedFeedbackStatus === 'closed' ? 'Thread is archived. Unarchive to reply...' : 'Write message...'}
+                      maxLength={4000}
+                      rows={1}
+                      disabled={selectedFeedbackStatus === 'closed'}
+                    />
                     <button
-                      disabled={isSubmitting}
-                      onClick={handleForceDeleteFeedbackThread}
-                      className="btn-glass w-full text-red-400 mt-2"
+                      disabled={isSubmitting || selectedFeedbackStatus === 'closed' || !feedbackReply.trim()}
+                      onClick={handleSendFeedbackReply}
+                      className="btn-accent px-5 shrink-0"
                     >
-                      Force delete thread
+                      Send
                     </button>
+                  </div>
+
+                  {selectedFeedbackStatus !== 'closed' && (
+                    <p className="text-[11px] text-text-muted">
+                      Archive sends a predefined final response and closes this thread.
+                    </p>
                   )}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedFeedbackStatus !== 'closed' ? (
+                      <button
+                        disabled={isSubmitting}
+                        onClick={handleArchiveFeedbackThread}
+                        className="btn-glass px-4 py-2 text-[12px] text-red-400 hover:bg-red-500/10"
+                      >
+                        Archive
+                      </button>
+                    ) : canManageModeration ? (
+                      <button
+                        disabled={isSubmitting}
+                        onClick={handleUnarchiveFeedbackThread}
+                        className="btn-glass px-4 py-2 text-[12px] text-emerald-400 hover:bg-emerald-500/10"
+                      >
+                        Unarchive
+                      </button>
+                    ) : (
+                      <p className="text-[11px] text-text-muted">Thread archived</p>
+                    )}
+
+                    {isOwner && (
+                      <button
+                        disabled={isSubmitting}
+                        onClick={handleForceDeleteFeedbackThread}
+                        className="btn-glass ml-auto px-4 py-2 text-[12px] text-red-400"
+                      >
+                        Force delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </>
             )}
