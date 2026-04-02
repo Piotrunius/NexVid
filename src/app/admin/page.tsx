@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-  addAdminBlockedMedia,
-  banAdminTarget,
-  clearAllActiveSessions,
-  cloudFetch,
-  createAdminAnnouncement,
-  deleteAdminAccountLimit,
-  deleteAdminAnnouncement,
-  deleteAdminBlockedMedia,
-  deleteAdminFeedbackThread,
-  deleteAdminUserByUsername,
-  grantAdminPermission,
-  loadAdminAccountLimits,
-  loadAdminAnnouncements,
-  loadAdminAuditLogs,
-  loadAdminBans,
-  loadAdminBlockedMedia,
-  loadAdminFeedbackMessages,
-  loadAdminFeedbackThreads,
-  loadAdminGrantList,
-  loadAdminOverview,
-  loadAdminUsers,
-  lookupAdminAccounts,
-  replyAdminFeedbackThread,
-  resetUserPassword,
-  revokeAdminPermission,
-  setAdminAccountLimit,
-  unbanAdminTarget,
-  updateAdminAnnouncement,
+    addAdminBlockedMedia,
+    banAdminTarget,
+    clearAllActiveSessions,
+    cloudFetch,
+    createAdminAnnouncement,
+    deleteAdminAccountLimit,
+    deleteAdminAnnouncement,
+    deleteAdminBlockedMedia,
+    deleteAdminFeedbackThread,
+    deleteAdminUserByUsername,
+    grantAdminPermission,
+    loadAdminAccountLimits,
+    loadAdminAnnouncements,
+    loadAdminAuditLogs,
+    loadAdminBans,
+    loadAdminBlockedMedia,
+    loadAdminFeedbackMessages,
+    loadAdminFeedbackThreads,
+    loadAdminGrantList,
+    loadAdminOverview,
+    loadAdminUsers,
+    lookupAdminAccounts,
+    replyAdminFeedbackThread,
+    resetUserPassword,
+    revokeAdminPermission,
+    setAdminAccountLimit,
+    unbanAdminTarget,
+    updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -130,7 +130,7 @@ type BlockedMediaItem = {
 };
 
 const ANNOUNCEMENT_MAX_CHARS = 260;
-const AUDIT_PAGE_SIZE = 10;
+const AUDIT_PAGE_SIZE = 20;
 const FEEDBACK_ARCHIVE_MESSAGE = 'Thank you for your message. This thread has been reviewed and archived. If you need more help, please open a new feedback thread.';
 const FEEDBACK_UNARCHIVE_MESSAGE = 'This thread has been reopened by support. You can continue this conversation here.';
 
@@ -1476,7 +1476,7 @@ export default function AdminPage() {
                 disabled={isLoadingMoreAudit}
                 onClick={handleLoadMoreAuditLogs}
               >
-                {isLoadingMoreAudit ? 'Loading...' : 'Load 10 more'}
+                {isLoadingMoreAudit ? 'Loading...' : `Load ${AUDIT_PAGE_SIZE} more`}
               </button>
             </div>
           )}
