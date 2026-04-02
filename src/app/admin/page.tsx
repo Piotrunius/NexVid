@@ -1527,7 +1527,7 @@ export default function AdminPage() {
                 </div>
 
                 <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-stretch gap-2">
                     <textarea
                       className="input min-h-12 max-h-32 flex-1"
                       value={feedbackReply}
@@ -1544,15 +1544,6 @@ export default function AdminPage() {
                     >
                       Send
                     </button>
-                  </div>
-
-                  {selectedFeedbackStatus !== 'closed' && (
-                    <p className="text-[11px] text-text-muted">
-                      Archive sends a predefined final response and closes this thread.
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap items-center justify-center gap-2">
                     {selectedFeedbackStatus !== 'closed' ? (
                       <button
                         disabled={isSubmitting}
@@ -1570,7 +1561,7 @@ export default function AdminPage() {
                         Unarchive
                       </button>
                     ) : (
-                      <p className="text-[11px] text-text-muted">Thread archived</p>
+                      <p className="self-center text-[11px] text-text-muted">Thread archived</p>
                     )}
 
                     {isOwner && (
@@ -1583,6 +1574,12 @@ export default function AdminPage() {
                       </button>
                     )}
                   </div>
+
+                  {selectedFeedbackStatus !== 'closed' && (
+                    <p className="text-[11px] text-text-muted">
+                      Archive sends a predefined final response and closes this thread.
+                    </p>
+                  )}
                 </div>
               </>
             )}
