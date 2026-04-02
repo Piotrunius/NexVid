@@ -207,7 +207,7 @@ export async function deleteAdminBlockedMedia(tmdbId: string, mediaType: 'movie'
 }
 
 export async function loadPublicBlockedMedia() {
-  return cloudFetch<{ items: { tmdbId: string; mediaType: string }[] }>('/public/blocked-media', { 
+  return cloudFetch<{ items: { tmdbId: string; mediaType: string }[] }>('/public/blocked-media', {
     method: 'GET',
     cache: 'no-store'
   });
@@ -280,7 +280,9 @@ export async function clearAllActiveSessions() {
   return cloudFetch<{ ok: boolean; clearedCount: number }>('/admin/sessions/clear', { method: 'POST' });
 }
 
-export async function loadAdminAuditLogs() {
+export async function loadAdminAuditLogs(params?: { limit?: number; offset?: number }) {
+  const limit = Math.max(1, Math.min(100, params?.limit ?? 10));
+  const offset = Math.max(0, params?.offset ?? 0);
   return cloudFetch<{
     items: {
       id: string;
@@ -292,7 +294,9 @@ export async function loadAdminAuditLogs() {
       meta: Record<string, unknown> | null;
       createdAt: string;
     }[];
-  }>('/admin/audit-logs', { method: 'GET' });
+    hasMore: boolean;
+    nextOffset: number;
+  }>(`/admin/audit-logs?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`, { method: 'GET' });
 }
 
 export async function updateCloudNickname(username: string) {
