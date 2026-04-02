@@ -85,7 +85,7 @@ export function SurveyModal() {
   };
 
   const handleSkip = () => {
-    if (!survey) return;
+    if (!survey || survey.questions.length <= 1) return;
     if (step < survey.questions.length - 1) {
       setStep(step + 1);
       return;
@@ -244,9 +244,11 @@ export function SurveyModal() {
             {step > 0 && (
               <button onClick={() => setStep(step - 1)} className="btn-glass flex-1 py-3 text-[13px] font-bold">Back</button>
             )}
-            <button onClick={handleSkip} className="btn-glass flex-1 py-3 text-[13px] font-bold">
-              Skip
-            </button>
+            {survey.questions.length > 1 && (
+              <button onClick={handleSkip} className="btn-glass flex-1 py-3 text-[13px] font-bold">
+                Skip
+              </button>
+            )}
             <button
               disabled={isSubmitting || !hasCurrentAnswer}
               onClick={handleNext}
