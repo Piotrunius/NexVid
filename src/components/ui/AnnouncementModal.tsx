@@ -73,7 +73,7 @@ export function AnnouncementModal() {
         setAnnouncement(important);
         setIsVisible(true);
       } catch (err) {
-        console.error('Failed to load important announcements:', err);
+        console.error('Failed to load announcements:', err);
       }
     };
 

@@ -144,20 +144,19 @@ export function SurveyModal() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-fade-in">
       <div className={cn(
-        "glass-card w-full max-w-md overflow-hidden rounded-[24px] border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.8)] animate-scale-in",
+        "glass-card w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.9)] animate-scale-in",
         glassEffect && "glass-liquid"
       )}>
-        <div className="p-6 sm:p-8">
-          <div className="flex items-center justify-between gap-4 mb-2">
-            <h2 className="text-[18px] font-bold text-white tracking-tight">{survey.title}</h2>
-            <button onClick={() => handleClose(true)} className="text-white/30 hover:text-white transition-colors">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          {survey.description && <p className="text-[12px] text-white/50 mb-6">{survey.description}</p>}
+        <div className="p-8 text-center">
+          <button onClick={() => handleClose(true)} className="absolute right-4 top-4 text-white/30 hover:text-white transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+
+          <h2 className="mb-3 text-[22px] font-black tracking-tight text-white">{survey.title}</h2>
+          {survey.description && <p className="mb-8 text-[13px] leading-relaxed text-white/60">{survey.description}</p>}
 
           <div className="mb-8 space-y-4">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 px-2">
               <span className="text-[10px] font-bold text-accent uppercase tracking-widest">Question {step + 1} of {survey.questions.length}</span>
               <div className="flex gap-1">
                 {survey.questions.map((_, i) => (
@@ -165,10 +164,10 @@ export function SurveyModal() {
                 ))}
               </div>
             </div>
-            <p className="text-[15px] font-medium text-white/90 leading-tight">{currentQuestion.text}</p>
+            <p className="text-center text-[15px] font-medium text-white/80 leading-tight">{currentQuestion.text}</p>
           </div>
 
-          <div className="min-h-[160px]">
+          <div className="my-8 min-h-[160px]">
             {currentQuestion.type === 'rating' && (
               <div className="flex justify-center gap-2 py-4">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -240,22 +239,24 @@ export function SurveyModal() {
             )}
           </div>
 
-          <div className="mt-8 flex gap-3">
-            {step > 0 && (
-              <button onClick={() => setStep(step - 1)} className="btn-glass flex-1 py-3 text-[13px] font-bold">Back</button>
-            )}
-            {survey.questions.length > 1 && (
-              <button onClick={handleSkip} className="btn-glass flex-1 py-3 text-[13px] font-bold">
-                Skip
-              </button>
-            )}
+          <div className="space-y-3">
             <button
               disabled={isSubmitting || !hasCurrentAnswer}
               onClick={handleNext}
-              className="btn-accent flex-[2] py-3 text-[13px] font-bold shadow-[0_8px_24px_rgba(var(--accent-rgb),0.3)]"
+              className="btn-accent flex w-full items-center justify-center py-4 font-bold uppercase tracking-widest shadow-[0_8px_24px_rgba(var(--accent-rgb),0.3)]"
             >
-              {isSubmitting ? 'Sending...' : step < survey.questions.length - 1 ? 'Next' : 'Submit Feedback'}
+              {isSubmitting ? 'Sending...' : step < survey.questions.length - 1 ? 'Answer' : 'Submit'}
             </button>
+            <div className="flex gap-3">
+              {step > 0 && (
+                <button onClick={() => setStep(step - 1)} className="btn-glass flex-1 flex items-center justify-center py-4 text-[13px] font-bold">Back</button>
+              )}
+              {survey.questions.length > 1 && (
+                <button onClick={handleSkip} className="btn-glass flex-1 flex items-center justify-center py-4 text-[13px] font-bold">
+                  Skip
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
