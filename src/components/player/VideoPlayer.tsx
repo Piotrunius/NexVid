@@ -19,7 +19,23 @@ import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AudioTrack, Caption, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, FastForward, Info, ListVideo, Pause, PauseCircle, Play, PlayCircle, Settings2, Volume1, Volume2, VolumeX, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+function StatusIcon({ status }: { status: WatchlistStatus }) {
+  switch (status) {
+    case 'Planned':
+      return <Clock className="h-3.5 w-3.5" />;
+    case 'Watching':
+      return <PlayCircle className="h-3.5 w-3.5" />;
+    case 'Completed':
+      return <CheckCircle2 className="h-3.5 w-3.5" />;
+    case 'Dropped':
+      return <XCircle className="h-3.5 w-3.5" />;
+    case 'On-Hold':
+      return <PauseCircle className="h-3.5 w-3.5" />;
+  }
+}
 
 interface PlayerProps {
   stream: Stream | null;
@@ -1878,7 +1894,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     <div
       ref={containerRef}
       className={cn(
-        'player-container nexvid-player group relative bg-black',
+        'player-container nexvid-player group relative bg-black [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]',
         fullViewport && 'full-viewport h-full w-full rounded-none',
         isFullscreen && 'is-fullscreen fixed inset-0 z-50 rounded-none',
         controlsVisible && 'controls-visible'
@@ -2133,7 +2149,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       {/* Skip Intro */}
       {stream?.type !== 'embed' && showSkipIntro && skipIntro && (
         <button onClick={handleSkipIntro} className="skip-btn animate-fade-in">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1.5"><path d="m11.5 16 6-4-6-4v8z" /><path d="M5 16l6-4-6-4v8z" /></svg>
+          <FastForward className="mr-1.5 inline h-4 w-4 stroke-[1.85]" />
           Skip Intro
         </button>
       )}
@@ -2141,7 +2157,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       {/* Skip Outro */}
       {stream?.type !== 'embed' && showSkipOutro && skipOutro && (
         <button onClick={handleSkipOutro} className="skip-btn animate-fade-in">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline mr-1.5"><path d="m11.5 16 6-4-6-4v8z" /><path d="M5 16l6-4-6-4v8z" /></svg>
+          <FastForward className="mr-1.5 inline h-4 w-4 stroke-[1.85]" />
           Skip Outro
         </button>
       )}
@@ -2154,8 +2170,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         (stream?.type === 'embed' || controlsVisible || scrapeStatus === 'error' || (error && !stream)) ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}>
         {onBack && (
-          <button onClick={onBack} className="rounded-[8px] p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
+          <button onClick={onBack} className="rounded-[10px] p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors" aria-label="Go back" title="Go back">
+            <ChevronLeft className="h-5 w-5 stroke-[1.85]" />
           </button>
         )}
         <div className="flex-1 min-w-0">
@@ -2168,11 +2184,10 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                   'shrink-0 rounded-[8px] p-1.5 transition-colors',
                   settingsPanel === 'info' ? 'text-accent' : 'text-white/70 hover:bg-white/10 hover:text-white'
                 )}
+                aria-label="Title info"
                 title="Info"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
-                </svg>
+                <Info className="h-[14px] w-[14px] stroke-[1.9]" />
               </button>
             )}
           </div>
@@ -2187,9 +2202,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 className="rounded-[8px] p-2 text-amber-400/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
                 title="Show interaction notice"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
-                </svg>
+                <Info className="h-5 w-5 stroke-[1.9]" />
               </button>
             )}
 
@@ -2266,24 +2279,21 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         {/* Control buttons */}
         <div className="flex flex-wrap items-center justify-between gap-y-1.5">
           <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
-            <button onClick={togglePlay} className="rounded-[8px] p-2 text-white hover:bg-white/10 transition-colors" title={isPlaying ? 'Pause (K)' : 'Play (K)'}>
+            <button onClick={togglePlay} className="rounded-[10px] p-2 text-white hover:bg-white/10 transition-colors" title={isPlaying ? 'Pause (K)' : 'Play (K)'} aria-label={isPlaying ? 'Pause (K)' : 'Play (K)'}>
               {isPlaying ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                <Pause className="h-5 w-5 fill-current stroke-[1.85]" />
               ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21" /></svg>
+                <Play className="h-5 w-5 fill-current stroke-[1.85]" />
               )}
             </button>
-            <button onClick={skipForward} className="hidden rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors sm:inline-flex" title="Forward 10s">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m11.5 16 6-4-6-4v8z" /><path d="M5 16l6-4-6-4v8z" /></svg>
-            </button>
             <div className="flex items-center gap-1 group/vol">
-              <button onClick={() => toggleMute()} className="rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Mute (M)">
+              <button onClick={() => toggleMute()} className="rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Mute (M)" aria-label="Toggle mute (M)">
                 {isMuted || volume === 0 ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+                  <VolumeX className="h-[18px] w-[18px] stroke-[1.85]" />
                 ) : volume < 0.5 ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                  <Volume1 className="h-[18px] w-[18px] stroke-[1.85]" />
                 ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
+                  <Volume2 className="h-[18px] w-[18px] stroke-[1.85]" />
                 )}
               </button>
               <input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={(e) => changeVolume(parseFloat(e.target.value))} className="w-0 opacity-0 transition-all group-hover/vol:w-20 group-hover/vol:opacity-100 accent-accent" />
@@ -2294,11 +2304,11 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           <div className="ml-auto flex items-center gap-0.5">
             {isShowWithEpisodes && (
               <>
-                <button onClick={navigatePrevEpisode} className="hidden rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed sm:inline-flex" disabled={episodeNum <= 1} title="Previous Episode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
+                <button onClick={navigatePrevEpisode} className="hidden rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed sm:inline-flex" disabled={episodeNum <= 1} title="Previous Episode" aria-label="Previous episode">
+                  <ChevronLeft className="h-[18px] w-[18px] stroke-[1.85]" />
                 </button>
-                <button onClick={navigateNextEpisode} className="hidden rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors sm:inline-flex" title="Next Episode">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+                <button onClick={navigateNextEpisode} className="hidden rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors sm:inline-flex" title="Next Episode" aria-label="Next episode">
+                  <ChevronRight className="h-[18px] w-[18px] stroke-[1.85]" />
                 </button>
               </>
             )}
@@ -2309,14 +2319,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 <button
                   onClick={() => setSettingsPanel(settingsPanel === 'episodes' ? null : 'episodes')}
                   className={cn(
-                    'rounded-[8px] p-2 transition-colors',
+                    'rounded-[10px] p-2 transition-colors',
                     settingsPanel === 'episodes' ? 'text-accent' : 'text-white/70 hover:bg-white/10 hover:text-white'
                   )}
+                  aria-label="Episodes"
                   title="Episodes"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="3" width="20" height="5" rx="1" /><rect x="2" y="10" width="20" height="5" rx="1" /><rect x="2" y="17" width="20" height="5" rx="1" />
-                  </svg>
+                  <ListVideo className="h-[18px] w-[18px] stroke-[1.85]" />
                 </button>
 
                 {/* Episodes Panel */}
@@ -2509,11 +2518,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                               key={status}
                               onClick={() => handleInfoWatchlistAction(status)}
                               className={cn(
-                                'w-full rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
+                                'w-full flex items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
                                 infoWatchlistItem?.status === status ? 'bg-accent/20 text-accent' : 'text-white/80 hover:bg-white/10'
                               )}
                             >
-                              {status.replace('-', ' ')}
+                              <StatusIcon status={status} />
+                              <span>{status.replace('-', ' ')}</span>
                             </button>
                           ))}
                         </div>
@@ -2528,17 +2538,15 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               <button
                 onClick={() => setSettingsPanel(settingsPanel ? null : 'main')}
                 className={cn(
-                  'rounded-[8px] p-2 transition-colors',
+                  'rounded-[10px] p-2 transition-colors',
                   settingsPanel && !['info', 'episodes'].includes(settingsPanel)
                     ? 'text-accent'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 )}
+                aria-label="Settings"
                 title="Settings"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
+                <Settings2 className="h-[18px] w-[18px] stroke-[1.85]" />
               </button>
 
               {/* Unified Settings Panel */}
@@ -2610,10 +2618,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           onClick={() => setSettingsPanel('playback')}
                           className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
                         >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/80">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="10 8 16 12 10 16 10 8" />
-                          </svg>
+                          <Play className="h-5 w-5 fill-current stroke-[1.85] text-white/80" />
                           <span className="text-[10px] text-white/60">Playback</span>
                           <span className="text-[10px] font-semibold text-white/80">
                           {enabledPlaybackSettingsCount}
@@ -2646,7 +2651,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                   {settingsPanel === 'playback' && (
                     <div>
                       <button onClick={() => setSettingsPanel('main')} className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
+                        <ChevronLeft className="h-[14px] w-[14px] stroke-[1.85]" />
                         Playback
                       </button>
                       <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">

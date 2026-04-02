@@ -8,6 +8,7 @@ import { loadPublicBlockedMedia } from '@/lib/cloudSync';
 import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { MediaItem } from '@/types';
+import { Play } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -98,9 +99,7 @@ export default async function HomePage() {
                     className="btn-accent group relative overflow-hidden !px-10 !py-4 text-[15px] font-bold"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="transition-transform group-hover:scale-110">
-                      <polygon points="5 3 19 12 5 21" />
-                    </svg>
+                    <Play className="h-5 w-5 fill-current stroke-[1.85] transition-transform group-hover:scale-110" />
                     Watch Now
                   </Link>
                   <Link
