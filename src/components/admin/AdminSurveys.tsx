@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
 import { toast } from '@/components/ui/Toaster';
-import { cn } from '@/lib/utils';
 import { cloudFetch } from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
+import { useEffect, useMemo, useState } from 'react';
 
 type QuestionType = 'rating' | 'single' | 'multiple' | 'text';
 
@@ -35,11 +35,11 @@ export function AdminSurveys() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newQuestions, setNewQuestions] = useState<SurveyQuestion[]>([]);
-  
+
   const [viewingResults, setViewingResults] = useState<string | null>(null);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
 
@@ -79,9 +79,67 @@ export function AdminSurveys() {
     setNewQuestions([...newQuestions, q]);
   };
 
+  const prepareQuestions = (): { ok: true; questions: SurveyQuestion[] } | { ok: false; error: string } => {
+    if (!newTitle.trim()) {
+      return { ok: false, error: 'Title is required' };
+    }
+
+    if (newTitle.trim().length > 120) {
+      return { ok: false, error: 'Title is too long' };
+    }
+
+    if (newQuestions.length === 0) {
+      return { ok: false, error: 'Add at least one question' };
+    }
+
+    if (newQuestions.length > 12) {
+      return { ok: false, error: 'Too many questions (max 12)' };
+    }
+
+    const seenIds = new Set<string>();
+    const cleanedQuestions: SurveyQuestion[] = [];
+
+    for (const question of newQuestions) {
+      const id = question.id.trim();
+      const text = question.text.trim();
+
+      if (!id || seenIds.has(id)) {
+        return { ok: false, error: 'Question ids must be unique' };
+      }
+      if (!text) {
+        return { ok: false, error: 'Every question needs text' };
+      }
+
+      seenIds.add(id);
+
+      const nextQuestion: SurveyQuestion = { ...question, id, text };
+
+      if (question.type === 'single' || question.type === 'multiple') {
+        const options = (question.options || []).map((opt) => opt.trim()).filter(Boolean);
+        const uniqueOptions = new Set(options.map((opt) => opt.toLowerCase()));
+
+        if (options.length < 2) {
+          return { ok: false, error: 'Choice questions need at least two options' };
+        }
+        if (uniqueOptions.size !== options.length) {
+          return { ok: false, error: 'Choice options must be unique' };
+        }
+
+        nextQuestion.options = options;
+      } else {
+        delete nextQuestion.options;
+      }
+
+      cleanedQuestions.push(nextQuestion);
+    }
+
+    return { ok: true, questions: cleanedQuestions };
+  };
+
   const handleCreate = async () => {
-    if (!newTitle.trim() || newQuestions.length === 0) {
-      toast('Title and at least one question required', 'error');
+    const prepared = prepareQuestions();
+    if (!prepared.ok) {
+      toast(prepared.error, 'error');
       return;
     }
     setIsSubmitting(true);
@@ -89,9 +147,9 @@ export function AdminSurveys() {
       await cloudFetch('/admin/surveys', {
         method: 'POST',
         body: JSON.stringify({
-          title: newTitle,
+          title: newTitle.trim(),
           description: newDesc,
-          questions: newQuestions,
+          questions: prepared.questions,
         }),
       });
       toast('Survey created', 'success');
@@ -198,14 +256,14 @@ export function AdminSurveys() {
                   <p className="text-[9px] text-white/20 mt-2 font-medium">{new Date(s.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="flex gap-1.5">
-                  <button 
-                    onClick={() => toggleSurvey(s.id, s.is_active === 1)} 
+                  <button
+                    onClick={() => toggleSurvey(s.id, s.is_active === 1)}
                     className={cn("btn-glass flex-1 text-[10px] py-1.5 px-0", s.is_active === 1 && "bg-white/10")}
                   >
                     {s.is_active === 1 ? 'Stop' : 'Start'}
                   </button>
-                  <button 
-                    onClick={() => selectResults(s.id)} 
+                  <button
+                    onClick={() => selectResults(s.id)}
                     className={cn("btn-glass flex-1 text-[10px] py-1.5 px-0", viewingResults === s.id && "bg-accent/20 text-accent")}
                   >
                     Stats
@@ -231,7 +289,7 @@ export function AdminSurveys() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 {Object.entries(getAnalytics(viewingResults) || {}).map(([id, stat]: [string, any]) => (
                   <div key={id} className="space-y-3 bg-white/[0.02] p-5 rounded-2xl border border-white/5 shadow-sm w-full">
@@ -331,9 +389,9 @@ export function AdminSurveys() {
             </div>
           </div>
 
-          <button 
-            disabled={isSubmitting || !newTitle.trim() || newQuestions.length === 0} 
-            onClick={handleCreate} 
+          <button
+            disabled={isSubmitting || !newTitle.trim() || newQuestions.length === 0}
+            onClick={handleCreate}
             className="btn-accent w-full py-3 mt-2 font-bold uppercase tracking-widest text-[11px]"
           >
             {isSubmitting ? 'Creating...' : 'Launch Survey'}

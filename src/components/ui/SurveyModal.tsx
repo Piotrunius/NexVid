@@ -84,6 +84,16 @@ export function SurveyModal() {
     }
   };
 
+  const handleSkip = () => {
+    if (!survey) return;
+    if (step < survey.questions.length - 1) {
+      setStep(step + 1);
+      return;
+    }
+
+    submitSurvey();
+  };
+
   const submitSurvey = async () => {
     if (!survey) return;
     setIsSubmitting(true);
@@ -106,6 +116,21 @@ export function SurveyModal() {
   };
 
   const currentQuestion = survey?.questions[step];
+
+  const hasCurrentAnswer = (() => {
+    if (!currentQuestion) return false;
+    const currentAnswer = answers[currentQuestion.id];
+
+    if (currentQuestion.type === 'multiple') {
+      return Array.isArray(currentAnswer) && currentAnswer.length > 0;
+    }
+
+    if (currentQuestion.type === 'text') {
+      return typeof currentAnswer === 'string' && currentAnswer.trim().length > 0;
+    }
+
+    return currentAnswer !== undefined && currentAnswer !== null && currentAnswer !== '';
+  })();
 
   const updateAnswer = (val: any) => {
     if (!currentQuestion) return;
@@ -219,8 +244,11 @@ export function SurveyModal() {
             {step > 0 && (
               <button onClick={() => setStep(step - 1)} className="btn-glass flex-1 py-3 text-[13px] font-bold">Back</button>
             )}
+            <button onClick={handleSkip} className="btn-glass flex-1 py-3 text-[13px] font-bold">
+              Skip
+            </button>
             <button
-              disabled={isSubmitting || !answers[currentQuestion.id]}
+              disabled={isSubmitting || !hasCurrentAnswer}
               onClick={handleNext}
               className="btn-accent flex-[2] py-3 text-[13px] font-bold shadow-[0_8px_24px_rgba(var(--accent-rgb),0.3)]"
             >
