@@ -1574,12 +1574,6 @@ export default function AdminPage() {
                       </button>
                     )}
                   </div>
-
-                  {selectedFeedbackStatus !== 'closed' && (
-                    <p className="text-[11px] text-text-muted">
-                      Archive sends a predefined final response and closes this thread.
-                    </p>
-                  )}
                 </div>
               </>
             )}
