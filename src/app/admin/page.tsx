@@ -1543,7 +1543,7 @@ export default function AdminPage() {
                     <button
                       disabled={isSubmitting || selectedFeedbackStatus === 'closed' || !feedbackReply.trim()}
                       onClick={handleSendFeedbackReply}
-                      className="btn-accent flex-1 min-w-[92px] px-3 py-2 text-[12px]"
+                      className="btn-accent flex-1 min-w-[92px] justify-center px-3 py-2 text-center text-[12px]"
                     >
                       Send
                     </button>
@@ -1551,7 +1551,7 @@ export default function AdminPage() {
                       <button
                         disabled={isSubmitting}
                         onClick={handleArchiveFeedbackThread}
-                        className="btn-glass flex-1 min-w-[92px] px-3 py-2 text-[12px] text-red-400 hover:bg-red-500/10"
+                        className="btn-glass flex-1 min-w-[92px] justify-center px-3 py-2 text-center text-[12px] text-red-400 hover:bg-red-500/10"
                       >
                         Archive
                       </button>
@@ -1559,7 +1559,7 @@ export default function AdminPage() {
                       <button
                         disabled={isSubmitting}
                         onClick={handleUnarchiveFeedbackThread}
-                        className="btn-glass flex-1 min-w-[92px] px-3 py-2 text-[12px] text-emerald-400 hover:bg-emerald-500/10"
+                        className="btn-glass flex-1 min-w-[92px] justify-center px-3 py-2 text-center text-[12px] text-emerald-400 hover:bg-emerald-500/10"
                       >
                         Unarchive
                       </button>
@@ -1571,7 +1571,7 @@ export default function AdminPage() {
                       <button
                         disabled={isSubmitting}
                         onClick={handleForceDeleteFeedbackThread}
-                        className="btn-glass flex-1 min-w-[110px] px-3 py-2 text-[12px] text-red-400"
+                        className="btn-glass flex-1 min-w-[110px] justify-center px-3 py-2 text-center text-[12px] text-red-400"
                       >
                         Force delete
                       </button>
