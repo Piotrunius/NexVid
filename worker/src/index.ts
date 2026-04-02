@@ -344,6 +344,20 @@ async function ensureSecurityTables(env: Env): Promise<void> {
            )`
         ),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC)'),
+        env.DB.prepare(
+          `CREATE TABLE IF NOT EXISTS survey_submissions (
+             survey_id TEXT NOT NULL,
+             user_id TEXT,
+             ip_hash TEXT,
+             fingerprint_hash TEXT,
+             created_at TEXT NOT NULL,
+             PRIMARY KEY (survey_id, created_at)
+           )`
+        ),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_survey ON survey_submissions(survey_id, created_at DESC)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_user ON survey_submissions(user_id, survey_id)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_ip ON survey_submissions(ip_hash, survey_id)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_fp ON survey_submissions(fingerprint_hash, survey_id)'),
       ]);
 
       try {
@@ -530,6 +544,158 @@ async function ensureFeedbackTables(env: Env): Promise<void> {
   }
 
   await feedbackTablesInit;
+}
+
+type SurveyQuestionType = 'rating' | 'single' | 'multiple' | 'text';
+
+type SurveyQuestionDraft = {
+  id: string;
+  type: SurveyQuestionType;
+  text: string;
+  options?: string[];
+};
+
+function normalizeSurveyText(value: unknown, maxLength: number): string {
+  return String(value || '').trim().slice(0, maxLength);
+}
+
+function sanitizeSurveyQuestions(rawQuestions: unknown): { ok: true; questions: SurveyQuestionDraft[] } | { ok: false; error: string } {
+  if (!Array.isArray(rawQuestions)) {
+    return { ok: false, error: 'Questions must be an array' };
+  }
+
+  if (rawQuestions.length < 1) {
+    return { ok: false, error: 'At least one question is required' };
+  }
+
+  if (rawQuestions.length > 12) {
+    return { ok: false, error: 'Too many questions (max 12)' };
+  }
+
+  const normalized: SurveyQuestionDraft[] = [];
+  const seenIds = new Set<string>();
+
+  for (const rawQuestion of rawQuestions) {
+    if (!rawQuestion || typeof rawQuestion !== 'object') {
+      return { ok: false, error: 'Invalid question entry' };
+    }
+
+    const question = rawQuestion as Record<string, unknown>;
+    const id = normalizeSurveyText(question.id, 64);
+    const type = normalizeSurveyText(question.type, 16) as SurveyQuestionType;
+    const text = normalizeSurveyText(question.text, 220);
+
+    if (!id) return { ok: false, error: 'Each question needs an id' };
+    if (seenIds.has(id)) return { ok: false, error: 'Question ids must be unique' };
+    if (!['rating', 'single', 'multiple', 'text'].includes(type)) {
+      return { ok: false, error: 'Invalid question type' };
+    }
+    if (!text) return { ok: false, error: 'Question text is required' };
+
+    seenIds.add(id);
+
+    const normalizedQuestion: SurveyQuestionDraft = { id, type, text };
+
+    if (type === 'single' || type === 'multiple') {
+      if (!Array.isArray(question.options)) {
+        return { ok: false, error: 'Choice questions require options' };
+      }
+
+      const options = question.options
+        .map((option) => normalizeSurveyText(option, 80))
+        .filter(Boolean);
+
+      const uniqueOptions = Array.from(new Set(options.map((option) => option.toLowerCase())));
+      if (options.length < 2) return { ok: false, error: 'Choice questions need at least two options' };
+      if (uniqueOptions.length !== options.length) return { ok: false, error: 'Choice options must be unique' };
+
+      normalizedQuestion.options = options;
+    }
+
+    normalized.push(normalizedQuestion);
+  }
+
+  return { ok: true, questions: normalized };
+}
+
+function normalizeSurveyAnswers(question: SurveyQuestionDraft[], answers: unknown): { ok: true; answers: Record<string, unknown> } | { ok: false; error: string } {
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+    return { ok: false, error: 'Answers must be an object' };
+  }
+
+  const input = answers as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+
+  for (const item of question) {
+    const rawAnswer = input[item.id];
+
+    if (rawAnswer === undefined || rawAnswer === null || rawAnswer === '') {
+      continue;
+    }
+
+    if (item.type === 'rating') {
+      const rating = Number(rawAnswer);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return { ok: false, error: 'Rating answers must be between 1 and 5' };
+      }
+      normalized[item.id] = rating;
+      continue;
+    }
+
+    if (item.type === 'single') {
+      const value = normalizeSurveyText(rawAnswer, 80);
+      if (!value || !item.options?.includes(value)) {
+        return { ok: false, error: 'Invalid single choice answer' };
+      }
+      normalized[item.id] = value;
+      continue;
+    }
+
+    if (item.type === 'multiple') {
+      if (!Array.isArray(rawAnswer)) {
+        return { ok: false, error: 'Multiple choice answers must be an array' };
+      }
+
+      const selected = Array.from(new Set(rawAnswer.map((option) => normalizeSurveyText(option, 80)).filter(Boolean)));
+      if (selected.length === 0) {
+        return { ok: false, error: 'Select at least one option' };
+      }
+      if (!selected.every((option) => item.options?.includes(option))) {
+        return { ok: false, error: 'Invalid multiple choice answer' };
+      }
+      normalized[item.id] = selected;
+      continue;
+    }
+
+    const text = normalizeSurveyText(rawAnswer, 4000);
+    if (!text) {
+      return { ok: false, error: 'Text answers cannot be empty' };
+    }
+    normalized[item.id] = text;
+  }
+
+  return { ok: true, answers: normalized };
+}
+
+async function loadSurveyById(env: Env, surveyId: string): Promise<{ id: string; title: string; description: string | null; is_active: number; questions: SurveyQuestionDraft[] } | null> {
+  const row = await env.DB.prepare('SELECT id, title, description, questions, is_active FROM surveys WHERE id = ? LIMIT 1').bind(surveyId).first<{ id: string; title: string; description: string | null; questions: string; is_active: number }>();
+  if (!row?.id) return null;
+
+  try {
+    const parsed = JSON.parse(row.questions);
+    const sanitized = sanitizeSurveyQuestions(parsed);
+    if (!sanitized.ok) return null;
+
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      is_active: row.is_active,
+      questions: sanitized.questions,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function ensureWatchPartyTables(env: Env): Promise<void> {
@@ -2381,7 +2547,7 @@ async function handleAdminResetPassword(request: Request, env: Env): Promise<Res
 
   // Generate 8-char temp password
   const tempPassword = crypto.randomUUID().slice(0, 8);
-  const hash = await sha256Hex(tempPassword);
+  const hash = await hashPassword(tempPassword);
 
   await env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 1 WHERE id = ?').bind(hash, targetUser.id).run();
   await writeAdminAuditLog(env, session.user.id, 'reset_password', 'user', targetUser.id, { username });
@@ -3161,8 +3327,8 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
 /* ──── Surveys & Feedback ──── */
 
 async function handleAdminSurveys(request: Request, env: Env): Promise<Response> {
-  const session = await getSessionUser(request, env);
-  if (!session || !session.user.isAdmin) return json(request, env, { error: 'Unauthorized' }, 401);
+  const session = await requireRole(request, env, ['owner', 'admin']);
+  if (session instanceof Response) return session;
 
   if (request.method === 'GET') {
     const { results } = await env.DB.prepare('SELECT * FROM surveys ORDER BY created_at DESC').all();
@@ -3175,13 +3341,20 @@ async function handleAdminSurveys(request: Request, env: Env): Promise<Response>
 
   if (request.method === 'POST') {
     const body = await readJson<{ title: string; description?: string; questions: any[] }>(request);
+    const title = normalizeSurveyText(body.title, 120);
+    const description = normalizeSurveyText(body.description, 300);
+    const sanitizedQuestions = sanitizeSurveyQuestions(body.questions);
+
+    if (!title) return json(request, env, { error: 'Title is required' }, 400);
+    if (!sanitizedQuestions.ok) return json(request, env, { error: sanitizedQuestions.error }, 400);
+
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     await env.DB.prepare('INSERT INTO surveys (id, title, description, questions, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)')
-      .bind(id, body.title, body.description || '', JSON.stringify(body.questions), now, now)
+      .bind(id, title, description || '', JSON.stringify(sanitizedQuestions.questions), now, now)
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'create_survey', 'survey', id, { title: body.title });
+    await writeAdminAuditLog(env, session.user.id, 'create_survey', 'survey', id, { title });
 
     return json(request, env, { ok: true, id });
   }
@@ -3215,8 +3388,8 @@ async function handleAdminSurveys(request: Request, env: Env): Promise<Response>
 }
 
 async function handleAdminSurveyResults(request: Request, env: Env): Promise<Response> {
-  const session = await getSessionUser(request, env);
-  if (!session || !session.user.isAdmin) return json(request, env, { error: 'Unauthorized' }, 401);
+  const session = await requireRole(request, env, ['owner', 'admin']);
+  if (session instanceof Response) return session;
 
   const url = new URL(request.url);
   const id = url.searchParams.get('id');
@@ -3235,18 +3408,56 @@ async function handlePublicSurvey(request: Request, env: Env): Promise<Response>
 async function handleSurveyRespond(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
   const body = await readJson<{ surveyId: string; answers: any }>(request);
+  const surveyId = normalizeSurveyText(body.surveyId, 64);
+  if (!surveyId) return json(request, env, { error: 'surveyId is required' }, 400);
+
+  const survey = await loadSurveyById(env, surveyId);
+  if (!survey || survey.is_active !== 1) {
+    return json(request, env, { error: 'Survey not found' }, 404);
+  }
+
+  const normalizedAnswers = normalizeSurveyAnswers(survey.questions, body.answers);
+  if (!normalizedAnswers.ok) {
+    return json(request, env, { error: normalizedAnswers.error }, 400);
+  }
+
+  const identifiers = await getRequestIdentifiers(request);
+  const duplicateSubmission = await env.DB.prepare(
+    `SELECT 1
+     FROM survey_submissions
+     WHERE survey_id = ?
+       AND (
+         (? IS NOT NULL AND user_id = ?)
+         OR ip_hash = ?
+         OR fingerprint_hash = ?
+       )
+     LIMIT 1`
+  )
+    .bind(surveyId, session?.user.id || null, session?.user.id || null, identifiers.ipHash, identifiers.fingerprintHash)
+    .first<{ '1': number }>();
+
+  if (duplicateSubmission) {
+    return json(request, env, { error: 'You already submitted this survey' }, 409);
+  }
+
   const now = new Date().toISOString();
 
+  await env.DB.prepare(
+    'INSERT INTO survey_submissions (survey_id, user_id, ip_hash, fingerprint_hash, created_at) VALUES (?, ?, ?, ?, ?)'
+  )
+    .bind(surveyId, session?.user.id || null, identifiers.ipHash, identifiers.fingerprintHash, now)
+    .run();
+
   await env.DB.prepare('INSERT INTO survey_responses (survey_id, user_id, answers, created_at) VALUES (?, ?, ?, ?)')
-    .bind(body.surveyId, session?.user.id || null, JSON.stringify(body.answers), now)
+    .bind(surveyId, session?.user.id || null, JSON.stringify(normalizedAnswers.answers), now)
     .run();
 
   return json(request, env, { ok: true });
 }
 
 async function handleAdminCreateChat(request: Request, env: Env): Promise<Response> {
-  const session = await getSessionUser(request, env);
-  if (!session || !session.user.isAdmin) return json(request, env, { error: 'Unauthorized' }, 401);
+  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
+  if (session instanceof Response) return session;
 
   const body = await readJson<{ targetUserId: string; subject: string; message: string }>(request);
   const { targetUserId, subject, message } = body;
