@@ -6,7 +6,7 @@ import ChunkLoadErrorHandler from '@/components/ChunkLoadErrorHandler';
 import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
-import { ImportantAnnouncementModal } from '@/components/ui/ImportantAnnouncementModal';
+import { AnnouncementModal } from '@/components/ui/AnnouncementModal';
 import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import { SurveyModal } from '@/components/ui/SurveyModal';
 import { Toaster } from '@/components/ui/Toaster';
@@ -141,7 +141,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <Toaster />
           <SurveyModal />
-          <ImportantAnnouncementModal />
+          <AnnouncementModal />
           <KeyboardShortcuts />
           <ChunkLoadErrorHandler />
         </ThemeProvider>
