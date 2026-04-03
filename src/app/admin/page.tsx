@@ -1119,7 +1119,10 @@ export default function AdminPage() {
             </section>
 
             <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
-              <h2 className="text-[15px] font-semibold text-text-primary">Create announcement</h2>
+              <h2 className="text-[15px] font-semibold text-text-primary flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                Create announcement
+              </h2>
               <textarea
                 className={`input w-full resize-none break-all whitespace-pre-wrap ${announcementFontClass}`}
                 placeholder="Write announcement message..."

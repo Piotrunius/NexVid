@@ -3,6 +3,7 @@
 import { toast } from '@/components/ui/Toaster';
 import { cloudFetch } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
+import { Circle, ListChecks, Star, Type } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 type QuestionType = 'rating' | 'single' | 'multiple' | 'text';
@@ -437,10 +438,22 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => addQuestion('rating')} className="btn-glass text-[10px] py-2 bg-white/5">★ Rating</button>
-              <button onClick={() => addQuestion('single')} className="btn-glass text-[10px] py-2 bg-white/5">○ Single</button>
-              <button onClick={() => addQuestion('multiple')} className="btn-glass text-[10px] py-2 bg-white/5">□ Multiple</button>
-              <button onClick={() => addQuestion('text')} className="btn-glass text-[10px] py-2 bg-white/5">✎ Text</button>
+              <button onClick={() => addQuestion('rating')} className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5">
+                <Star size={12} />
+                Rating
+              </button>
+              <button onClick={() => addQuestion('single')} className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5">
+                <Circle size={12} />
+                Single
+              </button>
+              <button onClick={() => addQuestion('multiple')} className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5">
+                <ListChecks size={12} />
+                Multiple
+              </button>
+              <button onClick={() => addQuestion('text')} className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5">
+                <Type size={12} />
+                Text
+              </button>
             </div>
           </div>
 
