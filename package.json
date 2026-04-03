@@ -16,7 +16,7 @@
     "worker:deploy": "wrangler deploy --config worker/wrangler.toml",
     "pages:build-output": "node scripts/generate-build-info.mjs && npx @cloudflare/next-on-pages@latest",
     "pages:prepare": "node scripts/prepare-pages-output.mjs",
-    "pages:deploy": "pnpm pages:build-output && pnpm pages:prepare && wrangler pages deploy .vercel/output/static --project-name nexvid",
+    "pages:deploy": "node scripts/deploy-pages.mjs",
     "ship": "node scripts/ship.mjs"
   },
   "dependencies": {

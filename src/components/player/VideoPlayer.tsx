@@ -1958,7 +1958,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
       {stream?.type !== 'embed' && activeCaption && renderedSubtitle && (
         <div
-          className="pointer-events-none absolute inset-x-0 z-[12] flex justify-center px-5"
+          className="pointer-events-none absolute inset-x-0 z-[8] flex justify-center px-5"
           style={{ bottom: `${subtitleBottomPercent}%` }}
         >
           <div
@@ -2346,7 +2346,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
                 {/* Episodes Panel */}
                 {settingsPanel === 'episodes' && (
-                  <div className="absolute bottom-full right-0 mb-2 w-[min(92vw,20rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-scale-in max-h-[60vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  <div className="absolute bottom-full right-0 z-[30] mb-2 w-[min(92vw,20rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-scale-in max-h-[60vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-[11px] font-semibold text-white/80">Episodes</p>
                       {(media as Show)?.seasons && (media as Show).seasons.length > 1 && (
@@ -2567,7 +2567,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
               {/* Unified Settings Panel */}
               {settingsPanel && !['info', 'episodes'].includes(settingsPanel) && (
-                <div className="absolute bottom-full right-0 mb-2 w-[min(90vw,18rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+                <div className="absolute bottom-full right-0 z-[30] mb-2 w-[min(90vw,18rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-scale-in" onClick={(e) => e.stopPropagation()}>
                   {/* Main Grid */}
                   {settingsPanel === 'main' && (
                     <div className="space-y-3">
