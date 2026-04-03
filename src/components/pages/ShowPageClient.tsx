@@ -453,44 +453,46 @@ export default function ShowPage({
       <div className="mt-10 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         <h2 className="text-[15px] font-semibold text-text-primary mb-4">Episodes</h2>
         {useSeasonDropdown ? (
-          <div className="mb-5 flex items-center gap-2">
-            <button
-              onClick={() => stepSeason('prev')}
-              disabled={selectedSeasonIndex <= 0}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Previous season"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-
-            <div className="relative min-w-[220px] max-w-full">
-              <select
-                value={selectedSeason}
-                onChange={(e) => setSelectedSeason(Number(e.target.value))}
-                className="w-full appearance-none rounded-[14px] bg-white/[0.06] px-4 py-2.5 pr-10 text-[13px] font-medium text-white outline-none backdrop-blur-2xl"
+          <div className="mb-5 w-full">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <button
+                onClick={() => stepSeason('prev')}
+                disabled={selectedSeasonIndex <= 0}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Previous season"
               >
-                {availableSeasons.map((s) => (
-                  <option key={s.id} value={s.seasonNumber} className="bg-[#0a0a0a]">
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/60">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-              </div>
-            </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
 
-            <button
-              onClick={() => stepSeason('next')}
-              disabled={selectedSeasonIndex < 0 || selectedSeasonIndex >= availableSeasons.length - 1}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Next season"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m9 18 6-6-6-6"/></svg>
-            </button>
+              <div className="relative min-w-0 flex-1 sm:min-w-[220px] sm:max-w-full">
+                <select
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(Number(e.target.value))}
+                  className="w-full appearance-none rounded-[14px] bg-white/[0.06] px-4 py-2.5 pr-10 text-[13px] font-medium text-white outline-none backdrop-blur-2xl"
+                >
+                  {availableSeasons.map((s) => (
+                    <option key={s.id} value={s.seasonNumber} className="bg-[#0a0a0a]">
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/60">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+
+              <button
+                onClick={() => stepSeason('next')}
+                disabled={selectedSeasonIndex < 0 || selectedSeasonIndex >= availableSeasons.length - 1}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Next season"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="mb-5 inline-flex items-center gap-0.5 overflow-x-auto rounded-full bg-white/[0.04] backdrop-blur-2xl p-1">
+          <div className="mb-5 inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full bg-white/[0.04] p-1 backdrop-blur-2xl">
             {availableSeasons.map((s) => (
               <button
                 key={s.id}
