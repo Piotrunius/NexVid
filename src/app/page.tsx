@@ -5,7 +5,7 @@
 import { MediaRow } from '@/components/media/MediaCard';
 import { HomePageClient } from '@/components/pages/HomePageClient';
 import { loadPublicBlockedMedia } from '@/lib/cloudSync';
-import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
+import { getPopular, getTitleLogoSvgPath, getTopRated, getTrending } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { MediaItem } from '@/types';
 import { Play } from 'lucide-react';
@@ -21,6 +21,7 @@ export default async function HomePage() {
   let topMovies: MediaItem[] = [];
   let topShows: MediaItem[] = [];
   let featured: MediaItem | null = null;
+  let featuredLogoSvgPath: string | null = null;
 
   try {
     const [t, p, m, s, blockedRes] = await Promise.all([
@@ -41,7 +42,25 @@ export default async function HomePage() {
     topShows = filterBlocked(s);
 
     if (trending.length > 0) {
-      featured = trending[Math.floor(Math.random() * Math.min(5, trending.length))];
+      const candidatePool = trending.slice(0, Math.min(8, trending.length));
+      const shuffledCandidates = [...candidatePool].sort(() => Math.random() - 0.5);
+
+      for (const candidate of shuffledCandidates) {
+        try {
+          const logoPath = await getTitleLogoSvgPath(candidate.mediaType, candidate.tmdbId, ['en', 'pl']);
+          if (logoPath) {
+            featured = candidate;
+            featuredLogoSvgPath = logoPath;
+            break;
+          }
+        } catch (logoError) {
+          console.warn('Failed to load featured title SVG logo:', logoError);
+        }
+      }
+
+      if (!featured) {
+        featured = candidatePool[0] || trending[0];
+      }
     }
   } catch (err) {
     console.error('Failed to load homepage data:', err);
@@ -85,9 +104,22 @@ export default async function HomePage() {
                   )}
                 </div>
 
-                <h1 className="animate-slide-up text-[48px] font-black leading-[1.1] tracking-tight text-white sm:text-[64px] lg:text-[72px]">
-                  {featured.title}
-                </h1>
+                {featuredLogoSvgPath ? (
+                  <div className="animate-slide-up">
+                    <img
+                      src={tmdbImage(featuredLogoSvgPath, 'original')}
+                      alt={featured.title}
+                      className="h-auto w-auto max-h-[140px] max-w-[min(86vw,34rem)] object-contain object-left drop-shadow-[0_10px_24px_rgba(0,0,0,0.62)] sm:max-h-[170px] lg:max-h-[190px]"
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                    />
+                  </div>
+                ) : (
+                  <h1 className="animate-slide-up text-[48px] font-black leading-[1.1] tracking-tight text-white sm:text-[64px] lg:text-[72px]">
+                    {featured.title}
+                  </h1>
+                )}
 
                 <p className="animate-slide-up line-clamp-3 text-[16px] leading-relaxed text-white/60 [animation-delay:100ms] sm:text-[18px]">
                   {featured.overview}

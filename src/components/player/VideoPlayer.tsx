@@ -2363,27 +2363,59 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         </select>
                       )}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {episodePanelLoading && <p className="px-3 py-3 text-[11px] text-white/50">Loading episodes...</p>}
                       {!episodePanelLoading && episodePanelEpisodes.map((ep) => (
                         <button
                           key={ep.episodeNumber}
                           onClick={() => { onNavigateEpisode?.(episodePanelSeason, ep.episodeNumber); setSettingsPanel(null); }}
                           className={cn(
-                            'w-full flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-all duration-200',
+                            'w-full rounded-[12px] p-2 text-left transition-all duration-200',
                             episodePanelSeason === seasonNum && ep.episodeNumber === episodeNum
                               ? 'bg-accent/15 text-accent shadow-[0_0_0_1px_var(--accent-muted)]'
                               : 'text-white/70 hover:bg-white/10 hover:text-white'
                           )}
                         >
-                          <span className="text-[11px] font-bold tabular-nums w-6 shrink-0">E{ep.episodeNumber}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] truncate">{ep.name || `Episode ${ep.episodeNumber}`}</p>
-                            {ep.runtime && <p className="text-[10px] text-white/40">{ep.runtime} min</p>}
+                          <div className="flex items-start gap-2.5">
+                            <div className="relative h-[56px] w-[100px] flex-shrink-0 overflow-hidden rounded-[10px] bg-white/5">
+                              {ep.stillPath ? (
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w300${ep.stillPath}`}
+                                  alt={ep.name || `Episode ${ep.episodeNumber}`}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-white/35">
+                                  <Play className="h-4 w-4 fill-current stroke-[1.85]" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="truncate text-[12px] font-semibold">
+                                  {ep.name || `Episode ${ep.episodeNumber}`}
+                                </p>
+                                {episodePanelSeason === seasonNum && ep.episodeNumber === episodeNum && (
+                                  <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">Now</span>
+                                )}
+                              </div>
+
+                              <p className="mt-0.5 text-[10px] font-medium text-white/55">
+                                S{episodePanelSeason}:E{ep.episodeNumber}
+                                {ep.runtime ? ` • ${ep.runtime} min` : ''}
+                              </p>
+
+                              {ep.overview ? (
+                                <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-white/45">
+                                  {ep.overview}
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-[10px] italic text-white/35">No description available</p>
+                              )}
+                            </div>
                           </div>
-                          {episodePanelSeason === seasonNum && ep.episodeNumber === episodeNum && (
-                            <span className="text-[10px] font-bold text-accent">NOW</span>
-                          )}
                         </button>
                       ))}
                     </div>
