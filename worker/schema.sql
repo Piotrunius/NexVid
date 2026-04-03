@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS surveys (
   description TEXT,
   questions TEXT NOT NULL, -- JSON array of question objects
   is_active INTEGER NOT NULL DEFAULT 0,
+  is_archived INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -159,6 +160,7 @@ CREATE TABLE IF NOT EXISTS survey_responses (
 );
 
 CREATE INDEX IF NOT EXISTS idx_surveys_active ON surveys(is_active);
+CREATE INDEX IF NOT EXISTS idx_surveys_archived_active ON surveys(is_archived, is_active, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_responses_survey ON survey_responses(survey_id);
 
 CREATE TABLE IF NOT EXISTS feedback_threads (
