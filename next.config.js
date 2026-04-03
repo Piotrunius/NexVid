@@ -19,7 +19,7 @@ const securityHeaders = [
             "worker-src 'self' blob: https:",
             "child-src 'self' blob:",
             "frame-src 'self' https://vidlink.pro https://*.vidlink.pro https://vidsrc.icu https://*.vidsrc.icu https://vidsrc.me https://*.vidsrc.me https://vidsrc.cc https://*.vidsrc.cc https://vidsrc.to https://*.vidsrc.to https://www.youtube.com https:",
-            "frame-ancestors 'self'",
+            "frame-ancestors 'none'",
         ].join('; '),
     },
     {
@@ -28,7 +28,7 @@ const securityHeaders = [
     },
     {
         key: 'X-Frame-Options',
-        value: 'SAMEORIGIN',
+        value: 'DENY',
     },
     {
         key: 'X-Content-Type-Options',
