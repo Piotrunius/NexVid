@@ -240,8 +240,8 @@ export function Navbar() {
         </div>
       )}
 
-      {/* ── Floating Pill (Bottom on mobile, top on larger screens) ── */}
-      <nav ref={dockRef} className="fixed bottom-3 left-1/2 z-50 -translate-x-1/2 sm:bottom-auto sm:top-4">
+      {/* ── Floating Pill (Top) ── */}
+      <nav ref={dockRef} className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
         <div
           className={cn(
             'flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-[24px] px-2 py-1.5 sm:gap-1 sm:rounded-[28px] sm:px-3 sm:py-2 transition-all duration-500 overflow-x-auto snap-x snap-mandatory touch-pan-x',

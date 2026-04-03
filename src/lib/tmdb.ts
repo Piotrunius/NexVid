@@ -287,3 +287,53 @@ export async function getExternalIds(type: 'movie' | 'tv', id: string): Promise<
   const data = await tmdbFetch<any>(`/${type}/${id}/external_ids`);
   return { imdbId: data.imdb_id, tvdbId: data.tvdb_id };
 }
+
+export async function getTitleLogoSvgPath(
+  mediaType: 'movie' | 'show',
+  id: string,
+  preferredLanguages: string[] = ['en', 'pl']
+): Promise<string | null> {
+  const endpointType = mediaType === 'show' ? 'tv' : 'movie';
+  const normalizedLangs = preferredLanguages
+    .map((lang) => lang.trim().toLowerCase())
+    .filter(Boolean);
+
+  const includeImageLanguage = ['null', ...normalizedLangs].join(',');
+  const data = await tmdbFetch<any>(`/${endpointType}/${id}/images`, {
+    include_image_language: includeImageLanguage,
+  });
+
+  const logos = Array.isArray(data?.logos)
+    ? data.logos.filter((logo: any) => typeof logo?.file_path === 'string')
+    : [];
+
+  if (logos.length === 0) return null;
+
+  const languageRank = new Map<string, number>();
+  normalizedLangs.forEach((lang, index) => {
+    languageRank.set(lang, index);
+  });
+
+  const ranked = [...logos].sort((a: any, b: any) => {
+    const langA = typeof a?.iso_639_1 === 'string' ? a.iso_639_1.toLowerCase() : 'null';
+    const langB = typeof b?.iso_639_1 === 'string' ? b.iso_639_1.toLowerCase() : 'null';
+
+    const svgA = String(a?.file_path || '').toLowerCase().endsWith('.svg') ? 0 : 1;
+    const svgB = String(b?.file_path || '').toLowerCase().endsWith('.svg') ? 0 : 1;
+    if (svgA !== svgB) return svgA - svgB;
+
+    const rankA = languageRank.has(langA) ? languageRank.get(langA)! : Number.MAX_SAFE_INTEGER;
+    const rankB = languageRank.has(langB) ? languageRank.get(langB)! : Number.MAX_SAFE_INTEGER;
+    if (rankA !== rankB) return rankA - rankB;
+
+    const voteA = typeof a?.vote_average === 'number' ? a.vote_average : 0;
+    const voteB = typeof b?.vote_average === 'number' ? b.vote_average : 0;
+    if (voteA !== voteB) return voteB - voteA;
+
+    const widthA = typeof a?.width === 'number' ? a.width : 0;
+    const widthB = typeof b?.width === 'number' ? b.width : 0;
+    return widthB - widthA;
+  });
+
+  return ranked[0]?.file_path || null;
+}
