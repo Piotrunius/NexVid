@@ -20,6 +20,7 @@ interface Survey {
   description: string;
   questions: SurveyQuestion[];
   is_active: number;
+  is_archived: number;
   created_at: string;
 }
 
@@ -31,7 +32,7 @@ interface SurveyResponse {
   created_at: string;
 }
 
-export function AdminSurveys() {
+export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,6 +43,7 @@ export function AdminSurveys() {
 
   const [viewingResults, setViewingResults] = useState<string | null>(null);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   const loadSurveys = async () => {
     try {
@@ -68,6 +70,10 @@ export function AdminSurveys() {
       return Date.parse(b.created_at) - Date.parse(a.created_at);
     });
   }, [surveys]);
+
+  const visibleSurveys = useMemo(() => {
+    return sortedSurveys.filter((survey) => showArchived ? survey.is_archived === 1 : survey.is_archived !== 1);
+  }, [showArchived, sortedSurveys]);
 
   const addQuestion = (type: QuestionType) => {
     const q: SurveyQuestion = {
@@ -189,6 +195,24 @@ export function AdminSurveys() {
     }
   };
 
+  const setSurveyArchived = async (id: string, archive: boolean) => {
+    try {
+      await cloudFetch('/admin/surveys', {
+        method: 'PATCH',
+        body: JSON.stringify({ id, isArchived: archive }),
+      });
+
+      if (archive && viewingResults === id) {
+        setViewingResults(null);
+      }
+
+      await loadSurveys();
+      toast(archive ? 'Survey archived' : 'Survey restored', 'success');
+    } catch (err: any) {
+      toast(err.message, 'error');
+    }
+  };
+
   const selectResults = async (id: string) => {
     if (viewingResults === id) {
       setViewingResults(null);
@@ -240,41 +264,72 @@ export function AdminSurveys() {
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* Survey List */}
         <div className="space-y-4 min-w-0">
-          <h2 className="text-[15px] font-semibold text-text-primary">Manage Surveys</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[15px] font-semibold text-text-primary">Manage Surveys</h2>
+            <button
+              onClick={() => setShowArchived((prev) => !prev)}
+              className={cn('btn-glass text-[10px] px-3 py-1.5 uppercase tracking-wider', showArchived && 'bg-accent/15 text-accent')}
+            >
+              {showArchived ? 'Show Active' : 'Show Archived'}
+            </button>
+          </div>
           <div className="flex gap-3 overflow-x-auto pb-6 scroll-row -mx-1 px-1 items-start">
-            {sortedSurveys.map(s => (
+            {visibleSurveys.map(s => (
               <div key={s.id} className={cn(
                 "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 w-[260px] shrink-0 transition-all duration-300",
-                s.is_active ? "border-accent/40 shadow-[0_8px_32px_rgba(var(--accent-rgb),0.15)]" : "border-white/5 shadow-lg"
+                s.is_active ? "border-accent/40 shadow-[0_8px_32px_rgba(var(--accent-rgb),0.15)]" : s.is_archived ? "border-yellow-500/20 shadow-lg" : "border-white/5 shadow-lg"
               )}>
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <h3 className="font-bold text-white text-[14px] truncate">{s.title}</h3>
-                    {s.is_active === 1 && <span className="text-[8px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-black uppercase">Active</span>}
+                    <div className="flex items-center gap-1">
+                      {s.is_active === 1 && <span className="text-[8px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-black uppercase">Active</span>}
+                      {s.is_archived === 1 && <span className="text-[8px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded-full font-black uppercase">Archived</span>}
+                    </div>
                   </div>
                   <p className="text-[11px] text-white/40 line-clamp-1">{s.description || 'No description'}</p>
                   <p className="text-[9px] text-white/20 mt-2 font-medium">{new Date(s.created_at).toLocaleDateString()}</p>
                 </div>
-                <div className="flex gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   <button
+                    disabled={s.is_archived === 1}
                     onClick={() => toggleSurvey(s.id, s.is_active === 1)}
-                    className={cn("btn-glass flex-1 text-[10px] py-1.5 px-0", s.is_active === 1 && "bg-white/10")}
+                    className={cn(
+                      s.is_active === 1 ? "btn-glass text-[11px] py-2.5 px-3 font-semibold bg-white/10" : "btn-accent text-[11px] py-2.5 px-3 font-semibold",
+                      s.is_archived === 1 && 'opacity-40 cursor-not-allowed'
+                    )}
                   >
                     {s.is_active === 1 ? 'Stop' : 'Start'}
                   </button>
                   <button
                     onClick={() => selectResults(s.id)}
-                    className={cn("btn-glass flex-1 text-[10px] py-1.5 px-0", viewingResults === s.id && "bg-accent/20 text-accent")}
+                    className={cn("btn-glass text-[11px] py-2.5 px-3 font-semibold", viewingResults === s.id && "bg-accent/20 text-accent")}
                   >
                     Stats
                   </button>
-                  <button onClick={() => deleteSurvey(s.id)} className="btn-glass text-red-400/60 p-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <button
+                    onClick={() => setSurveyArchived(s.id, s.is_archived !== 1)}
+                    className={cn(
+                      'btn-glass text-[11px] py-2.5 px-3 font-semibold',
+                      canDelete ? 'col-span-1' : 'col-span-2',
+                      s.is_archived === 1 ? 'text-emerald-300/90 bg-emerald-500/10' : 'text-yellow-300/90 bg-yellow-500/10'
+                    )}
+                    title={s.is_archived === 1 ? 'Restore survey' : 'Archive survey'}
+                  >
+                    {s.is_archived === 1 ? 'Restore' : 'Archive'}
                   </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => deleteSurvey(s.id)}
+                      className="btn-glass text-[11px] py-2.5 px-3 font-semibold text-red-300/90 bg-red-500/10"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
-            {surveys.length === 0 && <div className="w-full p-12 text-center text-white/10 border border-dashed border-white/5 rounded-2xl">No surveys</div>}
+            {visibleSurveys.length === 0 && <div className="w-full p-12 text-center text-white/10 border border-dashed border-white/5 rounded-2xl">{showArchived ? 'No archived surveys' : 'No active surveys'}</div>}
           </div>
 
           {/* Results Panel (Separate at the bottom) */}

@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-    addAdminBlockedMedia,
-    banAdminTarget,
-    clearAllActiveSessions,
-    cloudFetch,
-    createAdminAnnouncement,
-    deleteAdminAccountLimit,
-    deleteAdminAnnouncement,
-    deleteAdminBlockedMedia,
-    deleteAdminFeedbackThread,
-    deleteAdminUserByUsername,
-    grantAdminPermission,
-    loadAdminAccountLimits,
-    loadAdminAnnouncements,
-    loadAdminAuditLogs,
-    loadAdminBans,
-    loadAdminBlockedMedia,
-    loadAdminFeedbackMessages,
-    loadAdminFeedbackThreads,
-    loadAdminGrantList,
-    loadAdminOverview,
-    loadAdminUsers,
-    lookupAdminAccounts,
-    replyAdminFeedbackThread,
-    resetUserPassword,
-    revokeAdminPermission,
-    setAdminAccountLimit,
-    unbanAdminTarget,
-    updateAdminAnnouncement,
+  addAdminBlockedMedia,
+  banAdminTarget,
+  clearAllActiveSessions,
+  cloudFetch,
+  createAdminAnnouncement,
+  deleteAdminAccountLimit,
+  deleteAdminAnnouncement,
+  deleteAdminBlockedMedia,
+  deleteAdminFeedbackThread,
+  deleteAdminUserByUsername,
+  grantAdminPermission,
+  loadAdminAccountLimits,
+  loadAdminAnnouncements,
+  loadAdminAuditLogs,
+  loadAdminBans,
+  loadAdminBlockedMedia,
+  loadAdminFeedbackMessages,
+  loadAdminFeedbackThreads,
+  loadAdminGrantList,
+  loadAdminOverview,
+  loadAdminUsers,
+  lookupAdminAccounts,
+  replyAdminFeedbackThread,
+  resetUserPassword,
+  revokeAdminPermission,
+  setAdminAccountLimit,
+  unbanAdminTarget,
+  updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -147,16 +147,18 @@ type FebboxTokenItem = {
 
 export default function AdminPage() {
   const { user, isLoggedIn, logout } = useAuthStore();
+  const [serverRole, setServerRole] = useState<'owner' | 'admin' | 'moderator' | null>(null);
 
-  const userRole = user?.role || (user?.isAdmin ? 'admin' : null);
+  const userRole = serverRole || user?.role || (user?.isAdmin ? 'admin' : null);
   const isModerator = userRole === 'moderator';
   const isAdminRole = userRole === 'admin';
   const isOwner = userRole === 'owner';
+  const isOwnerConfirmed = serverRole === 'owner';
   const hasAdminPanelAccess = isLoggedIn && (isModerator || isAdminRole || isOwner);
 
   const canManageModeration = isOwner || isAdminRole;
   const canManageAdmins = isOwner || isAdminRole;
-  const canManageSystem = isOwner;
+  const canManageSystem = isOwnerConfirmed;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -318,6 +320,7 @@ export default function AdminPage() {
     setIsLoading(true);
     try {
       const overview = await loadAdminOverview();
+      setServerRole((overview.admin?.role as 'owner' | 'admin' | 'moderator' | null) || null);
       setStats(overview.stats);
 
       const promises: Promise<any>[] = [
@@ -553,6 +556,11 @@ export default function AdminPage() {
   };
 
   const handleClearAllSessions = async () => {
+    if (!isOwnerConfirmed) {
+      toast('Only owner can clear active sessions', 'error');
+      return;
+    }
+
     const shouldClear = window.confirm('This will force logout all users, including you. Continue?');
     if (!shouldClear) return;
 
@@ -870,6 +878,11 @@ export default function AdminPage() {
   };
 
   const handleForceDeleteFeedbackThread = async () => {
+    if (!isOwnerConfirmed) {
+      toast('Only owner can force delete feedback threads', 'error');
+      return;
+    }
+
     if (!selectedFeedbackThreadId) {
       toast('Select a feedback thread first', 'error');
       return;
@@ -940,7 +953,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 space-y-6 [&_button]:text-center [&_button]:justify-center">
       <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Admin Panel</h1>
@@ -1617,13 +1630,13 @@ export default function AdminPage() {
                       <p className="self-center text-[11px] text-text-muted">Thread archived</p>
                     )}
 
-                    {isOwner && (
+                    {isOwnerConfirmed && (
                       <button
                         disabled={isSubmitting}
                         onClick={handleForceDeleteFeedbackThread}
                         className="btn-glass flex-1 min-w-[110px] justify-center px-3 py-2 text-center text-[12px] text-red-400"
                       >
-                        Force delete
+                        Delete
                       </button>
                     )}
                   </div>
@@ -1691,7 +1704,7 @@ export default function AdminPage() {
 
       {!isModerator && (
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
-          <AdminSurveys />
+          <AdminSurveys canDelete={isOwnerConfirmed} />
         </section>
       )}
     </div>

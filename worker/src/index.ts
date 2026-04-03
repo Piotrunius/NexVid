@@ -394,6 +394,12 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         await env.DB.prepare('ALTER TABLE announcements ADD COLUMN is_important INTEGER NOT NULL DEFAULT 0').run();
       } catch { /* already exists */ }
 
+      try {
+        await env.DB.prepare('ALTER TABLE surveys ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0').run();
+      } catch { /* already exists */ }
+
+      await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_surveys_archived_active ON surveys(is_archived, is_active, created_at DESC)').run();
+
       // Error tracking for player health - REMOVED
 
       // Daily stats for success rate - REMOVED
@@ -677,8 +683,8 @@ function normalizeSurveyAnswers(question: SurveyQuestionDraft[], answers: unknow
   return { ok: true, answers: normalized };
 }
 
-async function loadSurveyById(env: Env, surveyId: string): Promise<{ id: string; title: string; description: string | null; is_active: number; questions: SurveyQuestionDraft[] } | null> {
-  const row = await env.DB.prepare('SELECT id, title, description, questions, is_active FROM surveys WHERE id = ? LIMIT 1').bind(surveyId).first<{ id: string; title: string; description: string | null; questions: string; is_active: number }>();
+async function loadSurveyById(env: Env, surveyId: string): Promise<{ id: string; title: string; description: string | null; is_active: number; is_archived: number; questions: SurveyQuestionDraft[] } | null> {
+  const row = await env.DB.prepare('SELECT id, title, description, questions, is_active, COALESCE(is_archived, 0) as is_archived FROM surveys WHERE id = ? LIMIT 1').bind(surveyId).first<{ id: string; title: string; description: string | null; questions: string; is_active: number; is_archived: number }>();
   if (!row?.id) return null;
 
   try {
@@ -691,6 +697,7 @@ async function loadSurveyById(env: Env, surveyId: string): Promise<{ id: string;
       title: row.title,
       description: row.description,
       is_active: row.is_active,
+      is_archived: row.is_archived,
       questions: sanitized.questions,
     };
   } catch {
@@ -2726,7 +2733,7 @@ async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleAdminSessions(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
+  const session = await requireRole(request, env, ['owner']);
   if (session instanceof Response) return session;
 
   if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
@@ -3344,7 +3351,7 @@ async function handleAdminSurveys(request: Request, env: Env): Promise<Response>
   if (session instanceof Response) return session;
 
   if (request.method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT * FROM surveys ORDER BY created_at DESC').all();
+    const { results } = await env.DB.prepare('SELECT *, COALESCE(is_archived, 0) as is_archived FROM surveys ORDER BY created_at DESC').all();
     const mapped = results.map((s: any) => ({
       ...s,
       questions: typeof s.questions === 'string' ? JSON.parse(s.questions) : s.questions
@@ -3363,7 +3370,7 @@ async function handleAdminSurveys(request: Request, env: Env): Promise<Response>
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    await env.DB.prepare('INSERT INTO surveys (id, title, description, questions, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)')
+    await env.DB.prepare('INSERT INTO surveys (id, title, description, questions, is_active, is_archived, created_at, updated_at) VALUES (?, ?, ?, ?, 0, 0, ?, ?)')
       .bind(id, title, description || '', JSON.stringify(sanitizedQuestions.questions), now, now)
       .run();
 
@@ -3373,20 +3380,50 @@ async function handleAdminSurveys(request: Request, env: Env): Promise<Response>
   }
 
   if (request.method === 'PATCH') {
-    const body = await readJson<{ id: string; isActive: boolean }>(request);
+    const body = await readJson<{ id: string; isActive?: boolean; isArchived?: boolean }>(request);
+    const id = normalizeSurveyText(body.id, 64);
+    if (!id) return json(request, env, { error: 'id is required' }, 400);
+
+    const row = await env.DB.prepare('SELECT id, is_active, COALESCE(is_archived, 0) as is_archived FROM surveys WHERE id = ? LIMIT 1').bind(id).first<{ id: string; is_active: number; is_archived: number }>();
+    if (!row?.id) return json(request, env, { error: 'Survey not found' }, 404);
+
+    const shouldToggleArchive = typeof body.isArchived === 'boolean';
+    const shouldToggleActive = typeof body.isActive === 'boolean';
+
+    if (!shouldToggleArchive && !shouldToggleActive) {
+      return json(request, env, { error: 'No changes requested' }, 400);
+    }
+
+    if (shouldToggleArchive) {
+      const archivedValue = body.isArchived ? 1 : 0;
+      const activeValue = archivedValue === 1 ? 0 : row.is_active;
+
+      await env.DB.prepare('UPDATE surveys SET is_archived = ?, is_active = ?, updated_at = ? WHERE id = ?')
+        .bind(archivedValue, activeValue, new Date().toISOString(), id)
+        .run();
+
+      await writeAdminAuditLog(env, session.user.id, archivedValue === 1 ? 'archive_survey' : 'unarchive_survey', 'survey', id, null);
+      return json(request, env, { ok: true });
+    }
+
     if (body.isActive) {
       await env.DB.prepare('UPDATE surveys SET is_active = 0').run();
     }
-    await env.DB.prepare('UPDATE surveys SET is_active = ?, updated_at = ? WHERE id = ?')
-      .bind(body.isActive ? 1 : 0, new Date().toISOString(), body.id)
+
+    await env.DB.prepare('UPDATE surveys SET is_active = ?, is_archived = 0, updated_at = ? WHERE id = ?')
+      .bind(body.isActive ? 1 : 0, new Date().toISOString(), id)
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, body.isActive ? 'activate_survey' : 'deactivate_survey', 'survey', body.id, null);
+    await writeAdminAuditLog(env, session.user.id, body.isActive ? 'activate_survey' : 'deactivate_survey', 'survey', id, null);
 
     return json(request, env, { ok: true });
   }
 
   if (request.method === 'DELETE') {
+    if (session.user.role !== 'owner') {
+      return json(request, env, { error: 'Forbidden: Only owner can delete surveys' }, 403);
+    }
+
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
     if (!id) return json(request, env, { error: 'Missing id' }, 400);
@@ -3413,7 +3450,7 @@ async function handleAdminSurveyResults(request: Request, env: Env): Promise<Res
 }
 
 async function handlePublicSurvey(request: Request, env: Env): Promise<Response> {
-  const row = await env.DB.prepare('SELECT id, title, description, questions FROM surveys WHERE is_active = 1 LIMIT 1').first<{ id: string; title: string; description: string; questions: string }>();
+  const row = await env.DB.prepare('SELECT id, title, description, questions FROM surveys WHERE is_active = 1 AND COALESCE(is_archived, 0) = 0 LIMIT 1').first<{ id: string; title: string; description: string; questions: string }>();
   if (!row) return json(request, env, { survey: null });
   return json(request, env, { survey: { ...row, questions: JSON.parse(row.questions) } });
 }
@@ -3425,7 +3462,7 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
   if (!surveyId) return json(request, env, { error: 'surveyId is required' }, 400);
 
   const survey = await loadSurveyById(env, surveyId);
-  if (!survey || survey.is_active !== 1) {
+  if (!survey || survey.is_active !== 1 || survey.is_archived === 1) {
     return json(request, env, { error: 'Survey not found' }, 404);
   }
 
