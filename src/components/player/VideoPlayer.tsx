@@ -2346,7 +2346,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
                 {/* Episodes Panel */}
                 {settingsPanel === 'episodes' && (
-                  <div className="absolute bottom-full right-0 z-[30] mb-2 w-[min(92vw,20rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-scale-in max-h-[60vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  <div className="fixed bottom-24 left-1/2 z-[30] mb-0 w-[min(92vw,20rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in max-h-[60vh] overflow-y-auto sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-[11px] font-semibold text-white/80">Episodes</p>
                       {(media as Show)?.seasons && (media as Show).seasons.length > 1 && (
@@ -2599,7 +2599,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
               {/* Unified Settings Panel */}
               {settingsPanel && !['info', 'episodes'].includes(settingsPanel) && (
-                <div className="absolute bottom-full right-0 z-[30] mb-2 w-[min(90vw,18rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-scale-in" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed bottom-24 left-1/2 z-[30] mb-0 w-[min(90vw,18rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
                   {/* Main Grid */}
                   {settingsPanel === 'main' && (
                     <div className="space-y-3">
