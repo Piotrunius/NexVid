@@ -1453,13 +1453,46 @@ async function handleSettings(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
 
+  const allowedSettingsKeys = new Set([
+    'theme',
+    'accentColor',
+    'customAccentHex',
+    'subtitleLanguage',
+    'autoPlay',
+    'autoNext',
+    'defaultQuality',
+    'seekTime',
+    'playerVolume',
+    'skipIntro',
+    'skipOutro',
+    'autoSkipSegments',
+    'autoSwitchSource',
+    'idlePauseOverlay',
+    'febboxApiKey',
+    'disableEmbeds',
+    'introDbApiKey',
+    'groqApiKey',
+    'omdbApiKey',
+  ]);
+
+  const sanitizeSettingsForStorage = (input: unknown): Record<string, unknown> => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
+    const next: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+      if (allowedSettingsKeys.has(key)) {
+        next[key] = value;
+      }
+    }
+    return next;
+  };
+
   if (request.method === 'GET') {
     const row = await env.DB.prepare('SELECT settings_json FROM user_settings WHERE user_id = ?').bind(session.user.id).first<{ settings_json: string }>();
     return json(request, env, { settings: row?.settings_json ? JSON.parse(row.settings_json) : {} });
   }
 
   const body = await readJson<{ settings?: Record<string, unknown> }>(request);
-  const payload = JSON.stringify(body.settings || {});
+  const payload = JSON.stringify(sanitizeSettingsForStorage(body.settings));
   const now = new Date().toISOString();
 
   await env.DB.prepare(
@@ -1982,19 +2015,12 @@ async function handleUserNotifications(request: Request, env: Env): Promise<Resp
       createdAt: row.created_at,
     }));
 
-    return json(request, env, {
-      items,
-      unreadCount: items.filter((item) => !item.isRead).length,
-    });
+    return json(request, env, { items });
   }
 
   if (request.method === 'PUT') {
-    const body = await readJson<{ ids?: string[]; markAllRead?: boolean }>(request);
+    const body = await readJson<{ ids?: string[] }>(request);
     const now = new Date().toISOString();
-    if (body.markAllRead) {
-      await env.DB.prepare('UPDATE user_notifications SET is_read = 1 WHERE user_id = ?').bind(session.user.id).run();
-      return json(request, env, { ok: true, updatedAt: now });
-    }
 
     const ids = Array.isArray(body.ids) ? body.ids.map((item) => String(item).trim()).filter(Boolean) : [];
     if (ids.length === 0) return json(request, env, { error: 'No notification ids provided' }, 400);

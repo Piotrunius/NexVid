@@ -405,7 +405,6 @@ export async function loadUserNotifications() {
       isRead: boolean;
       createdAt: string;
     }[];
-    unreadCount: number;
   }>('/user/notifications', { method: 'GET' });
 }
 
@@ -413,13 +412,6 @@ export async function markUserNotificationsRead(ids: string[]) {
   return cloudFetch<{ ok: boolean; updatedAt: string }>('/user/notifications', {
     method: 'PUT',
     body: JSON.stringify({ ids }),
-  });
-}
-
-export async function markAllUserNotificationsRead() {
-  return cloudFetch<{ ok: boolean; updatedAt: string }>('/user/notifications', {
-    method: 'PUT',
-    body: JSON.stringify({ markAllRead: true }),
   });
 }
 

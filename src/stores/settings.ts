@@ -37,6 +37,32 @@ export const DEFAULT_SETTINGS: UserSettings = {
   disabledSources: [],
 };
 
+const CLOUD_PERSISTED_KEYS = [
+  'theme',
+  'accentColor',
+  'customAccentHex',
+  'subtitleLanguage',
+  'autoPlay',
+  'autoNext',
+  'defaultQuality',
+  'seekTime',
+  'playerVolume',
+  'skipIntro',
+  'skipOutro',
+  'autoSkipSegments',
+  'autoSwitchSource',
+  'idlePauseOverlay',
+  'febboxApiKey',
+  'disableEmbeds',
+  'introDbApiKey',
+  'groqApiKey',
+  'omdbApiKey',
+] as const;
+
+function toCloudPersistedSettings(settings: UserSettings): Record<string, unknown> {
+  return Object.fromEntries(CLOUD_PERSISTED_KEYS.map((key) => [key, settings[key]]));
+}
+
 interface SettingsStore {
   settings: UserSettings;
   updateSettings: (partial: Partial<UserSettings>) => void;
@@ -60,7 +86,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => {
           const next = { ...state.settings, ...partial };
           if (getCloudToken()) {
-            void saveCloudSettings(next as Record<string, unknown>).catch(() => {});
+            void saveCloudSettings(toCloudPersistedSettings(next)).catch(() => {});
           }
           return { settings: next };
         }),
@@ -77,7 +103,7 @@ export const useSettingsStore = create<SettingsStore>()(
       resetSettings: () => {
         const next = { ...DEFAULT_SETTINGS };
         if (getCloudToken()) {
-          void saveCloudSettings(next as Record<string, unknown>).catch(() => {});
+          void saveCloudSettings(toCloudPersistedSettings(next)).catch(() => {});
         }
         set({ settings: next });
       },
@@ -104,7 +130,7 @@ export const useSettingsStore = create<SettingsStore>()(
           if (idx === -1) disabled.push(sourceId);
           else disabled.splice(idx, 1);
           if (getCloudToken()) {
-            void saveCloudSettings({ ...state.settings, disabledSources: disabled } as Record<string, unknown>).catch(() => {});
+            void saveCloudSettings(toCloudPersistedSettings({ ...state.settings, disabledSources: disabled })).catch(() => {});
           }
           return { settings: { ...state.settings, disabledSources: disabled } };
         }),
@@ -113,7 +139,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => {
           const next = { ...state.settings, preferredSources: sourceIds };
           if (getCloudToken()) {
-            void saveCloudSettings(next as Record<string, unknown>).catch(() => {});
+            void saveCloudSettings(toCloudPersistedSettings(next)).catch(() => {});
           }
           return { settings: next };
         }),
