@@ -11,7 +11,6 @@ interface Announcement {
   message: string;
   type: 'info' | 'warning' | 'update' | 'success';
   link?: { url: string; label: string };
-  isImportant: boolean;
 }
 
 const TYPE_CONFIG = {
@@ -61,16 +60,16 @@ export function AnnouncementModal() {
         const res = await loadPublicAnnouncements();
         if (!res.announcements) return;
 
-        // Find the latest active important announcement
-        const important = res.announcements.find((a: any) => a.isImportant);
-        if (!important) return;
+        // Announcements are no longer split by importance.
+        const latest = res.announcements[0];
+        if (!latest) return;
 
-        const id = important.id;
+        const id = latest.id;
         const isDismissed = localStorage.getItem(`announcement_dismissed_${id}`);
 
         if (isDismissed) return;
 
-        setAnnouncement(important);
+        setAnnouncement(latest);
         setIsVisible(true);
       } catch (err) {
         console.error('Failed to load announcements:', err);
