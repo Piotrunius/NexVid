@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 
 export function Footer() {
   const year = new Date().getFullYear();
+  const discordUrl = 'https://cloud.umami.is/q/vCu19Bcub';
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -51,17 +52,29 @@ export function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex items-center gap-8 text-[13px] text-white/30">
+          <div className="flex flex-wrap items-center justify-center gap-8 text-[13px] text-white/30">
             {[
               { href: '/credits', label: 'Credits' },
-              { href: '/contact', label: 'Contact' },
+              { href: discordUrl, label: 'Discord', external: true },
               { href: '/privacy', label: 'Privacy' },
               { href: '/terms', label: 'Terms' },
               { href: '/dmca', label: 'DMCA' },
             ].map((link) => (
-              <Link key={link.href} href={link.href} className="hover:text-white/70 transition-colors duration-300">
-                {link.label}
-              </Link>
+              link.external ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white/70 transition-colors duration-300"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href} className="hover:text-white/70 transition-colors duration-300">
+                  {link.label}
+                </Link>
+              )
             ))}
           </div>
 

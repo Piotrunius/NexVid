@@ -4,6 +4,8 @@
 
 export const metadata = { title: 'Privacy Policy - NexVid' };
 
+const DISCORD_INVITE_URL = 'https://cloud.umami.is/q/vCu19Bcub';
+
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-24">
@@ -136,6 +138,15 @@ export default function PrivacyPage() {
           <a href="mailto:security@nexvid.online" className="text-accent hover:underline font-medium">security@nexvid.online</a>
           <p className="mt-4 mb-2">For general support and other inquiries:</p>
           <a href="mailto:support@nexvid.online" className="text-accent hover:underline font-medium">support@nexvid.online</a>
+          <p className="mt-4 mb-2">Community and quick updates:</p>
+          <a
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline font-medium"
+          >
+            Join Discord
+          </a>
         </section>
       </div>
     </div>

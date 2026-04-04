@@ -42,6 +42,8 @@ const CATEGORY_OPTIONS = [
   { value: 'contact', label: 'Contact' },
 ] as const;
 
+const DISCORD_INVITE_URL = 'https://cloud.umami.is/q/vCu19Bcub';
+
 export default function ContactPage() {
   const { isLoggedIn } = useAuthStore();
   const hasTurnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -257,6 +259,15 @@ export default function ContactPage() {
           <div className="mt-6 border-t border-[var(--border)] pt-6">
             <p className="text-[12px] text-text-muted">Or contact us directly via email:</p>
             <a href="mailto:support@nexvid.online" className="mt-1 block text-[14px] font-medium text-accent hover:underline">support@nexvid.online</a>
+            <p className="mt-4 text-[12px] text-text-muted">Prefer chat? Join our Discord server:</p>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block text-[14px] font-medium text-accent hover:underline"
+            >
+              Join Discord
+            </a>
           </div>
           <Link href="/login" className="btn-accent mt-6 inline-flex">Go to login</Link>
         </div>
@@ -279,6 +290,17 @@ export default function ContactPage() {
           <div className="flex items-center gap-2 text-[12px] text-text-muted">
             <span>Security:</span>
             <a href="mailto:security@nexvid.online" className="font-medium text-accent hover:underline">security@nexvid.online</a>
+          </div>
+          <div className="flex items-center gap-2 text-[12px] text-text-muted">
+            <span>Community:</span>
+            <a
+              href={DISCORD_INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-accent hover:underline"
+            >
+              Join Discord
+            </a>
           </div>
         </div>
       </div>
@@ -419,9 +441,9 @@ export default function ContactPage() {
                         disabled={isSelectedClosed || isSubmitting}
                         rows={1}
                       />
-                      <button 
-                        disabled={isSubmitting || isSelectedClosed || !replyText.trim()} 
-                        onClick={handleReply} 
+                      <button
+                        disabled={isSubmitting || isSelectedClosed || !replyText.trim()}
+                        onClick={handleReply}
                         className="btn-accent px-5 shrink-0"
                       >
                         Send
