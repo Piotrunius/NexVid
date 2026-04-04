@@ -83,7 +83,6 @@ export function Navbar() {
       if (!mounted) return;
 
       const activeAnnouncements = (publicRes.announcements || [])
-        .filter((item: any) => !item.isImportant)
         .map((item: any) => ({ id: String(item.id), message: String(item.message || ''), type: (item.type || 'info') as Announcement['type'], link: item.link }))
         .filter((a: Announcement) => a.message)
         .filter((a: Announcement) => !dismissed.includes(a.id));

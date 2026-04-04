@@ -2067,7 +2067,7 @@ async function requireRole(request: Request, env: Env, allowedRoles: string[]): 
 
 async function handlePublicAnnouncements(request: Request, env: Env): Promise<Response> {
   const rows = await env.DB.prepare(
-    `SELECT id, message, type, link_url, link_label, is_important, updated_at
+    `SELECT id, message, type, link_url, link_label, updated_at
      FROM announcements
      WHERE is_active = 1
      ORDER BY updated_at DESC
@@ -2078,7 +2078,6 @@ async function handlePublicAnnouncements(request: Request, env: Env): Promise<Re
     type: AnnouncementType;
     link_url: string | null;
     link_label: string | null;
-    is_important: number;
     updated_at: string;
   }>();
 
@@ -2088,7 +2087,6 @@ async function handlePublicAnnouncements(request: Request, env: Env): Promise<Re
       message: row.message,
       type: sanitizeAnnouncementType(row.type),
       link: row.link_url ? { url: row.link_url, label: row.link_label || 'Learn more' } : undefined,
-      isImportant: Boolean(row.is_important),
       updatedAt: row.updated_at,
     })),
   });
@@ -2363,14 +2361,12 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
   }
 
   if (request.method === 'POST') {
-    const body = await readJson<{ type?: 'username'; value?: string; maxAccounts?: number }>(request);
-    const type = body.type || 'username';
+    const body = await readJson<{ type?: string; value?: string; maxAccounts?: number }>(request);
     const rawValue = (body.value || '').trim();
     const maxAccounts = Math.max(1, Math.min(200, Number(body.maxAccounts || 1)));
     const now = new Date().toISOString();
 
     if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
-    if (type !== 'username') return json(request, env, { error: 'Only nickname overrides are supported' }, 400);
 
     const username = normalizeUsername(rawValue);
     if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
@@ -2387,13 +2383,12 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
 
   if (request.method === 'DELETE') {
     const url = new URL(request.url);
-    const type = (url.searchParams.get('type') || '').trim();
     const rawValue = (url.searchParams.get('value') || '').trim();
 
-    if (type !== 'username') return json(request, env, { error: 'Only nickname overrides are supported' }, 400);
     if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
     const username = normalizeUsername(rawValue);
+    if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
     await env.DB.prepare('DELETE FROM account_limit_overrides WHERE type = ? AND value = ?').bind('username', username).run();
     await writeAdminAuditLog(env, session.user.id, 'delete_account_limit_override', 'username', username, null);
     return json(request, env, { ok: true });
@@ -2411,10 +2406,8 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
   if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
 
   const url = new URL(request.url);
-  const type = (url.searchParams.get('type') || '').trim();
   const rawValue = (url.searchParams.get('value') || '').trim();
 
-  if (type !== 'username') return json(request, env, { error: 'Only nickname lookup is supported' }, 400);
   if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
   const getAccountsByIpHashes = async (ipHashes: string[]) => {
@@ -2477,7 +2470,7 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
 
   if (request.method === 'GET') {
     const rows = await env.DB.prepare(
-      `SELECT id, message, type, link_url, link_label, is_active, is_important, created_at, updated_at
+      `SELECT id, message, type, link_url, link_label, is_active, created_at, updated_at
        FROM announcements
        ORDER BY updated_at DESC
        LIMIT 200`
@@ -2488,7 +2481,6 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
       link_url: string | null;
       link_label: string | null;
       is_active: number;
-      is_important: number;
       created_at: string;
       updated_at: string;
     }>();
@@ -2501,7 +2493,6 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
         linkUrl: row.link_url,
         linkLabel: row.link_label,
         isActive: Boolean(row.is_active),
-        isImportant: Boolean(row.is_important),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       })),
@@ -2509,13 +2500,12 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
   }
 
   if (request.method === 'POST') {
-    const body = await readJson<{ message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean; isImportant?: boolean }>(request);
+    const body = await readJson<{ message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean }>(request);
     const message = (body.message || '').trim().slice(0, 500);
     const type = sanitizeAnnouncementType(body.type);
     const linkUrl = sanitizeOptionalHttpUrl(body.linkUrl);
     const linkLabel = (body.linkLabel || '').trim().slice(0, 60);
     const isActive = body.isActive !== false;
-    const isImportant = Boolean(body.isImportant);
     const now = new Date().toISOString();
 
     if (!message) return json(request, env, { error: 'Message is required' }, 400);
@@ -2526,22 +2516,21 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
       `INSERT INTO announcements (id, message, type, link_url, link_label, is_active, is_important, created_at, updated_at, created_by_user_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(id, message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, isImportant ? 1 : 0, now, now, session.user.id)
+      .bind(id, message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, 1, now, now, session.user.id)
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'create_announcement', 'announcement', id, { isActive, isImportant, type });
+    await writeAdminAuditLog(env, session.user.id, 'create_announcement', 'announcement', id, { isActive, type });
     return json(request, env, { ok: true, id });
   }
 
   if (request.method === 'PUT') {
-    const body = await readJson<{ id?: string; message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean; isImportant?: boolean }>(request);
+    const body = await readJson<{ id?: string; message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean }>(request);
     const id = (body.id || '').trim();
     const message = (body.message || '').trim().slice(0, 500);
     const type = sanitizeAnnouncementType(body.type);
     const linkUrl = sanitizeOptionalHttpUrl(body.linkUrl);
     const linkLabel = (body.linkLabel || '').trim().slice(0, 60);
     const isActive = body.isActive !== false;
-    const isImportant = Boolean(body.isImportant);
 
     if (!id) return json(request, env, { error: 'Announcement id is required' }, 400);
     if (!message) return json(request, env, { error: 'Message is required' }, 400);
@@ -2552,10 +2541,10 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
        SET message = ?, type = ?, link_url = ?, link_label = ?, is_active = ?, is_important = ?, updated_at = ?
        WHERE id = ?`
     )
-      .bind(message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, isImportant ? 1 : 0, new Date().toISOString(), id)
+      .bind(message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, 1, new Date().toISOString(), id)
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'update_announcement', 'announcement', id, { isActive, isImportant, type });
+    await writeAdminAuditLog(env, session.user.id, 'update_announcement', 'announcement', id, { isActive, type });
     return json(request, env, { ok: true });
   }
 

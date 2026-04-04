@@ -45,7 +45,6 @@ type AdminAnnouncement = {
   linkUrl?: string;
   linkLabel?: string;
   isActive: boolean;
-  isImportant: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -229,7 +228,6 @@ export default function AdminPage() {
   const [announcementType, setAnnouncementType] = useState<AnnouncementType>('info');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
-  const isImportant = true;
 
   const canManage = hasAdminPanelAccess;
 
@@ -523,7 +521,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteLimit = async (type: 'username' | 'ip', value: string) => {
+  const handleDeleteLimit = async (type: 'username', value: string) => {
     setIsSubmitting(true);
     try {
       await deleteAdminAccountLimit(type, value);
@@ -634,7 +632,6 @@ export default function AdminPage() {
         linkUrl: linkUrl.trim() || undefined,
         linkLabel: linkLabel.trim() || undefined,
         isActive: false, // Manual activation
-        isImportant,
       });
       setMessage('');
       setLinkUrl('');
@@ -659,7 +656,6 @@ export default function AdminPage() {
         linkUrl: item.linkUrl,
         linkLabel: item.linkLabel,
         isActive: !item.isActive,
-        isImportant: item.isImportant,
       });
       await loadAll();
       toast(item.isActive ? 'Announcement hidden' : 'Announcement activated', 'success');
