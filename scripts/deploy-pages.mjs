@@ -20,10 +20,19 @@ function isTransientPagesError(error) {
         .map((value) => String(value))
         .join('\n');
 
+    const lower = message.toLowerCase();
+
     return message.includes('504')
+        || message.includes('502')
+        || message.includes('503')
+        || message.includes('Service unavailable')
+        || message.includes('[code: 7010]')
         || message.includes('Gateway Timeout')
         || message.includes('upstream request timeout')
-        || message.includes('malformed response from the API');
+        || message.includes('malformed response from the API')
+        || lower.includes('temporarily unavailable')
+        || lower.includes('please try again')
+        || lower.includes('network connection lost');
 }
 
 function run(command) {
@@ -42,7 +51,7 @@ async function main() {
     run('bun run pages:prepare');
 
     const deployCommand = `bunx wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`;
-    const maxAttempts = 3;
+    const maxAttempts = 5;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
