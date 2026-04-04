@@ -9,15 +9,21 @@ function resolveCloudApiUrl(): string {
   return configured || DEFAULT_PROD_API_URL;
 }
 
-async function isValidCloudToken(token: string): Promise<boolean> {
-  if (!token) return false;
+async function isValidCloudSession(request: Request, token?: string): Promise<boolean> {
   const apiBase = resolveCloudApiUrl();
+  const incomingCookie = request.headers.get('cookie') || '';
   try {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    if (incomingCookie) {
+      headers.Cookie = incomingCookie;
+    }
+
     const response = await fetch(`${apiBase}/auth/me`, {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       cache: 'no-store',
     });
     return response.ok;
@@ -30,16 +36,20 @@ export async function POST(req: Request) {
   try {
     const { mood, type, selectedGenres, era, groqApiKey: userApiKey } = await req.json();
     const authHeader = req.headers.get('Authorization');
+    const cookieHeader = req.headers.get('cookie') || '';
     const token = authHeader?.split(' ')[1];
 
     // If user provided their own key, we don't strictly need a Cloud account
     if (!userApiKey || userApiKey === '__PUBLIC_GROQ_KEY__') {
-      if (!token || token === 'undefined' || token === 'null' || token === '') {
+      const normalizedToken = token && token !== 'undefined' && token !== 'null' ? token : '';
+      const hasSessionCookie = cookieHeader.includes('nexvid_session=');
+
+      if (!normalizedToken && !hasSessionCookie) {
         return NextResponse.json({ error: 'AI Assistant requires a Cloud account or your own Groq API key in Settings.' }, { status: 401 });
       }
 
-      const validToken = await isValidCloudToken(token);
-      if (!validToken) {
+      const validSession = await isValidCloudSession(req, normalizedToken || undefined);
+      if (!validSession) {
         return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
       }
     }
