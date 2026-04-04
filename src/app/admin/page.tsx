@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-  addAdminBlockedMedia,
-  banAdminTarget,
-  clearAllActiveSessions,
-  cloudFetch,
-  createAdminAnnouncement,
-  deleteAdminAccountLimit,
-  deleteAdminAnnouncement,
-  deleteAdminBlockedMedia,
-  deleteAdminFeedbackThread,
-  deleteAdminUserByUsername,
-  grantAdminPermission,
-  loadAdminAccountLimits,
-  loadAdminAnnouncements,
-  loadAdminAuditLogs,
-  loadAdminBans,
-  loadAdminBlockedMedia,
-  loadAdminFeedbackMessages,
-  loadAdminFeedbackThreads,
-  loadAdminGrantList,
-  loadAdminOverview,
-  loadAdminUsers,
-  lookupAdminAccounts,
-  replyAdminFeedbackThread,
-  resetUserPassword,
-  revokeAdminPermission,
-  setAdminAccountLimit,
-  unbanAdminTarget,
-  updateAdminAnnouncement,
+    addAdminBlockedMedia,
+    banAdminTarget,
+    clearAllActiveSessions,
+    cloudFetch,
+    createAdminAnnouncement,
+    deleteAdminAccountLimit,
+    deleteAdminAnnouncement,
+    deleteAdminBlockedMedia,
+    deleteAdminFeedbackThread,
+    deleteAdminUserByUsername,
+    grantAdminPermission,
+    loadAdminAccountLimits,
+    loadAdminAnnouncements,
+    loadAdminAuditLogs,
+    loadAdminBans,
+    loadAdminBlockedMedia,
+    loadAdminFeedbackMessages,
+    loadAdminFeedbackThreads,
+    loadAdminGrantList,
+    loadAdminOverview,
+    loadAdminUsers,
+    lookupAdminAccounts,
+    replyAdminFeedbackThread,
+    resetUserPassword,
+    revokeAdminPermission,
+    setAdminAccountLimit,
+    unbanAdminTarget,
+    updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -161,7 +161,7 @@ export default function AdminPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [stats, setStats] = useState({ users: 0, activeSessions: 0, banned: 0, activeAnnouncements: 0, activeUsers: 0, activeGuests: 0 });
+  const [stats, setStats] = useState({ users: 0, activeSessions: 0, activeWatchPartyRooms: 0, activeAnnouncements: 0, activeUsers: 0, activeGuests: 0 });
   const [bans, setBans] = useState<BannedItem[]>([]);
   const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
   const [blockedMedia, setBlockedMedia] = useState<BlockedMediaItem[]>([]);
@@ -319,7 +319,14 @@ export default function AdminPage() {
     try {
       const overview = await loadAdminOverview();
       setServerRole((overview.admin?.role as 'owner' | 'admin' | 'moderator' | null) || null);
-      setStats(overview.stats);
+      setStats({
+        users: Number(overview.stats?.users || 0),
+        activeSessions: Number(overview.stats?.activeSessions || 0),
+        activeWatchPartyRooms: Number((overview.stats as any)?.activeWatchPartyRooms || 0),
+        activeAnnouncements: Number(overview.stats?.activeAnnouncements || 0),
+        activeUsers: Number(overview.stats?.activeUsers || 0),
+        activeGuests: Number(overview.stats?.activeGuests || 0),
+      });
 
       const promises: Promise<any>[] = [
         loadAdminUsers(),
@@ -974,7 +981,7 @@ export default function AdminPage() {
           label="Sessions"
           value={stats.activeSessions}
         />
-        <StatCard label="Banned" value={stats.banned} />
+        <StatCard label="Watch Together" value={stats.activeWatchPartyRooms} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">

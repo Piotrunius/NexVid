@@ -148,7 +148,7 @@ export async function loadPublicAnnouncements() {
 }
 
 export async function loadAdminOverview() {
-  return cloudFetch<{ stats: { users: number; activeSessions: number; banned: number; activeAnnouncements: number; activeUsers: number; activeGuests: number }; admin: { id: string; username: string; role: string } }>('/admin/overview', { method: 'GET' });
+  return cloudFetch<{ stats: { users: number; activeSessions: number; activeWatchPartyRooms: number; activeAnnouncements: number; activeUsers: number; activeGuests: number }; admin: { id: string; username: string; role: string } }>('/admin/overview', { method: 'GET' });
 }
 
 export async function loadAdminBans() {

@@ -2190,21 +2190,21 @@ async function handleAdminOverview(request: Request, env: Env): Promise<Response
   if (session instanceof Response) return session;
 
   await ensureSecurityTables(env);
+  await ensureWatchPartyTables(env);
 
-  const [users, activeSessions, bannedUsernames, bannedIps, activeAnnouncements, activeCounts] = await Promise.all([
+  const [users, activeSessions, activeAnnouncements, activeCounts, activeWatchPartyRooms] = await Promise.all([
     env.DB.prepare('SELECT COUNT(*) as count FROM users').first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?').bind(new Date().toISOString()).first<{ count: number }>(),
-    env.DB.prepare('SELECT COUNT(*) as count FROM banned_usernames').first<{ count: number }>(),
-    env.DB.prepare('SELECT COUNT(*) as count FROM banned_ip_hashes').first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM announcements WHERE is_active = 1').first<{ count: number }>(),
     getActiveUsersCount(env),
+    env.DB.prepare('SELECT COUNT(*) as count FROM watch_party_rooms WHERE expires_at > ?').bind(new Date().toISOString()).first<{ count: number }>(),
   ]);
 
   return json(request, env, {
     stats: {
       users: users?.count || 0,
       activeSessions: activeSessions?.count || 0,
-      banned: (bannedUsernames?.count || 0) + (bannedIps?.count || 0),
+      activeWatchPartyRooms: activeWatchPartyRooms?.count || 0,
       activeAnnouncements: activeAnnouncements?.count || 0,
       activeUsers: activeCounts.users,
       activeGuests: activeCounts.guests,

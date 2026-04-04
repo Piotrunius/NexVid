@@ -77,7 +77,7 @@ async function ship() {
 
       if (shouldDeployPages) {
         console.log(`\n📄 Deploying Pages (${targetLabel}) to branch "${branch}"...`);
-        execSync(`bun run pages:build-output && bun run pages:prepare && bunx wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`, { stdio: 'inherit' });
+        execSync(`bun run pages:deploy -- --branch ${branch}`, { stdio: 'inherit' });
       }
     } else {
       console.log('\n✅ Skipping deploy.');
