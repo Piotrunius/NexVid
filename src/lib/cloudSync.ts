@@ -156,25 +156,25 @@ export async function loadAdminBans() {
 }
 
 export async function loadAdminAccountLimits() {
-  return cloudFetch<{ items: { type: 'username' | 'ip'; value: string; maxAccounts: number; createdAt: string; updatedAt: string }[] }>('/admin/account-limits', {
+  return cloudFetch<{ items: { type: 'username'; value: string; maxAccounts: number; createdAt: string; updatedAt: string }[] }>('/admin/account-limits', {
     method: 'GET',
   });
 }
 
-export async function setAdminAccountLimit(type: 'username' | 'ip', value: string, maxAccounts: number) {
+export async function setAdminAccountLimit(type: 'username', value: string, maxAccounts: number) {
   return cloudFetch('/admin/account-limits', {
     method: 'POST',
     body: JSON.stringify({ type, value, maxAccounts }),
   });
 }
 
-export async function deleteAdminAccountLimit(type: 'username' | 'ip', value: string) {
+export async function deleteAdminAccountLimit(type: 'username', value: string) {
   return cloudFetch(`/admin/account-limits?type=${encodeURIComponent(type)}&value=${encodeURIComponent(value)}`, { method: 'DELETE' });
 }
 
-export async function lookupAdminAccounts(type: 'username' | 'ip', value: string) {
+export async function lookupAdminAccounts(type: 'username', value: string) {
   return cloudFetch<{
-    query: { type: 'username' | 'ip'; value: string };
+    query: { type: 'username'; value: string };
     accountCount: number;
     ipGroupCount?: number;
     accounts: { id: string; username: string; lastSeenAt?: string | null }[];

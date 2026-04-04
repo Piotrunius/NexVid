@@ -2327,10 +2327,11 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
       .prepare(
         `SELECT type, value, value_label, max_accounts, created_at, updated_at
          FROM account_limit_overrides
+         WHERE type = 'username'
          ORDER BY updated_at DESC
          LIMIT 300`
       )
-      .all<{ type: 'username' | 'ip'; value: string; value_label: string | null; max_accounts: number; created_at: string; updated_at: string }>();
+      .all<{ type: 'username'; value: string; value_label: string | null; max_accounts: number; created_at: string; updated_at: string }>();
 
     return json(request, env, {
       items: (rows.results || []).map((row) => ({
@@ -2344,38 +2345,25 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
   }
 
   if (request.method === 'POST') {
-    const body = await readJson<{ type?: 'username' | 'ip'; value?: string; maxAccounts?: number }>(request);
-    const type = body.type || 'ip';
+    const body = await readJson<{ type?: 'username'; value?: string; maxAccounts?: number }>(request);
+    const type = body.type || 'username';
     const rawValue = (body.value || '').trim();
     const maxAccounts = Math.max(1, Math.min(200, Number(body.maxAccounts || 1)));
     const now = new Date().toISOString();
 
     if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
+    if (type !== 'username') return json(request, env, { error: 'Only nickname overrides are supported' }, 400);
 
-    if (type === 'username') {
-      const username = normalizeUsername(rawValue);
-      if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
-
-      await env.DB.prepare(
-        `INSERT INTO account_limit_overrides (type, value, value_label, max_accounts, created_at, updated_at, created_by_user_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(type, value) DO UPDATE SET value_label = excluded.value_label, max_accounts = excluded.max_accounts, updated_at = excluded.updated_at, created_by_user_id = excluded.created_by_user_id`
-      ).bind('username', username, username, maxAccounts, now, now, session.user.id).run();
-
-      await writeAdminAuditLog(env, session.user.id, 'set_account_limit_override', 'username', username, { maxAccounts });
-      return json(request, env, { ok: true });
-    }
-
-    if (!isValidIp(rawValue)) return json(request, env, { error: 'Invalid IP format' }, 400);
-    const ipHash = await sha256Hex(`ip:${rawValue}`);
+    const username = normalizeUsername(rawValue);
+    if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
 
     await env.DB.prepare(
       `INSERT INTO account_limit_overrides (type, value, value_label, max_accounts, created_at, updated_at, created_by_user_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(type, value) DO UPDATE SET value_label = excluded.value_label, max_accounts = excluded.max_accounts, updated_at = excluded.updated_at, created_by_user_id = excluded.created_by_user_id`
-    ).bind('ip', ipHash, rawValue, maxAccounts, now, now, session.user.id).run();
+    ).bind('username', username, username, maxAccounts, now, now, session.user.id).run();
 
-    await writeAdminAuditLog(env, session.user.id, 'set_account_limit_override', 'ip', rawValue, { maxAccounts });
+    await writeAdminAuditLog(env, session.user.id, 'set_account_limit_override', 'username', username, { maxAccounts });
     return json(request, env, { ok: true });
   }
 
@@ -2384,20 +2372,12 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
     const type = (url.searchParams.get('type') || '').trim();
     const rawValue = (url.searchParams.get('value') || '').trim();
 
-    if (type !== 'username' && type !== 'ip') return json(request, env, { error: 'Invalid type' }, 400);
+    if (type !== 'username') return json(request, env, { error: 'Only nickname overrides are supported' }, 400);
     if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
-    if (type === 'username') {
-      const username = normalizeUsername(rawValue);
-      await env.DB.prepare('DELETE FROM account_limit_overrides WHERE type = ? AND value = ?').bind('username', username).run();
-      await writeAdminAuditLog(env, session.user.id, 'delete_account_limit_override', 'username', username, null);
-      return json(request, env, { ok: true });
-    }
-
-    if (!isValidIp(rawValue)) return json(request, env, { error: 'Invalid IP format' }, 400);
-    const ipHash = await sha256Hex(`ip:${rawValue}`);
-    await env.DB.prepare('DELETE FROM account_limit_overrides WHERE type = ? AND value = ?').bind('ip', ipHash).run();
-    await writeAdminAuditLog(env, session.user.id, 'delete_account_limit_override', 'ip', rawValue, null);
+    const username = normalizeUsername(rawValue);
+    await env.DB.prepare('DELETE FROM account_limit_overrides WHERE type = ? AND value = ?').bind('username', username).run();
+    await writeAdminAuditLog(env, session.user.id, 'delete_account_limit_override', 'username', username, null);
     return json(request, env, { ok: true });
   }
 
@@ -2416,7 +2396,7 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
   const type = (url.searchParams.get('type') || '').trim();
   const rawValue = (url.searchParams.get('value') || '').trim();
 
-  if (type !== 'username' && type !== 'ip') return json(request, env, { error: 'Invalid type' }, 400);
+  if (type !== 'username') return json(request, env, { error: 'Only nickname lookup is supported' }, 400);
   if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
   const getAccountsByIpHashes = async (ipHashes: string[]) => {
@@ -2440,18 +2420,6 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
       lastSeenAt: row.last_seen_at,
     }));
   };
-
-  if (type === 'ip') {
-    if (!isValidIp(rawValue)) return json(request, env, { error: 'Invalid IP format' }, 400);
-    const ipHash = await sha256Hex(`ip:${rawValue}`);
-    const accounts = await getAccountsByIpHashes([ipHash]);
-
-    return json(request, env, {
-      query: { type: 'ip', value: rawValue },
-      accountCount: accounts.length,
-      accounts,
-    });
-  }
 
   const username = normalizeUsername(rawValue);
   if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);

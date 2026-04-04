@@ -58,7 +58,7 @@ type BannedItem = {
 };
 
 type AccountLimitItem = {
-  type: 'username' | 'ip';
+  type: 'username';
   value: string;
   maxAccounts: number;
   createdAt: string;
@@ -66,7 +66,7 @@ type AccountLimitItem = {
 };
 
 type AccountLookupResult = {
-  query: { type: 'username' | 'ip'; value: string };
+  query: { type: 'username'; value: string };
   accountCount: number;
   ipGroupCount?: number;
   accounts: { id: string; username: string; lastSeenAt?: string | null }[];
@@ -192,14 +192,14 @@ export default function AdminPage() {
   const [banValue, setBanValue] = useState('');
   const [banReason, setBanReason] = useState('');
   const [deleteUsername, setDeleteUsername] = useState('');
-  const [limitType, setLimitType] = useState<'username' | 'ip'>('ip');
+  const limitType: 'username' = 'username';
   const [limitValue, setLimitValue] = useState('');
   const [limitAmount, setLimitAmount] = useState(1);
   const [blockedTmdbId, setBlockedTmdbId] = useState('');
   const [blockedMediaType, setBlockedMediaType] = useState<'movie' | 'tv'>('movie');
   const [blockedReason, setBlockedReason] = useState('');
   const [blockedSearch, setBlockedSearch] = useState('');
-  const [lookupType, setLookupType] = useState<'username' | 'ip'>('username');
+  const lookupType: 'username' = 'username';
 
   const filteredBlockedMedia = useMemo(() => {
     const query = blockedSearch.trim();
