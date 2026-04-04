@@ -641,7 +641,7 @@ export default function AdminPage() {
       setLinkLabel('');
       setAnnouncementType('info');
       await loadAll();
-      toast('Announcement created (hidden by default)', 'success');
+      toast('Announcement created', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to create announcement', 'error');
     } finally {
