@@ -2,6 +2,30 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
+const DEFAULT_PROD_API_URL = 'https://nexvid-proxy.piotrunius.workers.dev';
+
+function resolveCloudApiUrl(): string {
+  const configured = (process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
+  return configured || DEFAULT_PROD_API_URL;
+}
+
+async function isValidCloudToken(token: string): Promise<boolean> {
+  if (!token) return false;
+  const apiBase = resolveCloudApiUrl();
+  try {
+    const response = await fetch(`${apiBase}/auth/me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { mood, type, selectedGenres, era, groqApiKey: userApiKey } = await req.json();
@@ -12,6 +36,11 @@ export async function POST(req: Request) {
     if (!userApiKey || userApiKey === '__PUBLIC_GROQ_KEY__') {
       if (!token || token === 'undefined' || token === 'null' || token === '') {
         return NextResponse.json({ error: 'AI Assistant requires a Cloud account or your own Groq API key in Settings.' }, { status: 401 });
+      }
+
+      const validToken = await isValidCloudToken(token);
+      if (!validToken) {
+        return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
       }
     }
 

@@ -3,7 +3,7 @@
    Local-first auth with optional backend sync
    ============================================ */
 
-import { updateCloudNickname as apiUpdateNickname, changeCloudPassword, clearCloudToken, CloudApiError, getCloudApiUrl, getCloudToken, loadCloudMe, setCloudToken } from '@/lib/cloudSync';
+import { updateCloudNickname as apiUpdateNickname, changeCloudPassword, clearCloudToken, CloudApiError, getCloudApiUrl, getCloudToken, loadCloudMe, logoutCloudSession, setCloudToken } from '@/lib/cloudSync';
 import { generateId } from '@/lib/utils';
 import type { User } from '@/types';
 import { create } from 'zustand';
@@ -103,6 +103,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        void logoutCloudSession();
         clearCloudToken();
         set({ user: null, isLoggedIn: false, authToken: '' });
       },
@@ -194,12 +195,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       hydrateBackendSession: async () => {
-        const token = getCloudToken();
-        if (!token) return;
-
         try {
           const me = await loadCloudMe();
           if (me?.user) {
+            const token = getCloudToken();
             set({ user: me.user, isLoggedIn: true, authToken: token });
           }
         } catch (error: any) {
@@ -235,9 +234,13 @@ export const useAuthStore = create<AuthStore>()(
       changePasswordWithBackend: async (currentPassword?: string, newPassword?: string) => {
         set({ isLoading: true });
         try {
-          await changeCloudPassword({ currentPassword, newPassword });
+          const result = await changeCloudPassword({ currentPassword, newPassword });
+          if (result?.token) {
+            setCloudToken(result.token);
+          }
           set((state: any) => ({
             user: state.user ? { ...state.user, requiresPasswordChange: false } : null,
+            authToken: result?.token || state.authToken,
             isLoading: false,
           }));
         } catch (error) {

@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 type Mode = 'login' | 'register';
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'register' && password !== confirmPassword) { toast('Passwords do not match', 'error'); return; }
-    if (mode === 'register' && password.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
+    if (mode === 'register' && password.length < MIN_PASSWORD_LENGTH) { toast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`, 'error'); return; }
     setIsSubmitting(true);
     try {
       if (hasBackendConfigured) {
