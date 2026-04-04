@@ -195,6 +195,9 @@ export function Navbar() {
   };
 
   const isWatchPage = pathname?.startsWith('/watch');
+  const isSettingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
+  const isContactActive = pathname === '/contact' || pathname?.startsWith('/contact/');
+  const isAdminActive = pathname === '/admin' || pathname?.startsWith('/admin/');
   if (!mounted) return null;
   if (isWatchPage) return null;
 
@@ -216,8 +219,11 @@ export function Navbar() {
     )},
   ];
 
-  const iconContainerBase = 'flex items-center justify-center rounded-[12px] transition-all duration-500 ease-[var(--spring)] min-w-0';
+  const iconContainerBase = 'flex items-center justify-center rounded-[12px] transition-all duration-500 ease-[var(--spring)] transform-gpu min-w-0';
   const iconSize = 'h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10';
+  const navActiveClass = 'text-accent drop-shadow-[0_0_14px_var(--accent-glow)]';
+  const navIdleClass = 'text-white/40 hover:text-white/80 hover:bg-white/[0.08]';
+  const modalActiveClass = 'text-accent drop-shadow-[0_0_14px_var(--accent-glow)]';
 
   const DockIcon = ({ item, isButton }: { item: typeof dockItems[0]; isButton?: boolean }) => {
     const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
@@ -229,8 +235,8 @@ export function Navbar() {
           className={cn(
             `${iconContainerBase} ${iconSize}`,
             isActive
-              ? 'bg-accent/20 text-accent shadow-[0_0_20px_var(--accent-glow)]'
-              : 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110',
+              ? navActiveClass
+              : navIdleClass,
           )}
         >
           {item.icon}
@@ -434,8 +440,8 @@ export function Navbar() {
               className={cn(
                 `${iconContainerBase} ${iconSize}`,
                 isSearchOpen
-                  ? 'bg-accent/20 text-accent shadow-[0_0_20px_var(--accent-glow)] scale-110'
-                  : 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110',
+                  ? modalActiveClass
+                  : navIdleClass,
               )}
             >
               <div className="relative flex flex-col items-center">
@@ -456,10 +462,10 @@ export function Navbar() {
               className="flex flex-col items-center flex-1 min-w-0 basis-0"
               aria-label="AI Assistant"
             >
-              <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+              <div className={cn(`${iconContainerBase} ${iconSize}`, isAiOpen ? modalActiveClass : navIdleClass)}>
                 <div className={cn(
                   "relative flex flex-col items-center transition-all duration-500",
-                  isAiOpen ? "text-accent scale-110" : ""
+                  isAiOpen ? "text-accent" : ""
                 )}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m12 3-1.9 5.8a2 2 0 0 1-1.2 1.3L3.1 12l5.8 1.9a2 2 0 0 1 1.3 1.2L12 20.9l1.9-5.8a2 2 0 0 1 1.2-1.3l5.8-1.9-5.8-1.9a2 2 0 0 1-1.3-1.2L12 3Z" />
@@ -476,7 +482,7 @@ export function Navbar() {
             className="flex flex-col items-center flex-1 min-w-0 basis-0"
             aria-label="Settings"
           >
-            <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+            <div className={cn(`${iconContainerBase} ${iconSize}`, isSettingsActive ? navActiveClass : navIdleClass)}>
               <div className="relative flex flex-col items-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -493,7 +499,7 @@ export function Navbar() {
               className="flex flex-col items-center flex-1 min-w-0 basis-0"
               aria-label="Contact"
             >
-              <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+              <div className={cn(`${iconContainerBase} ${iconSize}`, isContactActive ? navActiveClass : navIdleClass)}>
                 <div className="relative flex flex-col items-center">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -514,7 +520,7 @@ export function Navbar() {
                 className="flex flex-col items-center flex-1 min-w-0 basis-0"
                 aria-label="Admin"
               >
-                <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+                <div className={cn(`${iconContainerBase} ${iconSize}`, isAdminActive ? navActiveClass : navIdleClass)}>
                   <div className="relative flex flex-col items-center">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
