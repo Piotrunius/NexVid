@@ -201,11 +201,12 @@ function createToken(): string {
 
 function getBearerToken(request: Request): string | null {
   const auth = request.headers.get('Authorization');
-  if (auth && auth.startsWith('Bearer ')) {
-    const bearer = auth.slice(7).trim();
-    if (bearer) return bearer;
-  }
+  if (!auth || !auth.startsWith('Bearer ')) return null;
+  const bearer = auth.slice(7).trim();
+  return bearer || null;
+}
 
+function getCookieToken(request: Request): string | null {
   const cookieHeader = request.headers.get('Cookie') || '';
   if (!cookieHeader) return null;
   const cookies = cookieHeader.split(';');
@@ -1125,22 +1126,36 @@ async function writeAdminAuditLog(
 }
 
 async function getSessionUser(request: Request, env: Env): Promise<SessionUser | null> {
-  const token = getBearerToken(request);
-  if (!token) {
+  const bearerToken = getBearerToken(request);
+  const cookieToken = getCookieToken(request);
+  const tokenCandidates = [bearerToken, cookieToken].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
+
+  if (tokenCandidates.length === 0) {
     console.log('[Auth] No token found in request');
     return null;
   }
 
-  const row = await env.DB.prepare(
-    `SELECT u.id, u.username, u.created_at, u.requires_password_change
-     FROM sessions s
-     JOIN users u ON u.id = s.user_id
-     WHERE s.token = ? AND s.expires_at > ?`
-  )
-    .bind(token, new Date().toISOString())
-    .first<{ id: string; username: string; created_at: string; requires_password_change: number }>();
+  let token: string | null = null;
+  let row: { id: string; username: string; created_at: string; requires_password_change: number } | null = null;
 
-  if (!row) {
+  for (const candidate of tokenCandidates) {
+    const resolved = await env.DB.prepare(
+      `SELECT u.id, u.username, u.created_at, u.requires_password_change
+       FROM sessions s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.token = ? AND s.expires_at > ?`
+    )
+      .bind(candidate, new Date().toISOString())
+      .first<{ id: string; username: string; created_at: string; requires_password_change: number }>();
+
+    if (resolved) {
+      token = candidate;
+      row = resolved;
+      break;
+    }
+  }
+
+  if (!row || !token) {
     console.log('[Auth] Invalid or expired token');
     return null;
   }
@@ -1375,9 +1390,12 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleLogout(request: Request, env: Env): Promise<Response> {
-  const token = getBearerToken(request);
-  if (token) {
-    await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+  const tokens = [getBearerToken(request), getCookieToken(request)].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
+  if (tokens.length === 1) {
+    await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(tokens[0]).run();
+  } else if (tokens.length > 1) {
+    const placeholders = tokens.map(() => '?').join(', ');
+    await env.DB.prepare(`DELETE FROM sessions WHERE token IN (${placeholders})`).bind(...tokens).run();
   }
   const response = json(request, env, { ok: true });
   response.headers.append('Set-Cookie', buildAuthCookieClear());
