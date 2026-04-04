@@ -48,27 +48,35 @@ async function ship() {
     // 3. Deployment Choice
     console.log('\n🌐 Where do you want to deploy?');
     console.log('1. Worker only');
-    console.log('2. Pages only (production)');
-    console.log('3. Pages only (preview)');
-    console.log('4. Both (Worker & Pages production)');
-    console.log('5. Both (Worker & Pages preview)');
-    console.log('6. None');
+    console.log('2. Pages only');
+    console.log('3. Both (Worker & Pages)');
+    console.log('4. None');
 
-    const deployChoice = await question('\nChoice (1-6): ');
+    const deployChoice = await question('\nChoice (1-4): ');
 
-    if (deployChoice.trim() !== '6') {
+    if (deployChoice.trim() !== '4') {
       const selected = deployChoice.trim();
-      const shouldDeployWorker = selected === '1' || selected === '4' || selected === '5';
-      const shouldDeployPages = selected === '2' || selected === '3' || selected === '4' || selected === '5';
-      const branch = selected === '3' || selected === '5' ? 'nexvid' : 'main';
+      const shouldDeployWorker = selected === '1' || selected === '3';
+      const shouldDeployPages = selected === '2' || selected === '3';
+
+      console.log('\n🎯 Target environment:');
+      console.log('1. Production');
+      console.log('2. Preview');
+      const envChoice = await question('Choice (1-2, default: 1): ');
+      const isPreview = envChoice.trim() === '2';
+      const targetLabel = isPreview ? 'preview' : 'production';
+      const branch = isPreview ? 'nexvid' : 'main';
 
       if (shouldDeployWorker) {
-        console.log('\n⚡ Deploying Worker...');
+        console.log(`\n⚡ Deploying Worker (${targetLabel})...`);
+        if (isPreview) {
+          console.log('ℹ️ Worker uses current default wrangler config (no separate preview env configured).');
+        }
         execSync('bun run worker:deploy', { stdio: 'inherit' });
       }
 
       if (shouldDeployPages) {
-        console.log(`\n📄 Deploying Pages to branch "${branch}"...`);
+        console.log(`\n📄 Deploying Pages (${targetLabel}) to branch "${branch}"...`);
         execSync(`bun run pages:build-output && bun run pages:prepare && bunx wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`, { stdio: 'inherit' });
       }
     } else {
