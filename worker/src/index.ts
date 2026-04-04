@@ -22,15 +22,18 @@ export interface Env {
 }
 
 const PASSWORD_ITERATIONS = 100_000;
+const MIN_PASSWORD_LENGTH = 8;
 const LOGIN_MAX_FAILURES = 8;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_BLOCK_MS = 30 * 60 * 1000;
 const DEFAULT_MAX_ACCOUNTS_PER_IP = 2;
+const AUTH_COOKIE_NAME = 'nexvid_session';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, X-NexVid-Activity',
   'Access-Control-Expose-Headers': '*',
+  'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -198,9 +201,36 @@ function createToken(): string {
 
 function getBearerToken(request: Request): string | null {
   const auth = request.headers.get('Authorization');
-  if (!auth) return null;
-  if (!auth.startsWith('Bearer ')) return null;
-  return auth.slice(7).trim() || null;
+  if (auth && auth.startsWith('Bearer ')) {
+    const bearer = auth.slice(7).trim();
+    if (bearer) return bearer;
+  }
+
+  const cookieHeader = request.headers.get('Cookie') || '';
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(';');
+  for (const cookie of cookies) {
+    const [rawName, ...rawValueParts] = cookie.split('=');
+    if (!rawName) continue;
+    if (rawName.trim() !== AUTH_COOKIE_NAME) continue;
+    const rawValue = rawValueParts.join('=').trim();
+    if (!rawValue) return null;
+    try {
+      return decodeURIComponent(rawValue);
+    } catch {
+      return rawValue;
+    }
+  }
+
+  return null;
+}
+
+function buildAuthCookie(token: string, maxAgeSeconds: number): string {
+  return `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`;
+}
+
+function buildAuthCookieClear(): string {
+  return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
 
 function getClientIp(request: Request): string {
@@ -416,10 +446,6 @@ async function ensureSecurityTables(env: Env): Promise<void> {
   }
 
   await securityTablesInit;
-}
-
-async function handleAdminHealth(request: Request, env: Env): Promise<Response> {
-  return json(request, env, { today: { attempts: 0, successes: 0, failures: 0 }, errors: [] });
 }
 
 const lastSeenCache = new Map<string, number>();
@@ -1164,7 +1190,7 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     if (!verified) return json(request, env, { error: 'Captcha verification failed' }, 403);
   }
 
-  if (!isValidUsername(username) || password.length < 6) {
+  if (!isValidUsername(username) || password.length < MIN_PASSWORD_LENGTH) {
     return json(request, env, { error: 'Invalid username or password (nickname: 2-24 chars, letters/numbers/._-)' }, 400);
   }
 
@@ -1207,7 +1233,7 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
 
   await linkUserIdentifiers(env, userId, identifiers);
 
-  return json(request, env, {
+  const response = json(request, env, {
     user: {
       id: userId,
       username,
@@ -1217,6 +1243,9 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     },
     token,
   });
+
+  response.headers.append('Set-Cookie', buildAuthCookie(token, ttlDays * 24 * 60 * 60));
+  return response;
 }
 
 async function handlePasswordChange(request: Request, env: Env): Promise<Response> {
@@ -1226,7 +1255,7 @@ async function handlePasswordChange(request: Request, env: Env): Promise<Respons
   const body = await readJson<{ currentPassword?: string; newPassword?: string }>(request);
   const { currentPassword, newPassword } = body;
 
-  if (!currentPassword || !newPassword || newPassword.length < 6) {
+  if (!currentPassword || !newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
     return json(request, env, { error: 'Invalid password data' }, 400);
   }
 
@@ -1237,9 +1266,20 @@ async function handlePasswordChange(request: Request, env: Env): Promise<Respons
   if (!verification.ok) return json(request, env, { error: 'Current password incorrect' }, 401);
 
   const newHash = await hashPassword(newPassword);
-  await env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 0 WHERE id = ?').bind(newHash, session.user.id).run();
+  const now = new Date().toISOString();
+  const ttlDays = Number(env.SESSION_TTL_DAYS || '30');
+  const expires = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
+  const rotatedToken = createToken();
 
-  return json(request, env, { ok: true });
+  await env.DB.batch([
+    env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 0 WHERE id = ?').bind(newHash, session.user.id),
+    env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(session.user.id),
+    env.DB.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(rotatedToken, session.user.id, now, expires),
+  ]);
+
+  const response = json(request, env, { ok: true, token: rotatedToken });
+  response.headers.append('Set-Cookie', buildAuthCookie(rotatedToken, ttlDays * 24 * 60 * 60));
+  return response;
 }
 
 async function handleLogin(request: Request, env: Env): Promise<Response> {
@@ -1319,7 +1359,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
   const role = await getUserRole(env, row.id);
   await updateActiveUser(env, request, row.id);
 
-  return json(request, env, {
+  const response = json(request, env, {
     user: {
       id: row.id,
       username: row.username,
@@ -1329,6 +1369,9 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     },
     token,
   });
+
+  response.headers.append('Set-Cookie', buildAuthCookie(token, ttlDays * 24 * 60 * 60));
+  return response;
 }
 
 async function handleLogout(request: Request, env: Env): Promise<Response> {
@@ -1336,7 +1379,9 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
   if (token) {
     await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
   }
-  return json(request, env, { ok: true });
+  const response = json(request, env, { ok: true });
+  response.headers.append('Set-Cookie', buildAuthCookieClear());
+  return response;
 }
 
 async function handleMe(request: Request, env: Env): Promise<Response> {
@@ -3113,9 +3158,7 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
       if (value) responseHeaders.set(header, value);
     }
 
-    // Forward Set-Cookie as X-Set-Cookie
-    const setCookie = response.headers.get('Set-Cookie');
-    if (setCookie) responseHeaders.set('X-Set-Cookie', setCookie);
+    // Do not surface upstream Set-Cookie to clients.
 
     return new Response(response.body, {
       status: response.status,
@@ -3627,8 +3670,6 @@ export default {
         case '/public/blocked-media':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handlePublicBlockedMedia(request, env);
-        case '/admin/health':
-          return await handleAdminHealth(request, env);
         case '/api/report-error':
         case '/api/report-success':
           return json(request, env, { ok: true });

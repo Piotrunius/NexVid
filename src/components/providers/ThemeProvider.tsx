@@ -6,7 +6,7 @@
 'use client';
 
 import { toast } from '@/components/ui/Toaster';
-import { getCloudToken, hasCloudBackend, loadCloudSettings, loadCloudWatchlist } from '@/lib/cloudSync';
+import { hasCloudBackend, loadCloudSettings, loadCloudWatchlist } from '@/lib/cloudSync';
 import { useAuthStore } from '@/stores/auth';
 import { useBlockedContentStore } from '@/stores/blockedContent';
 import { DEFAULT_SETTINGS, useSettingsStore } from '@/stores/settings';
@@ -87,13 +87,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hasCloudBackend()) return;
-    if (!getCloudToken()) return;
 
     let cancelled = false;
     (async () => {
       try {
         await hydrateBackendSession();
-        if (!getCloudToken()) return;
+        if (!useAuthStore.getState().isLoggedIn) return;
         const [settingsRes, watchlistRes] = await Promise.all([
           loadCloudSettings(),
           loadCloudWatchlist(),

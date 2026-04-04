@@ -79,6 +79,7 @@ export async function cloudFetch<T = any>(path: string, init: RequestInit = {}):
     response = await fetch(`${apiUrl}${path}`, {
       ...init,
       headers,
+      credentials: 'include',
     });
   } catch {
     throw new CloudApiError('Network error while contacting cloud backend', 0, 'NETWORK_ERROR');
@@ -90,6 +91,14 @@ export async function cloudFetch<T = any>(path: string, init: RequestInit = {}):
   }
 
   return data as T;
+}
+
+export async function logoutCloudSession() {
+  try {
+    await cloudFetch<{ ok: boolean }>('/auth/logout', { method: 'POST' });
+  } catch {
+    // best effort logout
+  }
 }
 
 export async function loadCloudMe() {
@@ -119,7 +128,7 @@ export async function loadCloudWatchlist() {
 }
 
 export async function changeCloudPassword(payload: { currentPassword?: string; newPassword?: string }) {
-  return cloudFetch<{ ok: boolean }>('/auth/change-password', {
+  return cloudFetch<{ ok: boolean; token?: string }>('/auth/change-password', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -310,10 +319,6 @@ export async function clearCloudEverything() {
   return cloudFetch<{ ok: boolean; deleted: { account: boolean; settings: boolean; watchlist: boolean; sessions: boolean } }>('/user/clear-everything', {
     method: 'DELETE',
   });
-}
-
-export async function loadAdminHealth() {
-  return { today: { attempts: 0, successes: 0, failures: 0 }, errors: [] };
 }
 
 export async function reportPlayerError(mediaType: string, mediaId: string, code: string, message: string, isFebboxAuth: boolean, febboxToken?: string) {
