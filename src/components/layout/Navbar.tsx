@@ -219,7 +219,7 @@ export function Navbar() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search movies, shows..."
-                  className="w-full h-16 rounded-[24px] bg-white/[0.06] backdrop-blur-[40px] shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)] pl-14 pr-14 text-[17px] text-white placeholder:text-white/25 outline-none focus:shadow-[0_0_40px_var(--accent-muted),0_0_0_1px_var(--accent-muted)] transition-all duration-500"
+                  className="w-full h-16 rounded-[24px] bg-white/[0.06] backdrop-blur-[40px] shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)] pl-14 pr-20 text-[15px] text-white placeholder:text-white/25 outline-none focus:shadow-[0_0_40px_var(--accent-muted),0_0_0_1px_var(--accent-muted)] transition-all duration-500"
                   autoFocus
                 />
                 <kbd className="absolute right-5 top-1/2 -translate-y-1/2 text-[11px] text-white/20 font-mono bg-white/[0.06] px-2 py-1 rounded-[8px] shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">ESC</kbd>
