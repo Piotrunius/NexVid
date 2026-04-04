@@ -18,6 +18,8 @@ export interface MediaBase {
   rating: number;
   genres: Genre[];
   mediaType: MediaType;
+  popularity?: number;
+  voteCount?: number;
 }
 
 export interface Movie extends MediaBase {
