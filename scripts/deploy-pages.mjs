@@ -38,10 +38,10 @@ async function main() {
     const branch = parseBranch(process.argv.slice(2));
 
     console.log(`\n📦 Building Pages output for branch "${branch}"...`);
-    run('npm run pages:build-output');
-    run('npm run pages:prepare');
+    run('bun run pages:build-output');
+    run('bun run pages:prepare');
 
-    const deployCommand = `wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`;
+    const deployCommand = `bunx wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`;
     const maxAttempts = 3;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {

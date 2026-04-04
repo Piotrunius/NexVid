@@ -13,13 +13,13 @@ async function ship() {
     console.log('\n🚢 Choose shipment mode:');
     console.log('1. Development (Git + Choice of Deploy)');
     console.log('2. Preview (Quick Pages deploy to "nexvid")');
-    
+
     const mode = await question('\nMode (1-2): ');
 
     if (mode.trim() === '2') {
       console.log('\n🚀 Starting Preview Deployment...');
       console.log('📄 Deploying Pages to branch "nexvid"...');
-      execSync('npm run pages:deploy -- --branch nexvid', { stdio: 'inherit' });
+      execSync('bun run pages:deploy -- --branch nexvid', { stdio: 'inherit' });
       console.log('\n✨ Preview deployed successfully!\n');
       return;
     }
@@ -48,31 +48,28 @@ async function ship() {
     // 3. Deployment Choice
     console.log('\n🌐 Where do you want to deploy?');
     console.log('1. Worker only');
-    console.log('2. Pages only');
-    console.log('3. Both (Worker & Pages)');
-    console.log('4. None');
+    console.log('2. Pages only (production)');
+    console.log('3. Pages only (preview)');
+    console.log('4. Both (Worker & Pages production)');
+    console.log('5. Both (Worker & Pages preview)');
+    console.log('6. None');
 
-    const deployChoice = await question('\nChoice (1-4): ');
+    const deployChoice = await question('\nChoice (1-6): ');
 
-    if (deployChoice.trim() !== '4') {
-      const getPagesBranch = async () => {
-        console.log('\n🌿 Which branch for Pages?');
-        console.log('1. main');
-        console.log('2. nexvid (preview)');
-        const branchChoice = await question('Choice (1-2, default: 1): ');
-        return branchChoice.trim() === '2' ? 'nexvid' : 'main';
-      };
+    if (deployChoice.trim() !== '6') {
+      const selected = deployChoice.trim();
+      const shouldDeployWorker = selected === '1' || selected === '4' || selected === '5';
+      const shouldDeployPages = selected === '2' || selected === '3' || selected === '4' || selected === '5';
+      const branch = selected === '3' || selected === '5' ? 'nexvid' : 'main';
 
-      if (deployChoice.trim() === '1' || deployChoice.trim() === '3') {
+      if (shouldDeployWorker) {
         console.log('\n⚡ Deploying Worker...');
-        execSync('npm run worker:deploy', { stdio: 'inherit' });
+        execSync('bun run worker:deploy', { stdio: 'inherit' });
       }
 
-      if (deployChoice.trim() === '2' || deployChoice.trim() === '3') {
-        const branch = await getPagesBranch();
+      if (shouldDeployPages) {
         console.log(`\n📄 Deploying Pages to branch "${branch}"...`);
-        // Force npm usage for consistent environment
-        execSync(`npm run pages:build-output && npm run pages:prepare && wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`, { stdio: 'inherit' });
+        execSync(`bun run pages:build-output && bun run pages:prepare && bunx wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`, { stdio: 'inherit' });
       }
     } else {
       console.log('\n✅ Skipping deploy.');

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/generate-build-info.mjs && next build",
+    "build": "bun scripts/generate-build-info.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
@@ -14,10 +14,10 @@
     "proxy:dev": "wrangler dev --config worker/wrangler.toml",
     "worker:dev": "wrangler dev --config worker/wrangler.toml",
     "worker:deploy": "wrangler deploy --config worker/wrangler.toml",
-    "pages:build-output": "node scripts/generate-build-info.mjs && npx @cloudflare/next-on-pages@latest",
-    "pages:prepare": "node scripts/prepare-pages-output.mjs",
-    "pages:deploy": "node scripts/deploy-pages.mjs",
-    "ship": "node scripts/ship.mjs"
+    "pages:build-output": "bun scripts/generate-build-info.mjs && bunx @cloudflare/next-on-pages@latest",
+    "pages:prepare": "bun scripts/prepare-pages-output.mjs",
+    "pages:deploy": "bun scripts/deploy-pages.mjs",
+    "ship": "bun scripts/ship.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
