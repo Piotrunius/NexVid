@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Home, Search, Film, Ghost } from 'lucide-react';
+import { Film, Ghost, Home } from 'lucide-react';
+import Link from 'next/link';
 
 export default function NotFound() {
   return (
@@ -42,7 +42,7 @@ export default function NotFound() {
             </span>
             <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">4</span>
           </h1>
-          
+
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -79,10 +79,10 @@ export default function NotFound() {
               Return Home
             </span>
           </Link>
-          
-          <Link href="/search" className="btn-glass group">
-            <Search className="h-4 w-4 text-white/70 transition-colors group-hover:text-white" />
-            <span>Search Library</span>
+
+          <Link href="/browse" className="btn-glass group">
+            <Film className="h-4 w-4 text-white/70 transition-colors group-hover:text-white" />
+            <span>Browse Library</span>
           </Link>
         </motion.div>
       </div>

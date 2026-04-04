@@ -6,11 +6,16 @@
 
 import { AiAssistantModal } from '@/components/ui/AiAssistantModal';
 import { loadPublicAnnouncements, loadUserNotifications } from '@/lib/cloudSync';
+import { searchMedia } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
+import { useBlockedContentStore } from '@/stores/blockedContent';
 import { useSettingsStore } from '@/stores/settings';
+import type { MediaItem } from '@/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Search } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 interface Announcement {
@@ -44,10 +49,13 @@ function dismissId(id: string) {
 }
 
 export function Navbar() {
-  const router = useRouter();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchType, setSearchType] = useState<'all' | 'movie' | 'tv'>('all');
+  const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -56,6 +64,7 @@ export function Navbar() {
   const searchRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLElement>(null);
   const { user, isLoggedIn, logout } = useAuthStore();
+  const { isBlocked } = useBlockedContentStore();
   const { glassEffect, groqApiKey } = useSettingsStore((s) => s.settings);
 
   const hasOwnAiKey = groqApiKey && groqApiKey !== '__PUBLIC_GROQ_KEY__';
@@ -136,13 +145,53 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
-      setSearchQuery('');
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setIsSearching(false);
+      setHasSearched(false);
+      return;
     }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      setHasSearched(true);
+      try {
+        const { results } = await searchMedia(query, 1, searchType);
+        if (cancelled) return;
+
+        const filtered = results.filter((item) => !isBlocked(item.tmdbId, item.mediaType));
+        const scored = filtered.sort((a, b) => {
+          const scoreA = (a.rating || 0) * 0.5 + Math.min((a.voteCount || 0) / 1000, 5) * 0.3 + (a.popularity || 0) * 0.2;
+          const scoreB = (b.rating || 0) * 0.5 + Math.min((b.voteCount || 0) / 1000, 5) * 0.3 + (b.popularity || 0) * 0.2;
+          return scoreB - scoreA;
+        });
+
+        setSearchResults(scored.slice(0, 12));
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setIsSearching(false);
+      }
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isBlocked, isSearchOpen, searchQuery, searchType]);
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearching(false);
+    setHasSearched(false);
+    setSearchType('all');
   };
 
   const isWatchPage = pathname?.startsWith('/watch');
@@ -203,31 +252,159 @@ export function Navbar() {
       <AiAssistantModal isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
 
       {/* ── Search Overlay ── */}
-      {isSearchOpen && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[20vh] bg-black/60 backdrop-blur-2xl animate-fade-in" onClick={() => setIsSearchOpen(false)}>
-          <div className="w-full max-w-xl mx-4 animate-slide-down" onClick={(e) => e.stopPropagation()}>
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-5 top-1/2 -translate-y-1/2 text-white/30" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-                </svg>
-                <label htmlFor="search-input" className="sr-only">Search movies and shows</label>
-                <input
-                  ref={searchRef}
-                  id="search-input"
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search movies, shows..."
-                  className="w-full h-16 rounded-[24px] bg-white/[0.06] backdrop-blur-[40px] shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)] pl-14 pr-20 text-[15px] text-white placeholder:text-white/25 outline-none focus:shadow-[0_0_40px_var(--accent-muted),0_0_0_1px_var(--accent-muted)] transition-all duration-500"
-                  autoFocus
-                />
-                <kbd className="absolute right-5 top-1/2 -translate-y-1/2 text-[11px] text-white/20 font-mono bg-white/[0.06] px-2 py-1 rounded-[8px] shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">ESC</kbd>
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-md"
+            onClick={closeSearch}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
+              animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+              exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed left-1/2 top-1/2 z-[61] w-full max-w-[min(96vw,900px)] p-3 sm:p-4 outline-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className={cn(
+                  'relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
+                  glassEffect
+                    ? 'bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl'
+                    : 'bg-[#050608]/95',
+                )}
+              >
+              <div className="relative z-10 flex shrink-0 items-center justify-between bg-black/25 px-5 py-4 sm:px-6">
+                <div className="flex flex-col">
+                  <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+                    <Search className="h-5 w-5 text-accent" />
+                    Search
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-white/45">Curated results as you type</p>
+                </div>
+                <button onClick={closeSearch} className="rounded-full p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white" aria-label="Close search modal">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <div className="flex-1 overflow-y-scroll custom-scrollbar">
+                <div className="px-5 pt-4 sm:px-6">
+                  <form className="relative group" onSubmit={(e) => e.preventDefault()}>
+                  <div className="relative">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 transition-colors group-focus-within:text-accent" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                    </svg>
+                    <label htmlFor="search-input" className="sr-only">Search movies and shows</label>
+                    <input
+                      ref={searchRef}
+                      id="search-input"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search movies, shows..."
+                      className="h-12 w-full appearance-none rounded-xl border border-transparent bg-white/5 pl-11 pr-16 text-sm text-white shadow-inner outline-none transition-all placeholder:text-white/20 focus:border-accent/45 focus:outline-none focus:ring-0"
+                      autoFocus
+                    />
+                    <kbd className="absolute right-4 top-1/2 -translate-y-1/2 rounded-lg bg-white/5 px-2 py-1 font-mono text-[10px] text-white/25">ESC</kbd>
+                  </div>
+                  </form>
+                </div>
+
+                <div className="mt-4 overflow-x-auto px-5 sm:px-6">
+                  <div className="inline-flex items-center rounded-full bg-white/[0.05] p-1">
+                    {([
+                      { key: 'all', label: 'All' },
+                      { key: 'movie', label: 'Movies' },
+                      { key: 'tv', label: 'TV Shows' },
+                    ] as const).map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setSearchType(item.key)}
+                        className={cn(
+                          'h-8 rounded-full px-5 text-xs font-semibold whitespace-nowrap outline-none transition-all',
+                          searchType === item.key
+                            ? 'bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white',
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="relative grid min-h-[300px] gap-3 p-5 sm:p-6">
+                  {searchResults.length > 0 ? (
+                    <div className="grid gap-3 sm:gap-4">
+                      {searchResults.map((item) => {
+                        const href = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
+                        return (
+                          <div
+                            key={`${item.mediaType}-${item.tmdbId}`}
+                            className="group w-full min-w-0 rounded-2xl bg-white/[0.03] p-4 transition-all hover:bg-white/[0.06]"
+                          >
+                            <Link href={href} onClick={closeSearch} className="flex w-full min-w-0 flex-col gap-4 sm:flex-row">
+                              <div className="relative mx-auto aspect-[2/3] w-full max-w-[120px] shrink-0 overflow-hidden rounded-xl bg-black/40 shadow-2xl sm:mx-0 sm:w-24 sm:max-w-[160px]">
+                                {item.posterPath ? (
+                                  <img
+                                    src={`https://image.tmdb.org/t/p/w200${item.posterPath}`}
+                                    alt={item.title}
+                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center p-2 text-center text-xs font-bold uppercase text-white/20">
+                                    {item.title}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+                                <div>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <h3 className="truncate pr-2 text-base font-extrabold leading-tight text-white sm:text-lg">{item.title}</h3>
+                                  </div>
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-2 sm:mt-1">
+                                    <span className="text-xs font-bold text-white/30">{item.releaseYear || 'N/A'}</span>
+                                    <div className="h-0.5 w-0.5 rounded-full bg-white/10" />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+                                      {item.mediaType === 'movie' ? 'Movie' : 'TV Show'}
+                                    </span>
+                                  </div>
+                                  <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-white/50 sm:mt-2">
+                                    {item.overview?.trim() || 'No description available yet.'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="ml-auto flex items-center gap-1 text-xs font-black text-yellow-500">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                                <span>{item.rating.toFixed(1)}</span>
+                              </div>
+                            </Link>
+
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : isSearching ? (
+                    <div className="rounded-2xl bg-white/[0.03] px-5 py-6 text-sm text-white/55">Searching...</div>
+                  ) : hasSearched ? (
+                    <div className="rounded-2xl bg-white/[0.03] px-5 py-6 text-sm text-white/55">No results. Try a different phrase.</div>
+                  ) : (
+                    <div className="rounded-2xl bg-white/[0.03] px-5 py-6 text-sm text-white/55">Start typing to search instantly.</div>
+                  )}
+
+                </div>
+              </div>
+
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Floating Pill (Top) ── */}
       <nav ref={dockRef} className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
@@ -253,7 +430,14 @@ export function Navbar() {
             className="flex flex-col items-center flex-1 min-w-0 basis-0"
             aria-label="Search (press /)"
           >
-            <div className={cn(`${iconContainerBase} ${iconSize}`, 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110')}>
+            <div
+              className={cn(
+                `${iconContainerBase} ${iconSize}`,
+                isSearchOpen
+                  ? 'bg-accent/20 text-accent shadow-[0_0_20px_var(--accent-glow)] scale-110'
+                  : 'text-white/40 hover:text-white/80 hover:bg-white/[0.08] hover:scale-110',
+              )}
+            >
               <div className="relative flex flex-col items-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
