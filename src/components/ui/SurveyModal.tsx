@@ -90,7 +90,8 @@ export function SurveyModal() {
       return;
     }
 
-    handleClose(true);
+    localStorage.setItem(`survey_Completed_${survey.id}`, 'true');
+    setIsVisible(false);
   };
 
   const submitSurvey = async () => {
