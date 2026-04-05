@@ -3,34 +3,34 @@
 import { AdminSurveys } from '@/components/admin/AdminSurveys';
 import { toast } from '@/components/ui/Toaster';
 import {
-    addAdminBlockedMedia,
-    banAdminTarget,
-    clearAllActiveSessions,
-    cloudFetch,
-    createAdminAnnouncement,
-    deleteAdminAccountLimit,
-    deleteAdminAnnouncement,
-    deleteAdminBlockedMedia,
-    deleteAdminFeedbackThread,
-    deleteAdminUserByUsername,
-    grantAdminPermission,
-    loadAdminAccountLimits,
-    loadAdminAnnouncements,
-    loadAdminAuditLogs,
-    loadAdminBans,
-    loadAdminBlockedMedia,
-    loadAdminFeedbackMessages,
-    loadAdminFeedbackThreads,
-    loadAdminGrantList,
-    loadAdminOverview,
-    loadAdminUsers,
-    lookupAdminAccounts,
-    replyAdminFeedbackThread,
-    resetUserPassword,
-    revokeAdminPermission,
-    setAdminAccountLimit,
-    unbanAdminTarget,
-    updateAdminAnnouncement,
+  addAdminBlockedMedia,
+  banAdminTarget,
+  clearAllActiveSessions,
+  cloudFetch,
+  createAdminAnnouncement,
+  deleteAdminAccountLimit,
+  deleteAdminAnnouncement,
+  deleteAdminBlockedMedia,
+  deleteAdminFeedbackThread,
+  deleteAdminUserByUsername,
+  grantAdminPermission,
+  loadAdminAccountLimits,
+  loadAdminAnnouncements,
+  loadAdminAuditLogs,
+  loadAdminBans,
+  loadAdminBlockedMedia,
+  loadAdminFeedbackMessages,
+  loadAdminFeedbackThreads,
+  loadAdminGrantList,
+  loadAdminOverview,
+  loadAdminUsers,
+  lookupAdminAccounts,
+  replyAdminFeedbackThread,
+  resetUserPassword,
+  revokeAdminPermission,
+  setAdminAccountLimit,
+  unbanAdminTarget,
+  updateAdminAnnouncement,
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -1003,30 +1003,6 @@ export default function AdminPage() {
                   <button disabled={isSubmitting} onClick={handleBanTarget} className="btn-accent w-full">
                     Ban user
                   </button>
-
-                  <div className="max-h-56 overflow-auto space-y-2 pt-1">
-                    {isLoading ? (
-                      <p className="text-[13px] text-text-muted">Loading...</p>
-                    ) : bans.length === 0 ? (
-                      <p className="text-[13px] text-text-muted">No bans.</p>
-                    ) : (
-                      bans.map((item) => (
-                        <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2.5 flex items-start justify-between gap-2 bg-white/5">
-                          <div>
-                            <p className="text-[12px] font-medium text-text-primary break-all">{item.value}</p>
-                            <p className="text-[11px] text-text-muted">{item.reason || 'No reason provided'}</p>
-                          </div>
-                          <button
-                            className="btn-glass whitespace-nowrap text-[11px]"
-                            disabled={isSubmitting}
-                            onClick={() => handleUnban(item.type, item.value)}
-                          >
-                            Unban
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
                 </div>
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm text-red-400/90 border border-red-500/10">
