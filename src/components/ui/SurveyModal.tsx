@@ -2,7 +2,6 @@
 
 import { cloudFetch } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
-import { useSettingsStore } from '@/stores/settings';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from './Toaster';
@@ -85,13 +84,13 @@ export function SurveyModal() {
   };
 
   const handleSkip = () => {
-    if (!survey || survey.questions.length <= 1) return;
+    if (!survey) return;
     if (step < survey.questions.length - 1) {
       setStep(step + 1);
       return;
     }
 
-    submitSurvey();
+    handleClose(true);
   };
 
   const submitSurvey = async () => {
@@ -137,21 +136,12 @@ export function SurveyModal() {
     setAnswers({ ...answers, [currentQuestion.id]: val });
   };
 
-  const { glassEffect } = useSettingsStore((s) => s.settings);
-
   if (!isVisible || !survey || !currentQuestion) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-fade-in">
-      <div className={cn(
-        "glass-card w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.9)] animate-scale-in",
-        glassEffect && "glass-liquid"
-      )}>
-        <div className="p-8 text-center">
-          <button onClick={() => handleClose(true)} className="absolute right-4 top-4 text-white/30 hover:text-white transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#050608]/95 shadow-[0_24px_80px_rgba(0,0,0,0.75)] animate-scale-in">
+        <div className="relative p-8 text-center">
           <h2 className="mb-3 text-[22px] font-black tracking-tight text-white">{survey.title}</h2>
           {survey.description && <p className="mb-8 text-[13px] leading-relaxed text-white/60">{survey.description}</p>}
 
@@ -251,11 +241,9 @@ export function SurveyModal() {
               {step > 0 && (
                 <button onClick={() => setStep(step - 1)} className="btn-glass flex-1 flex items-center justify-center py-4 text-[13px] font-bold">Back</button>
               )}
-              {survey.questions.length > 1 && (
-                <button onClick={handleSkip} className="btn-glass flex-1 flex items-center justify-center py-4 text-[13px] font-bold">
-                  Skip
-                </button>
-              )}
+              <button onClick={handleSkip} className="btn-glass flex-1 flex items-center justify-center py-4 text-[13px] font-bold">
+                Skip
+              </button>
             </div>
           </div>
         </div>

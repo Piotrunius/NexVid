@@ -2,7 +2,6 @@
 
 import { loadPublicAnnouncements } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
-import { useSettingsStore } from '@/stores/settings';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -86,18 +85,13 @@ export function AnnouncementModal() {
     setIsVisible(false);
   };
 
-  const { glassEffect } = useSettingsStore((s) => s.settings);
-
   if (!isVisible || !announcement) return null;
 
   const config = TYPE_CONFIG[announcement.type] || TYPE_CONFIG.info;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md animate-fade-in">
-      <div className={cn(
-        "glass-card w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 shadow-[0_32px_128px_rgba(0,0,0,0.9)] animate-scale-in",
-        glassEffect && "glass-liquid"
-      )}>
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#050608]/95 shadow-[0_24px_80px_rgba(0,0,0,0.75)] animate-scale-in">
         <div className="relative p-8 text-center">
           <div className={cn(
             "mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-500 hover:scale-110",

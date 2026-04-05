@@ -98,8 +98,8 @@ export function DownloadModal({
   const directLinks = results.filter(r => r.stream.type === 'file' || r.stream.type === 'hls');
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-fade-in p-4" onClick={onClose}>
-      <div className="glass-card glass-liquid w-full max-w-xl p-6 animate-scale-in" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md animate-fade-in p-4" onClick={onClose}>
+      <div className="w-full max-w-xl rounded-[28px] border border-white/10 bg-[#050608]/95 p-6 animate-scale-in shadow-[0_24px_80px_rgba(0,0,0,0.75)]" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-[20px] font-bold text-white tracking-tight">Media Downloader</h2>
@@ -166,7 +166,7 @@ export function DownloadModal({
                             href={file?.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all group"
+                            className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/10 hover:bg-black/55 hover:border-white/20 transition-all group"
                           >
                             <div>
                               <p className="text-[14px] font-bold text-white uppercase">{res.sourceId}</p>
@@ -185,7 +185,7 @@ export function DownloadModal({
                             href={stream.playlist}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all group"
+                            className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/10 hover:bg-black/55 hover:border-white/20 transition-all group"
                           >
                             <div>
                               <p className="text-[14px] font-bold text-white uppercase">{res.sourceId}</p>
