@@ -71,7 +71,7 @@ export default function PrivacyPage() {
             <li><strong>TMDB API</strong> &mdash; movie/show metadata, posters, and search data</li>
             <li><strong>OMDb API</strong> &mdash; external ratings and additional title metadata</li>
             <li><strong>FebBox</strong> &mdash; streaming source/provider integration used by resolver flows</li>
-            <li><strong>TheIntroDB</strong> &mdash; optional intro/outro segment metadata (skip-intro/skip-outro features)</li>
+            <li><strong>TheIntroDB</strong> &mdash; optional intro/outro segment metadata</li>
             <li><strong>Wyzie Subs</strong> &mdash; Multi-language subtitles and translations.</li>
             <li><strong>Groq</strong> &mdash; inference platform used by the AI Assistant.</li>
           </ul>
