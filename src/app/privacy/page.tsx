@@ -69,13 +69,15 @@ export default function PrivacyPage() {
           <p>NexVid may connect to external services needed to render content and metadata:</p>
           <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
             <li><strong>TMDB API</strong> &mdash; movie/show metadata, posters, and search data</li>
+            <li><strong>OMDb API</strong> &mdash; external ratings and additional title metadata</li>
             <li><strong>FebBox</strong> &mdash; streaming source/provider integration used by resolver flows</li>
             <li><strong>TheIntroDB</strong> &mdash; optional intro/outro segment metadata (skip-intro/skip-outro features)</li>
             <li><strong>Wyzie Subs</strong> &mdash; Multi-language subtitles and translations.</li>
+            <li><strong>Groq</strong> &mdash; inference platform used by the AI Assistant.</li>
           </ul>
           <p className="mt-2">
             These services operate under their own privacy policies and terms. We recommend reviewing
-            the policies for TMDB, FebBox, and TheIntroDB directly if you use features that rely on them.
+            the policies for TMDB, OMDb, FebBox, TheIntroDB, and Groq directly if you use features that rely on them.
           </p>
         </section>
 
