@@ -14,6 +14,11 @@ const SECTIONS = [
         desc: 'Global metadata for movies and TV shows.',
       },
       {
+        name: 'OMDb API',
+        url: 'https://www.omdbapi.com/',
+        desc: 'External ratings and additional title metadata.',
+      },
+      {
         name: 'FebBox',
         url: 'https://www.febbox.com',
         desc: 'Playback infrastructure and media sources.',
@@ -27,6 +32,11 @@ const SECTIONS = [
         name: 'TheIntroDB',
         url: 'https://theintrodb.org',
         desc: 'Intro/outro timestamps for skip controls.',
+      },
+      {
+        name: 'Groq',
+        url: 'https://groq.com/',
+        desc: 'Inference platform powering the AI Assistant.',
       }
     ]
   },
@@ -89,11 +99,6 @@ export default function CreditsPage() {
         ))}
       </div>
 
-      <footer className="mt-20 pt-8 border-t border-white/[0.05] text-center">
-        <p className="text-[11px] text-text-muted italic">
-          Respect to everyone contributing to the ecosystem.
-        </p>
-      </footer>
     </div>
   );
 }
