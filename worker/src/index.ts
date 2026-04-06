@@ -3194,7 +3194,9 @@ const DIRECT_RESOLVER_ALLOWED_HOSTS = [
   '*.vodvidl.site',
   '*.b-cdn.net',
   '*.vidlink.pro',
+  '*.vix-content.net',
   '*.workers.dev',
+  'vix-content.net',
   'videostr.net',
   'vidlink.pro',
 ];
