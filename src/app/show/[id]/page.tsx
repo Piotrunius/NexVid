@@ -1,13 +1,12 @@
 import ShowPageClient from '@/components/pages/ShowPageClient';
 import { loadPublicBlockedMedia } from '@/lib/cloudSync';
+import { SITE_URL } from '@/lib/public-config';
 import { getRecommendations, getShowDetails, getSimilar } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 export const runtime = 'edge';
-
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://nexvid.online').replace(/\/$/, '');
 
 type PageProps = {
   params: Promise<{ id: string }>;

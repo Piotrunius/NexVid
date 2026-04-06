@@ -1,10 +1,9 @@
+import { SITE_URL } from '@/lib/public-config';
 import { getMovieDetails, getShowDetails } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { Metadata } from 'next';
 
 export const runtime = 'edge';
-
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://nexvid.online').replace(/\/$/, '');
 
 type LayoutProps = {
   children: React.ReactNode;

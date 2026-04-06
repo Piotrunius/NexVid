@@ -73,18 +73,16 @@ cp .env.example .env.local
 Edit `.env.local`:
 
 ```env
-NEXT_PUBLIC_TMDB_API_KEY=your_tmdb_api_key_here
 NEXT_PUBLIC_PROXY_URL=https://your-proxy.workers.dev
 NEXT_PUBLIC_API_URL=https://your-worker.workers.dev
-NEXT_PUBLIC_DEV_MODE=true
+DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=
 ```
 
 #### Notes
 
-- `NEXT_PUBLIC_TMDB_API_KEY` is required for TMDB metadata (titles, posters, etc.).
 - `NEXT_PUBLIC_PROXY_URL` is the worker proxy used for scraping sources and HLS rewriting.
 - `NEXT_PUBLIC_API_URL` is the worker API endpoint used for auth/settings/watchlist.
-- `NEXT_PUBLIC_DEV_MODE=true` enables mock sources (Mux test stream, Big Buck Bunny) without a proxy.
+- TMDB metadata uses a built-in public API key in the client bundle, so no env var is required.
 
 ### 2) Install dependencies
 
@@ -172,11 +170,9 @@ From `worker/`:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NEXT_PUBLIC_TMDB_API_KEY` | yes | TMDB API key for metadata.
 | `NEXT_PUBLIC_PROXY_URL` | yes | Worker proxy URL used for scraping and HLS rewriting.
 | `NEXT_PUBLIC_API_URL` | yes | Worker API base URL for auth/settings/watchlist.
-| `NEXT_PUBLIC_DEV_MODE` | no | `true` enables mock sources and bypasses proxy.
-| `NEXT_PUBLIC_DIRECT_RESOLVER_URL` | no | Optional resolver URL for direct stream access (see below).
+| `DIRECT_RESOLVER_URL` | no | Optional resolver URL for direct stream access (see below).
 
 ### Worker (`worker/.env` or `wrangler.toml`)
 
@@ -225,7 +221,7 @@ Worker configuration is stored in `worker/wrangler.toml`. Common settings:
 If some HLS sources return `403`/`401` due to CDN restrictions, you can deploy a dedicated worker resolver and set:
 
 ```env
-NEXT_PUBLIC_DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=
+DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=
 ```
 
 When configured, the frontend will route problematic URLs through the resolver before hitting the upstream.

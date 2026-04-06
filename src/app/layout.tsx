@@ -10,13 +10,13 @@ import { AnnouncementModal } from '@/components/ui/AnnouncementModal';
 import { KeyboardShortcuts } from '@/components/ui/KeyboardShortcuts';
 import { SurveyModal } from '@/components/ui/SurveyModal';
 import { Toaster } from '@/components/ui/Toaster';
+import { SITE_URL } from '@/lib/public-config';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://nexvid.online').replace(/\/$/, '');
 const SITE_NAME = 'NexVid';
 const SITE_DESCRIPTION = 'Watch trending movies and TV shows online in one fast, modern streaming hub with smart search, watchlists, and seamless playback.';
 const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/opengraph-image`;

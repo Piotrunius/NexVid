@@ -5,6 +5,7 @@
 
 'use client';
 
+import { TURNSTILE_SITE_KEY } from '@/lib/public-config';
 import { useEffect, useRef } from 'react';
 
 interface TurnstileProps {
@@ -25,7 +26,7 @@ declare global {
 export function Turnstile({ onVerify, onError }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const siteKey = TURNSTILE_SITE_KEY;
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) return;

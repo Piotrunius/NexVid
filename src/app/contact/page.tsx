@@ -10,6 +10,7 @@ import {
     markUserNotificationsRead,
     sendUserFeedbackMessage,
 } from '@/lib/cloudSync';
+import { TURNSTILE_SITE_KEY } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import Link from 'next/link';
@@ -46,7 +47,7 @@ const DISCORD_INVITE_URL = 'https://cloud.umami.is/q/vCu19Bcub';
 
 export default function ContactPage() {
   const { isLoggedIn } = useAuthStore();
-  const hasTurnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const hasTurnstile = !!TURNSTILE_SITE_KEY;
   const [threadIdFromQuery, setThreadIdFromQuery] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);

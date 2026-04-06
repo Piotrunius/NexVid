@@ -7,6 +7,7 @@
 import { toast } from '@/components/ui/Toaster';
 import { Turnstile } from '@/components/ui/Turnstile';
 import { hasCloudBackend } from '@/lib/cloudSync';
+import { TURNSTILE_SITE_KEY } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import Link from 'next/link';
@@ -28,7 +29,7 @@ export default function LoginPage() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const hasBackendConfigured = hasCloudBackend();
-  const hasTurnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const hasTurnstile = !!TURNSTILE_SITE_KEY;
 
   useEffect(() => {
     if (isLoggedIn) router.push('/');
