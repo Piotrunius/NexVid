@@ -78,10 +78,10 @@ const nextConfig = {
 const withPWA = require('@ducanh2912/next-pwa').default({
     dest: 'public',
     cacheOnFrontEndNav: true,
-    aggressiveFrontEndNavCaching: false, // Disable aggressive caching to avoid stale data
+    aggressiveFrontEndNavCaching: false,
     reloadOnOnline: true,
     swcMinify: true,
-    disable: process.env.NODE_ENV === 'development', // Only disable in dev, enable in production
+    disable: false,
     workboxOptions: {
         disableDevLogs: true,
     },
