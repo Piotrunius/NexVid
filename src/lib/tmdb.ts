@@ -161,18 +161,39 @@ function transformEpisode(data: any): Episode {
 }
 
 function transformSearchItem(data: any, forcedType?: 'movie' | 'tv'): MediaItem {
-  const rawType = String(data?.media_type || data?.mediaType || data?.type || '').trim().toLowerCase();
-  const inferredType =
-    rawType === 'tv' || rawType === 'show' || rawType === 'series'
-      ? 'show'
-      : rawType === 'movie'
-        ? 'movie'
-        : (data?.first_air_date || data?.number_of_seasons || data?.season_number != null)
-          ? 'show'
-          : 'movie';
+  // If forcedType is provided, use it directly - no inference needed
+  if (forcedType) {
+    const type = forcedType === 'tv' ? 'show' : 'movie';
+    if (type === 'show') return transformShow({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
+    return transformMovie({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
+  }
 
-  const type = forcedType ? (forcedType === 'tv' ? 'show' : 'movie') : inferredType;
-  if (type === 'show') return transformShow({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
+  // Try to detect type from data
+  const rawType = String(data?.media_type || data?.mediaType || data?.type || '').trim().toLowerCase();
+
+  // Check for explicit type indicators
+  if (rawType === 'tv' || rawType === 'show' || rawType === 'series') {
+    return transformShow({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
+  }
+  if (rawType === 'movie' || rawType === 'film') {
+    return transformMovie({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
+  }
+
+  // Infer from TV-specific fields (TMDB uses these only for TV shows)
+  const hasTvIndicators =
+    data?.first_air_date != null ||
+    data?.number_of_seasons != null ||
+    data?.number_of_episodes != null ||
+    data?.season_number != null ||
+    data?.episode_run_time != null ||
+    data?.origin_country != null ||
+    (data?.name && !data?.title); // TV shows use 'name', movies use 'title'
+
+  if (hasTvIndicators) {
+    return transformShow({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
+  }
+
+  // Default to movie if we can't determine
   return transformMovie({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
 }
 
@@ -209,9 +230,16 @@ export async function getTrending(
   page = 1
 ): Promise<MediaItem[]> {
   const data = await tmdbFetch<any>(`/trending/${mediaType}/${timeWindow}`, { page: String(page) });
+
+  // When mediaType is specific (not 'all'), we know the type and should force it
+  if (mediaType === 'movie' || mediaType === 'tv') {
+    return data.results.map((r: any) => transformSearchItem(r, mediaType));
+  }
+
+  // For 'all', filter and let transformSearchItem infer from media_type field
   return data.results
     .filter((r: any) => r.media_type === 'movie' || r.media_type === 'tv')
-    .map(transformSearchItem);
+    .map((r: any) => transformSearchItem(r));
 }
 
 export async function getPopular(type: 'movie' | 'tv', page = 1): Promise<MediaItem[]> {

@@ -1,17 +1,12 @@
 import MoviePageClient from '@/components/pages/MoviePageClient';
 import { loadPublicBlockedMedia } from '@/lib/cloudSync';
-import { getMovieDetails, getRecommendations, getShowDetails, getSimilar } from '@/lib/tmdb';
+import { getMovieDetails, getRecommendations, getSimilar } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 export const runtime = 'edge';
 const SITE_URL = (process.env.APP_BASE_URL || 'https://nexvid.online').replace(/\/$/, '');
-
-function isTmdb404(err: unknown): boolean {
-  const message = err instanceof Error ? err.message : String(err || '');
-  return message.includes('TMDB API error: 404');
-}
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -127,15 +122,6 @@ export default async function MoviePage({ params }: PageProps) {
       />
     );
   } catch (err) {
-    if (isTmdb404(err)) {
-      try {
-        await getShowDetails(id);
-        redirect(`/show/${id}`);
-      } catch {
-        // keep movie fallback render below
-      }
-    }
-
     console.error('Failed to fetch movie details:', err);
     return <MoviePageClient />;
   }
