@@ -22,3 +22,5 @@ pages_build_output_dir = ".vercel/output/static"
 # npx wrangler pages secret put TURNSTILE_SECRET_KEY
 
 [vars]
+APP_BASE_URL = "https://nexvid.online"
+TURNSTILE_SITE_KEY = "0x4AAAAAACn4sX2wYBjJSQUo"

@@ -11,13 +11,14 @@ export const runtime = 'edge';
 
 export default async function WatchPage({ params }: PageProps) {
   const { type, id } = await params;
+  const normalizedType = type === 'show' || type === 'tv' || type === 'series' ? 'show' : 'movie';
 
   // Blocked content check
   try {
     const blockedRes = await loadPublicBlockedMedia();
-    const normalizedType = type === 'show' ? 'tv' : 'movie';
+    const blockedType = normalizedType === 'show' ? 'tv' : 'movie';
     const isBlocked = (blockedRes.items || []).some(
-      (item: any) => item.tmdbId === id && item.mediaType === normalizedType
+      (item: any) => item.tmdbId === id && item.mediaType === blockedType
     );
     if (isBlocked) return notFound();
   } catch (err) {
@@ -25,7 +26,7 @@ export default async function WatchPage({ params }: PageProps) {
   }
 
   try {
-    const isShow = type === 'show';
+    const isShow = normalizedType === 'show';
     const media = isShow ? await getShowDetails(id) : await getMovieDetails(id);
 
     return <WatchPageClient initialMedia={media} />;

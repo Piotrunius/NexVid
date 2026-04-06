@@ -7,6 +7,7 @@
 import { AiAssistantModal } from '@/components/ui/AiAssistantModal';
 import { loadPublicAnnouncements, loadUserNotifications } from '@/lib/cloudSync';
 import { searchMedia } from '@/lib/tmdb';
+import { normalizeMediaType } from '@/lib/mediaType';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { useBlockedContentStore } from '@/stores/blockedContent';
@@ -347,7 +348,8 @@ export function Navbar() {
                   {searchResults.length > 0 ? (
                     <div className="grid gap-3 sm:gap-4">
                       {searchResults.map((item) => {
-                        const href = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
+                        const itemType = normalizeMediaType(item.mediaType);
+                        const href = itemType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
                         return (
                           <div
                             key={`${item.mediaType}-${item.tmdbId}`}
@@ -377,7 +379,7 @@ export function Navbar() {
                                     <span className="text-xs font-bold text-white/30">{item.releaseYear || 'N/A'}</span>
                                     <div className="h-0.5 w-0.5 rounded-full bg-white/10" />
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
-                                      {item.mediaType === 'movie' ? 'Movie' : 'TV Show'}
+                                      {itemType === 'movie' ? 'Movie' : 'TV Show'}
                                     </span>
                                   </div>
                                   <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-white/50 sm:mt-2">

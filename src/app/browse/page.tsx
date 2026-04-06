@@ -5,6 +5,7 @@
 'use client';
 
 import { MediaCard, MediaCardSkeleton } from '@/components/media/MediaCard';
+import { normalizeMediaType } from '@/lib/mediaType';
 import { discover, getGenres, getPopular, getTrending } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
 import { useBlockedContentStore } from '@/stores/blockedContent';
@@ -112,7 +113,8 @@ export default function BrowsePage() {
       const filteredResults = results.filter(item => !isBlocked(item.tmdbId, item.mediaType));
       if (filteredResults.length > 0) {
         const randomItem = filteredResults[Math.floor(Math.random() * filteredResults.length)];
-        router.push(`/${randomItem.mediaType === 'show' ? 'show' : 'movie'}/${randomItem.tmdbId}`);
+        const routeType = normalizeMediaType(randomItem.mediaType);
+        router.push(`/${routeType}/${randomItem.tmdbId}`);
       }
     } catch (err) {
       console.error('Failed to get random item:', err);

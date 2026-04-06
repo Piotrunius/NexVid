@@ -3,6 +3,7 @@
    ============================================ */
 
 import { loadPublicBlockedMedia } from '@/lib/cloudSync';
+import { toTmdbMediaType } from '@/lib/mediaType';
 import { create } from 'zustand';
 
 interface BlockedItem {
@@ -37,7 +38,7 @@ export const useBlockedContentStore = create<BlockedContentStore>((set, get) => 
   },
 
   isBlocked: (tmdbId: string, mediaType: string) => {
-    const normalizedType = mediaType === 'show' ? 'tv' : mediaType;
+    const normalizedType = toTmdbMediaType(mediaType);
     return get().blockedItems.some(
       (item) => String(item.tmdbId) === String(tmdbId) && item.mediaType === normalizedType
     );

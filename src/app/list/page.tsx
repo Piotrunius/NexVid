@@ -4,6 +4,7 @@
 
 'use client';
 
+import { toTmdbMediaType } from '@/lib/mediaType';
 import { cn, tmdbImage } from '@/lib/utils';
 import { useBlockedContentStore } from '@/stores/blockedContent';
 import { useWatchlistStore } from '@/stores/watchlist';
@@ -31,7 +32,10 @@ export default function WatchlistPage() {
     () => items
       .filter((item: WatchlistItem) =>
         (item.progress?.percentage || 0) > 0.1 &&
-        !blockedItems.some(b => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'show' ? 'tv' : 'movie'))
+        !blockedItems.some(b => {
+          const normalizedType = toTmdbMediaType(item.mediaType);
+          return String(b.tmdbId) === String(item.tmdbId) && b.mediaType === normalizedType;
+        })
       )
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 12),
@@ -42,7 +46,10 @@ export default function WatchlistPage() {
     // Exclude items with status 'none' (those are only for Continue Watching)
     let list = items.filter(i =>
       i.status !== 'none' &&
-      !blockedItems.some(b => String(b.tmdbId) === String(i.tmdbId) && b.mediaType === (i.mediaType === 'show' ? 'tv' : 'movie'))
+      !blockedItems.some(b => {
+        const normalizedType = toTmdbMediaType(i.mediaType);
+        return String(b.tmdbId) === String(i.tmdbId) && b.mediaType === normalizedType;
+      })
     );
 
     if (activeStatus !== 'all') {
@@ -60,7 +67,10 @@ export default function WatchlistPage() {
   const statusCounts = useMemo(() => {
     const activeItems = items.filter(i =>
       i.status !== 'none' &&
-      !blockedItems.some(b => String(b.tmdbId) === String(i.tmdbId) && b.mediaType === (i.mediaType === 'show' ? 'tv' : 'movie'))
+      !blockedItems.some(b => {
+        const normalizedType = toTmdbMediaType(i.mediaType);
+        return String(b.tmdbId) === String(i.tmdbId) && b.mediaType === normalizedType;
+      })
     );
     const counts: Record<string, number> = { all: activeItems.length };
     STATUSES.forEach((s) => { counts[s.key] = activeItems.filter((i: WatchlistItem) => i.status === s.key).length; });
@@ -176,7 +186,7 @@ function ContinueWatchingCard({ item, href, onRemove }: { item: WatchlistItem; h
         <div className="min-w-0 flex-1 py-1">
           <p className="truncate text-[13px] font-semibold text-text-primary">{item.title}</p>
           <p className="mt-0.5 text-[11px] text-text-muted">
-            {item.mediaType === 'show' && item.progress?.season && item.progress?.episode ? `S${item.progress.season} E${item.progress.episode}` : 'Movie'}
+            {(item.mediaType === 'show' || item.mediaType === 'tv') && item.progress?.season && item.progress?.episode ? `S${item.progress.season} E${item.progress.episode}` : 'Movie'}
           </p>
           <div className="mt-2 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
             <div className="h-full bg-accent rounded-full shadow-[0_0_6px_var(--accent-glow)]" style={{ width: `${item.progress?.percentage || 0}%` }} />

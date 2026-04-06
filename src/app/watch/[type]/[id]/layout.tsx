@@ -1,9 +1,9 @@
-import { SITE_URL } from '@/lib/public-config';
 import { getMovieDetails, getShowDetails } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { Metadata } from 'next';
 
 export const runtime = 'edge';
+const SITE_URL = (process.env.APP_BASE_URL || 'https://nexvid.online').replace(/\/$/, '');
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ type MetadataProps = {
 export async function generateMetadata({ params }: MetadataProps): Promise<Metadata> {
   const { type, id } = await params;
 
-  const isShow = type === 'show';
+  const isShow = type === 'show' || type === 'tv' || type === 'series';
 
   try {
     const media = isShow ? await getShowDetails(id) : await getMovieDetails(id);

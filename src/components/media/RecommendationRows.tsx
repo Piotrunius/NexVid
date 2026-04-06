@@ -1,6 +1,7 @@
 'use client';
 
 import { getRecommendations } from '@/lib/tmdb';
+import { normalizeMediaType, toTmdbMediaType } from '@/lib/mediaType';
 import { cn } from '@/lib/utils';
 import { useBlockedContentStore } from '@/stores/blockedContent';
 import { useWatchlistStore } from '@/stores/watchlist';
@@ -49,7 +50,7 @@ export function RecommendationRows() {
 
       setIsLoading(true);
       try {
-        const apiType = selectedItem.mediaType === 'show' ? 'tv' : 'movie';
+        const apiType = toTmdbMediaType(selectedItem.mediaType);
         const recs = await getRecommendations(apiType, selectedItem.tmdbId);
         const filteredRecs = recs.filter(
           (rec) =>
@@ -106,7 +107,7 @@ export function RecommendationRows() {
           enableControls
           showType
           noPadding
-          href={`/${selectedItem?.mediaType === 'show' ? 'show' : 'movie'}/${selectedItem?.tmdbId}`}
+          href={`/${normalizeMediaType(selectedItem?.mediaType)}/${selectedItem?.tmdbId}`}
           seeAllAsButton
           seeAllLabel="View Title"
         />
