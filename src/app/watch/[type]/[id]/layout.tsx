@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
     const media = isShow ? await getShowDetails(id) : await getMovieDetails(id);
     const releaseSuffix = media.releaseYear ? ` (${media.releaseYear})` : '';
     const baseTitle = `${media.title}${releaseSuffix}`;
-    const title = `Watch - ${baseTitle} free on NexVid`;
-    const description = (media.overview || `Watch ${media.title} online free on NexVid.`).slice(0, 160);
+    const title = `Watch - ${baseTitle} for free on NexVid`;
+    const description = (media.overview || `Watch ${media.title} online for free on NexVid.`).slice(0, 160);
     const canonicalPath = isShow ? `/watch/show/${id}` : `/watch/movie/${id}`;
     const imagePath = media.backdropPath || media.posterPath;
     const imageUrl = imagePath ? tmdbImage(imagePath, 'w1280') : `${SITE_URL}/opengraph-image`;
@@ -53,9 +53,9 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
       },
     };
   } catch {
-    const fallbackTitle = isShow ? 'Watch TV Episode free on NexVid' : 'Watch Movie free on NexVid';
+    const fallbackTitle = isShow ? 'Watch TV Episode for free on NexVid' : 'Watch Movie for free on NexVid';
     const fallbackCanonical = isShow ? `/watch/show/${id}` : `/watch/movie/${id}`;
-    const fallbackDescription = 'Watch movies and TV shows online free on NexVid.';
+    const fallbackDescription = 'Watch movies and TV shows online for free on NexVid.';
 
     return {
       title: fallbackTitle,

@@ -25,8 +25,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        // Keep non-social crawlers away from sensitive or legally risky routes.
-        disallow: ['/admin', '/api/', '/movie/', '/show/', '/watch/'],
+        // Keep only private/runtime routes out of generic crawler access.
+        disallow: ['/admin', '/api/'],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
