@@ -3,6 +3,7 @@
    ============================================ */
 
 import { getCloudToken, saveCloudWatchlist } from '@/lib/cloudSync';
+import { normalizeMediaType as normalizeMediaTypeBase } from '@/lib/mediaType';
 import { generateId } from '@/lib/utils';
 import type { MediaType, WatchlistItem, WatchlistStatus } from '@/types';
 import { create } from 'zustand';
@@ -30,11 +31,48 @@ interface WatchlistStore {
   clearAll: () => void;
 }
 
+function normalizeMediaType(raw: unknown): MediaType {
+  return normalizeMediaTypeBase(raw);
+}
+
+function normalizeWatchlistStatus(raw: unknown): WatchlistStatus {
+  const value = String(raw || '').trim();
+  if (value === 'Planned' || value === 'Watching' || value === 'Completed' || value === 'Dropped' || value === 'On-Hold' || value === 'none') {
+    return value;
+  }
+  return 'Planned';
+}
+
+function normalizeWatchlistItem(item: any): WatchlistItem {
+  const tmdbId = String(item?.tmdbId ?? item?.tmdb_id ?? item?.id ?? '').trim();
+  const now = new Date().toISOString();
+  const rawType = item?.mediaType ?? item?.media_type ?? item?.type;
+  const normalizedFromRaw = normalizeMediaType(rawType);
+  const hasEpisodeProgress = Number(item?.progress?.season || 0) > 0 || Number(item?.progress?.episode || 0) > 0;
+  const normalizedMediaType: MediaType = hasEpisodeProgress ? 'show' : normalizedFromRaw;
+
+  return {
+    ...item,
+    tmdbId,
+    mediaType: normalizedMediaType,
+    title: String(item?.title ?? item?.name ?? ''),
+    posterPath: item?.posterPath ?? item?.poster_path ?? null,
+    status: normalizeWatchlistStatus(item?.status),
+    addedAt: item?.addedAt || now,
+    updatedAt: item?.updatedAt || now,
+  };
+}
+
 export const useWatchlistStore = create<WatchlistStore>()(
   persist(
     (set, get) => ({
       items: [],
-      setItems: (items) => set({ items }),
+      setItems: (items) => {
+        const normalized = (items || [])
+          .map(normalizeWatchlistItem)
+          .filter((item) => Boolean(item.tmdbId));
+        set({ items: normalized });
+      },
 
       addItem: (item) => {
         const existing = get().items.find((i) => i.tmdbId === item.tmdbId);
@@ -48,6 +86,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
 
         const newItem: WatchlistItem = {
           ...item,
+          mediaType: normalizeMediaType(item.mediaType),
           id: generateId(),
           addedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -148,7 +187,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
             const newItem: WatchlistItem = {
               id: generateId(),
               tmdbId: String(mediaMeta.tmdbId),
-              mediaType: mediaMeta.mediaType,
+              mediaType: normalizeMediaType(mediaMeta.mediaType),
               title: mediaMeta.title,
               posterPath: mediaMeta.posterPath,
               status: 'none', // Default to none so it only shows in Continue Watching
@@ -202,7 +241,9 @@ export const useWatchlistStore = create<WatchlistStore>()(
       importItems: (items) =>
         set((state: any) => {
           const existing = new Set(state.items.map((i: WatchlistItem) => i.tmdbId));
-          const newItems = items.filter((i) => !existing.has(i.tmdbId));
+          const newItems = (items || [])
+            .map(normalizeWatchlistItem)
+            .filter((i) => i.tmdbId && !existing.has(i.tmdbId));
           const next = [...state.items, ...newItems];
           if (getCloudToken()) {
             void saveCloudWatchlist(next).catch(() => {});
@@ -219,7 +260,20 @@ export const useWatchlistStore = create<WatchlistStore>()(
       },
     }),
     {
-      name: 'nexvid-settings',
+      name: 'nexvid-watchlist',
+      merge: (persistedState, currentState) => {
+        const typedPersisted = (persistedState || {}) as Partial<WatchlistStore>;
+        const rawItems = Array.isArray(typedPersisted.items) ? typedPersisted.items : [];
+        const normalizedItems = rawItems
+          .map(normalizeWatchlistItem)
+          .filter((item) => Boolean(item.tmdbId));
+
+        return {
+          ...currentState,
+          ...typedPersisted,
+          items: normalizedItems,
+        };
+      },
     }
   )
 );

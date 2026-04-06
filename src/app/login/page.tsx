@@ -7,7 +7,6 @@
 import { toast } from '@/components/ui/Toaster';
 import { Turnstile } from '@/components/ui/Turnstile';
 import { hasCloudBackend } from '@/lib/cloudSync';
-import { TURNSTILE_SITE_KEY } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import Link from 'next/link';
@@ -27,9 +26,9 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [hasTurnstile, setHasTurnstile] = useState(true);
 
   const hasBackendConfigured = hasCloudBackend();
-  const hasTurnstile = !!TURNSTILE_SITE_KEY;
 
   useEffect(() => {
     if (isLoggedIn) router.push('/');
@@ -116,7 +115,7 @@ export default function LoginPage() {
                 <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="••••••••" className="input w-full" />
               </div>
             )}
-            <Turnstile onVerify={setTurnstileToken} />
+            <Turnstile onVerify={setTurnstileToken} onAvailabilityChange={setHasTurnstile} />
             <button
               type="submit"
               disabled={isSubmitting || (hasTurnstile && !turnstileToken)}

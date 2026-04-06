@@ -5,6 +5,7 @@
 'use client';
 
 import { cn, formatTime, tmdbImage } from '@/lib/utils';
+import { normalizeMediaType } from '@/lib/mediaType';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem, WatchlistStatus } from '@/types';
 import { Check, CheckCircle2, Clock, PauseCircle, PlayCircle, Plus, XCircle } from 'lucide-react';
@@ -59,12 +60,15 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
   const isInWatchlist = useWatchlistStore((s) => s.isInWatchlist(item.tmdbId));
   const progress = watchlistItem?.progress;
   const hasProgress = mounted && progress && (progress.percentage || 0) > 0.1;
-  const isShow = item.mediaType === 'show' || watchlistItem?.mediaType === 'show';
+  const normalizedItemType = normalizeMediaType(item.mediaType);
+  const normalizedWatchlistType = normalizeMediaType(watchlistItem?.mediaType);
+  const isShow = normalizedItemType === 'show' || normalizedWatchlistType === 'show';
 
-  const defaultHref = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
+  const canonicalType = normalizedItemType === 'show' ? 'show' : 'movie';
+  const defaultHref = canonicalType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
 
   const watchUrl = hasProgress
-    ? `/watch/${item.mediaType || watchlistItem?.mediaType}/${item.tmdbId}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
+    ? `/watch/${canonicalType}/${item.tmdbId}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
     : defaultHref;
 
   const href = hasProgress ? watchUrl : defaultHref;
@@ -77,7 +81,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
     if (watchlistItem) {
       setWatchlistStatus(watchlistItem.id, status);
     } else {
-      addItem({ mediaType: item.mediaType, tmdbId: item.tmdbId, title: item.title, posterPath: item.posterPath, status });
+      addItem({ mediaType: canonicalType, tmdbId: item.tmdbId, title: item.title, posterPath: item.posterPath, status });
     }
     setShowMenu(false);
   };
@@ -178,7 +182,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
         {showType && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-[20px] px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
             <span className="text-[10px] font-bold uppercase text-white tracking-[0.12em]">
-              {item.mediaType === 'movie' ? 'Movie' : 'TV'}
+              {canonicalType === 'movie' ? 'Movie' : 'TV'}
             </span>
           </div>
         )}

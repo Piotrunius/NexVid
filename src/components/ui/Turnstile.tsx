@@ -5,12 +5,12 @@
 
 'use client';
 
-import { TURNSTILE_SITE_KEY } from '@/lib/public-config';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface TurnstileProps {
   onVerify: (token: string) => void;
   onError?: () => void;
+  onAvailabilityChange?: (enabled: boolean) => void;
 }
 
 declare global {
@@ -23,10 +23,31 @@ declare global {
   }
 }
 
-export function Turnstile({ onVerify, onError }: TurnstileProps) {
+export function Turnstile({ onVerify, onError, onAvailabilityChange }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
-  const siteKey = TURNSTILE_SITE_KEY;
+  const [siteKey, setSiteKey] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/public-config', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active) return;
+        const key = String(data?.turnstileSiteKey || '').trim();
+        setSiteKey(key);
+        onAvailabilityChange?.(Boolean(key));
+      })
+      .catch(() => {
+        if (!active) return;
+        setSiteKey('');
+        onAvailabilityChange?.(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [onAvailabilityChange]);
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) return;

@@ -5,6 +5,7 @@
 import { MediaRow } from '@/components/media/MediaCard';
 import { HomePageClient } from '@/components/pages/HomePageClient';
 import { loadPublicBlockedMedia } from '@/lib/cloudSync';
+import { normalizeMediaType, toTmdbMediaType } from '@/lib/mediaType';
 import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
 import { tmdbImage } from '@/lib/utils';
 import type { MediaItem } from '@/types';
@@ -33,7 +34,10 @@ export default async function HomePage() {
 
     const blocked = blockedRes.items || [];
     const filterBlocked = (items: MediaItem[]) =>
-      items.filter(item => !blocked.some((b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === (item.mediaType === 'show' ? 'tv' : 'movie')));
+      items.filter(item => {
+        const normalizedType = toTmdbMediaType(item.mediaType);
+        return !blocked.some((b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === normalizedType);
+      });
 
     trending = filterBlocked(t);
     popular = filterBlocked(p);
@@ -46,6 +50,8 @@ export default async function HomePage() {
   } catch (err) {
     console.error('Failed to load homepage data:', err);
   }
+
+  const featuredType = normalizeMediaType(featured?.mediaType);
 
   return (
     <div className="min-h-screen">
@@ -95,7 +101,7 @@ export default async function HomePage() {
 
                 <div className="flex animate-slide-up flex-wrap items-center gap-4 pt-4 [animation-delay:200ms]">
                   <Link
-                    href={`/watch/${featured.mediaType}/${featured.tmdbId}`}
+                    href={`/watch/${featuredType}/${featured.tmdbId}`}
                     className="btn-accent group relative overflow-hidden !px-10 !py-4 text-[15px] font-bold"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
@@ -103,7 +109,7 @@ export default async function HomePage() {
                     Watch Now
                   </Link>
                   <Link
-                    href={`/${featured.mediaType}/${featured.tmdbId}`}
+                    href={`/${featuredType}/${featured.tmdbId}`}
                     className="btn-glass !px-8 !py-4 text-[15px] font-bold"
                   >
                     More Info

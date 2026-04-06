@@ -137,7 +137,8 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const router = useRouter();
   const { isBlocked, isLoaded } = useBlockedContentStore();
 
-  const type = params?.type as string;
+  const routeType = String(params?.type || '').toLowerCase();
+  const type: 'movie' | 'show' = routeType === 'show' || routeType === 'tv' || routeType === 'series' ? 'show' : 'movie';
   const id = params?.id as string;
 
   useEffect(() => {

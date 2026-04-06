@@ -209,8 +209,10 @@ export const useAuthStore = create<AuthStore>()(
             return;
           }
 
+          const fallbackToken = getCloudToken();
+
           set((state: any) => ({
-            authToken: token,
+            authToken: fallbackToken,
             user: state.user,
             isLoggedIn: Boolean(state.user),
           }));

@@ -113,7 +113,7 @@ export function AiAssistantModal({
             const searchRes = await searchMedia(rec.title);
             const match = searchRes.results.find(
               (r) =>
-                (type === 'movie' ? r.mediaType === 'movie' : r.mediaType === 'show') &&
+                (type === 'movie' ? r.mediaType === 'movie' : r.mediaType === 'show' || r.mediaType === 'tv') &&
                 (rec.year ? Math.abs((r.releaseYear || 0) - rec.year) <= 1 : true)
             );
             if (!match) return null;

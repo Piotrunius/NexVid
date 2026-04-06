@@ -8,7 +8,8 @@ const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_API_KEY = '76508fc7baf10d9483564c0f7acbbc21';
 
 function getApiKey(): string {
-  return TMDB_API_KEY;
+  const localOverride = String(process.env.TMDB_API_KEY || '').trim();
+  return localOverride || TMDB_API_KEY;
 }
 
 function buildUrl(path: string, params: Record<string, string> = {}): string {
@@ -160,9 +161,19 @@ function transformEpisode(data: any): Episode {
 }
 
 function transformSearchItem(data: any, forcedType?: 'movie' | 'tv'): MediaItem {
-  const type = forcedType ? (forcedType === 'tv' ? 'show' : 'movie') : (data.media_type === 'tv' ? 'show' : 'movie');
-  if (type === 'show') return transformShow({ ...data, media_type: undefined });
-  return transformMovie({ ...data, media_type: undefined });
+  const rawType = String(data?.media_type || data?.mediaType || data?.type || '').trim().toLowerCase();
+  const inferredType =
+    rawType === 'tv' || rawType === 'show' || rawType === 'series'
+      ? 'show'
+      : rawType === 'movie'
+        ? 'movie'
+        : (data?.first_air_date || data?.number_of_seasons || data?.season_number != null)
+          ? 'show'
+          : 'movie';
+
+  const type = forcedType ? (forcedType === 'tv' ? 'show' : 'movie') : inferredType;
+  if (type === 'show') return transformShow({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
+  return transformMovie({ ...data, media_type: undefined, mediaType: undefined, type: undefined });
 }
 
 // ---- Public API ----

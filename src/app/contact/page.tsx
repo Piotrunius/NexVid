@@ -10,7 +10,6 @@ import {
     markUserNotificationsRead,
     sendUserFeedbackMessage,
 } from '@/lib/cloudSync';
-import { TURNSTILE_SITE_KEY } from '@/lib/public-config';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import Link from 'next/link';
@@ -47,7 +46,7 @@ const DISCORD_INVITE_URL = 'https://cloud.umami.is/q/vCu19Bcub';
 
 export default function ContactPage() {
   const { isLoggedIn } = useAuthStore();
-  const hasTurnstile = !!TURNSTILE_SITE_KEY;
+  const [hasTurnstile, setHasTurnstile] = useState(true);
   const [threadIdFromQuery, setThreadIdFromQuery] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -341,7 +340,7 @@ export default function ContactPage() {
             />
           </div>
 
-          {hasTurnstile && <Turnstile onVerify={setFeedbackTurnstileToken} />}
+          {hasTurnstile && <Turnstile onVerify={setFeedbackTurnstileToken} onAvailabilityChange={setHasTurnstile} />}
 
           <button disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)} onClick={handleCreateThread} className="btn-accent w-full">
             Send message

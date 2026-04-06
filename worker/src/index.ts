@@ -2141,7 +2141,8 @@ async function handleAdminBlockedMedia(request: Request, env: Env): Promise<Resp
   if (request.method === 'POST') {
     const body = await readJson<{ tmdbId?: string; mediaType?: string; reason?: string }>(request);
     const tmdbId = String(body.tmdbId || '').trim();
-    const mediaType = (body.mediaType || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
+    const rawMediaType = String(body.mediaType || '').trim().toLowerCase();
+    const mediaType = rawMediaType === 'tv' || rawMediaType === 'show' || rawMediaType === 'series' ? 'tv' : 'movie';
     const reason = (body.reason || '').trim().slice(0, 300);
 
     if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
@@ -2161,7 +2162,8 @@ async function handleAdminBlockedMedia(request: Request, env: Env): Promise<Resp
   if (request.method === 'DELETE') {
     const url = new URL(request.url);
     const tmdbId = (url.searchParams.get('tmdbId') || '').trim();
-    const mediaType = (url.searchParams.get('mediaType') || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
+    const rawMediaType = String(url.searchParams.get('mediaType') || '').trim().toLowerCase();
+    const mediaType = rawMediaType === 'tv' || rawMediaType === 'show' || rawMediaType === 'series' ? 'tv' : 'movie';
 
     if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
 
