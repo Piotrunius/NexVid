@@ -31,15 +31,15 @@ async function sendDiscordNotification(message, branch, sha) {
   const type = config[typeKey] || config.default;
 
   const payload = {
-    username: "NexVid Update",
+    username: 'NexVid Update',
     embeds: [{
       title: `Site ${type.label} Pushed`,
-      description: "A new push has been synchronized with the remote server.",
+      description: 'A new push has been synchronized with the remote server.',
       color: type.color,
       fields: [
-        { name: "Branch", value: `\`${branch}\``, inline: true },
-        { name: "Commit", value: `\`${sha}\``, inline: true },
-        { name: "Message", value: `\`\`\`${message}\`\`\``, inline: false }
+        { name: 'Branch', value: `\`${branch}\``, inline: true },
+        { name: 'Commit', value: `\`${sha}\``, inline: true },
+        { name: 'Message', value: `\`\`\`${message}\`\`\``, inline: false }
       ],
       timestamp: new Date().toISOString()
     }]
@@ -51,46 +51,46 @@ async function sendDiscordNotification(message, branch, sha) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    console.log(`\n🔔 Powiadomienie Discord wysłane: [${type.label}]`);
+    console.log(`\n🔔 Discord notification sent: [${type.label}]`);
   } catch (err) {
-    console.error('\n❌ Błąd wysyłania do Discorda:', err.message);
+    console.error('\n❌ Error sending to Discord:', err.message);
   }
 }
 
 async function ship() {
   try {
-    console.log('\n🚢 Tryb wysyłki:');
-    console.log('1. Development (Git + Wybór Deployu)');
-    console.log('2. Preview (Szybki deploy Pages na "nexvid")');
+    console.log('\n🚢 Shipping mode:');
+    console.log('1. Development (Git + Deploy selection)');
+    console.log('2. Preview (Quick Pages deploy to "nexvid")');
 
-    const mode = await question('\nWybór (1-2): ');
+    const mode = await question('\nChoice (1-2): ');
 
     if (mode.trim() === '2') {
-      console.log('\n🚀 Deploy Preview...');
+      console.log('\n🚀 Deploying Preview...');
       execSync('bun run pages:deploy -- --branch nexvid', { stdio: 'inherit' });
-      console.log('\n✨ Gotowe!');
+      console.log('\n✨ Done!');
       return;
     }
 
-    // --- PROCES GIT ---
-    console.log('\n🛠️  Rozpoczynam proces Development...\n');
+    // --- GIT PROCESS ---
+    console.log('\n🛠️  Starting Development process...\n');
 
     console.log('📦 Staging files...');
     execSync('git add .', { stdio: 'inherit' });
 
     const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-    const commitMsg = await question(`📝 Commit message (np. feat: opis) [default: ${defaultMsg}]: `);
+    const commitMsg = await question(`📝 Commit message (e.g. feat: description) [default: ${defaultMsg}]: `);
     const finalMsg = commitMsg.trim() || defaultMsg;
 
-    console.log(`\n💾 Commitowanie: "${finalMsg}"...`);
+    console.log(`\n💾 Committing: "${finalMsg}"...`);
     execSync(`git commit -m "${finalMsg}"`, { stdio: 'inherit' });
 
-    // --- OPCJA DISCORD ---
-    const notifyChoice = await question('\n🔔 Czy wysłać powiadomienie na Discord? (y/N): ');
+    // --- DISCORD OPTION ---
+    const notifyChoice = await question('\n🔔 Send a Discord notification? (y/N): ');
     const shouldNotify = notifyChoice.toLowerCase().trim() === 'y';
 
     // --- PUSH ---
-    const pushChoice = await question('\n⬆️  Push do GitHub? (y/N): ');
+    const pushChoice = await question('\n⬆️  Push to GitHub? (y/N): ');
     if (pushChoice.toLowerCase().trim() === 'y') {
       console.log('🚀 Pushing...');
       execSync('git push', { stdio: 'inherit' });
@@ -103,44 +103,43 @@ async function ship() {
     }
 
     // --- DEPLOYMENT ---
-    console.log('\n🌐 Gdzie chcesz wdrożyć zmiany?');
+    console.log('\n🌐 Where do you want to deploy the changes?');
     console.log('1. Worker only');
     console.log('2. Pages only');
     console.log('3. Both (Worker & Pages)');
     console.log('4. None');
 
-    const deployChoice = await question('\nWybór (1-4): ');
+    const deployChoice = await question('\nChoice (1-4): ');
 
     if (deployChoice.trim() !== '4') {
       const selected = deployChoice.trim();
       const shouldDeployWorker = selected === '1' || selected === '3';
       const shouldDeployPages = selected === '2' || selected === '3';
 
-      console.log('\n🎯 Środowisko:');
+      console.log('\n🎯 Environment:');
       console.log('1. Production (main)');
       console.log('2. Preview (nexvid)');
-      const envChoice = await question('Wybór (1-2, default: 1): ');
+      const envChoice = await question('Choice (1-2, default: 1): ');
 
       const isPreview = envChoice.trim() === '2';
       const branch = isPreview ? 'nexvid' : 'main';
 
       if (shouldDeployWorker) {
-        console.log(`\n⚡ Deploying Worker...`);
+        console.log('\n⚡ Deploying Worker...');
         execSync('bun run worker:deploy', { stdio: 'inherit' });
       }
 
       if (shouldDeployPages) {
-        console.log(`\n📄 Deploying Pages do brancha "${branch}"...`);
+        console.log(`\n📄 Deploying Pages to branch "${branch}"...`);
         execSync(`bun run pages:deploy -- --branch ${branch}`, { stdio: 'inherit' });
       }
     } else {
-      console.log('\n✅ Pominięto wdrożenie.');
+      console.log('\n✅ Deployment skipped.');
     }
 
-    console.log('\n✨ Wszystkie zadania zakończone!\n');
-
+    console.log('\n✨ All tasks completed!\n');
   } catch (error) {
-    console.error('\n❌ Błąd podczas shipu:', error.message);
+    console.error('\n❌ Error during ship:', error.message);
   } finally {
     rl.close();
   }
