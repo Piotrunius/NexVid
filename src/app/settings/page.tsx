@@ -495,10 +495,10 @@ export default function SettingsPage() {
                 autoComplete="new-password"
               />
               <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                <p className="text-[11px] font-medium text-text-secondary mb-1.5">How to get your own FebBox token</p>
+                <p className="text-[11px] font-medium text-text-secondary mb-1.5">How to get your own FebBox token (Chromium / firefox)</p>
                 <ol className="list-decimal pl-4 space-y-1 text-[11px] text-text-muted leading-relaxed">
                   <li>Log in to <a href="https://www.febbox.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">febbox.com</a></li>
-                  <li>Open DevTools → Application → Cookies → febbox.com</li>
+                  <li>Open DevTools (F12) → Application/Storage → Cookies → www.febbox.com</li>
                   <li>Copy the <span className="text-text-secondary font-medium">ui</span> cookie value</li>
                   <li>Paste it above – saves automatically</li>
                 </ol>
