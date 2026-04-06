@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   try {
     const show = await getShowDetails(id);
     const releaseSuffix = show.releaseYear ? ` (${show.releaseYear})` : '';
-    const title = `Watch - ${show.title}${releaseSuffix} free on NexVid`;
-    const description = (show.overview || `Watch ${show.title} online free on NexVid. Explore episodes, cast, and recommendations.`).slice(0, 160);
+    const title = `Watch - ${show.title}${releaseSuffix} for free on NexVid`;
+    const description = (show.overview || `Watch ${show.title} online for free on NexVid. Explore episodes, cast, and recommendations.`).slice(0, 160);
     const imagePath = show.backdropPath || show.posterPath;
     const imageUrl = imagePath ? tmdbImage(imagePath, 'w1280') : `${SITE_URL}/opengraph-image`;
 
@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   } catch {
     return {
-      title: 'Watch TV Shows free on NexVid',
+      title: 'Watch TV Shows for free on NexVid',
       description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
       robots: {
         index: false,
@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         canonical: `/show/${id}`,
       },
       openGraph: {
-        title: 'Watch TV Shows free on NexVid',
+        title: 'Watch TV Shows for free on NexVid',
         description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
         url: `${SITE_URL}/show/${id}`,
         type: 'video.tv_show',
@@ -85,7 +85,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
       twitter: {
         card: 'summary_large_image',
-        title: 'Watch TV Shows free on NexVid',
+        title: 'Watch TV Shows for free on NexVid',
         description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
         images: [`${SITE_URL}/opengraph-image`],
       },

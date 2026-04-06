@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   try {
     const movie = await getMovieDetails(id);
     const releaseSuffix = movie.releaseYear ? ` (${movie.releaseYear})` : '';
-    const title = `Watch - ${movie.title}${releaseSuffix} free on NexVid`;
-    const description = (movie.overview || `Watch ${movie.title} online free on NexVid. See cast, details, and recommendations.`).slice(0, 160);
+    const title = `Watch - ${movie.title}${releaseSuffix} for free on NexVid`;
+    const description = (movie.overview || `Watch ${movie.title} online for free on NexVid. See cast, details, and recommendations.`).slice(0, 160);
     const imagePath = movie.backdropPath || movie.posterPath;
     const imageUrl = imagePath ? tmdbImage(imagePath, 'w1280') : `${SITE_URL}/opengraph-image`;
 
@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   } catch {
     return {
-      title: 'Watch Movies free on NexVid',
+      title: 'Watch Movies for free on NexVid',
       description: 'Watch movie details, cast, and recommendations on NexVid.',
       robots: {
         index: false,
@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         canonical: `/movie/${id}`,
       },
       openGraph: {
-        title: 'Watch Movies free on NexVid',
+        title: 'Watch Movies for free on NexVid',
         description: 'Watch movie details, cast, and recommendations on NexVid.',
         url: `${SITE_URL}/movie/${id}`,
         type: 'video.movie',
@@ -85,7 +85,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
       twitter: {
         card: 'summary_large_image',
-        title: 'Watch Movies free on NexVid',
+        title: 'Watch Movies for free on NexVid',
         description: 'Watch movie details, cast, and recommendations on NexVid.',
         images: [`${SITE_URL}/opengraph-image`],
       },
