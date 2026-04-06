@@ -7,14 +7,14 @@
 import ExternalRatings from '@/components/media/ExternalRatings';
 import { MediaRow } from '@/components/media/MediaCard';
 import { DownloadModal } from '@/components/ui/DownloadModal';
-import { getMovieDetails, getRecommendations, getSimilar } from '@/lib/tmdb';
+import { getMovieDetails, getRecommendations, getShowDetails, getSimilar } from '@/lib/tmdb';
 import { cn, formatRuntime, tmdbImage } from '@/lib/utils';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { MediaItem, Movie, WatchlistStatus } from '@/types';
 import { CheckCircle2, Clock, PauseCircle, Play, PlayCircle, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
@@ -42,6 +42,7 @@ export default function MoviePage({
   initialSimilar?: MediaItem[]
 }) {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string;
 
   const [movie, setMovie] = useState<Movie | null>(initialMovie || null);
@@ -68,12 +69,22 @@ export default function MoviePage({
       setMovie(m);
       setRecommendations(recs);
       setSimilar(sim);
-    } catch (err) {
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : String(err || '');
+      if (message.includes('TMDB API error: 404')) {
+        try {
+          await getShowDetails(id);
+          router.replace(`/show/${id}`);
+          return;
+        } catch {
+          // keep default error path below
+        }
+      }
       console.error('Failed to load movie:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, router]);
 
   useEffect(() => {
     if (movie && movie.tmdbId === id) return;
