@@ -6,6 +6,7 @@ import type { CastMember, CrewMember, Episode, Genre, MediaItem, Movie, Season, 
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const TMDB_API_KEY = '76508fc7baf10d9483564c0f7acbbc21';
+const TMDB_REQUEST_TIMEOUT_MS = 10000;
 
 function getApiKey(): string {
   const localOverride = String(process.env.TMDB_API_KEY || '').trim();
@@ -19,8 +20,36 @@ function buildUrl(path: string, params: Record<string, string> = {}): string {
   return url.toString();
 }
 
+async function fetchWithTimeout(input: string, init: RequestInit = {}, timeoutMs = TMDB_REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const { signal } = init;
+
+  const onAbort = () => controller.abort(signal?.reason);
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+    } else {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  }
+
+  const timeoutId = setTimeout(() => controller.abort(new Error(`TMDB request timed out after ${timeoutMs}ms`)), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+    if (signal) {
+      signal.removeEventListener('abort', onAbort);
+    }
+  }
+}
+
 async function tmdbFetch<T>(path: string, params: Record<string, string> = {}): Promise<T> {
-  const res = await fetch(buildUrl(path, params));
+  const res = await fetchWithTimeout(buildUrl(path, params));
   if (!res.ok) throw new Error(`TMDB API error: ${res.status} ${res.statusText}`);
   return res.json();
 }

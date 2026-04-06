@@ -113,11 +113,16 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const apiUrl = getCloudApiUrl();
           if (!apiUrl) throw new Error('Cloud API URL is not configured');
-          const res = await fetch(`${apiUrl}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, turnstileToken }),
-          });
+          let res: Response;
+          try {
+            res = await fetch(`${apiUrl}/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username, password, turnstileToken }),
+            });
+          } catch {
+            throw new CloudApiError('Network error while contacting cloud backend', 0, 'NETWORK_ERROR');
+          }
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || 'Login failed');
           setCloudToken(data.token || '');
@@ -156,11 +161,16 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const apiUrl = getCloudApiUrl();
           if (!apiUrl) throw new Error('Cloud API URL is not configured');
-          const res = await fetch(`${apiUrl}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, turnstileToken }),
-          });
+          let res: Response;
+          try {
+            res = await fetch(`${apiUrl}/auth/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username, password, turnstileToken }),
+            });
+          } catch {
+            throw new CloudApiError('Network error while contacting cloud backend', 0, 'NETWORK_ERROR');
+          }
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data?.error || 'Registration failed');
           setCloudToken(data.token || '');

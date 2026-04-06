@@ -77,7 +77,8 @@ const nextConfig = {
 
 const withPWA = require('@ducanh2912/next-pwa').default({
     dest: 'public',
-    cacheOnFrontEndNav: true,
+    // App Router + RSC responses are safer when navigation is always network-driven.
+    cacheOnFrontEndNav: false,
     aggressiveFrontEndNavCaching: false,
     reloadOnOnline: true,
     swcMinify: true,

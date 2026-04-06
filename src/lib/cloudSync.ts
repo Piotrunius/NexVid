@@ -1,5 +1,6 @@
 const AUTH_TOKEN_KEY = 'nexvid-auth-token';
 const DEFAULT_PROD_API_URL = 'https://nexvid-proxy.piotrunius.workers.dev';
+const CLOUD_REQUEST_TIMEOUT_MS = 10000;
 
 export class CloudApiError extends Error {
   status: number;
@@ -41,6 +42,35 @@ function getApiUrl(): string {
   return DEFAULT_PROD_API_URL;
 }
 
+async function fetchWithTimeout(input: string, init: RequestInit = {}, timeoutMs = CLOUD_REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const { signal } = init;
+
+  const onAbort = () => controller.abort(signal?.reason);
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+    } else {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  }
+
+  const timeoutId = setTimeout(() => controller.abort(new Error(`Cloud API request timed out after ${timeoutMs}ms`)), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+      credentials: 'include',
+    });
+  } finally {
+    clearTimeout(timeoutId);
+    if (signal) {
+      signal.removeEventListener('abort', onAbort);
+    }
+  }
+}
+
 export function getCloudApiUrl(): string {
   return getApiUrl();
 }
@@ -76,10 +106,9 @@ export async function cloudFetch<T = any>(path: string, init: RequestInit = {}):
 
   let response: Response;
   try {
-    response = await fetch(`${apiUrl}${path}`, {
+    response = await fetchWithTimeout(`${apiUrl}${path}`, {
       ...init,
       headers,
-      credentials: 'include',
     });
   } catch {
     throw new CloudApiError('Network error while contacting cloud backend', 0, 'NETWORK_ERROR');
