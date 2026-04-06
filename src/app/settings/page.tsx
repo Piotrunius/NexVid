@@ -500,7 +500,6 @@ export default function SettingsPage() {
                   <li>Log in to <a href="https://www.febbox.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">febbox.com</a></li>
                   <li>Open DevTools (F12) → Application/Storage → Cookies → www.febbox.com</li>
                   <li>Copy the <span className="text-text-secondary font-medium">ui</span> cookie value</li>
-                  <li>Paste it above – saves automatically</li>
                 </ol>
               </div>
             </SettingsRow>
