@@ -121,33 +121,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function () {
-                try {
-                  if (typeof window === 'undefined') return;
-                  if (!('serviceWorker' in navigator)) return;
-                  if (sessionStorage.getItem('nexvid-sw-reset-v1')) return;
-                  sessionStorage.setItem('nexvid-sw-reset-v1', '1');
-
-                  navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                    return Promise.all(registrations.map(function (registration) {
-                      return registration.unregister();
-                    }));
-                  }).then(function () {
-                    if (!('caches' in window)) return;
-                    return caches.keys().then(function (keys) {
-                      return Promise.all(keys.map(function (key) { return caches.delete(key); }));
-                    });
-                  }).finally(function () {
-                    window.setTimeout(function () { window.location.reload(); }, 150);
-                  });
-                } catch (_) {}
-              })();
-            `,
-          }}
-        />
-        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />

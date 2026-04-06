@@ -80,7 +80,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     // App Router + RSC responses are safer when navigation is always network-driven.
     cacheOnFrontEndNav: false,
     aggressiveFrontEndNavCaching: false,
-    reloadOnOnline: true,
+    // Avoid surprise refreshes on flaky mobile networks.
+    reloadOnOnline: false,
     swcMinify: true,
     disable: false,
     workboxOptions: {
