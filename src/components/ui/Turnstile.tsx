@@ -26,6 +26,7 @@ declare global {
 export function Turnstile({ onVerify, onError, onAvailabilityChange }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [siteKey, setSiteKey] = useState('');
 
   useEffect(() => {
@@ -54,6 +55,10 @@ export function Turnstile({ onVerify, onError, onAvailabilityChange }: Turnstile
 
     const renderWidget = () => {
       if (!containerRef.current || !window.turnstile) return;
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
       widgetId.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         callback: onVerify,
@@ -61,6 +66,14 @@ export function Turnstile({ onVerify, onError, onAvailabilityChange }: Turnstile
         theme: 'dark',
         size: 'flexible',
       });
+    };
+
+    const markUnavailable = () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
+      onAvailabilityChange?.(false);
     };
 
     // If turnstile is already loaded
@@ -74,9 +87,20 @@ export function Turnstile({ onVerify, onError, onAvailabilityChange }: Turnstile
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
     script.async = true;
+    script.onerror = markUnavailable;
     document.head.appendChild(script);
 
+    loadTimeoutRef.current = setTimeout(() => {
+      if (!window.turnstile) {
+        markUnavailable();
+      }
+    }, 5000);
+
     return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
       if (widgetId.current && window.turnstile) {
         window.turnstile.reset(widgetId.current);
       }

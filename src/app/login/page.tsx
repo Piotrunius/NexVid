@@ -30,6 +30,11 @@ export default function LoginPage() {
 
   const hasBackendConfigured = hasCloudBackend();
 
+  const isNetworkBackendError = (err: unknown): boolean => {
+    const message = err instanceof Error ? err.message : String(err || '');
+    return message.includes('Network error while contacting cloud backend') || message.includes('Failed to fetch') || message.includes('AbortError');
+  };
+
   useEffect(() => {
     if (isLoggedIn) router.push('/');
   }, [isLoggedIn, router]);
@@ -43,8 +48,19 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       if (hasBackendConfigured) {
-        if (mode === 'login') await loginWithBackend(username, password, turnstileToken);
-        else await registerWithBackend(username, password, turnstileToken);
+        try {
+          if (mode === 'login') await loginWithBackend(username, password, turnstileToken);
+          else await registerWithBackend(username, password, turnstileToken);
+        } catch (err) {
+          if (!isNetworkBackendError(err)) throw err;
+
+          if (mode === 'login') loginLocal(username);
+          else registerLocal(username);
+
+          toast(mode === 'login' ? 'Backend unavailable, signed in locally.' : 'Backend unavailable, created a local account.', 'warning');
+          router.push('/');
+          return;
+        }
       } else {
         if (mode === 'login') loginLocal(username);
         else registerLocal(username);
