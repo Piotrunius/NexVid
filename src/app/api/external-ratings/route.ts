@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   // Robust key selection
   let apiKey = userApiKey?.trim();
   if (!apiKey || apiKey === '__PUBLIC_OMDB_KEY__' || apiKey === 'undefined' || apiKey === 'null') {
-    apiKey = (process.env.OMDB_API_KEY || process.env.NEXT_PUBLIC_OMDB_API_KEY || '').trim();
+    apiKey = (process.env.OMDB_API_KEY || '').trim();
   }
 
   if (!apiKey) {
@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
     let data = await res.json();
 
     // 2. Fallback to Title + Year if ID search yielded only IMDb or nothing (common for series)
-    const hasOnlyImdb = data.Response === 'True' && 
-                       (!data.Ratings || data.Ratings.length <= 1) && 
+    const hasOnlyImdb = data.Response === 'True' &&
+                       (!data.Ratings || data.Ratings.length <= 1) &&
                        (!data.Metascore || data.Metascore === 'N/A');
 
     if ((data.Response === 'False' || hasOnlyImdb) && title) {
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
       const fallbackRes = await fetch(url2.toString());
       const fallbackData = await fallbackRes.json();
-      
+
       if (fallbackData.Response === 'True') {
         const fallbackHasMore = (fallbackData.Ratings && fallbackData.Ratings.length > (data.Ratings?.length || 0));
         if (fallbackHasMore || data.Response === 'False') {

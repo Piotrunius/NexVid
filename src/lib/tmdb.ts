@@ -5,9 +5,10 @@
 import type { CastMember, CrewMember, Episode, Genre, MediaItem, Movie, Season, Show, VideoItem } from '@/types';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
+const TMDB_API_KEY = '76508fc7baf10d9483564c0f7acbbc21';
 
 function getApiKey(): string {
-  return process.env.NEXT_PUBLIC_TMDB_API_KEY || '';
+  return TMDB_API_KEY;
 }
 
 function buildUrl(path: string, params: Record<string, string> = {}): string {

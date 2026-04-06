@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
 
     if (!upstream.ok && (upstream.status === 401 || upstream.status === 403 || upstream.status === 429)) {
       const resolverBase = String(
-        process.env.DIRECT_RESOLVER_URL || process.env.NEXT_PUBLIC_DIRECT_RESOLVER_URL || ''
+        process.env.DIRECT_RESOLVER_URL || ''
       ).trim();
       const resolverUrl = buildResolverUrl(resolverBase, targetUrl, forwardHeaders);
       if (resolverUrl) {
