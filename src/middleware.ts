@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.pathname;
 
-  if (url.startsWith('/admin') || url.startsWith('/settings')) {
+  if (url.startsWith('/admin')) {
     const token = request.cookies.get('nexvid_session')?.value;
 
     if (!token) {
