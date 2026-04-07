@@ -3266,23 +3266,32 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
 
   try {
     const targetHost = parsedTarget.hostname.toLowerCase();
+    const isVixContent = targetHost === 'vix-content.net' || targetHost.endsWith('.vix-content.net');
     const defaultOrigin = targetHost.includes('vodvidl') || targetHost.includes('videostr')
         ? 'https://videostr.net'
-        : 'https://vidlink.pro';
+        : isVixContent
+          ? parsedTarget.origin
+          : 'https://vidlink.pro';
 
     const extraHeaders = parseDirectResolverHeaders(url);
-    const referer = extraHeaders.referer || `${(extraHeaders.origin || defaultOrigin)}/`;
+
+    // vix-content CDN rejects requests with vixsrc.to origin/referer;
+    // it expects the target's own origin (matching the old /proxy route behavior).
+    const origin = isVixContent ? parsedTarget.origin : (extraHeaders.origin || defaultOrigin);
+    const referer = isVixContent ? `${parsedTarget.origin}/` : (extraHeaders.referer || `${origin}/`);
 
     const upstreamHeaders = new Headers({
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0',
       Referer: referer,
-      Origin: extraHeaders.origin || defaultOrigin,
+      Origin: origin,
       Accept: extraHeaders.accept || '*/*',
     });
 
     for (const [key, value] of Object.entries(extraHeaders)) {
       if (!value) continue;
       if (key === 'accept') continue;
+      // Skip overriding origin/referer for vix-content
+      if (isVixContent && (key === 'origin' || key === 'referer')) continue;
       upstreamHeaders.set(key, value);
     }
 

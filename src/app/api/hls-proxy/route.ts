@@ -293,11 +293,6 @@ export async function GET(request: NextRequest) {
 
     let upstream: Response | null = null;
 
-    // VixContent video segments can be blocked from edge runtimes while working through resolver workers.
-    if (isVixContentHost(target.hostname)) {
-      upstream = await tryResolver();
-    }
-
     if (!upstream) {
       upstream = await fetch(targetUrl, {
         headers: upstreamHeaders,
