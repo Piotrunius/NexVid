@@ -284,9 +284,9 @@ export default function ContactPage() {
     <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-[32px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
+            <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
             <p className="mt-1 text-[13px] text-text-muted max-w-xl">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
           </div>
           <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
