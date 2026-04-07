@@ -3287,6 +3287,46 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
       redirect: 'follow',
     }));
 
+    if (!upstreamResponse.ok && (upstreamResponse.status === 403 || upstreamResponse.status === 429)) {
+      const isVix = targetHost.includes('vix') || targetHost.includes('vixsrc');
+      if (isVix) {
+        // Fallback dla IP zablokowanych przez filtry VixSrc/CDN
+        const backupProxies = [
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://api.allorigins.win/raw?url='
+        ];
+
+        for (const proxyUrlBase of backupProxies) {
+           const fullUrl = proxyUrlBase + encodeURIComponent(target);
+           try {
+             // W niektórych darmowych API nagłówki mogą być odrzucane, dlatego upraszczamy je w fallbacku
+             const fallbackHeaders = new Headers({
+                'User-Agent': upstreamHeaders.get('User-Agent') || 'Mozilla/5.0'
+             });
+             if (proxyUrlBase.includes('corsproxy.io')) {
+                // corsproxy.io wspiera pełne nagłówki
+                fallbackHeaders.set('Referer', upstreamHeaders.get('Referer') || '');
+                fallbackHeaders.set('Origin', upstreamHeaders.get('Origin') || '');
+             }
+             
+             const fallbackResp = await fetch(new Request(fullUrl, {
+                method: 'GET',
+                headers: fallbackHeaders,
+                redirect: 'follow'
+             }));
+
+             if (fallbackResp.ok) {
+                upstreamResponse = fallbackResp;
+                break;
+             }
+           } catch {
+             // ignorujemy błędy i próbujemy kolejny serwer
+           }
+        }
+      }
+    }
+
     // Special handling for subtitles - automatic retry if failed or empty
     const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
                        parsedTarget.hostname.includes('wyzie.ru') ||
