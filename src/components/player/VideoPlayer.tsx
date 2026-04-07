@@ -13,7 +13,7 @@ import { resolveFebboxToken } from '@/lib/febbox';
 import type { MediaSegments } from '@/lib/tidb';
 import { submitSegment } from '@/lib/tidb';
 import { getSeasonDetails } from '@/lib/tmdb';
-import { cn, formatTime, getQualityLabel } from '@/lib/utils';
+import { cn, formatTime, getQualityLabel, getAccentHex } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
@@ -259,7 +259,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, disableEmbeds, customAccentHex } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, disableEmbeds, customAccentHex, accentColor } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
@@ -1794,8 +1794,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           try {
             const u = new URL(embedUrl);
             if (autoPlay) u.searchParams.set('autoPlay', 'true');
-            if (customAccentHex) {
-              u.searchParams.set('theme', customAccentHex.replace('#', ''));
+            const effectiveThemeHex = getAccentHex(accentColor, customAccentHex);
+            if (effectiveThemeHex) {
+              u.searchParams.set('theme', effectiveThemeHex.replace('#', ''));
             }
             if (autoPlay) {
               u.searchParams.set('nextButton', 'true');
