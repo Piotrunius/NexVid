@@ -30,7 +30,8 @@ export const SOURCES: SourceMeta[] = [
   { id: 'febbox', name: 'Alpha', rank: 1000, type: 'source' },
   { id: 'pobreflix', name: 'Beta', rank: 950, type: 'source' },
   { id: 'zxcstream', name: 'Gamma', rank: 900, type: 'embed' },
-  { id: 'vidking', name: 'Delta', rank: 800, type: 'embed' },
+  { id: 'cinesrc', name: 'Delta', rank: 850, type: 'embed' },
+  { id: 'vidking', name: 'Epsilon', rank: 800, type: 'embed' },
   { id: 'vidfast', name: 'Zeta', rank: 104, type: 'embed' },
   { id: 'videasy', name: 'Theta', rank: 103, type: 'embed' },
   { id: 'vidsync', name: 'Kappa', rank: 102, type: 'embed' },
@@ -41,7 +42,8 @@ const SOURCE_LABELS: Record<string, string> = {
   febbox: 'Alpha',
   pobreflix: 'Beta',
   zxcstream: 'Gamma',
-  vidking: 'Delta',
+  cinesrc: 'Delta',
+  vidking: 'Epsilon',
   vidfast: 'Zeta',
   videasy: 'Theta',
   vidsync: 'Kappa',
@@ -81,6 +83,7 @@ export interface ScrapeOptions {
   onDebugLog?: (entry: { step: string; source?: string; message: string; data?: any }) => void;
   autoPlay?: boolean;
   autoNext?: boolean;
+  autoSkipSegments?: boolean;
   nextButton?: boolean;
   episodeSelector?: boolean;
 }
@@ -169,7 +172,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       return { sourceId, stream };
     }
 
-    const isGenericEmbed = ['vidfast', 'vidsync', 'vidking', 'zxcstream'].includes(sourceId);
+    const isGenericEmbed = ['vidfast', 'vidsync', 'vidking', 'zxcstream', 'cinesrc'].includes(sourceId);
     if (isGenericEmbed) {
       options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
       let embedUrl = '';
@@ -220,6 +223,23 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
             u.searchParams.set('episodeSelector', (options.episodeSelector ?? true) ? 'true' : 'false');
           }
           if (options.startAt && options.startAt > 0) u.searchParams.set('progress', Math.floor(options.startAt).toString());
+          embedUrl = u.toString();
+          break;
+        }
+        case 'cinesrc': {
+          const u = new URL(mType === 'movie' ? `https://cinesrc.st/embed/movie/${tId}` : `https://cinesrc.st/embed/tv/${tId}`);
+          if (mType === 'show') {
+            u.searchParams.set('s', sNum.toString());
+            u.searchParams.set('e', eNum.toString());
+          }
+          // color should be like #e50914, URL object will encode # to %23
+          const color = options.accentColor?.startsWith('#') ? options.accentColor : `#${options.accentColor || '6366f1'}`;
+          u.searchParams.set('color', color);
+          u.searchParams.set('autoplay', (options.autoPlay ?? true) ? 'true' : 'false');
+          u.searchParams.set('autonext', (options.autoNext ?? true) ? 'true' : 'false');
+          u.searchParams.set('autoskip', (options.autoSkipSegments ?? false) ? 'true' : 'false');
+          u.searchParams.set('back', 'close');
+          if (options.startAt && options.startAt > 0) u.searchParams.set('t', Math.floor(options.startAt).toString());
           embedUrl = u.toString();
           break;
         }

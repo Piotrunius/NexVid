@@ -19,7 +19,7 @@ import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AudioTrack, Caption, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
-import { Activity, CheckCircle2, ChevronLeft, ChevronRight, Clock, Compass, Crown, FastForward, Infinity as InfinityIcon, Info, ListVideo, Pause, PauseCircle, Play, PlayCircle, Rocket, Server, Settings2, Sparkles, Star, Volume1, Volume2, VolumeX, XCircle, Zap } from 'lucide-react';
+import { Activity, Award, CheckCircle2, ChevronLeft, ChevronRight, Clock, Compass, Crown, FastForward, Gem, Infinity as InfinityIcon, Info, Link, ListVideo, Pause, PauseCircle, Play, PlayCircle, Rocket, Server, Settings2, Sparkles, Star, Volume1, Volume2, VolumeX, XCircle, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
@@ -254,12 +254,23 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           }
         } catch {}
       }
+
+      // Handle CineSrc messages
+      if (event.origin === 'https://cinesrc.st' && event.data) {
+        const { type, currentTime: time, duration: dur } = event.data;
+        if (type === 'cinesrc:timeupdate' && typeof time === 'number' && typeof dur === 'number') {
+          setCurrentTime(time);
+          setDuration(dur);
+        } else if (type === 'cinesrc:close') {
+          onBack?.();
+        }
+      }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, disableEmbeds, customAccentHex, accentColor } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, enableUnsafeEmbeds, customAccentHex, accentColor } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
@@ -370,7 +381,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     if (sourceId === 'febbox') return 'Alpha';
     if (sourceId === 'pobreflix') return 'Beta';
     if (sourceId === 'zxcstream') return 'Gamma';
-    if (sourceId === 'vidking') return 'Delta';
+    if (sourceId === 'cinesrc') return 'Delta';
+    if (sourceId === 'vidking') return 'Epsilon';
     if (sourceId === 'vidfast') return 'Zeta';
     if (sourceId === 'videasy') return 'Theta';
     if (sourceId === 'vidsync') return 'Kappa';
@@ -381,12 +393,14 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const getSourceIcon = (sourceId?: string) => {
     switch (sourceId) {
       case 'febbox': return <Crown className="w-3.5 h-3.5" />;
-      case 'pobreflix': return <Zap className="w-3.5 h-3.5" />;
-      case 'vidking': return <Star className="w-3.5 h-3.5" />;
-      case 'zxcstream': return <Sparkles className="w-3.5 h-3.5" />;
+      case 'pobreflix': return <Gem className="w-3.5 h-3.5" />;
+      case 'gamma':
+      case 'zxcstream': return <Zap className="w-3.5 h-3.5" />;
+      case 'cinesrc': return <Sparkles className="w-3.5 h-3.5" />;
+      case 'vidking': return <Award className="w-3.5 h-3.5" />;
       case 'vidfast': return <Rocket className="w-3.5 h-3.5" />;
-      case 'vidsync': return <Activity className="w-3.5 h-3.5" />;
       case 'videasy': return <Compass className="w-3.5 h-3.5" />;
+      case 'vidsync': return <Link className="w-3.5 h-3.5" />;
       case 'vidlink': return <InfinityIcon className="w-3.5 h-3.5" />;
       default: return <Server className="w-3.5 h-3.5" />;
     }
@@ -1817,7 +1831,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             <iframe
               src={embedUrl}
               title="Embedded video player"
-              className={cn('h-full w-full border-0', (!/vidking|zxcstream/i.test(stream.url) && embedLockState !== 'unlocked') && 'pointer-events-none')}
+              className={cn('h-full w-full border-0', (!/cinesrc|vidking|zxcstream/i.test(stream.url) && embedLockState !== 'unlocked') && 'pointer-events-none')}
               allowFullScreen
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
               referrerPolicy="origin"
@@ -1871,7 +1885,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         </div>
       )}
 
-      {stream?.type === 'embed' && !(/vidking|zxcstream/i.test(stream?.url || '')) && !isEmbedNoticeDismissed && embedLockState === 'locked' && (
+      {stream?.type === 'embed' && !(/cinesrc|vidking|zxcstream/i.test(stream?.url || '')) && !isEmbedNoticeDismissed && embedLockState === 'locked' && (
         <div className="absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
           <div className="rounded-[20px] bg-black/85 p-5 backdrop-blur-2xl flex flex-col items-center gap-4 max-w-sm border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)] animate-scale-in">
             <div className="flex flex-col items-center gap-1">
@@ -1937,7 +1951,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       )}
 
       {/* Embed unlocked — centered lock button */}
-      {stream?.type === 'embed' && !(/vidking|zxcstream/i.test(stream?.url || '')) && embedLockState === 'unlocked' && (
+      {stream?.type === 'embed' && !(/cinesrc|vidking|zxcstream/i.test(stream?.url || '')) && embedLockState === 'unlocked' && (
         <div className="absolute inset-x-0 bottom-20 z-30 flex justify-center">
           <button
             onClick={() => setEmbedLockState('locked')}
@@ -2120,7 +2134,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Restore Locked Notice button if hidden */}
-            {stream?.type === 'embed' && !(/vidking|zxcstream/i.test(stream?.url || '')) && isEmbedNoticeDismissed && embedLockState === 'locked' && (
+            {stream?.type === 'embed' && !(/cinesrc|vidking|zxcstream/i.test(stream?.url || '')) && isEmbedNoticeDismissed && embedLockState === 'locked' && (
               <button
                 onClick={() => setIsEmbedNoticeDismissed(false)}
                 className="rounded-[8px] p-2 text-amber-400/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
@@ -2595,7 +2609,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
                           const isUnsafe = ['videasy', 'vidfast'].includes(res.sourceId);
                           const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
-                          const isGood = ['vidking', 'zxcstream'].includes(res.sourceId);
+                          const isGood = ['cinesrc', 'vidking', 'zxcstream'].includes(res.sourceId);
 
                           return (
                             <button
@@ -3204,7 +3218,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
                 const isUnsafe = ['videasy', 'vidfast'].includes(res.sourceId);
                 const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
-                const isGood = ['vidking', 'zxcstream'].includes(res.sourceId);
+                const isGood = ['cinesrc', 'vidking', 'zxcstream'].includes(res.sourceId);
                 return (
                   <button key={res.sourceId} onClick={() => { onSelectSource?.(safeSourceResults.indexOf(res)); setSettingsPanel(null); }} className={cn("w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white")}>
                     <div className="flex items-center gap-2.5 min-w-0">
