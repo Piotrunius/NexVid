@@ -935,10 +935,17 @@ export default function AdminPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
-        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
-          <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Admin Panel</h1>
-          <p className="mt-2 text-[13px] text-text-muted">Sign in first to access administration tools.</p>
+      <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
+        <div className="mx-auto max-w-3xl px-4">
+          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative border border-white/10">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-white/5">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <h1 className="text-[26px] font-bold text-text-primary tracking-tight">Admin Console</h1>
+            <p className="mt-2 text-[14px] text-text-muted">Sign in first to access administration tools.</p>
+            <Link href="/login" className="btn-accent mt-8 inline-flex items-center gap-2">Go to login</Link>
+          </div>
         </div>
       </div>
     );
@@ -946,43 +953,61 @@ export default function AdminPage() {
 
   if (!hasAdminPanelAccess) {
     return (
-      <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
-        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
-          <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Access denied</h1>
-          <p className="mt-2 text-[13px] text-text-muted">This page is available only for authorized staff.</p>
+      <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
+        <div className="mx-auto max-w-3xl px-4">
+          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative border border-white/10">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-red-500/10">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-red-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m14.5 9.5-5 5"/><path d="m9.5 9.5 5 5"/></svg>
+            </div>
+            <h1 className="text-[26px] font-bold text-text-primary tracking-tight">Access Denied</h1>
+            <p className="mt-2 text-[14px] text-text-muted">You do not have the required permissions to access this panel.</p>
+            <div className="mt-8 border-t border-white/5 pt-8">
+               <Link href="/" className="btn-accent px-8">Return Home</Link>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 space-y-6 [&_button]:text-center [&_button]:justify-center">
-      <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 md:p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Admin Panel</h1>
-          <p className="mt-1 text-[13px] text-text-muted">Moderation and management as <span className="text-accent font-semibold">{userRole}</span>.</p>
+    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
+      <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative [&_button]:text-center [&_button]:justify-center">
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-[32px] font-bold text-text-primary tracking-tight">Admin Console</h1>
+              <span className="px-2 py-0.5 rounded-full bg-accent text-[11px] font-black uppercase tracking-widest text-white shadow-[0_0_10px_var(--accent-glow)]">{userRole}</span>
+            </div>
+            <p className="mt-1 text-[13px] text-text-muted max-w-xl">System overview and administrative controls for NexVid infrastructure.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => loadAll()} disabled={isLoading} className="btn-glass p-2.5 rounded-full" title="Refresh data">
+              <svg className={cn("w-5 h-5", isLoading && "animate-spin")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+            {canManageSystem && (
+              <button disabled={isSubmitting} onClick={handleClearAllSessions} className="btn-glass !text-red-400 px-4 font-bold border-red-500/20 hover:bg-red-500/10">
+                Clear All Sessions
+              </button>
+            )}
+            <Link href="/" className="btn-accent px-5 font-bold">Exit</Link>
+          </div>
         </div>
-        {canManageSystem && (
-          <button disabled={isSubmitting} onClick={handleClearAllSessions} className="btn-glass text-red-400">
-            Force clear all active sessions
-          </button>
-        )}
-      </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Users" value={stats.users} />
-        <StatCard
-          label="Active"
-          value={stats.activeUsers + stats.activeGuests}
-          isAccent
-          subValue={`${stats.activeUsers} Users / ${stats.activeGuests} Guests`}
-        />
-        <StatCard
-          label="Sessions"
-          value={stats.activeSessions}
-        />
-        <StatCard label="Watch Together" value={stats.activeWatchPartyRooms} />
-      </div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Total Users" value={stats.users} />
+          <StatCard
+            label="Active Users"
+            value={stats.activeUsers}
+            isAccent
+          />
+          <StatCard label="Live Guests" value={stats.activeGuests} />
+          <StatCard label="Cloud Sessions" value={stats.activeSessions} />
+          <StatCard label="Party Rooms" value={stats.activeWatchPartyRooms} />
+          <StatCard label="System Alerts" value={stats.activeAnnouncements} />
+        </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         {canManageModeration && (
