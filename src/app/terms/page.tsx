@@ -39,6 +39,7 @@ export default function TermsPage() {
           </p>
           <p className="mt-2">
             On this deployment, account authentication uses nickname and password. Email verification is not required.
+            Your sessions are secured through our backend proxy mechanisms, ensuring authentication tokens remain shielded from malicious scripts.
           </p>
         </section>
 

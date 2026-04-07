@@ -84,8 +84,8 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-[15px] font-semibold text-text-primary mb-2">5. Cookies and Local Storage</h2>
           <p>
-            NexVid uses only technically necessary client-side storage (primarily <code className="text-accent">localStorage</code>)
-            and authentication/session mechanisms required to operate the service. We do not use advertising or tracking cookies.
+            NexVid uses technically necessary client-side storage (like <code className="text-accent">localStorage</code>)
+            mainly for user interface preferences, and strict, secure <code className="text-accent">HttpOnly</code> cookies for managing sensitive authentication sessions. We do not use advertising or tracking cookies.
           </p>
           <p className="mt-2">
             If non-essential analytics or marketing cookies are introduced in a future release,

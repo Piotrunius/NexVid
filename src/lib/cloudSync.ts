@@ -20,25 +20,22 @@ function isLocalHost(hostname: string): boolean {
 }
 
 function getApiUrl(): string {
-  const configured = (process.env.API_URL || '').replace(/\/+$/, '');
+  if (typeof window !== 'undefined') {
+    return '/api/proxy';
+  }
+
+  const configured = (process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || '').replace(/\/+$/, '');
 
   if (configured) {
     try {
       const configuredUrl = new URL(configured);
-      const configuredIsLocal = isLocalHost(configuredUrl.hostname);
-      if (typeof window !== 'undefined') {
-        const currentIsLocal = isLocalHost(window.location.hostname);
-        if (configuredIsLocal && !currentIsLocal) {
-          return DEFAULT_PROD_API_URL;
-        }
-      }
       return configured;
     } catch {
       return configured;
     }
   }
 
-  // Fallback for production
+  // Fallback for production server-side fetch
   return DEFAULT_PROD_API_URL;
 }
 
@@ -110,6 +107,14 @@ export async function cloudFetch<T = any>(path: string, init: RequestInit = {}):
       ...init,
       headers,
     });
+    
+    // [MOD] Checking for seamless session migration (required for frontend to clear legacy token)
+    if (typeof window !== 'undefined') {
+      const migratedToken = response.headers.get('x-token-migrated');
+      if (migratedToken) {
+        setCloudToken(migratedToken);
+      }
+    }
   } catch {
     throw new CloudApiError('Network error while contacting cloud backend', 0, 'NETWORK_ERROR');
   }
