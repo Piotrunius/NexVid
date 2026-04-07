@@ -2191,12 +2191,16 @@ async function handleAdminOverview(request: Request, env: Env): Promise<Response
   await ensureSecurityTables(env);
   await ensureWatchPartyTables(env);
 
-  const [users, activeSessions, activeAnnouncements, activeCounts, activeWatchPartyRooms] = await Promise.all([
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [users, activeSessions, activeAnnouncements, activeCounts, activeWatchPartyRooms, newUsersToday] = await Promise.all([
     env.DB.prepare('SELECT COUNT(*) as count FROM users').first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?').bind(new Date().toISOString()).first<{ count: number }>(),
     env.DB.prepare('SELECT COUNT(*) as count FROM announcements WHERE is_active = 1').first<{ count: number }>(),
     getActiveUsersCount(env),
     env.DB.prepare('SELECT COUNT(*) as count FROM watch_party_rooms WHERE expires_at > ?').bind(new Date().toISOString()).first<{ count: number }>(),
+    env.DB.prepare('SELECT COUNT(*) as count FROM users WHERE created_at > ?').bind(todayStart.toISOString()).first<{ count: number }>(),
   ]);
 
   return json(request, env, {
@@ -2207,6 +2211,7 @@ async function handleAdminOverview(request: Request, env: Env): Promise<Response
       activeAnnouncements: activeAnnouncements?.count || 0,
       activeUsers: activeCounts.users,
       activeGuests: activeCounts.guests,
+      newUsersToday: newUsersToday?.count || 0,
     },
     admin: session.user,
   });

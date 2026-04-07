@@ -162,7 +162,7 @@ export default function AdminPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [stats, setStats] = useState({ users: 0, activeSessions: 0, activeWatchPartyRooms: 0, activeAnnouncements: 0, activeUsers: 0, activeGuests: 0 });
+  const [stats, setStats] = useState({ users: 0, activeSessions: 0, activeWatchPartyRooms: 0, activeAnnouncements: 0, activeUsers: 0, activeGuests: 0, newUsersToday: 0 });
   const [bans, setBans] = useState<BannedItem[]>([]);
   const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
   const [blockedMedia, setBlockedMedia] = useState<BlockedMediaItem[]>([]);
@@ -327,6 +327,7 @@ export default function AdminPage() {
         activeAnnouncements: Number(overview.stats?.activeAnnouncements || 0),
         activeUsers: Number(overview.stats?.activeUsers || 0),
         activeGuests: Number(overview.stats?.activeGuests || 0),
+        newUsersToday: Number((overview.stats as any)?.newUsersToday || 0),
       });
 
       const promises: Promise<any>[] = [
@@ -976,10 +977,10 @@ export default function AdminPage() {
     <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative [&_button]:text-center [&_button]:justify-center">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-[32px] font-bold text-text-primary tracking-tight">Admin Console</h1>
+              <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Admin Console</h1>
               <span className="px-2 py-0.5 rounded-full bg-accent text-[11px] font-black uppercase tracking-widest text-white shadow-[0_0_10px_var(--accent-glow)]">{userRole}</span>
             </div>
             <p className="mt-1 text-[13px] text-text-muted max-w-xl">System overview and administrative controls for NexVid infrastructure.</p>
@@ -993,7 +994,6 @@ export default function AdminPage() {
                 Clear All Sessions
               </button>
             )}
-            <Link href="/" className="btn-accent px-5 font-bold">Exit</Link>
           </div>
         </div>
 
@@ -1004,10 +1004,10 @@ export default function AdminPage() {
             value={stats.activeUsers}
             isAccent
           />
-          <StatCard label="Live Guests" value={stats.activeGuests} />
+          <StatCard label="Active Guests" value={stats.activeGuests} />
+          <StatCard label="New Users Today" value={stats.newUsersToday} />
           <StatCard label="Cloud Sessions" value={stats.activeSessions} />
           <StatCard label="Party Rooms" value={stats.activeWatchPartyRooms} />
-          <StatCard label="System Alerts" value={stats.activeAnnouncements} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
