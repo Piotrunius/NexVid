@@ -184,7 +184,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
   const { getByTmdbId, updateProgress, addItem } = useWatchlistStore();
-  const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay } = useSettingsStore((s) => s.settings);
+  const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay, defaultSource } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
   const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
@@ -333,20 +333,27 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
 
         if (filteredResults.length > 0) {
           setSourceResults(filteredResults);
-          const sortedResults = [...filteredResults].sort((a, b) => {
-            const rankA = SOURCES.find(s => s.id === a.sourceId)?.rank || 0;
-            const rankB = SOURCES.find(s => s.id === b.sourceId)?.rank || 0;
-            return rankB - rankA;
-          });
 
-          const bestDirect = sortedResults.find(r => r.stream.type !== 'embed');
-          const bestDirectIdx = bestDirect ? filteredResults.indexOf(bestDirect) : -1;
-
-          if (bestDirectIdx !== -1) {
-            setSourceIndex(bestDirectIdx);
-            setStream(withMergedCaptions(filteredResults[bestDirectIdx].stream, externalCaptions));
+          // Priority 1: User's default source from settings
+          const defaultIdx = filteredResults.findIndex(r => r.sourceId === defaultSource);
+          
+          if (defaultIdx !== -1) {
+            setSourceIndex(defaultIdx);
+            setStream(withMergedCaptions(filteredResults[defaultIdx].stream, externalCaptions));
             setScrapeStatus('success');
           } else {
+            // Priority 2: Best direct stream (non-embed) based on rank
+            const sortedResults = [...filteredResults].sort((a, b) => {
+              const rankA = SOURCES.find(s => s.id === a.sourceId)?.rank || 0;
+              const rankB = SOURCES.find(s => s.id === b.sourceId)?.rank || 0;
+              return rankB - rankA;
+            });
+
+            const bestDirect = sortedResults.find(r => r.stream.type !== 'embed');
+            const bestDirectIdx = bestDirect ? filteredResults.indexOf(bestDirect) : 0;
+
+            setSourceIndex(bestDirectIdx);
+            setStream(withMergedCaptions(filteredResults[bestDirectIdx].stream, externalCaptions));
             setScrapeStatus('success');
           }
         } else {
