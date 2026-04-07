@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-const DEFAULT_PROD_RESOLVER_BASE = 'https://nexvid-proxy.piotrunius.workers.dev';
-
 const ALLOWED_HEADER_KEYS = new Set([
   'referer',
   'origin',
@@ -46,32 +44,6 @@ function parseForwardHeaders(searchParams: URLSearchParams): Record<string, stri
     Object.assign(merged, parsed);
   }
   return merged;
-}
-
-function mergeSpilledTargetParams(rawTargetUrl: string, searchParams: URLSearchParams): string {
-  const target = String(rawTargetUrl || '').trim();
-  if (!/^https?:\/\//i.test(target)) return target;
-
-  try {
-    const targetUrl = new URL(target);
-    const controlParams = new Set(['url', 'headers']);
-
-    for (const [key] of searchParams.entries()) {
-      if (controlParams.has(key)) continue;
-
-      const values = searchParams.getAll(key).map((value) => String(value || '').trim()).filter(Boolean);
-      if (values.length === 0) continue;
-
-      // Preserve all values when the same key appears multiple times.
-      for (const value of values) {
-        targetUrl.searchParams.append(key, value);
-      }
-    }
-
-    return targetUrl.toString();
-  } catch {
-    return target;
-  }
 }
 
 function cleanTargetUrl(rawTarget: string): { targetUrl: string; nestedHeaders: Record<string, string> } {
@@ -142,52 +114,6 @@ function buildResolverUrl(base: string, targetUrl: string, headers: Record<strin
   return appendHeadersParam(`${trimmedBase}${separator}url=${encoded}`);
 }
 
-function normalizeResolverBase(base: string): string {
-  const trimmed = String(base || '').trim();
-  if (!trimmed) return '';
-  if (/\{url\}/.test(trimmed)) return trimmed;
-  if (trimmed.endsWith('=') || trimmed.endsWith('%3D')) return trimmed;
-  if (/\?/.test(trimmed)) return `${trimmed}&url=`;
-  return `${trimmed.replace(/\/+$/, '')}/direct-resolver?url=`;
-}
-
-function isLikelyLocalResolver(base: string): boolean {
-  const trimmed = String(base || '').trim();
-  if (!trimmed) return false;
-  try {
-    const parsed = new URL(trimmed);
-    const host = parsed.hostname.toLowerCase();
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
-  } catch {
-    return false;
-  }
-}
-
-function getResolverBaseCandidates(): string[] {
-  const configured = [
-    process.env.DIRECT_RESOLVER_URL,
-    process.env.NEXT_PUBLIC_API_URL,
-  ]
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-    .filter((value) => !isLikelyLocalResolver(value));
-
-  // Always keep a known-good worker resolver as fallback for production.
-  const candidates = [
-    ...configured,
-    DEFAULT_PROD_RESOLVER_BASE,
-  ]
-    .map((value) => normalizeResolverBase(value))
-    .filter(Boolean);
-
-  return Array.from(new Set(candidates));
-}
-
-function isVixContentHost(hostname: string): boolean {
-  const host = String(hostname || '').toLowerCase();
-  return host === 'vix-content.net' || host.endsWith('.vix-content.net');
-}
-
 function isM3u8(url: string, contentType: string): boolean {
   const type = contentType.toLowerCase();
   return /\.m3u8($|\?)/i.test(url) || type.includes('application/vnd.apple.mpegurl') || type.includes('application/x-mpegurl');
@@ -243,7 +169,7 @@ function rewritePlaylist(content: string, playlistUrl: string, headers: Record<s
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const rawTargetUrl = mergeSpilledTargetParams(String(searchParams.get('url') || '').trim(), searchParams);
+  const rawTargetUrl = String(searchParams.get('url') || '').trim();
   const { targetUrl, nestedHeaders } = cleanTargetUrl(rawTargetUrl);
   const forwardHeaders = {
     ...nestedHeaders,
@@ -256,9 +182,6 @@ export async function GET(request: NextRequest) {
 
   try {
     const target = new URL(targetUrl);
-    let resolverAttempted = false;
-    let resolverLastStatus = 0;
-    let resolverLastHost = '';
     const upstreamHeaders: Record<string, string> = {
       ...forwardHeaders,
       referer: forwardHeaders.referer || `${target.origin}/`,
@@ -270,40 +193,26 @@ export async function GET(request: NextRequest) {
       upstreamHeaders.range = rangeHeader;
     }
 
-    const resolverBases = getResolverBaseCandidates();
-    const tryResolver = async (): Promise<Response | null> => {
-      for (const resolverBase of resolverBases) {
-        const resolverUrl = buildResolverUrl(resolverBase, targetUrl, forwardHeaders);
-        if (!resolverUrl) continue;
-        resolverAttempted = true;
+    let upstream = await fetch(targetUrl, {
+      headers: upstreamHeaders,
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!upstream.ok && (upstream.status === 401 || upstream.status === 403 || upstream.status === 429)) {
+      const resolverBase = String(
+        process.env.DIRECT_RESOLVER_URL || process.env.NEXT_PUBLIC_DIRECT_RESOLVER_URL || ''
+      ).trim();
+      const resolverUrl = buildResolverUrl(resolverBase, targetUrl, forwardHeaders);
+      if (resolverUrl) {
         try {
-          resolverLastHost = new URL(resolverUrl).host;
           const resolverResponse = await fetch(resolverUrl, {
             signal: AbortSignal.timeout(15000),
           });
-          resolverLastStatus = resolverResponse.status;
           if (resolverResponse.ok) {
-            return resolverResponse;
+            upstream = resolverResponse;
           }
         } catch {
         }
-      }
-      return null;
-    };
-
-    let upstream: Response | null = null;
-
-    if (!upstream) {
-      upstream = await fetch(targetUrl, {
-        headers: upstreamHeaders,
-        signal: AbortSignal.timeout(15000),
-      });
-    }
-
-    if (!upstream.ok && (upstream.status === 401 || upstream.status === 403 || upstream.status === 429)) {
-      const resolverResponse = await tryResolver();
-      if (resolverResponse) {
-        upstream = resolverResponse;
       }
     }
 
@@ -314,10 +223,6 @@ export async function GET(request: NextRequest) {
         headers: {
           'content-type': upstream.headers.get('content-type') || 'text/plain; charset=utf-8',
           'cache-control': 'no-store',
-          'x-nexvid-upstream-status': String(upstream.status),
-          'x-nexvid-resolver-attempted': resolverAttempted ? '1' : '0',
-          'x-nexvid-resolver-last-status': String(resolverLastStatus || 0),
-          'x-nexvid-resolver-last-host': resolverLastHost || '',
         },
       });
     }
@@ -344,11 +249,10 @@ export async function GET(request: NextRequest) {
         'cache-control': 'no-store',
       },
     });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'HLS proxy failed';
+  } catch (error: any) {
     return NextResponse.json({
       success: false,
-      error: message,
+      error: error?.message || 'HLS proxy failed',
     }, { status: 500 });
   }
 }

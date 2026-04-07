@@ -4,7 +4,7 @@
 
 name = "nexvid"
 compatibility_date = "2024-12-01"
-compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+compatibility_flags = ["nodejs_compat"]
 
 # Pages configuration
 pages_build_output_dir = ".vercel/output/static"
@@ -22,5 +22,5 @@ pages_build_output_dir = ".vercel/output/static"
 # npx wrangler pages secret put TURNSTILE_SECRET_KEY
 
 [vars]
-APP_BASE_URL = "https://nexvid.online"
-TURNSTILE_SITE_KEY = "0x4AAAAAACn4sX2wYBjJSQUo"
+NEXT_PUBLIC_TIDB_URL = "https://api.theintrodatabase.com"
+INTERNAL_API_SECRET = "nv_secret_9d98265aac54bfc8_WAW"

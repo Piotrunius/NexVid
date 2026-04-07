@@ -14,6 +14,7 @@ export interface Env {
   DB: D1Database;
   SESSION_TTL_DAYS?: string;
   APP_BASE_URL?: string;
+  EMAIL_FROM?: string;
   RESEND_API_KEY?: string;
   BREVO_API_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
@@ -2141,8 +2142,7 @@ async function handleAdminBlockedMedia(request: Request, env: Env): Promise<Resp
   if (request.method === 'POST') {
     const body = await readJson<{ tmdbId?: string; mediaType?: string; reason?: string }>(request);
     const tmdbId = String(body.tmdbId || '').trim();
-    const rawMediaType = String(body.mediaType || '').trim().toLowerCase();
-    const mediaType = rawMediaType === 'tv' || rawMediaType === 'show' || rawMediaType === 'series' ? 'tv' : 'movie';
+    const mediaType = (body.mediaType || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
     const reason = (body.reason || '').trim().slice(0, 300);
 
     if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
@@ -2162,8 +2162,7 @@ async function handleAdminBlockedMedia(request: Request, env: Env): Promise<Resp
   if (request.method === 'DELETE') {
     const url = new URL(request.url);
     const tmdbId = (url.searchParams.get('tmdbId') || '').trim();
-    const rawMediaType = String(url.searchParams.get('mediaType') || '').trim().toLowerCase();
-    const mediaType = rawMediaType === 'tv' || rawMediaType === 'show' || rawMediaType === 'series' ? 'tv' : 'movie';
+    const mediaType = (url.searchParams.get('mediaType') || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
 
     if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
 
@@ -3191,14 +3190,10 @@ async function handleHealth(request: Request, env: Env): Promise<Response> {
 /* ──── Direct Stream Resolver (VidLink) ──── */
 
 const DIRECT_RESOLVER_ALLOWED_HOSTS = [
-  '*.vixsrc.to',
-  'vixsrc.to',
   '*.vodvidl.site',
   '*.b-cdn.net',
   '*.vidlink.pro',
-  '*.vix-content.net',
   '*.workers.dev',
-  'vix-content.net',
   'videostr.net',
   'vidlink.pro',
 ];
@@ -3266,32 +3261,23 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
 
   try {
     const targetHost = parsedTarget.hostname.toLowerCase();
-    const isVixContent = targetHost === 'vix-content.net' || targetHost.endsWith('.vix-content.net');
     const defaultOrigin = targetHost.includes('vodvidl') || targetHost.includes('videostr')
         ? 'https://videostr.net'
-        : isVixContent
-          ? parsedTarget.origin
-          : 'https://vidlink.pro';
+        : 'https://vidlink.pro';
 
     const extraHeaders = parseDirectResolverHeaders(url);
-
-    // vix-content CDN rejects requests with vixsrc.to origin/referer;
-    // it expects the target's own origin (matching the old /proxy route behavior).
-    const origin = isVixContent ? parsedTarget.origin : (extraHeaders.origin || defaultOrigin);
-    const referer = isVixContent ? `${parsedTarget.origin}/` : (extraHeaders.referer || `${origin}/`);
+    const referer = extraHeaders.referer || `${(extraHeaders.origin || defaultOrigin)}/`;
 
     const upstreamHeaders = new Headers({
       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0',
       Referer: referer,
-      Origin: origin,
+      Origin: extraHeaders.origin || defaultOrigin,
       Accept: extraHeaders.accept || '*/*',
     });
 
     for (const [key, value] of Object.entries(extraHeaders)) {
       if (!value) continue;
       if (key === 'accept') continue;
-      // Skip overriding origin/referer for vix-content
-      if (isVixContent && (key === 'origin' || key === 'referer')) continue;
       upstreamHeaders.set(key, value);
     }
 
