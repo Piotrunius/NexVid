@@ -133,183 +133,6 @@ function getPreferredManualQuality(entries: NormalizedQualityEntry[], preferred:
   return fallbackOrder.find((quality) => entries.some((entry) => entry.quality === quality)) || null;
 }
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  en: 'English',
-  pl: 'Polski',
-  es: 'Español',
-  fr: 'Français',
-  de: 'Deutsch',
-  it: 'Italiano',
-  pt: 'Português',
-  el: 'Ελληνικά',
-  fa: 'فارسی',
-  he: 'עברית',
-  nl: 'Nederlands',
-  tr: 'Türkçe',
-  ru: 'Русский',
-  uk: 'Українська',
-  cs: 'Čeština',
-  sk: 'Slovenčina',
-  hu: 'Magyar',
-  ro: 'Română',
-  bg: 'Български',
-  sr: 'Српски',
-  hr: 'Hrvatski',
-  da: 'Dansk',
-  fi: 'Suomi',
-  sv: 'Svenska',
-  no: 'Norsk',
-  id: 'Bahasa Indonesia',
-  vi: 'Tiếng Việt',
-  th: 'ไทย',
-  ja: '日本語',
-  ko: '한국어',
-  zh: '中文',
-  ar: 'العربية',
-  hi: 'हिन्दी',
-  sq: 'Shqip',
-  bn: 'বাংলা',
-  et: 'Eesti',
-  km: 'ភាសាខ្មែร',
-  mk: 'Македонски',
-  ms: 'Bahasa Melayu',
-  sl: 'Slovenščina',
-  ea: 'Español (Latino)',
-  ca: 'Català',
-  gl: 'Galego',
-  eu: 'Euskara',
-  ml: 'മലയാളം',
-  ta: 'தமிழ்',
-  te: 'తెలుగు',
-  kn: 'ಕನ್ನಡ',
-  mr: 'मराठी',
-  gu: 'ગુજરાતી',
-  pa: 'ਪੰਜਾਬੀ',
-  ur: 'اردو',
-  si: 'සිංහල',
-  ka: 'ქართული',
-  hy: 'Հայերեն',
-  az: 'Azərbaycan',
-  lt: 'Lietuvių',
-  lv: 'Latviešu',
-  is: 'Íslenska',
-  be: 'Беларуская',
-  kk: 'Қазақ тілі',
-  uz: 'Oʻzbek',
-  mn: 'Монгол',
-  af: 'Afrikaans',
-  sw: 'Kiswahili',
-  am: 'አማርኛ',
-  tl: 'Tagalog',
-  my: 'မြန်မာဘာသာ',
-  lo: 'ພາសាລາວ',
-  bs: 'Bosanski',
-  cy: 'Cymraeg',
-  ga: 'Gaeilge',
-  mt: 'Malti',
-};
-
-const FLAG_BY_LANG: Record<string, string> = {
-  en: '🇬🇧',
-  pl: '🇵🇱',
-  es: '🇪🇸',
-  fr: '🇫🇷',
-  de: '🇩🇪',
-  it: '🇮🇹',
-  pt: '🇵🇹',
-  el: '🇬🇷',
-  fa: '🇮🇷',
-  he: '🇮🇱',
-  nl: '🇳🇱',
-  tr: '🇹🇷',
-  ru: '🇷🇺',
-  uk: '🇺🇦',
-  cs: '🇨🇿',
-  sk: '🇸🇰',
-  hu: '🇭🇺',
-  ro: '🇷🇴',
-  bg: '🇧🇬',
-  sr: '🇷🇸',
-  hr: '🇭🇷',
-  da: '🇩🇰',
-  fi: '🇫🇮',
-  sv: '🇸🇪',
-  no: '🇳🇴',
-  id: '🇮🇩',
-  vi: '🇻🇳',
-  th: '🇹🇭',
-  ja: '🇯🇵',
-  ko: '🇰🇷',
-  zh: '🇨🇳',
-  ar: '🇸🇦',
-  hi: '🇮🇳',
-  sq: '🇦🇱',
-  bn: '🇧🇩',
-  et: '🇪🇪',
-  km: '🇰🇭',
-  mk: '🇲🇰',
-  ms: '🇲🇾',
-  sl: '🇸🇮',
-  ea: '🇲🇽',
-  ca: '🇦🇩',
-  gl: '🇪🇸',
-  eu: '🇪🇸',
-  ml: '🇮🇳',
-  ta: '🇮🇳',
-  te: '🇮🇳',
-  kn: '🇮🇳',
-  mr: '🇮🇳',
-  gu: '🇮🇳',
-  pa: '🇮🇳',
-  ur: '🇵🇰',
-  si: '🇱🇰',
-  ka: '🇬🇪',
-  hy: '🇦🇲',
-  az: '🇦🇿',
-  lt: '🇱🇹',
-  lv: '🇱🇻',
-  is: '🇮🇸',
-  be: '🇧🇾',
-  kk: '🇰🇿',
-  uz: '🇺🇿',
-  mn: '🇲🇳',
-  af: '🇿🇦',
-  sw: '🇰🇪',
-  am: '🇪🇹',
-  tl: '🇵🇭',
-  my: '🇲🇲',
-  lo: '🇱🇦',
-  bs: '🇧🇦',
-  cy: '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
-  ga: '🇮🇪',
-  mt: '🇲🇹',
-};
-
-const LANGUAGE_ALIASES: Record<string, string> = {
-  pb: 'pt',
-  br: 'pt',
-  'ptbr': 'pt',
-  por: 'pt',
-  eng: 'en',
-  gb: 'en',
-  us: 'en',
-  ell: 'el',
-  gre: 'el',
-  per: 'fa',
-  farsi: 'fa',
-  he: 'he',
-  iw: 'he',
-  heb: 'he',
-  jp: 'ja',
-  jpn: 'ja',
-  kr: 'ko',
-  kor: 'ko',
-  ua: 'uk',
-  ukr: 'uk',
-  zhcn: 'zh',
-  zhtw: 'zh',
-};
-
 function normalizeLanguageCode(input: string): string {
   const value = String(input || '').trim().toLowerCase();
   if (!value) return 'unknown';
@@ -318,22 +141,7 @@ function normalizeLanguageCode(input: string): string {
     : value.includes('_')
       ? value.split('_')[0]
       : value;
-  const compact = raw.replace(/[^a-z]/g, '');
-  const alias = LANGUAGE_ALIASES[compact] || LANGUAGE_ALIASES[raw];
-  if (alias) return alias;
-  if (raw.length <= 3) return raw;
-  const found = Object.entries(LANGUAGE_LABELS).find(([, label]) => label.toLowerCase() === value);
-  return found?.[0] || value;
-}
-
-function languageLabel(input: string): string {
-  const code = normalizeLanguageCode(input);
-  return LANGUAGE_LABELS[code] || input || 'Unknown';
-}
-
-function languageFlag(input: string): string {
-  const code = normalizeLanguageCode(input);
-  return FLAG_BY_LANG[code] || '🏳️';
+  return raw;
 }
 
 function convertSrtToVtt(text: string): string {
@@ -355,6 +163,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<any>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const sourceChangeTimeRef = useRef(Date.now());
 
   const {
     isPlaying, currentTime, duration, buffered, volume, isMuted,
@@ -371,6 +180,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const errorRef = useRef(error);
   useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
   useEffect(() => { errorRef.current = error; }, [error]);
+  useEffect(() => {
+    sourceChangeTimeRef.current = Date.now();
+  }, [stream?.type === 'embed' ? stream.url : stream?.type === 'hls' ? stream.playlist : null]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -428,6 +240,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
       // Handle VidKing messages
       if (event.origin === 'https://www.vidking.net' && event.data) {
+        // Ignore messages for the first 5 seconds to prevent race condition with URL progress param
+        if (Date.now() - sourceChangeTimeRef.current < 5000) return;
+
         try {
           const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
           if (data && data.type === 'PLAYER_EVENT' && data.data) {
@@ -444,7 +259,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, seekTime, subtitleLanguage, febboxApiKey, disableEmbeds, customAccentHex } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, disableEmbeds, customAccentHex } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
@@ -1867,13 +1682,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
   const skipForward = useCallback(() => {
     const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
-    seek(start + seekTime);
-  }, [currentTime, seek, seekTime]);
+    seek(start + 10);
+  }, [currentTime, seek]);
 
   const skipBackward = useCallback(() => {
     const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
-    seek(start - seekTime);
-  }, [currentTime, seek, seekTime]);
+    seek(start - 10);
+  }, [currentTime, seek]);
   const handleSkipIntro = useCallback(() => {
     const introSegment = normalizeSegment(introOutro?.introStart, introOutro?.introEnd);
     if (!introSegment || !videoRef.current) return;
@@ -1995,7 +1810,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             embedUrl = u.toString();
           } catch (e) {}
         }
-        
+
         return (
           <div className="absolute inset-0 overflow-hidden">
             <iframe
@@ -2842,10 +2657,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         <button onClick={() => { setCaptionTouchedByUser(true); setActiveCaption(null); setRenderedSubtitle(''); setSettingsPanel('main'); }} className={cn('w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors', !activeCaption ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10')}>Off</button>
 
                         {captions
-                          .filter(cap => {
-                            const code = normalizeLanguageCode(cap.language);
-                            return code !== 'unknown' && languageLabel(code) !== 'Unknown';
-                          })
                           .map((cap) => (
                           <button
                             key={cap.id}
@@ -2860,9 +2671,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                               {cap.flagUrl ? (
                                 <img src={cap.flagUrl} alt={cap.language} className="mr-2 w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80" />
                               ) : (
-                                <span className="mr-2 opacity-80">{languageFlag(cap.language)}</span>
+                                <span className="mr-2 opacity-50 italic">🏳️</span>
                               )}
-                              <span>{cap.label || languageLabel(cap.language)}</span>
+                              <span>{cap.label || cap.language.toUpperCase()}</span>
                             </div>
                             {activeCaption === cap.id && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
                           </button>
