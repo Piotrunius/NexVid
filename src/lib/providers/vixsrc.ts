@@ -12,6 +12,7 @@ export class VixSrcProvider extends BaseProvider {
     readonly name = 'VixSrc';
     readonly enabled = true;
     readonly BASE_URL = 'https://vixsrc.to';
+    readonly DEFAULT_PROD_RESOLVER_BASE = 'https://nexvid-proxy.piotrunius.workers.dev';
     readonly HEADERS = {
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150 Safari/537.36',
@@ -50,7 +51,7 @@ export class VixSrcProvider extends BaseProvider {
             const pageUrl = this.buildPageUrl(media);
 
             // Fetch page HTML
-            const html = await this.fetchPage(pageUrl, this.HEADERS);
+            const html = await this.fetchVixPage(pageUrl, this.HEADERS);
             if (!html) {
                 return this.emptyResult('Failed to fetch page', media);
             }
@@ -65,7 +66,7 @@ export class VixSrcProvider extends BaseProvider {
             const masterUrl = this.buildMasterUrl(tokenData, 'en');
 
             // Fetch master playlist
-            const playlistContent = await this.fetchPage(masterUrl, {
+            const playlistContent = await this.fetchVixPage(masterUrl, {
                 ...this.HEADERS,
                 Referer: pageUrl
             });
@@ -90,6 +91,74 @@ export class VixSrcProvider extends BaseProvider {
                 media
             );
         }
+    }
+
+    private getResolverBaseCandidates(): string[] {
+        const rawCandidates = [
+            process.env.DIRECT_RESOLVER_URL,
+            process.env.NEXT_PUBLIC_API_URL,
+            process.env.NEXT_PUBLIC_PROXY_URL,
+            process.env.APP_BASE_URL,
+            this.DEFAULT_PROD_RESOLVER_BASE
+        ]
+            .map((value) => String(value || '').trim())
+            .filter(Boolean)
+            .filter((value) => {
+                try {
+                    const parsed = new URL(value);
+                    const host = parsed.hostname.toLowerCase();
+                    return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1';
+                } catch {
+                    return true;
+                }
+            });
+
+        const normalized = rawCandidates.map((base) => {
+            if (base.includes('{url}')) return base;
+            if (base.endsWith('=') || base.endsWith('%3D')) return base;
+            if (base.includes('?')) return `${base}&url=`;
+            return `${base.replace(/\/+$/, '')}/direct-resolver?url=`;
+        });
+
+        return Array.from(new Set(normalized));
+    }
+
+    private buildResolverUrl(base: string, url: string, headers?: Record<string, string>): string {
+        const payload = headers && Object.keys(headers).length > 0
+            ? encodeURIComponent(JSON.stringify(headers))
+            : '';
+        const encodedUrl = encodeURIComponent(url);
+
+        const appendHeaders = (value: string): string => {
+            if (!payload) return value;
+            const separator = value.includes('?') ? '&' : '?';
+            return `${value}${separator}headers=${payload}`;
+        };
+
+        if (base.includes('{url}')) {
+            return appendHeaders(base.replaceAll('{url}', encodedUrl));
+        }
+
+        return appendHeaders(`${base}${encodedUrl}`);
+    }
+
+    private async fetchVixPage(url: string, headers?: Record<string, string>): Promise<string | null> {
+        const resolverBases = this.getResolverBaseCandidates();
+
+        for (const base of resolverBases) {
+            try {
+                const resolverUrl = this.buildResolverUrl(base, url, headers);
+                const response = await fetch(resolverUrl, {
+                    signal: AbortSignal.timeout(12000)
+                });
+                if (response.ok) {
+                    return await response.text();
+                }
+            } catch {
+            }
+        }
+
+        return this.fetchPage(url, headers);
     }
 
     /**
