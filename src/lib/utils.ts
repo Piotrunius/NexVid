@@ -61,3 +61,22 @@ export function getQualityLabel(quality: string): string {
   };
   return labels[quality] || quality;
 }
+
+export function getAccentHex(accent: string, customHex?: string): string {
+  const mapping: Record<string, string> = {
+    indigo: '#6366f1',
+    violet: '#8b5cf6',
+    rose: '#f43f5e',
+    emerald: '#10b981',
+    amber: '#f59e0b',
+    cyan: '#06b6d4',
+    sky: '#0ea5e9',
+    lime: '#84cc16',
+    orange: '#f97316',
+    fuchsia: '#d946ef',
+    teal: '#14b8a6',
+    red: '#ef4444',
+  };
+  if (accent === 'custom' && customHex) return customHex;
+  return mapping[accent] || mapping.indigo;
+}
