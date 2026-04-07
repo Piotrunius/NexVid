@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 const WORKER_URL = (process.env.API_URL || 'https://nexvid-proxy.piotrunius.workers.dev').replace(/\/+$/, '');
 
 export async function ANY(req: NextRequest, { params }: { params: { path: string[] } }) {
