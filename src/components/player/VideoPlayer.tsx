@@ -19,7 +19,7 @@ import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AudioTrack, Caption, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, FastForward, Info, ListVideo, Pause, PauseCircle, Play, PlayCircle, Settings2, Volume1, Volume2, VolumeX, XCircle } from 'lucide-react';
+import { Activity, CheckCircle2, ChevronLeft, ChevronRight, Clock, Compass, Crown, FastForward, Infinity as InfinityIcon, Info, ListVideo, Pause, PauseCircle, Play, PlayCircle, Rocket, Server, Settings2, Sparkles, Star, Volume1, Volume2, VolumeX, XCircle, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
@@ -405,12 +405,46 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           // ignore malformed JSON
         }
       }
+
+      // Handle VidFast & VidSync messages
+      const vidfastOrigins = [
+        'https://vidfast.pro', 'https://vidfast.in', 'https://vidfast.io', 'https://vidfast.me', 'https://vidfast.net', 'https://vidfast.pm', 'https://vidfast.xyz', 'https://vidsync.xyz'
+      ];
+      if (vidfastOrigins.includes(event.origin) && event.data) {
+        if (event.data.type === 'PLAYER_EVENT') {
+          const { currentTime: time, duration: dur } = event.data.data;
+          if (typeof time === 'number' && typeof dur === 'number') {
+            setCurrentTime(time);
+            setDuration(dur);
+          }
+        } else if (event.data.type === 'MEDIA_DATA') {
+          const { progress } = event.data.data;
+          if (progress?.watched && progress?.duration) {
+            setCurrentTime(progress.watched);
+            setDuration(progress.duration);
+          }
+        }
+      }
+
+      // Handle VidKing messages
+      if (event.origin === 'https://www.vidking.net' && event.data) {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          if (data && data.type === 'PLAYER_EVENT' && data.data) {
+            const { currentTime: time, duration: dur } = data.data;
+            if (typeof time === 'number' && typeof dur === 'number') {
+              setCurrentTime(time);
+              setDuration(dur);
+            }
+          }
+        } catch {}
+      }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, seekTime, subtitleLanguage, febboxApiKey, disableEmbeds } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, seekTime, subtitleLanguage, febboxApiKey, disableEmbeds, customAccentHex } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
@@ -518,11 +552,30 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const formatSourceName = useCallback((sourceId?: string) => {
     if (!sourceId) return 'Source';
     if (sourceId === 'vixsrc') return 'VixSrc';
-    if (sourceId === 'febbox') return 'FebBox';
-    if (sourceId === 'videasy') return 'Videasy';
-    if (sourceId === 'vidlink') return 'VidLink';
+    if (sourceId === 'febbox') return 'Alpha';
+    if (sourceId === 'pobreflix') return 'Beta';
+    if (sourceId === 'zxcstream') return 'Gamma';
+    if (sourceId === 'vidking') return 'Delta';
+    if (sourceId === 'vidfast') return 'Zeta';
+    if (sourceId === 'videasy') return 'Theta';
+    if (sourceId === 'vidsync') return 'Kappa';
+    if (sourceId === 'vidlink') return 'Omega';
     return sourceId;
   }, []);
+
+  const getSourceIcon = (sourceId?: string) => {
+    switch (sourceId) {
+      case 'febbox': return <Crown className="w-3.5 h-3.5" />;
+      case 'pobreflix': return <Zap className="w-3.5 h-3.5" />;
+      case 'vidking': return <Star className="w-3.5 h-3.5" />;
+      case 'zxcstream': return <Sparkles className="w-3.5 h-3.5" />;
+      case 'vidfast': return <Rocket className="w-3.5 h-3.5" />;
+      case 'vidsync': return <Activity className="w-3.5 h-3.5" />;
+      case 'videasy': return <Compass className="w-3.5 h-3.5" />;
+      case 'vidlink': return <InfinityIcon className="w-3.5 h-3.5" />;
+      default: return <Server className="w-3.5 h-3.5" />;
+    }
+  };
 
   const sourceCatalog = useMemo(() => {
     const catalog: Array<{ id: string; name: string; resultIndex: number; available: boolean }> = [];
@@ -1919,18 +1972,44 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       onMouseLeave={hideControls}
     >
       {/* Embed iframe or native video */}
-      {stream?.type === 'embed' ? (
-        <div className="absolute inset-0 overflow-hidden">
-          <iframe
-            src={stream.url}
-            title="Embedded video player"
-            className={cn('h-full w-full border-0', embedLockState !== 'unlocked' && 'pointer-events-none')}
-            allowFullScreen
-            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            referrerPolicy="origin"
-          />
-        </div>
-      ) : (
+      {stream?.type === 'embed' ? (() => {
+        // Oblicz URL integracji dla natywnych embedów (vidfast & vidsync)
+        let embedUrl = stream.url;
+        if (/vidfast\.(pro|in|io|me|net|pm|xyz)/i.test(embedUrl) || /vidsync\.xyz/i.test(embedUrl)) {
+          try {
+            const u = new URL(embedUrl);
+            if (autoPlay) u.searchParams.set('autoPlay', 'true');
+            if (customAccentHex) {
+              u.searchParams.set('theme', customAccentHex.replace('#', ''));
+            }
+            if (autoPlay) {
+              u.searchParams.set('nextButton', 'true');
+              u.searchParams.set('autoNext', 'true');
+            }
+            if (initialSeekTime > 0) {
+              u.searchParams.set('startAt', Math.floor(initialSeekTime).toString());
+            }
+            if (subtitleLanguage && subtitleLanguage !== 'off') {
+              u.searchParams.set('sub', subtitleLanguage);
+            }
+            embedUrl = u.toString();
+          } catch (e) {}
+        }
+        
+        return (
+          <div className="absolute inset-0 overflow-hidden">
+            <iframe
+              src={embedUrl}
+              title="Embedded video player"
+              className={cn('h-full w-full border-0', (!/vidking|zxcstream/i.test(stream.url) && embedLockState !== 'unlocked') && 'pointer-events-none')}
+              allowFullScreen
+              allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+              referrerPolicy="origin"
+              {...(/videasy|vidlink|vidfast|vidsync/i.test(stream.url) ? {} : { sandbox: 'allow-scripts allow-same-origin allow-presentation' })}
+            />
+          </div>
+        );
+      })() : (
         <>
           <video
             ref={videoRef}
@@ -1976,7 +2055,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         </div>
       )}
 
-      {stream?.type === 'embed' && !isEmbedNoticeDismissed && embedLockState === 'locked' && (
+      {stream?.type === 'embed' && !(/vidking|zxcstream/i.test(stream?.url || '')) && !isEmbedNoticeDismissed && embedLockState === 'locked' && (
         <div className="absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
           <div className="rounded-[20px] bg-black/85 p-5 backdrop-blur-2xl flex flex-col items-center gap-4 max-w-sm border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)] animate-scale-in">
             <div className="flex flex-col items-center gap-1">
@@ -2042,7 +2121,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       )}
 
       {/* Embed unlocked — centered lock button */}
-      {stream?.type === 'embed' && embedLockState === 'unlocked' && (
+      {stream?.type === 'embed' && !(/vidking|zxcstream/i.test(stream?.url || '')) && embedLockState === 'unlocked' && (
         <div className="absolute inset-x-0 bottom-20 z-30 flex justify-center">
           <button
             onClick={() => setEmbedLockState('locked')}
@@ -2206,13 +2285,26 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 <Info className="h-[14px] w-[14px] stroke-[1.9]" />
               </button>
             )}
+            {stream?.type === 'embed' && safeSourceResults.length > 1 && (
+              <button
+                onClick={() => setSettingsPanel(settingsPanel === 'sources' ? null : 'sources')}
+                className={cn(
+                  'shrink-0 rounded-[8px] p-1.5 transition-colors',
+                  settingsPanel === 'sources' ? 'text-accent' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                )}
+                aria-label="Change Server"
+                title="Change Server"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6" y2="6"/><line x1="6" y1="18" x2="6" y2="18"/></svg>
+              </button>
+            )}
           </div>
           {subtitle && <p className="text-[11px] text-white/60 truncate">{subtitle}</p>}
         </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Restore Locked Notice button if hidden */}
-            {stream?.type === 'embed' && isEmbedNoticeDismissed && embedLockState === 'locked' && (
+            {stream?.type === 'embed' && !(/vidking|zxcstream/i.test(stream?.url || '')) && isEmbedNoticeDismissed && embedLockState === 'locked' && (
               <button
                 onClick={() => setIsEmbedNoticeDismissed(false)}
                 className="rounded-[8px] p-2 text-amber-400/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
@@ -2424,162 +2516,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               </div>
             )}
 
-            {/* Info Panel */}
-            {settingsPanel === 'info' && media && (
-              <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4" onClick={() => setSettingsPanel(null)}>
-                <div
-                  className="w-full max-w-2xl overflow-hidden animate-scale-in max-h-[80vh] overflow-y-auto rounded-[20px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="bg-gradient-to-r from-accent/15 via-white/5 to-transparent px-5 py-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-[14px] font-semibold text-white">About</p>
-                          <p className="mt-0.5 text-[11px] text-white/55">Details for the currently playing media</p>
-                        </div>
-                        <button onClick={() => setSettingsPanel(null)} className="rounded-[6px] p-1 text-white/60 hover:bg-white/10 hover:text-white">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-5">
-                      <div className="flex gap-4">
-                        {media.posterPath && (
-                          <img
-                            src={`https://image.tmdb.org/t/p/w185${media.posterPath}`}
-                            alt={media.title}
-                            className="h-36 w-24 shrink-0 rounded-[12px] object-cover shadow-[0_4px_20px_rgba(0,0,0,0.6)]"
-                          />
-                        )}
-
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[18px] font-semibold text-white">{media.title}</p>
-                          {mediaType === 'show' ? (
-                            <p className="mt-1 text-[13px] text-white/65">
-                              {`Season ${seasonNum} • Episode ${episodeNum}`}
-                              {currentEpisodeInfo?.name ? ` • ${currentEpisodeInfo.name}` : ''}
-                            </p>
-                          ) : (
-                            media.tagline && <p className="mt-1 text-[13px] text-white/65">{media.tagline}</p>
-                          )}
-
-                          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
-                            {media.releaseYear && (
-                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                                {media.releaseYear}
-                              </span>
-                            )}
-                            {media.certification && (
-                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                                {media.certification}
-                              </span>
-                            )}
-                            {mediaType === 'show' && currentEpisodeInfo?.airDate && (
-                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                                {currentEpisodeInfo.airDate}
-                              </span>
-                            )}
-                            {mediaType === 'show' && currentEpisodeInfo?.runtime && (
-                              <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                                {currentEpisodeInfo.runtime} min
-                              </span>
-                            )}
-                            {media.rating && (
-                              <span className="flex items-center gap-1 rounded-full bg-yellow-400/10 px-2 py-0.5 text-yellow-300 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" /></svg>
-                                {media.rating.toFixed(1)}
-                              </span>
-                            )}
-                          </div>
-
-                          {media.genres && media.genres.length > 0 && (
-                            <div className="mt-2.5 flex flex-wrap gap-1.5">
-                              {media.genres.slice(0, 8).map((g) => (
-                                <span key={g.id} className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                                  {g.name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <div className="relative">
-                              <button
-                                onClick={() => setShowInfoWatchlistMenu((value) => !value)}
-                                className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
-                              >
-                                {infoWatchlistItem && infoWatchlistItem.status !== 'none' ? (
-                                  <>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
-                                    {infoWatchlistItem.status}
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                                    Add to List
-                                  </>
-                                )}
-                              </button>
-                            </div>
-
-                            {tmdbId && (
-                              <a
-                                href={`https://www.themoviedb.org/${mediaType === 'show' ? 'tv' : 'movie'}/${tmdbId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-[10px] bg-teal-500/15 px-3 py-1.5 text-[11px] font-semibold text-teal-300 hover:bg-teal-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                                TMDB
-                              </a>
-                            )}
-
-                            {tmdbId && mediaType === 'show' && media?.title && (
-                              <a
-                                href={`https://seriesgraph.com/show/${tmdbId}-${media.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-500/15 px-3 py-1.5 text-[11px] font-semibold text-violet-300 hover:bg-violet-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3"/></svg>
-                                SeriesGraph
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {infoSummaryText && (
-                        <div className="mt-4 rounded-[12px] bg-white/[0.03] p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
-                          <p className="text-[13px] leading-relaxed text-white/75">{infoSummaryText}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {showInfoWatchlistMenu && (
-                      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 px-4" onClick={() => setShowInfoWatchlistMenu(false)}>
-                        <div className="w-full max-w-xs rounded-[14px] bg-black/90 p-2.5 shadow-[0_16px_50px_rgba(0,0,0,0.75)]" onClick={(e) => e.stopPropagation()}>
-                          <p className="px-2 pb-1.5 text-[11px] font-semibold text-white/70">Add to List</p>
-                          {(['Planned', 'Watching', 'Completed', 'Dropped', 'On-Hold'] as WatchlistStatus[]).map((status) => (
-                            <button
-                              key={status}
-                              onClick={() => handleInfoWatchlistAction(status)}
-                              className={cn(
-                                'w-full flex items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
-                                infoWatchlistItem?.status === status ? 'bg-accent/20 text-accent' : 'text-white/80 hover:bg-white/10'
-                              )}
-                            >
-                              <StatusIcon status={status} />
-                              <span>{status.replace('-', ' ')}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-            )}
+            {/* Deleted Native Info Panel Area */}
 
             {/* Unified Settings Button */}
             <div className="relative">
@@ -2837,9 +2774,13 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                         Sources
                       </button>
                       <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
-                        {/* Direct Sources */}
-                        {sourceResults.filter(r => r.stream.type !== 'embed').map((res, i) => {
+                        {sourceResults.map((res) => {
                           const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                          const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
+                          const isUnsafe = ['videasy', 'vidfast'].includes(res.sourceId);
+                          const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                          const isGood = ['vidking', 'zxcstream'].includes(res.sourceId);
+
                           return (
                             <button
                               key={res.sourceId}
@@ -2851,40 +2792,38 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className={cn(
-                                  "h-1.5 w-1.5 rounded-full transition-all duration-500",
-                                  isSelected ? "bg-accent shadow-[0_0_8px_var(--accent-glow)]" : "bg-white/20"
-                                )} />
+                                  "flex items-center justify-center transition-all duration-500",
+                                  isSelected ? "text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110" : "text-white/40 scale-100"
+                                )}>
+                                  {getSourceIcon(res.sourceId)}
+                                </div>
                                 <p className={cn("text-[12px] font-semibold truncate", isSelected ? "text-accent" : "text-white")}>
                                   {formatSourceName(res.sourceId)}
                                 </p>
                               </div>
-                              <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Direct</span>
-                            </button>
-                          );
-                        })}
-
-                        {/* External Embeds */}
-                        {sourceResults.filter(r => r.stream.type === 'embed').map((res, i) => {
-                          const isSelected = currentSourceIndex === sourceResults.indexOf(res);
-                          return (
-                            <button
-                              key={res.sourceId}
-                              onClick={() => { onSelectSource?.(safeSourceResults.indexOf(res)); setSettingsPanel(null); }}
-                              className={cn(
-                                "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none",
-                                isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                              {isDangerous ? (
+                                <div className="flex items-center gap-1.5 hover:opacity-90">
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-red-500/20 text-red-500" : "bg-red-500/10 text-red-500/50")}>Dangerous</span>
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                                </div>
+                              ) : isUnsafe ? (
+                                <div className="flex items-center gap-1.5 hover:opacity-90">
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-amber-500/20 text-amber-500" : "bg-amber-500/10 text-amber-500/50")}>Unsafe</span>
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                                </div>
+                              ) : isBest ? (
+                                <div className="flex items-center gap-1.5 hover:opacity-90">
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-blue-500/20 text-blue-500" : "bg-blue-500/10 text-blue-500/80")}>Best</span>
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Direct</span>
+                                </div>
+                              ) : isGood ? (
+                                <div className="flex items-center gap-1.5 hover:opacity-90">
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-emerald-500/20 text-emerald-500" : "bg-emerald-500/10 text-emerald-500/80")}>Safe</span>
+                                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                                </div>
+                              ) : (
+                                <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Direct</span>
                               )}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={cn(
-                                  "h-1.5 w-1.5 rounded-full transition-all duration-500",
-                                  isSelected ? "bg-accent shadow-[0_0_8px_var(--accent-glow)]" : "bg-white/20"
-                                )} />
-                                <p className={cn("text-[12px] font-semibold truncate", isSelected ? "text-accent" : "text-white")}>
-                                  {formatSourceName(res.sourceId)}
-                                </p>
-                              </div>
-                              <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
                             </button>
                           );
                         })}
@@ -2918,8 +2857,12 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                             className={cn('w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between', activeCaption === cap.id ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10')}
                           >
                             <div className="flex items-center">
-                              <span className="mr-2 opacity-80">{languageFlag(cap.language)}</span>
-                              {languageLabel(cap.language)}
+                              {cap.flagUrl ? (
+                                <img src={cap.flagUrl} alt={cap.language} className="mr-2 w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80" />
+                              ) : (
+                                <span className="mr-2 opacity-80">{languageFlag(cap.language)}</span>
+                              )}
+                              <span>{cap.label || languageLabel(cap.language)}</span>
                             </div>
                             {activeCaption === cap.id && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
                           </button>
@@ -3256,6 +3199,239 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       `}</style>
       </>
       )}
+
+      {/* Global Modals */}
+      {settingsPanel === 'info' && media && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4" onClick={() => setSettingsPanel(null)}>
+          <div
+            className="w-full max-w-2xl overflow-hidden animate-scale-in max-h-[80vh] overflow-y-auto rounded-[20px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+              <div className="bg-gradient-to-r from-accent/15 via-white/5 to-transparent px-5 py-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-[14px] font-semibold text-white">About</p>
+                    <p className="mt-0.5 text-[11px] text-white/55">Details for the currently playing media</p>
+                  </div>
+                  <button onClick={() => setSettingsPanel(null)} className="rounded-[6px] p-1 text-white/60 hover:bg-white/10 hover:text-white">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="flex gap-4">
+                  {media.posterPath && (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w185${media.posterPath}`}
+                      alt={media.title}
+                      className="h-36 w-24 shrink-0 rounded-[12px] object-cover shadow-[0_4px_20px_rgba(0,0,0,0.6)]"
+                    />
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[18px] font-semibold text-white">{media.title}</p>
+                    {mediaType === 'show' ? (
+                      <p className="mt-1 text-[13px] text-white/65">
+                        {`Season ${seasonNum} • Episode ${episodeNum}`}
+                        {currentEpisodeInfo?.name ? ` • ${currentEpisodeInfo.name}` : ''}
+                      </p>
+                    ) : (
+                      media.tagline && <p className="mt-1 text-[13px] text-white/65">{media.tagline}</p>
+                    )}
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+                      {media.releaseYear && (
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                          {media.releaseYear}
+                        </span>
+                      )}
+                      {media.certification && (
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                          {media.certification}
+                        </span>
+                      )}
+                      {mediaType === 'show' && currentEpisodeInfo?.airDate && (
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                          {currentEpisodeInfo.airDate}
+                        </span>
+                      )}
+                      {mediaType === 'show' && currentEpisodeInfo?.runtime && (
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                          {currentEpisodeInfo.runtime} min
+                        </span>
+                      )}
+                      {media.rating && (
+                        <span className="flex items-center gap-1 rounded-full bg-yellow-400/10 px-2 py-0.5 text-yellow-300 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" /></svg>
+                          {media.rating.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+
+                    {media.genres && media.genres.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {media.genres.slice(0, 8).map((g) => (
+                          <span key={g.id} className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                            {g.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowInfoWatchlistMenu((value) => !value)}
+                          className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                        >
+                          {infoWatchlistItem && infoWatchlistItem.status !== 'none' ? (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                              {infoWatchlistItem.status}
+                            </>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                              Add to List
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {tmdbId && (
+                        <a
+                          href={`https://www.themoviedb.org/${mediaType === 'show' ? 'tv' : 'movie'}/${tmdbId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-[10px] bg-teal-500/15 px-3 py-1.5 text-[11px] font-semibold text-teal-300 hover:bg-teal-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                          TMDB
+                        </a>
+                      )}
+
+                      {tmdbId && mediaType === 'show' && media?.title && (
+                        <a
+                          href={`https://seriesgraph.com/show/${tmdbId}-${media.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-500/15 px-3 py-1.5 text-[11px] font-semibold text-violet-300 hover:bg-violet-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+                          SeriesGraph
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {infoSummaryText && (
+                  <div className="mt-4 rounded-[12px] bg-white/[0.03] p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+                    <p className="text-[13px] leading-relaxed text-white/75">{infoSummaryText}</p>
+                  </div>
+                )}
+              </div>
+
+              {showInfoWatchlistMenu && (
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 px-4" onClick={() => setShowInfoWatchlistMenu(false)}>
+                  <div className="w-full max-w-xs rounded-[14px] bg-black/90 p-2.5 shadow-[0_16px_50px_rgba(0,0,0,0.75)]" onClick={(e) => e.stopPropagation()}>
+                    <p className="px-2 pb-1.5 text-[11px] font-semibold text-white/70">Add to List</p>
+                    {(['Planned', 'Watching', 'Completed', 'Dropped', 'On-Hold'] as WatchlistStatus[]).map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => handleInfoWatchlistAction(status)}
+                        className={cn(
+                          'w-full flex items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
+                          infoWatchlistItem?.status === status ? 'bg-accent/20 text-accent' : 'text-white/80 hover:bg-white/10'
+                        )}
+                      >
+                        <StatusIcon status={status} />
+                        <span>{status.replace('-', ' ')}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+      )}
+
+      {stream?.type === 'embed' && settingsPanel === 'sources' && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8" onClick={() => setSettingsPanel(null)}>
+          <div className="w-[min(90vw,18rem)] overflow-hidden animate-scale-in max-h-[100%] overflow-y-auto rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 custom-scrollbar" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors cursor-pointer" onClick={() => setSettingsPanel(null)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
+              Sources
+            </div>
+            <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
+              {sourceResults.filter(r => r.stream.type !== 'embed').map((res) => {
+                const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                return (
+                  <button key={res.sourceId} onClick={() => { onSelectSource?.(safeSourceResults.indexOf(res)); setSettingsPanel(null); }} className={cn("w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white")}>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={cn("flex items-center justify-center transition-all duration-500", isSelected ? "text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110" : "text-white/40 scale-100")}>
+                        {getSourceIcon(res.sourceId)}
+                      </div>
+                      <p className={cn("text-[12px] font-semibold truncate", isSelected ? "text-accent" : "text-white")}>{formatSourceName(res.sourceId)}</p>
+                    </div>
+                    {isBest ? (
+                      <div className="flex items-center gap-1.5 hover:opacity-90">
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-blue-500/20 text-blue-500" : "bg-blue-500/10 text-blue-500/80")}>Best</span>
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Direct</span>
+                      </div>
+                    ) : (
+                      <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Direct</span>
+                    )}
+                  </button>
+                )
+              })}
+              {sourceResults.filter(r => r.stream.type === 'embed').map((res) => {
+                const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
+                const isUnsafe = ['videasy', 'vidfast'].includes(res.sourceId);
+                const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                const isGood = ['vidking', 'zxcstream'].includes(res.sourceId);
+                return (
+                  <button key={res.sourceId} onClick={() => { onSelectSource?.(safeSourceResults.indexOf(res)); setSettingsPanel(null); }} className={cn("w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white")}>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={cn("flex items-center justify-center transition-all duration-500", isSelected ? "text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110" : "text-white/40 scale-100")}>
+                        {getSourceIcon(res.sourceId)}
+                      </div>
+                      <p className={cn("text-[12px] font-semibold truncate", isSelected ? "text-accent" : "text-white")}>{formatSourceName(res.sourceId)}</p>
+                    </div>
+                    {isDangerous ? (
+                      <div className="flex items-center gap-1.5 hover:opacity-90">
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-red-500/20 text-red-500" : "bg-red-500/10 text-red-500/50")}>Dangerous</span>
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                      </div>
+                    ) : isUnsafe ? (
+                      <div className="flex items-center gap-1.5 hover:opacity-90">
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-amber-500/20 text-amber-500" : "bg-amber-500/10 text-amber-500/50")}>Unsafe</span>
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                      </div>
+                    ) : isBest ? (
+                      <div className="flex items-center gap-1.5 hover:opacity-90">
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-blue-500/20 text-blue-500" : "bg-blue-500/10 text-blue-500/80")}>Best</span>
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Direct</span>
+                      </div>
+                    ) : isGood ? (
+                      <div className="flex items-center gap-1.5 hover:opacity-90">
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-emerald-500/20 text-emerald-500" : "bg-emerald-500/10 text-emerald-500/80")}>Safe</span>
+                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                      </div>
+                    ) : (
+                      <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase", isSelected ? "bg-accent/20 text-accent" : "bg-white/5 text-white/30")}>Embed</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

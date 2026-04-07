@@ -283,8 +283,8 @@ export default function SettingsPage() {
                 className="w-full flex items-center justify-between gap-4 rounded-full bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.06]"
               >
                 <div className="text-left flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-text-primary truncate">Disable external embeds</p>
-                  <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2 sm:line-clamp-none">Blocks sources that use an external iframe. Only direct streams will be used.</p>
+                  <p className="text-[13px] font-medium text-text-primary truncate">Disable unsafe embeds</p>
+                  <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2 sm:line-clamp-none">Blocks sources that are unsafe. Only safe embeds and direct streams will be available.</p>
                 </div>
                 <div className={cn('relative shrink-0 w-11 h-[24px] rounded-full transition-colors duration-200', settings.disableEmbeds ? 'bg-accent' : 'bg-white/10')}>
                   <div className={cn('absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200', settings.disableEmbeds ? 'translate-x-[22px]' : 'translate-x-[2px]')} />

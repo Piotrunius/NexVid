@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Import providers
 import { VixSrcProvider } from '@/lib/providers/vixsrc';
+import { PobreflixProvider } from '@/lib/providers/pobreflix';
 
 // Edge runtime is required for Cloudflare Pages
 export const runtime = 'edge';
@@ -50,11 +51,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle integrated providers from core-main
-    if (['vixsrc'].includes(sourceId)) {
+    if (['vixsrc', 'pobreflix'].includes(sourceId)) {
         console.log(`[API /stream] Handling provider source: ${sourceId}`);
         let provider: any;
         switch (sourceId) {
             case 'vixsrc': provider = new VixSrcProvider(); break;
+            case 'pobreflix': provider = new PobreflixProvider(); break;
         }
 
         const media = {

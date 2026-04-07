@@ -158,17 +158,6 @@ function rewritePlaylist(content: string, playlistUrl: string, headers: Record<s
     }
 
     if (trimmed.startsWith('#')) return line;
-    
-    // ZMIANA: Nie modyfikujemy linków do głównych kawałków wideo/audio, 
-    // aby przeglądarka użytkownika klienta pobierała to ze swojego domowego (niezbanowanego) IP!
-    if (trimmed.endsWith('.ts') || trimmed.endsWith('.m4s') || trimmed.includes('/video/') || trimmed.includes('/audio/')) {
-        try {
-            return new URL(trimmed, playlistUrl).toString();
-        } catch {
-            return trimmed;
-        }
-    }
-
     return rewriteAbsolute(trimmed);
   });
 

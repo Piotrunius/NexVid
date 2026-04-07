@@ -21,13 +21,26 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 
 ## Features
 
-- Source aggregation from built-in providers (FebBox, VixSrc, Videasy, VidLink).
+- Source aggregation from built-in providers (Alpha, Beta, Gamma, Delta, Zeta, Theta, Kappa, Omega).
 - HLS.js-based player with keyboard shortcuts, quality selection, captions, and seek.
 - Optional skip intro/outro via TheIntroDataBase (TIDB).
 - Watchlist (Planned/Watching/Completed/Dropped/On-Hold) with import/export support.
 - User settings persisted in localStorage + synchronized to Cloudflare D1.
 - Cloudflare Worker proxy for CORS, HLS manifest re-writing, and authentication.
 - Responsive UI with toggleable “Liquid Glass” theme and multiple accent colors.
+
+### Source Map
+
+| Display Name | Internal ID | Type | Remote Link / Source Target |
+|--------------|-------------|------|-------------------------------|
+| Alpha        | `febbox`    | Direct | _FebBox API (Requires Token)_ |
+| Beta         | `pobreflix` | Direct | `https://pobreflix.codes` / `xpass` |
+| Gamma        | `zxcstream`   | Embed  | `https://zxcstream.xyz/player/` |
+| Delta        | `vidking`   | Embed  | `https://www.vidking.net/embed/` |
+| Zeta         | `vidfast`   | Embed  | `https://vidfast.pro/` |
+| Theta        | `videasy`   | Embed  | `https://videasy.net/` |
+| Kappa        | `vidsync`   | Embed  | `https://vidsync.xyz/embed/` |
+| Omega        | `vidlink`   | Embed  | `https://vidlink.pro/` |
 
 ---
 

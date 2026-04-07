@@ -67,7 +67,7 @@ async function loadExternalCaptions(params: {
   const { imdbId, tmdbId, mediaType, season, episode } = params;
   if (!imdbId && !tmdbId) return [];
 
-  const query = new URLSearchParams({ type: mediaType });
+  const query = new URLSearchParams({ type: mediaType, t: Date.now().toString() });
   if (imdbId) query.set('imdbId', imdbId);
   if (tmdbId) query.set('tmdbId', tmdbId);
 
@@ -100,6 +100,8 @@ async function loadExternalCaptions(params: {
           url,
           language,
           type,
+          label: subtitle?.label || subtitle?.display,
+          flagUrl: subtitle?.flagUrl,
         } as Caption;
       })
       .filter((caption: Caption | null): caption is Caption => Boolean(caption));
@@ -326,8 +328,8 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         });
 
         const filteredResults = disableEmbeds
-          ? results.filter(r => r.stream.type !== 'embed')
-          : results;
+            ? results.filter(r => r.stream.type !== 'embed' || ['vidking', 'zxcstream'].includes(r.sourceId))
+            : results;
 
         if (filteredResults.length > 0) {
           setSourceResults(filteredResults);
@@ -389,7 +391,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     setAppliedSeekTime(initialSeek);
 
     try {
-      if (hasMeaningfulProgress) {
+      if (hasMeaningfulProgress && prog?.percentage !== undefined) {
         if (prog.percentage > 90) {
           setResumeData({ percentage: prog.percentage, timestamp: prog.timestamp || 0 });
           setResumeType('high');
@@ -420,7 +422,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   }, [loadMedia]);
 
   useEffect(() => {
-    if (!id || !imdbId) return;
+    if (!id) return;
 
     let cancelled = false;
     const load = async () => {
