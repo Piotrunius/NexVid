@@ -107,8 +107,20 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        const token = getCloudToken();
         void logoutCloudSession();
         clearCloudToken();
+        
+        // Safety: If they were logged in via cloud, reset sensitive settings upon logout
+        if (token) {
+          try {
+            const { useSettingsStore } = require('@/stores/settings');
+            useSettingsStore.getState().resetSettings();
+          } catch (e) {
+            console.error('Failed to reset settings on logout:', e);
+          }
+        }
+
         set({ user: null, isLoggedIn: false, authToken: '' });
       },
 

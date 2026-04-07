@@ -101,7 +101,12 @@ export const useSettingsStore = create<SettingsStore>()(
         })),
 
       resetSettings: () => {
-        const next = { ...DEFAULT_SETTINGS };
+        const current = get().settings;
+        const next = {
+          ...DEFAULT_SETTINGS,
+          accentColor: current.accentColor,
+          customAccentHex: current.customAccentHex
+        };
         if (getCloudToken()) {
           void saveCloudSettings(toCloudPersistedSettings(next)).catch(() => {});
         }
