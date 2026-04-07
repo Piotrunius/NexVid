@@ -1,57 +1,17 @@
 import { NextResponse } from 'next/server';
+import { isValidCloudSession } from '@/lib/auth-server';
 
 export const runtime = 'edge';
-
-const DEFAULT_PROD_API_URL = 'https://nexvid-proxy.piotrunius.workers.dev';
-
-function resolveCloudApiUrl(): string {
-  const configured = (process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
-  return configured || DEFAULT_PROD_API_URL;
-}
-
-async function isValidCloudSession(request: Request, token?: string): Promise<boolean> {
-  const apiBase = resolveCloudApiUrl();
-  const incomingCookie = request.headers.get('cookie') || '';
-  try {
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-    if (incomingCookie) {
-      headers.Cookie = incomingCookie;
-    }
-
-    const response = await fetch(`${apiBase}/auth/me`, {
-      method: 'GET',
-      headers,
-      cache: 'no-store',
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(req: Request) {
   try {
     const { mood, type, selectedGenres, era, groqApiKey: userApiKey } = await req.json();
-    const authHeader = req.headers.get('Authorization');
-    const cookieHeader = req.headers.get('cookie') || '';
-    const token = authHeader?.split(' ')[1];
-
+    
     // If user provided their own key, we don't strictly need a Cloud account
     if (!userApiKey || userApiKey === '__PUBLIC_GROQ_KEY__') {
-      const normalizedToken = token && token !== 'undefined' && token !== 'null' ? token : '';
-      const hasSessionCookie = cookieHeader.includes('nexvid_session=');
-
-      if (!normalizedToken && !hasSessionCookie) {
+      const isAuthorized = await isValidCloudSession(req);
+      if (!isAuthorized) {
         return NextResponse.json({ error: 'AI Assistant requires a Cloud account or your own Groq API key in Settings.' }, { status: 401 });
-      }
-
-      // Best-effort validation: in cookie-based cross-domain sessions, server-side re-validation
-      // can fail despite a valid active browser session. We only hard-require session material.
-      if (normalizedToken) {
-        void isValidCloudSession(req, normalizedToken || undefined);
       }
     }
 

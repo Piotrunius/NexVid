@@ -3313,7 +3313,7 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
                 fallbackHeaders.set('Referer', upstreamHeaders.get('Referer') || '');
                 fallbackHeaders.set('Origin', upstreamHeaders.get('Origin') || '');
              }
-             
+
              const fallbackResp = await fetch(new Request(fullUrl, {
                 method: 'GET',
                 headers: fallbackHeaders,
