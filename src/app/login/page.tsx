@@ -95,7 +95,7 @@ export default function LoginPage() {
             <button
               onClick={() => setMode('login')}
               className={cn(
-                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200',
+                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center',
                 mode === 'login'
                   ? 'bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]'
                   : 'text-text-secondary hover:text-text-primary',
@@ -106,7 +106,7 @@ export default function LoginPage() {
             <button
               onClick={() => setMode('register')}
               className={cn(
-                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200',
+                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center',
                 mode === 'register'
                   ? 'bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]'
                   : 'text-text-secondary hover:text-text-primary',
