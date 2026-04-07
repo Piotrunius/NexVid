@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         }
 
         const media = {
-            type: type === 'show' ? 'tv' as const : 'movie' as const,
+            type: type === 'show' ? 'show' as const : 'movie' as const,
             tmdbId,
             title,
             releaseYear: year || 2024,

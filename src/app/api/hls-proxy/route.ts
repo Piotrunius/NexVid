@@ -167,8 +167,6 @@ function getResolverBaseCandidates(): string[] {
   const configured = [
     process.env.DIRECT_RESOLVER_URL,
     process.env.NEXT_PUBLIC_API_URL,
-    process.env.NEXT_PUBLIC_PROXY_URL,
-    process.env.APP_BASE_URL,
   ]
     .map((value) => String(value || '').trim())
     .filter(Boolean)
