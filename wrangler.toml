@@ -3,7 +3,7 @@
 # Or use the Cloudflare Pages dashboard to connect your Git repo
 
 name = "nexvid"
-compatibility_date = "2024-12-01"
+compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
 # Pages configuration

@@ -167,9 +167,10 @@ export class VixSrcProvider extends BaseProvider {
     private buildPageUrl(media: ProviderMediaObject): string {
         if (media.type === 'movie') {
             return `${this.BASE_URL}/movie/${media.tmdbId}`;
-        } else {
+        } else if (media.type === 'show') {
             return `${this.BASE_URL}/tv/${media.tmdbId}/${media.s}/${media.e}`;
         }
+        return '';
     }
 
     /**

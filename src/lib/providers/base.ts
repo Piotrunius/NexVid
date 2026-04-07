@@ -1,4 +1,4 @@
-export type MediaType = 'movie' | 'tv';
+export type MediaType = 'movie' | 'show';
 
 export interface ProviderMediaObject {
     type: MediaType;
