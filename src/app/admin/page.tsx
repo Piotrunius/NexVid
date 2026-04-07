@@ -938,7 +938,6 @@ export default function AdminPage() {
   if (!isLoggedIn) {
     return (
       <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
         <div className="mx-auto max-w-3xl px-4">
           <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative border border-white/10">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-white/5">
@@ -956,7 +955,6 @@ export default function AdminPage() {
   if (!hasAdminPanelAccess) {
     return (
       <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
         <div className="mx-auto max-w-3xl px-4">
           <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative border border-white/10">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-red-500/10">
@@ -975,7 +973,6 @@ export default function AdminPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative [&_button]:text-center [&_button]:justify-center">
         <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>

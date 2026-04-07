@@ -136,7 +136,6 @@ export default function BrowsePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(70%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_70%)]" />
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
           <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Browse</h1>
