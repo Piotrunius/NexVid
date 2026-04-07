@@ -77,13 +77,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 pt-24 pb-20">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="text-[28px] font-extrabold tracking-tight">
+        {/* Banner Logo */}
+        <div className="mb-8 rounded-[22px] border border-white/10 bg-white/[0.02] p-3.5 sm:p-4.5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] text-center">
+          <Link href="/" className="text-[26px] font-extrabold tracking-tight">
             <span className="text-accent">Nex</span>
             <span className="text-text-primary">Vid</span>
           </Link>
-          <p className="text-[13px] text-text-muted mt-2">
+          <p className="text-[13px] text-text-muted mt-1">
             {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
           </p>
         </div>
