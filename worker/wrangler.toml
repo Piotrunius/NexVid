@@ -12,8 +12,6 @@ ALLOWED_ORIGINS = "https://nexvid.online,https://www.nexvid.online,https://*.nex
 PROXY_ALLOWED_HOSTS = "*.febbox.com,febbox.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org"
 SESSION_TTL_DAYS = "30"
 APP_BASE_URL = "https://nexvid.online"
-EMAIL_FROM = "NexVid <noreply@nexvid.pages.dev>"
-INTERNAL_API_SECRET = "nv_secret_9d98265aac54bfc8_WAW"
 
 [dev]
 port = 8787
