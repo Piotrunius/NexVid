@@ -10,9 +10,35 @@ function applyAntiIframeHeaders(response: NextResponse) {
   return response;
 }
 
-export function middleware(request: NextRequest) {
+import { isValidCloudSession } from '@/lib/auth-server';
+
+
+export async function middleware(request: NextRequest) {
   const hostHeader = request.headers.get('host') || '';
   const host = hostHeader.split(':')[0].toLowerCase();
+
+  const url = request.nextUrl.pathname;
+
+  if (url.startsWith('/admin') || url.startsWith('/settings')) {
+    const token = request.cookies.get('nexvid_session')?.value;
+
+    if (!token) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      return applyAntiIframeHeaders(NextResponse.redirect(loginUrl));
+    }
+
+    // Validation of token correctness through contact with Worker
+    const isValid = await isValidCloudSession(request, token);
+
+    if (!isValid) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      const response = applyAntiIframeHeaders(NextResponse.redirect(loginUrl));
+      response.cookies.delete('nexvid_session'); // Removing the forged cookie
+      return response;
+    }
+  }
 
   if (!host || host === CANONICAL_HOST) {
     return applyAntiIframeHeaders(NextResponse.next());

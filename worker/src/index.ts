@@ -1125,6 +1125,22 @@ async function writeAdminAuditLog(
 }
 
 async function getSessionUser(request: Request, env: Env): Promise<SessionUser | null> {
+  // Protection against CSRF attacks and simple curl/terminal scripts.
+  // We ensure that modifying requests actually come from our domain.
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    const origin = request.headers.get('Origin');
+    const referer = request.headers.get('Referer');
+    // If both headers are missing, or neither is a valid host, it's most likely a terminal request.
+    const allowed = getAllowedOrigin(request, env); // Contains e.g. https://nexvid.online
+    const originValid = origin && allowed && origin.startsWith(allowed);
+    const refererValid = referer && allowed && referer.startsWith(allowed);
+
+    if (!originValid && !refererValid) {
+       console.log('[Auth] CSRF/Terminal protection: blocked missing or invalid Origin/Referer for mutating request', { origin, referer });
+       return null;
+    }
+  }
+
   const bearerToken = getBearerToken(request);
   const cookieToken = getCookieToken(request);
   const tokenCandidates = [bearerToken, cookieToken].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
