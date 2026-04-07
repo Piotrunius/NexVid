@@ -27,17 +27,25 @@ export function configureProviders(newConfig: ProviderConfig) {
 }
 
 export const SOURCES: SourceMeta[] = [
-  { id: 'febbox', name: 'FebBox', rank: 1000, type: 'source' },
-  { id: 'vixsrc', name: 'VixSrc', rank: 275, type: 'source' },
-  { id: 'videasy', name: 'Videasy', rank: 250, type: 'embed' },
-  { id: 'vidlink', name: 'VidLink Pro', rank: 200, type: 'embed' },
+  { id: 'febbox', name: 'Alpha', rank: 1000, type: 'source' },
+  { id: 'pobreflix', name: 'Beta', rank: 950, type: 'source' },
+  { id: 'zxcstream', name: 'Gamma', rank: 900, type: 'embed' },
+  { id: 'vidking', name: 'Delta', rank: 800, type: 'embed' },
+  { id: 'vidfast', name: 'Zeta', rank: 104, type: 'embed' },
+  { id: 'videasy', name: 'Theta', rank: 103, type: 'embed' },
+  { id: 'vidsync', name: 'Kappa', rank: 102, type: 'embed' },
+  { id: 'vidlink', name: 'Omega', rank: 101, type: 'embed' },
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
-  febbox: 'FebBox',
-  vixsrc: 'VixSrc',
-  videasy: 'Videasy',
-  vidlink: 'VidLink Pro',
+  febbox: 'Alpha',
+  pobreflix: 'Beta',
+  zxcstream: 'Gamma',
+  vidking: 'Delta',
+  vidfast: 'Zeta',
+  videasy: 'Theta',
+  vidsync: 'Kappa',
+  vidlink: 'Omega',
 };
 
 export function mapQuality(raw: string): StreamQuality {
@@ -98,10 +106,12 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
 
       const url = new URL(embedUrl);
       const color = (options.accentColor || '6366f1').replace('#', '');
-      url.searchParams.set('color', color);
-      url.searchParams.set('nextEpisode', 'true');
-      url.searchParams.set('autoplayNextEpisode', 'true');
+      url.searchParams.set('theme', color);
+      url.searchParams.set('nextButton', 'true');
+      url.searchParams.set('autoPlay', 'true');
+      url.searchParams.set('autoNext', 'true');
       url.searchParams.set('episodeSelector', 'true');
+      if (options.startAt && options.startAt > 0) url.searchParams.set('startAt', Math.floor(options.startAt).toString());
       if (options.idlePauseOverlay) url.searchParams.set('overlay', 'true');
 
       const stream: EmbedStream = { type: 'embed', url: url.toString() };
@@ -148,8 +158,64 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
       url.searchParams.set('secondaryColor', '000000');
       url.searchParams.set('nextbutton', 'true');
       url.searchParams.set('autoplay', 'true');
+      if (options.startAt && options.startAt > 0) url.searchParams.set('startAt', Math.floor(options.startAt).toString());
 
       const stream: EmbedStream = { type: 'embed', url: url.toString() };
+      options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
+      return { sourceId, stream };
+    }
+
+    const isGenericEmbed = ['vidfast', 'vidsync', 'vidking', 'zxcstream'].includes(sourceId);
+    if (isGenericEmbed) {
+      options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
+      let embedUrl = '';
+      
+      const mType = options.mediaType;
+      const tId = options.tmdbId;
+      const sNum = options.season || 1;
+      const eNum = options.episode || 1;
+      const accent = (options.accentColor || 'fafafa').replace('#', '');
+
+      switch(sourceId) {
+        case 'vidfast': {
+          const u = new URL(mType === 'movie' ? `https://vidfast.pro/movie/${tId}` : `https://vidfast.pro/tv/${tId}/${sNum}/${eNum}`);
+          u.searchParams.set('autoPlay', 'true');
+          u.searchParams.set('theme', accent);
+          if (mType === 'show') {
+            u.searchParams.set('nextButton', 'true');
+            u.searchParams.set('autoNext', 'true');
+          }
+          if (options.startAt && options.startAt > 0) u.searchParams.set('startAt', Math.floor(options.startAt).toString());
+          embedUrl = u.toString();
+          break;
+        }
+        case 'vidsync': {
+          const u = new URL(mType === 'movie' ? `https://vidsync.xyz/embed/movie/${tId}` : `https://vidsync.xyz/embed/tv/${tId}/${sNum}/${eNum}`);
+          u.searchParams.set('autoPlay', 'true');
+          u.searchParams.set('theme', accent);
+          if (mType === 'show') {
+            u.searchParams.set('nextButton', 'true');
+            u.searchParams.set('autoNext', 'true');
+          }
+          embedUrl = u.toString();
+          break;
+        }
+        case 'vidking': {
+          const u = new URL(mType === 'movie' ? `https://www.vidking.net/embed/movie/${tId}` : `https://www.vidking.net/embed/tv/${tId}/${sNum}/${eNum}`);
+          u.searchParams.set('color', accent);
+          u.searchParams.set('autoPlay', 'true');
+          if (mType === 'show') {
+            u.searchParams.set('nextEpisode', 'true');
+            u.searchParams.set('episodeSelector', 'true');
+          }
+          if (options.startAt && options.startAt > 0) u.searchParams.set('progress', Math.floor(options.startAt).toString());
+          embedUrl = u.toString();
+          break;
+        }
+        case 'zxcstream': embedUrl = mType === 'movie' ? `https://zxcstream.xyz/player/movie/${tId}?domainAd=zxcstream.icu&color=${accent}&autoplay=true` : `https://zxcstream.xyz/player/tv/${tId}/${sNum}/${eNum}?domainAd=zxcstream.icu&color=${accent}&autoplay=true`; break;
+      }
+
+      const stream: EmbedStream = { type: 'embed', url: embedUrl };
       options.onProgress?.({ id: sourceId, percentage: 100, status: 'success' });
       return { sourceId, stream };
     }
@@ -273,12 +339,10 @@ export async function scrapeAllSources(options: ScrapeOptions): Promise<SourceRe
     if (result) {
       results.push(result);
       options.onSourceFound?.(result);
-    } else if (['febbox', 'vixsrc'].includes(source.id)) {
-      // Always include these as placeholders if they fail,
-      // so the user can see them in the list even if no results found.
+    } else if (source.id === 'febbox') {
       const placeholder: SourceResult = {
         sourceId: source.id,
-        stream: { type: 'file', id: `${source.id}-placeholder`, flags: [], qualities: {} }
+        stream: { type: 'file', id: `${source.id}-placeholder`, flags: [], qualities: {}, captions: [] }
       };
       results.push(placeholder);
       options.onSourceFound?.(placeholder);

@@ -122,6 +122,8 @@ export interface Caption {
   language: string;
   type: 'srt' | 'vtt';
   hasCorsRestrictions?: boolean;
+  label?: string;
+  flagUrl?: string;
 }
 
 export interface AudioTrack {

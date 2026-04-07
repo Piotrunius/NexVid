@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
           language: lang,
           type: (url.toLowerCase().includes('format=vtt') || url.toLowerCase().includes('.vtt')) ? 'vtt' : 'srt',
           label: label,
+          flagUrl: item?.flagUrl || null,
           isHearingImpaired: Boolean(item?.isHearingImpaired)
         };
       })
@@ -133,9 +134,7 @@ export async function GET(request: NextRequest) {
       { subtitles: sorted },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          'Vercel-CDN-Cache-Control': 'public, s-maxage=3600',
-          'CDN-Cache-Control': 'public, s-maxage=3600',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       }
     );
