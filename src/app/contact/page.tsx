@@ -330,7 +330,7 @@ export default function ContactPage() {
                 </div>
 
                 {hasTurnstile && (
-                  <div className="py-2">
+                  <div className="py-1">
                     <Turnstile onVerify={setFeedbackTurnstileToken} onAvailabilityChange={setHasTurnstile} />
                   </div>
                 )}
@@ -349,7 +349,7 @@ export default function ContactPage() {
                 </button>
               </div>
 
-              <div className="pt-4 border-t border-white/5 space-y-3">
+              <div className="pt-3 border-t border-white/5 space-y-2">
                  <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest">Support Directory</p>
                  <div className="grid grid-cols-1 gap-2">
                     <div className="flex items-center justify-between text-[12px]">
