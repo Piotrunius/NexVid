@@ -291,7 +291,7 @@ export default function ContactPage() {
 
         <div className="grid items-start gap-5 xl:grid-cols-3">
           <div className="space-y-5">
-            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-6">
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-5">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-1 h-4 bg-accent rounded-full" />
@@ -349,7 +349,7 @@ export default function ContactPage() {
                 </button>
               </div>
 
-              <div className="pt-5 border-t border-white/5 space-y-3">
+              <div className="pt-4 border-t border-white/5 space-y-3">
                  <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest">Support Directory</p>
                  <div className="grid grid-cols-1 gap-2">
                     <div className="flex items-center justify-between text-[12px]">
