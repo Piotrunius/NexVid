@@ -1,6 +1,6 @@
 name = "nexvid-proxy"
 main = "src/index.ts"
-compatibility_date = "2025-04-01"
+compatibility_date = "2024-01-01"
 
 [[d1_databases]]
 binding = "DB"
@@ -9,9 +9,11 @@ database_id = "a0f07533-793a-43db-86ff-5c141bf54c64"
 
 [vars]
 ALLOWED_ORIGINS = "https://nexvid.online,https://www.nexvid.online,https://*.nexvid.online,https://nexvid.pages.dev,https://*.nexvid.pages.dev,http://localhost:3000"
-PROXY_ALLOWED_HOSTS = "*.febbox.com,febbox.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org,*.vixsrc.to,vixsrc.to,*.vix-content.net,vix-content.net"
+PROXY_ALLOWED_HOSTS = "*.febbox.com,febbox.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org"
 SESSION_TTL_DAYS = "30"
 APP_BASE_URL = "https://nexvid.online"
+EMAIL_FROM = "NexVid <noreply@nexvid.pages.dev>"
+INTERNAL_API_SECRET = "nv_secret_9d98265aac54bfc8_WAW"
 
 [dev]
 port = 8787
