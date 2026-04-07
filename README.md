@@ -21,7 +21,7 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 
 ## Features
 
-- Source aggregation from built-in providers (Alpha, Beta, Gamma, Delta, Zeta, Theta, Kappa, Omega).
+- Source aggregation from built-in providers (Alpha, Beta, Gamma, Delta, Epsilon, Zeta, Theta, Kappa, Omega).
 - HLS.js-based player with keyboard shortcuts, quality selection, captions, and seek.
 - Optional skip intro/outro via TheIntroDataBase (TIDB).
 - Watchlist (Planned/Watching/Completed/Dropped/On-Hold) with import/export support.
@@ -35,8 +35,9 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 |--------------|-------------|------|-------------------------------|
 | Alpha        | `febbox`    | Direct | _FebBox API (Requires Token)_ |
 | Beta         | `pobreflix` | Direct | `https://pobreflix.codes` / `xpass` |
-| Gamma        | `zxcstream`   | Embed  | `https://zxcstream.xyz/player/` |
-| Delta        | `vidking`   | Embed  | `https://www.vidking.net/embed/` |
+| Gamma        | `zxcstream` | Embed  | `https://zxcstream.xyz/player/` |
+| Delta        | `cinesrc`   | Embed  | `https://cinesrc.st/embed/` |
+| Epsilon      | `vidking`   | Embed  | `https://www.vidking.net/embed/` |
 | Zeta         | `vidfast`   | Embed  | `https://vidfast.pro/` |
 | Theta        | `videasy`   | Embed  | `https://videasy.net/` |
 | Kappa        | `vidsync`   | Embed  | `https://vidsync.xyz/embed/` |

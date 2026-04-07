@@ -191,8 +191,6 @@ export interface ScrapeProgress {
 export interface User {
   id: string;
   username: string;
-  email?: string;
-  avatar?: string;
   isAdmin?: boolean;
   role?: 'owner' | 'admin' | 'moderator' | null;
   requiresPasswordChange?: boolean;
@@ -218,7 +216,7 @@ export interface UserSettings {
   autoSwitchSource: boolean;
   idlePauseOverlay: boolean;
   febboxApiKey: string;
-  disableEmbeds: boolean;
+  enableUnsafeEmbeds: boolean;
   introDbApiKey: string;
   groqApiKey: string;
   omdbApiKey: string;

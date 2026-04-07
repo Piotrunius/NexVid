@@ -7,15 +7,15 @@
 import { toast } from '@/components/ui/Toaster';
 import { clearCloudEverything, hasCloudBackend } from '@/lib/cloudSync';
 import { normalizeFebboxTokenForStorage } from '@/lib/febbox';
+import { SOURCES } from '@/lib/providers';
 import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
-import { Crown, Zap, Star, Sparkles, Rocket, Activity, Compass, Infinity as InfinityIcon, Server } from 'lucide-react';
 import { PUBLIC_GROQ_API_KEY_PLACEHOLDER, PUBLIC_OMDB_API_KEY_PLACEHOLDER, useSettingsStore } from '@/stores/settings';
-import { SOURCES } from '@/lib/providers';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AccentColor } from '@/types';
+import { Award, Compass, Crown, Gem, Infinity as InfinityIcon, Link, Rocket, Server, Sparkles, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function SettingsPage() {
@@ -110,12 +110,12 @@ export default function SettingsPage() {
 
   const subtitleLanguageOptions = [
     { value: 'off', label: 'Off' },
-    { value: 'pl', label: 'Polski' },
     { value: 'en', label: 'English' },
     { value: 'es', label: 'Español' },
     { value: 'fr', label: 'Français' },
     { value: 'de', label: 'Deutsch' },
     { value: 'it', label: 'Italiano' },
+    { value: 'pl', label: 'Polski' },
     { value: 'pt', label: 'Português' },
     { value: 'el', label: 'Ελληνικά' },
     { value: 'fa', label: 'فارسی' },
@@ -206,12 +206,14 @@ export default function SettingsPage() {
   const getSourceIcon = (sourceId?: string) => {
     switch (sourceId) {
       case 'febbox': return <Crown className="w-3.5 h-3.5" />;
-      case 'pobreflix': return <Zap className="w-3.5 h-3.5" />;
-      case 'vidking': return <Star className="w-3.5 h-3.5" />;
-      case 'zxcstream': return <Sparkles className="w-3.5 h-3.5" />;
+      case 'pobreflix': return <Gem className="w-3.5 h-3.5" />;
+      case 'gamma':
+      case 'zxcstream': return <Zap className="w-3.5 h-3.5" />;
+      case 'cinesrc': return <Sparkles className="w-3.5 h-3.5" />;
+      case 'vidking': return <Award className="w-3.5 h-3.5" />;
       case 'vidfast': return <Rocket className="w-3.5 h-3.5" />;
-      case 'vidsync': return <Activity className="w-3.5 h-3.5" />;
       case 'videasy': return <Compass className="w-3.5 h-3.5" />;
+      case 'vidsync': return <Link className="w-3.5 h-3.5" />;
       case 'vidlink': return <InfinityIcon className="w-3.5 h-3.5" />;
       default: return <Server className="w-3.5 h-3.5" />;
     }
@@ -220,10 +222,10 @@ export default function SettingsPage() {
   const availableSources = useMemo(() => {
     return SOURCES.filter(s => {
       if (s.id === 'febbox' && !settings.febboxApiKey) return false;
-      if (settings.disableEmbeds && s.type === 'embed' && !['vidking', 'zxcstream'].includes(s.id)) return false;
+      if (!settings.enableUnsafeEmbeds && s.type === 'embed' && !['cinesrc', 'vidking', 'zxcstream'].includes(s.id)) return false;
       return true;
     });
-  }, [settings.febboxApiKey, settings.disableEmbeds]);
+  }, [settings.febboxApiKey, settings.enableUnsafeEmbeds]);
 
   return (
     <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
@@ -301,16 +303,16 @@ export default function SettingsPage() {
               <button
                 type="button"
                 role="switch"
-                aria-checked={settings.disableEmbeds}
-                onClick={() => store.updateSettings({ disableEmbeds: !settings.disableEmbeds })}
+                aria-checked={settings.enableUnsafeEmbeds}
+                onClick={() => store.updateSettings({ enableUnsafeEmbeds: !settings.enableUnsafeEmbeds })}
                 className="w-full flex items-center justify-between gap-4 rounded-full bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.06]"
               >
                 <div className="text-left flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-text-primary truncate">Disable unsafe embeds</p>
-                  <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2 sm:line-clamp-none">Blocks sources that are unsafe. Only safe embeds and direct streams will be available.</p>
+                  <p className="text-[13px] font-medium text-text-primary truncate">Enable unsafe embeds</p>
+                  <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2 sm:line-clamp-none">Enables sources that are potentially unsafe. By default, only safe embeds and direct streams are available.</p>
                 </div>
-                <div className={cn('relative shrink-0 w-11 h-[24px] rounded-full transition-colors duration-200', settings.disableEmbeds ? 'bg-accent' : 'bg-white/10')}>
-                  <div className={cn('absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200', settings.disableEmbeds ? 'translate-x-[22px]' : 'translate-x-[2px]')} />
+                <div className={cn('relative shrink-0 w-11 h-[24px] rounded-full transition-colors duration-200', settings.enableUnsafeEmbeds ? 'bg-accent' : 'bg-white/10')}>
+                  <div className={cn('absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200', settings.enableUnsafeEmbeds ? 'translate-x-[22px]' : 'translate-x-[2px]')} />
                 </div>
               </button>
             </SettingsRow>

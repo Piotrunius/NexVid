@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchSubtitles, configure } from 'wyzie-lib';
+import { configure, searchSubtitles } from 'wyzie-lib';
 
 // Edge Runtime is required for Cloudflare Pages
 export const runtime = 'edge';
@@ -77,14 +77,14 @@ export async function GET(request: NextRequest) {
       params.source = 'all';
       results = await searchSubtitles(params);
     }
-    
+
     if (!Array.isArray(results) || results.length === 0) {
       if (params.source !== 'all') {
         params.source = 'all';
         results = await searchSubtitles(params);
       }
     }
-    
+
     const items = Array.isArray(results) ? results : [];
 
     const mapped = items
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const preferred = ['pl', 'en', 'es', 'fr', 'de', 'it', 'ja'];
+    const preferred = ['en', 'de', 'es', 'fr', 'pl', 'pt', 'it', 'ja'];
     const sorted = Array.from(best.values())
       .sort((a, b) => {
         const pa = preferred.indexOf(a.language);

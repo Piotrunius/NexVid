@@ -184,7 +184,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
   const { getByTmdbId, updateProgress, addItem } = useWatchlistStore();
-  const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay, defaultSource, autoPlay, autoNext } = useSettingsStore((s) => s.settings);
+  const { febboxApiKey, introDbApiKey, enableUnsafeEmbeds, customAccentHex, accentColor, idlePauseOverlay, defaultSource, autoPlay, autoNext, skipIntro, skipOutro, autoSkipSegments } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
   const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
@@ -327,13 +327,14 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
           startAt: seekTime,
           autoPlay,
           autoNext,
+          autoSkipSegments: skipIntro || skipOutro || autoSkipSegments,
           nextButton: true,
           episodeSelector: true,
         });
 
-        const filteredResults = disableEmbeds
-            ? results.filter(r => r.stream.type !== 'embed' || ['vidking', 'zxcstream'].includes(r.sourceId))
-            : results;
+        const filteredResults = enableUnsafeEmbeds
+            ? results
+            : results.filter(r => r.stream.type !== 'embed' || ['cinesrc', 'vidking', 'zxcstream'].includes(r.sourceId));
 
         if (filteredResults.length > 0) {
           setSourceResults(filteredResults);
@@ -368,7 +369,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
       console.error('Failed to load media:', err);
       setScrapeStatus('error');
     }
-  }, [type, id, seasonNum, episodeNum, media, imdbId, effectiveFebboxToken, fetchSegments, sessionToken, resolvedAccentHex, idlePauseOverlay, disableEmbeds, externalCaptions, setIntroOutro]);
+  }, [type, id, seasonNum, episodeNum, media, imdbId, effectiveFebboxToken, fetchSegments, sessionToken, resolvedAccentHex, idlePauseOverlay, enableUnsafeEmbeds, externalCaptions, setIntroOutro]);
 
   const loadMedia = useCallback(async () => {
     const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}-${effectiveFebboxToken ? 'fb1' : 'fb0'}`;
