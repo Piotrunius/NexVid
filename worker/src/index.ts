@@ -14,7 +14,6 @@ export interface Env {
   DB: D1Database;
   SESSION_TTL_DAYS?: string;
   APP_BASE_URL?: string;
-  EMAIL_FROM?: string;
   RESEND_API_KEY?: string;
   BREVO_API_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
