@@ -96,7 +96,7 @@ export class VixSrcProvider extends BaseProvider {
     private getResolverBaseCandidates(): string[] {
         const rawCandidates = [
             process.env.DIRECT_RESOLVER_URL,
-            process.env.NEXT_PUBLIC_API_URL,
+            process.env.API_URL,
             process.env.NEXT_PUBLIC_PROXY_URL,
             process.env.APP_BASE_URL,
             this.DEFAULT_PROD_RESOLVER_BASE

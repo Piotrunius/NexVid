@@ -20,7 +20,7 @@ function isLocalHost(hostname: string): boolean {
 }
 
 function getApiUrl(): string {
-  const configured = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+  const configured = (process.env.API_URL || '').replace(/\/+$/, '');
 
   if (configured) {
     try {

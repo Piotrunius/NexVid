@@ -87,14 +87,14 @@ Edit `.env.local`:
 
 ```env
 NEXT_PUBLIC_PROXY_URL=https://your-proxy.workers.dev
-NEXT_PUBLIC_API_URL=https://your-worker.workers.dev
+API_URL=https://your-worker.workers.dev
 DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=
 ```
 
 #### Notes
 
 - `NEXT_PUBLIC_PROXY_URL` is the worker proxy used for scraping sources and HLS rewriting.
-- `NEXT_PUBLIC_API_URL` is the worker API endpoint used for auth/settings/watchlist.
+- `API_URL` is the worker API endpoint used for auth/settings/watchlist.
 - TMDB metadata uses a built-in public API key in the client bundle, so no env var is required.
 
 ### 2) Install dependencies
@@ -153,7 +153,7 @@ npx wrangler d1 execute nexvid-db --file=./schema.sql
 npx wrangler deploy
 ```
 
-After deployment, set `NEXT_PUBLIC_API_URL` (and optionally `NEXT_PUBLIC_PROXY_URL`) to the deployed worker URL.
+After deployment, set `API_URL` (and optionally `NEXT_PUBLIC_PROXY_URL`) to the deployed worker URL.
 
 ---
 
@@ -184,7 +184,7 @@ From `worker/`:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `NEXT_PUBLIC_PROXY_URL` | yes | Worker proxy URL used for scraping and HLS rewriting.
-| `NEXT_PUBLIC_API_URL` | yes | Worker API base URL for auth/settings/watchlist.
+| `API_URL` | yes | Worker API base URL for auth/settings/watchlist.
 | `DIRECT_RESOLVER_URL` | no | Optional resolver URL for direct stream access (see below).
 
 ### Worker (`worker/.env` or `wrangler.toml`)

@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 const DEFAULT_PROD_API_URL = 'https://nexvid-proxy.piotrunius.workers.dev';
 
 function resolveCloudApiUrl(): string {
-  const configuredValue = process.env.NEXT_PUBLIC_API_URL || '';
+  const configuredValue = process.env.API_URL || '';
   const configured = (configuredValue || '').trim().replace(/\/+$/, '');
   return configured || DEFAULT_PROD_API_URL;
 }
@@ -15,7 +15,7 @@ function resolveCloudApiUrl(): string {
 export async function isValidCloudSession(request: Request | NextRequest, tokenOverride?: string): Promise<boolean> {
   const apiBase = resolveCloudApiUrl();
   const incomingCookie = request.headers.get('cookie') || '';
-  
+
   // Extract token from Authorization header or override
   let effectiveToken = tokenOverride;
   if (!effectiveToken) {
@@ -55,7 +55,7 @@ export async function isValidCloudSession(request: Request | NextRequest, tokenO
       // @ts-ignore
       signal: AbortSignal.timeout(5000),
     });
-    
+
     return response.ok;
   } catch (err) {
     console.error('[AuthServer] Session validation failed:', err);
