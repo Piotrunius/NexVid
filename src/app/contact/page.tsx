@@ -258,7 +258,7 @@ export default function ContactPage() {
             </div>
             <h1 className="text-[26px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
             <p className="mt-2 text-[14px] text-text-muted">Sign in to send bug reports, feedback and contact messages.</p>
-            
+
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/5 pt-8">
               <div className="p-4 rounded-[16px] bg-white/[0.03] border border-white/5 text-left">
                 <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">Direct Email</p>
@@ -269,7 +269,7 @@ export default function ContactPage() {
                 <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[14px] font-medium text-accent hover:underline">Join Discord Server</a>
               </div>
             </div>
-            
+
             <Link href="/login" className="btn-accent mt-8 inline-flex items-center gap-2">
               Go to login
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
@@ -284,23 +284,23 @@ export default function ContactPage() {
     <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-4 sm:p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="rounded-[22px] border border-white/10 bg-white/[0.02] p-3.5 sm:p-4.5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-x-6 gap-y-4">
           <div>
-            <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
-            <p className="mt-1 text-[13px] text-text-muted max-w-lg">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
+            <h1 className="text-[26px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
+            <p className="mt-1 text-[13px] text-text-muted max-w-lg">Report bugs, send feedback, or contact support. Admin replies appear here</p>
           </div>
-          <div className="flex flex-col items-start md:items-end gap-1 shrink-0">
-            <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-start md:items-center gap-x-5 gap-y-1.5 shrink-0">
+            <div className="flex items-center gap-2">
               <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Support:</span>
               <a href="mailto:support@nexvid.online" className="text-[12px] font-medium text-accent hover:underline">support@nexvid.online</a>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Security:</span>
               <a href="mailto:security@nexvid.online" className="text-[12px] font-medium text-accent hover:underline">security@nexvid.online</a>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Discord:</span>
-              <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium text-accent hover:underline">Join Developer Hub</a>
+              <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium text-accent hover:underline">Discord</a>
             </div>
           </div>
         </div>
@@ -350,9 +350,9 @@ export default function ContactPage() {
                 </div>
               )}
 
-              <button 
-                disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)} 
-                onClick={handleCreateThread} 
+              <button
+                disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)}
+                onClick={handleCreateThread}
                 className="btn-accent w-full flex items-center justify-center gap-2 py-3"
               >
                 {isSubmitting ? (
@@ -397,7 +397,7 @@ export default function ContactPage() {
                           <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/5 text-text-muted capitalize">{thread.category}</span>
                           <span className={cn(
                             "text-[10px] font-bold uppercase tracking-tighter",
-                            thread.status === 'answered' ? "text-emerald-400" : 
+                            thread.status === 'answered' ? "text-emerald-400" :
                             thread.status === 'closed' ? "text-text-muted" : "text-blue-400"
                           )}>
                             {thread.status === 'answered' ? 'resolved' : thread.status}
@@ -425,7 +425,7 @@ export default function ContactPage() {
                         <div className="flex items-center gap-2 mt-1">
                            <span className={cn(
                             "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
-                            selectedStatus === 'answered' ? "bg-emerald-500/10 text-emerald-400" : 
+                            selectedStatus === 'answered' ? "bg-emerald-500/10 text-emerald-400" :
                             selectedStatus === 'closed' ? "bg-white/10 text-text-muted" : "bg-blue-500/10 text-blue-400"
                           )}>
                             {selectedStatus === 'answered' ? 'resolved' : selectedStatus}
