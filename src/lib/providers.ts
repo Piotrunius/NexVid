@@ -5,15 +5,15 @@
    ============================================ */
 
 import type {
-    EmbedStream,
-    FileBasedStream,
-    HlsBasedStream,
-    MediaType,
-    ScrapeProgress,
-    SourceMeta,
-    SourceResult,
-    StreamFile,
-    StreamQuality
+  EmbedStream,
+  FileBasedStream,
+  HlsBasedStream,
+  MediaType,
+  ScrapeProgress,
+  SourceMeta,
+  SourceResult,
+  StreamFile,
+  StreamQuality
 } from '@/types';
 
 interface ProviderConfig {
@@ -169,7 +169,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
     if (isGenericEmbed) {
       options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
       let embedUrl = '';
-      
+
       const mType = options.mediaType;
       const tId = options.tmdbId;
       const sNum = options.season || 1;
@@ -212,7 +212,7 @@ async function scrapeSource(options: ScrapeOptions, sourceId: string): Promise<S
           embedUrl = u.toString();
           break;
         }
-        case 'zxcstream': embedUrl = mType === 'movie' ? `https://zxcstream.xyz/player/movie/${tId}?domainAd=zxcstream.icu&color=${accent}&autoplay=true` : `https://zxcstream.xyz/player/tv/${tId}/${sNum}/${eNum}?domainAd=zxcstream.icu&color=${accent}&autoplay=true`; break;
+        case 'zxcstream': embedUrl = mType === 'movie' ? `https://zxcstream.xyz/player/movie/${tId}?domainAd=nexvid.online&color=${accent}&autoplay=true` : `https://zxcstream.xyz/player/tv/${tId}/${sNum}/${eNum}?domainAd=nexvid.online&color=${accent}&autoplay=true`; break;
       }
 
       const stream: EmbedStream = { type: 'embed', url: embedUrl };
