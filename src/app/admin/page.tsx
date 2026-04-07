@@ -34,6 +34,7 @@ import {
 } from '@/lib/cloudSync';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 type AnnouncementType = 'info' | 'warning' | 'update' | 'success';
@@ -1009,7 +1010,7 @@ export default function AdminPage() {
           <StatCard label="System Alerts" value={stats.activeAnnouncements} />
         </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-2">
         {canManageModeration && (
           <>
             <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
@@ -1708,14 +1709,14 @@ export default function AdminPage() {
           </div>
         </section>
       )}
-
       {!isModerator && (
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
           <AdminSurveys canDelete={isOwnerConfirmed} />
         </section>
       )}
     </div>
-  );
+  </div>
+);
 }
 function StatCard({ label, value, isAccent, subValue }: { label: string; value: number; isAccent?: boolean; subValue?: string }) {
   return (
