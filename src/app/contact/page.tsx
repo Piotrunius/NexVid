@@ -285,85 +285,94 @@ export default function ContactPage() {
         <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
-            <p className="mt-1 text-[13px] text-text-muted max-w-lg">Report bugs, send feedback, or contact support. Admin replies appear here</p>
-          </div>
-          <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Support:</span>
-              <a href="mailto:support@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">support@nexvid.online</a>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Security:</span>
-              <a href="mailto:security@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">security@nexvid.online</a>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Discord:</span>
-              <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-accent hover:underline">Join Developer Hub</a>
-            </div>
+            <p className="mt-1 text-[13px] text-text-muted max-w-lg">Report bugs, send feedback, or contact support. Admin replies appear here.</p>
           </div>
         </div>
 
-        <div className="grid items-stretch gap-6 xl:grid-cols-3">
-          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-6 space-y-5 h-full xl:min-h-[680px]">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1 h-5 bg-accent rounded-full shadow-[0_0_8px_var(--accent-glow)]" />
-              <h2 className="text-[16px] font-semibold text-text-primary">New message</h2>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Category</p>
-                <select className="input w-full bg-white/[0.04] border-white/10" value={category} onChange={(event) => setCategory(event.target.value as FeedbackThread['category'])}>
-                  {CATEGORY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
+        <div className="grid items-start gap-5 xl:grid-cols-3">
+          <div className="space-y-5">
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-1 h-4 bg-accent rounded-full" />
+                <h2 className="text-[15px] font-semibold text-text-primary">Send a message</h2>
               </div>
 
-              <div>
-                <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Subject</p>
-                <input
-                  className="input w-full bg-white/[0.04] border-white/10"
-                  value={subject}
-                  onChange={(event) => setSubject(event.target.value)}
-                  placeholder="Short, descriptive title..."
-                  maxLength={120}
-                />
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Message</p>
-                <textarea
-                  className="input min-h-[180px] w-full bg-white/[0.04] border-white/10 resize-none"
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Describe your issue or feedback in detail..."
-                  maxLength={4000}
-                />
-              </div>
-
-              {hasTurnstile && (
-                <div className="py-2">
-                  <Turnstile onVerify={setFeedbackTurnstileToken} onAvailabilityChange={setHasTurnstile} />
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Category</p>
+                  <select className="input w-full bg-white/[0.04] border-white/10" value={category} onChange={(event) => setCategory(event.target.value as FeedbackThread['category'])}>
+                    {CATEGORY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
 
-              <button
-                disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)}
-                onClick={handleCreateThread}
-                className="btn-accent w-full flex items-center justify-center gap-2 py-3"
-              >
-                {isSubmitting ? (
-                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                <div>
+                  <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Subject</p>
+                  <input
+                    className="input w-full bg-white/[0.04] border-white/10"
+                    value={subject}
+                    onChange={(event) => setSubject(event.target.value)}
+                    placeholder="Short, descriptive title..."
+                    maxLength={120}
+                  />
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Message</p>
+                  <textarea
+                    className="input min-h-[120px] w-full bg-white/[0.04] border-white/10 resize-none"
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    placeholder="Describe your issue or feedback in detail..."
+                    maxLength={4000}
+                  />
+                </div>
+
+                {hasTurnstile && (
+                  <div className="py-2">
+                    <Turnstile onVerify={setFeedbackTurnstileToken} onAvailabilityChange={setHasTurnstile} />
+                  </div>
                 )}
-                Send message
-              </button>
-            </div>
-          </section>
 
-          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-6 xl:col-span-2 h-full xl:min-h-[680px]">
+                <button
+                  disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)}
+                  onClick={handleCreateThread}
+                  className="btn-accent w-full flex items-center justify-center gap-2 py-3"
+                >
+                  {isSubmitting ? (
+                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                  )}
+                  Send message
+                </button>
+              </div>
+            </section>
+
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 bg-accent rounded-full" />
+                <h2 className="text-[15px] font-semibold text-text-primary">Support directory</h2>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2.5 rounded-[12px] bg-white/[0.03] border border-white/5">
+                  <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Support:</span>
+                  <a href="mailto:support@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">support@nexvid.online</a>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-[12px] bg-white/[0.03] border border-white/5">
+                  <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Security:</span>
+                  <a href="mailto:security@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">security@nexvid.online</a>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-[12px] bg-white/[0.03] border border-white/5">
+                  <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Discord:</span>
+                  <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-accent hover:underline">Community Hub</a>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2">
             <div className="grid h-full gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
               <div className="rounded-[20px] bg-white/[0.03] border border-white/5 p-3 h-[70vh] min-h-[420px] max-h-[680px] overflow-auto backdrop-blur-sm">
                 <p className="px-3 py-2 text-[11px] font-bold text-text-muted uppercase tracking-widest border-b border-white/5 mb-3">Your Activity</p>
@@ -515,7 +524,7 @@ export default function ContactPage() {
                 )}
               </div>
             </div>
-          </section>
+          </div>
         </div>
       </div>
     </div>

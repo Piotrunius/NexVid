@@ -101,7 +101,7 @@ export default function WatchlistPage() {
             className={cn(
               'flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200',
               activeStatus === 'all'
-                ? 'bg-accent text-white border-accent shadow-[0_2px_12px_var(--accent-glow)]'
+                ? 'bg-accent text-white border-accent shadow-[0_4px_14px_rgba(var(--accent-rgb),0.4)]'
                 : 'border-white/6 text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
             )}
           >
@@ -115,7 +115,7 @@ export default function WatchlistPage() {
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200',
                 activeStatus === s.key
-                  ? 'bg-accent text-white border-accent shadow-[0_2px_12px_var(--accent-glow)]'
+                  ? 'bg-accent text-white border-accent shadow-[0_4px_14px_rgba(var(--accent-rgb),0.4)]'
                   : 'border-white/6 text-text-secondary hover:text-text-primary hover:bg-white/[0.06]',
               )}
             >
