@@ -11,7 +11,9 @@ import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
+import { Crown, Zap, Star, Sparkles, Rocket, Activity, Compass, Infinity as InfinityIcon, Server } from 'lucide-react';
 import { PUBLIC_GROQ_API_KEY_PLACEHOLDER, PUBLIC_OMDB_API_KEY_PLACEHOLDER, useSettingsStore } from '@/stores/settings';
+import { SOURCES } from '@/lib/providers';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AccentColor } from '@/types';
 import { useEffect, useMemo, useState } from 'react';
@@ -201,6 +203,28 @@ export default function SettingsPage() {
     } catch (error: any) { toast(error?.message || 'Failed to clear all data', 'error'); }
   };
 
+  const getSourceIcon = (sourceId?: string) => {
+    switch (sourceId) {
+      case 'febbox': return <Crown className="w-3.5 h-3.5" />;
+      case 'pobreflix': return <Zap className="w-3.5 h-3.5" />;
+      case 'vidking': return <Star className="w-3.5 h-3.5" />;
+      case 'zxcstream': return <Sparkles className="w-3.5 h-3.5" />;
+      case 'vidfast': return <Rocket className="w-3.5 h-3.5" />;
+      case 'vidsync': return <Activity className="w-3.5 h-3.5" />;
+      case 'videasy': return <Compass className="w-3.5 h-3.5" />;
+      case 'vidlink': return <InfinityIcon className="w-3.5 h-3.5" />;
+      default: return <Server className="w-3.5 h-3.5" />;
+    }
+  };
+
+  const availableSources = useMemo(() => {
+    return SOURCES.filter(s => {
+      if (s.id === 'febbox' && !settings.febboxApiKey) return false;
+      if (settings.disableEmbeds && s.type === 'embed' && !['vidking', 'zxcstream'].includes(s.id)) return false;
+      return true;
+    });
+  }, [settings.febboxApiKey, settings.disableEmbeds]);
+
   return (
     <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
@@ -343,19 +367,19 @@ export default function SettingsPage() {
               <p className="mt-1.5 text-[11px] text-text-muted">Default video quality preference when multiple streams are available.</p>
             </SettingsRow>
 
-            <SettingsRow label="Seek Time">
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  max={120}
-                  value={settings.seekTime}
-                  onChange={(e) => store.updateSettings({ seekTime: Math.max(1, Math.min(120, Number(e.target.value) || 1)) })}
-                  className="input w-24"
-                />
-                <span className="text-[12px] text-text-muted">seconds</span>
-              </div>
-              <p className="mt-1.5 text-[11px] text-text-muted">Amount of time to seek forward/backward with arrow keys or skip buttons.</p>
+            <SettingsRow label="Default Source">
+              <select
+                value={settings.defaultSource}
+                onChange={(e) => store.updateSettings({ defaultSource: e.target.value })}
+                className="input w-full"
+              >
+                {availableSources.map((source) => (
+                  <option key={source.id} value={source.id}>
+                    {source.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-[11px] text-text-muted">Pick the source that launches first. Dynamic filters applied based on your security settings and FebBox key.</p>
             </SettingsRow>
           </div>
         </SettingsCard>

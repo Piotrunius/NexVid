@@ -210,7 +210,7 @@ export interface UserSettings {
   autoPlay: boolean;
   autoNext: boolean;
   defaultQuality: StreamQuality;
-  seekTime: number;
+  defaultSource: string;
   playerVolume: number;
   skipIntro: boolean;
   skipOutro: boolean;

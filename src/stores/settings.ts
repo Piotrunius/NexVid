@@ -21,7 +21,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   autoPlay: true,
   autoNext: true,
   defaultQuality: '1080',
-  seekTime: 10,
+  defaultSource: 'febbox',
   playerVolume: 1,
   skipIntro: true,
   skipOutro: true,
@@ -45,7 +45,7 @@ const CLOUD_PERSISTED_KEYS = [
   'autoPlay',
   'autoNext',
   'defaultQuality',
-  'seekTime',
+  'defaultSource',
   'playerVolume',
   'skipIntro',
   'skipOutro',
@@ -72,7 +72,7 @@ interface SettingsStore {
   setAccentColor: (color: AccentColor) => void;
   toggleGlass: () => void;
   setDefaultQuality: (quality: StreamQuality) => void;
-  setSeekTime: (seconds: number) => void;
+  setDefaultSource: (sourceId: string) => void;
   toggleSource: (sourceId: string) => void;
   reorderSources: (sourceIds: string[]) => void;
 }
@@ -120,8 +120,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setDefaultQuality: (defaultQuality) =>
         get().updateSettings({ defaultQuality }),
 
-      setSeekTime: (seekTime) =>
-        get().updateSettings({ seekTime }),
+      setDefaultSource: (defaultSource) =>
+        get().updateSettings({ defaultSource }),
 
       toggleSource: (sourceId) =>
         set((state) => {
