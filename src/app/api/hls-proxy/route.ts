@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
+const DEFAULT_PROD_RESOLVER_BASE = 'https://nexvid-proxy.piotrunius.workers.dev';
+
 const ALLOWED_HEADER_KEYS = new Set([
   'referer',
   'origin',
@@ -149,17 +151,43 @@ function normalizeResolverBase(base: string): string {
   return `${trimmed.replace(/\/+$/, '')}/direct-resolver?url=`;
 }
 
+function isLikelyLocalResolver(base: string): boolean {
+  const trimmed = String(base || '').trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
 function getResolverBaseCandidates(): string[] {
-  const candidates = [
+  const configured = [
     process.env.DIRECT_RESOLVER_URL,
     process.env.NEXT_PUBLIC_API_URL,
     process.env.NEXT_PUBLIC_PROXY_URL,
     process.env.APP_BASE_URL,
   ]
-    .map((value) => normalizeResolverBase(String(value || '')))
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .filter((value) => !isLikelyLocalResolver(value));
+
+  // Always keep a known-good worker resolver as fallback for production.
+  const candidates = [
+    ...configured,
+    DEFAULT_PROD_RESOLVER_BASE,
+  ]
+    .map((value) => normalizeResolverBase(value))
     .filter(Boolean);
 
   return Array.from(new Set(candidates));
+}
+
+function isVixContentHost(hostname: string): boolean {
+  const host = String(hostname || '').toLowerCase();
+  return host === 'vix-content.net' || host.endsWith('.vix-content.net');
 }
 
 function isM3u8(url: string, contentType: string): boolean {
@@ -230,6 +258,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const target = new URL(targetUrl);
+    let resolverAttempted = false;
+    let resolverLastStatus = 0;
+    let resolverLastHost = '';
     const upstreamHeaders: Record<string, string> = {
       ...forwardHeaders,
       referer: forwardHeaders.referer || `${target.origin}/`,
@@ -241,26 +272,45 @@ export async function GET(request: NextRequest) {
       upstreamHeaders.range = rangeHeader;
     }
 
-    let upstream = await fetch(targetUrl, {
-      headers: upstreamHeaders,
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!upstream.ok && (upstream.status === 401 || upstream.status === 403 || upstream.status === 429)) {
-      const resolverBases = getResolverBaseCandidates();
+    const resolverBases = getResolverBaseCandidates();
+    const tryResolver = async (): Promise<Response | null> => {
       for (const resolverBase of resolverBases) {
         const resolverUrl = buildResolverUrl(resolverBase, targetUrl, forwardHeaders);
         if (!resolverUrl) continue;
+        resolverAttempted = true;
         try {
+          resolverLastHost = new URL(resolverUrl).host;
           const resolverResponse = await fetch(resolverUrl, {
             signal: AbortSignal.timeout(15000),
           });
+          resolverLastStatus = resolverResponse.status;
           if (resolverResponse.ok) {
-            upstream = resolverResponse;
-            break;
+            return resolverResponse;
           }
         } catch {
         }
+      }
+      return null;
+    };
+
+    let upstream: Response | null = null;
+
+    // VixContent video segments can be blocked from edge runtimes while working through resolver workers.
+    if (isVixContentHost(target.hostname)) {
+      upstream = await tryResolver();
+    }
+
+    if (!upstream) {
+      upstream = await fetch(targetUrl, {
+        headers: upstreamHeaders,
+        signal: AbortSignal.timeout(15000),
+      });
+    }
+
+    if (!upstream.ok && (upstream.status === 401 || upstream.status === 403 || upstream.status === 429)) {
+      const resolverResponse = await tryResolver();
+      if (resolverResponse) {
+        upstream = resolverResponse;
       }
     }
 
@@ -271,6 +321,10 @@ export async function GET(request: NextRequest) {
         headers: {
           'content-type': upstream.headers.get('content-type') || 'text/plain; charset=utf-8',
           'cache-control': 'no-store',
+          'x-nexvid-upstream-status': String(upstream.status),
+          'x-nexvid-resolver-attempted': resolverAttempted ? '1' : '0',
+          'x-nexvid-resolver-last-status': String(resolverLastStatus || 0),
+          'x-nexvid-resolver-last-host': resolverLastHost || '',
         },
       });
     }
@@ -297,10 +351,11 @@ export async function GET(request: NextRequest) {
         'cache-control': 'no-store',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'HLS proxy failed';
     return NextResponse.json({
       success: false,
-      error: error?.message || 'HLS proxy failed',
+      error: message,
     }, { status: 500 });
   }
 }

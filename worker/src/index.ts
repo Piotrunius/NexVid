@@ -3191,6 +3191,8 @@ async function handleHealth(request: Request, env: Env): Promise<Response> {
 /* ──── Direct Stream Resolver (VidLink) ──── */
 
 const DIRECT_RESOLVER_ALLOWED_HOSTS = [
+  '*.vixsrc.to',
+  'vixsrc.to',
   '*.vodvidl.site',
   '*.b-cdn.net',
   '*.vidlink.pro',
