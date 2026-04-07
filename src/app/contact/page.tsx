@@ -291,13 +291,13 @@ export default function ContactPage() {
 
         <div className="grid items-start gap-5 xl:grid-cols-3">
           <div className="space-y-5">
-            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-1 h-4 bg-accent rounded-full" />
-                <h2 className="text-[15px] font-semibold text-text-primary">Send a message</h2>
-              </div>
-
+            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-6">
               <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-1 h-4 bg-accent rounded-full" />
+                  <h2 className="text-[15px] font-semibold text-text-primary">Send a message</h2>
+                </div>
+
                 <div>
                   <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Category</p>
                   <select className="input w-full bg-white/[0.04] border-white/10" value={category} onChange={(event) => setCategory(event.target.value as FeedbackThread['category'])}>
@@ -321,7 +321,7 @@ export default function ContactPage() {
                 <div>
                   <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Message</p>
                   <textarea
-                    className="input min-h-[120px] w-full bg-white/[0.04] border-white/10 resize-none"
+                    className="input min-h-[110px] w-full bg-white/[0.04] border-white/10 resize-none"
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
                     placeholder="Describe your issue or feedback in detail..."
@@ -348,26 +348,23 @@ export default function ContactPage() {
                   Send message
                 </button>
               </div>
-            </section>
 
-            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-4 bg-accent rounded-full" />
-                <h2 className="text-[15px] font-semibold text-text-primary">Support directory</h2>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-2.5 rounded-[12px] bg-white/[0.03] border border-white/5">
-                  <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Support:</span>
-                  <a href="mailto:support@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">support@nexvid.online</a>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-[12px] bg-white/[0.03] border border-white/5">
-                  <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Security:</span>
-                  <a href="mailto:security@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">security@nexvid.online</a>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-[12px] bg-white/[0.03] border border-white/5">
-                  <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Discord:</span>
-                  <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-accent hover:underline">Community Hub</a>
-                </div>
+              <div className="pt-5 border-t border-white/5 space-y-3">
+                 <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest">Support Directory</p>
+                 <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="text-text-muted">Support:</span>
+                      <a href="mailto:support@nexvid.online" className="text-accent hover:underline font-medium">support@nexvid.online</a>
+                    </div>
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="text-text-muted">Security:</span>
+                      <a href="mailto:security@nexvid.online" className="text-accent hover:underline font-medium">security@nexvid.online</a>
+                    </div>
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="text-text-muted">Discord:</span>
+                      <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-medium">Community Hub</a>
+                    </div>
+                 </div>
               </div>
             </section>
           </div>
