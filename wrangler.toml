@@ -20,3 +20,6 @@ pages_build_output_dir = ".vercel/output/static"
 # npx wrangler pages secret put FEBBOX_CLIENT_ID
 # npx wrangler pages secret put FEBBOX_CLIENT_SECRET
 # npx wrangler pages secret put TURNSTILE_SECRET_KEY
+
+[vars]
+TURNSTILE_SITE_KEY = "0x4AAAAAACn4sX2wYBjJSQUo"
