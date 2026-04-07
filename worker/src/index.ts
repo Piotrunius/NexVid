@@ -1460,7 +1460,7 @@ async function handleSettings(request: Request, env: Env): Promise<Response> {
     'autoPlay',
     'autoNext',
     'defaultQuality',
-    'seekTime',
+    'defaultSource',
     'playerVolume',
     'skipIntro',
     'skipOutro',
