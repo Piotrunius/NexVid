@@ -284,23 +284,23 @@ export default function ContactPage() {
     <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-4 sm:p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
-            <p className="mt-1 text-[13px] text-text-muted max-w-xl">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
+            <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
+            <p className="mt-1 text-[13px] text-text-muted max-w-lg">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
           </div>
-          <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Support:</span>
-              <a href="mailto:support@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">support@nexvid.online</a>
+          <div className="flex flex-col items-start md:items-end gap-1 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Support:</span>
+              <a href="mailto:support@nexvid.online" className="text-[12px] font-medium text-accent hover:underline">support@nexvid.online</a>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Security:</span>
-              <a href="mailto:security@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">security@nexvid.online</a>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Security:</span>
+              <a href="mailto:security@nexvid.online" className="text-[12px] font-medium text-accent hover:underline">security@nexvid.online</a>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Discord:</span>
-              <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-accent hover:underline">Join Developer Hub</a>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Discord:</span>
+              <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[12px] font-medium text-accent hover:underline">Join Developer Hub</a>
             </div>
           </div>
         </div>
