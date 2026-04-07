@@ -214,6 +214,46 @@ export async function GET(request: NextRequest) {
         } catch {
         }
       }
+      
+      // Jeśli zewnętrzny /direct-resolver nie pomógł lub go brakuje, wymuś awaryjne darmowe obejścia dla VixSrc
+      if (!upstream.ok) {
+        const targetHost = target.hostname.toLowerCase();
+        const isVix = targetHost.includes('vix') || targetHost.includes('vixsrc');
+
+        if (isVix) {
+          const backupProxies = [
+              'https://corsproxy.io/?',
+              'https://api.codetabs.com/v1/proxy?quest=',
+              'https://api.allorigins.win/raw?url='
+          ];
+
+          for (const proxyUrlBase of backupProxies) {
+             const fullUrl = proxyUrlBase + encodeURIComponent(targetUrl);
+             try {
+               const fallbackHeaders = new Headers();
+               if (upstreamHeaders['user-agent']) fallbackHeaders.set('User-Agent', upstreamHeaders['user-agent']);
+               
+               if (proxyUrlBase.includes('corsproxy.io')) {
+                  if (upstreamHeaders.referer) fallbackHeaders.set('Referer', upstreamHeaders.referer);
+                  if (upstreamHeaders.origin) fallbackHeaders.set('Origin', upstreamHeaders.origin);
+               }
+               
+               const fallbackResp = await fetch(fullUrl, {
+                  method: request.method,
+                  headers: fallbackHeaders,
+                  signal: AbortSignal.timeout(10000)
+               });
+
+               if (fallbackResp.ok) {
+                  upstream = fallbackResp;
+                  break;
+               }
+             } catch {
+               // spróbuj kolejny proxy na liście
+             }
+          }
+        }
+      }
     }
 
     if (!upstream.ok) {
