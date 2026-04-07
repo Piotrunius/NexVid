@@ -154,13 +154,21 @@ function rewritePlaylist(content: string, playlistUrl: string, headers: Record<s
     }
 
     if (trimmed.startsWith('#EXT-X-STREAM-INF')) {
-      // Check for URI at the end of the line or in next line (handled by map)
-      // Actually in HLS the URI for STREAM-INF is usually the NEXT line, which is handled.
-      // But some variants might have URI attribute (rarely).
       return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => `URI="${rewriteAbsolute(uri)}"`);
     }
 
     if (trimmed.startsWith('#')) return line;
+    
+    // ZMIANA: Nie modyfikujemy linków do głównych kawałków wideo/audio, 
+    // aby przeglądarka użytkownika klienta pobierała to ze swojego domowego (niezbanowanego) IP!
+    if (trimmed.endsWith('.ts') || trimmed.endsWith('.m4s') || trimmed.includes('/video/') || trimmed.includes('/audio/')) {
+        try {
+            return new URL(trimmed, playlistUrl).toString();
+        } catch {
+            return trimmed;
+        }
+    }
+
     return rewriteAbsolute(trimmed);
   });
 
