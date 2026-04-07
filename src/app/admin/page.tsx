@@ -935,23 +935,6 @@ export default function AdminPage() {
     }
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
-        <div className="mx-auto max-w-3xl px-4">
-          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative border border-white/10">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-white/5">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <h1 className="text-[26px] font-bold text-text-primary tracking-tight">Admin Console</h1>
-            <p className="mt-2 text-[14px] text-text-muted">Sign in first to access administration tools.</p>
-            <Link href="/login" className="btn-accent mt-8 inline-flex items-center gap-2">Go to login</Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (!hasAdminPanelAccess) {
     return (
       <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
