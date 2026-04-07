@@ -184,7 +184,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
   const { getByTmdbId, updateProgress, addItem } = useWatchlistStore();
-  const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay, defaultSource } = useSettingsStore((s) => s.settings);
+  const { febboxApiKey, introDbApiKey, disableEmbeds, customAccentHex, accentColor, idlePauseOverlay, defaultSource, autoPlay, autoNext } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
   const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
@@ -325,6 +325,10 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
           accentColor: resolvedAccentHex.replace('#', ''),
           idlePauseOverlay,
           startAt: seekTime,
+          autoPlay,
+          autoNext,
+          nextButton: true,
+          episodeSelector: true,
         });
 
         const filteredResults = disableEmbeds
