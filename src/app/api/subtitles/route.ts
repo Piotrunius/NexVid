@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   try {
     const params: any = {
       source: 'opensubtitles',
-      key: process.env.WYZIE_KEY,
+      key: process.env.NEXT_PUBLIC_WYZIE_KEY || process.env.WYZIE_KEY,
     };
 
     if (imdbId && imdbId !== 'undefined' && imdbId !== 'null' && imdbId.startsWith('tt')) {
