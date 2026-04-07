@@ -111,13 +111,15 @@ export const useAuthStore = create<AuthStore>()(
         void logoutCloudSession();
         clearCloudToken();
         
-        // Safety: If they were logged in via cloud, reset sensitive settings upon logout
+        // Safety: If they were logged in via cloud, reset sensitive settings and clear watchlist upon logout
         if (token) {
           try {
             const { useSettingsStore } = require('@/stores/settings');
+            const { useWatchlistStore } = require('@/stores/watchlist');
             useSettingsStore.getState().resetSettings();
+            useWatchlistStore.getState().clearAll();
           } catch (e) {
-            console.error('Failed to reset settings on logout:', e);
+            console.error('Failed to reset user data on logout:', e);
           }
         }
 

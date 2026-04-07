@@ -249,212 +249,276 @@ export default function ContactPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="mx-auto max-w-3xl px-4 pt-24 pb-12">
-        <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)]">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+      <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
+        <div className="mx-auto max-w-3xl px-4">
+          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-white/5">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+            </div>
+            <h1 className="text-[26px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
+            <p className="mt-2 text-[14px] text-text-muted">Sign in to send bug reports, feedback and contact messages.</p>
+            
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/5 pt-8">
+              <div className="p-4 rounded-[16px] bg-white/[0.03] border border-white/5 text-left">
+                <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">Direct Email</p>
+                <a href="mailto:support@nexvid.online" className="text-[14px] font-medium text-accent hover:underline">support@nexvid.online</a>
+              </div>
+              <div className="p-4 rounded-[16px] bg-white/[0.03] border border-white/5 text-left">
+                <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">Community</p>
+                <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[14px] font-medium text-accent hover:underline">Join Discord Server</a>
+              </div>
+            </div>
+            
+            <Link href="/login" className="btn-accent mt-8 inline-flex items-center gap-2">
+              Go to login
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </Link>
           </div>
-          <h1 className="text-[22px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
-          <p className="mt-2 text-[13px] text-text-muted">Sign in to send bug reports, feedback and contact messages.</p>
-          <div className="mt-6 border-t border-[var(--border)] pt-6">
-            <p className="text-[12px] text-text-muted">Or contact us directly via email:</p>
-            <a href="mailto:support@nexvid.online" className="mt-1 block text-[14px] font-medium text-accent hover:underline">support@nexvid.online</a>
-            <p className="mt-4 text-[12px] text-text-muted">Prefer chat? Join our Discord server:</p>
-            <a
-              href={DISCORD_INVITE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 block text-[14px] font-medium text-accent hover:underline"
-            >
-              Join Discord
-            </a>
-          </div>
-          <Link href="/login" className="btn-accent mt-6 inline-flex">Go to login</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 space-y-6">
-      <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
-          <p className="mt-1 text-[13px] text-text-muted">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
-        </div>
-        <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0">
-          <div className="flex items-center gap-2 text-[12px] text-text-muted">
-            <span>Support:</span>
-            <a href="mailto:support@nexvid.online" className="font-medium text-accent hover:underline">support@nexvid.online</a>
+    <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(255,255,255,0.09),transparent_72%)]" />
+      <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative">
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-[32px] font-bold text-text-primary tracking-tight">Contact & Feedback</h1>
+            <p className="mt-1 text-[13px] text-text-muted max-w-xl">Report bugs, send feedback, or contact support. Admin replies appear here and in notifications.</p>
           </div>
-          <div className="flex items-center gap-2 text-[12px] text-text-muted">
-            <span>Security:</span>
-            <a href="mailto:security@nexvid.online" className="font-medium text-accent hover:underline">security@nexvid.online</a>
-          </div>
-          <div className="flex items-center gap-2 text-[12px] text-text-muted">
-            <span>Community:</span>
-            <a
-              href={DISCORD_INVITE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-accent hover:underline"
-            >
-              Join Discord
-            </a>
+          <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Support:</span>
+              <a href="mailto:support@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">support@nexvid.online</a>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Security:</span>
+              <a href="mailto:security@nexvid.online" className="text-[13px] font-medium text-accent hover:underline">security@nexvid.online</a>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">Discord:</span>
+              <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium text-accent hover:underline">Join Developer Hub</a>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid items-stretch gap-6 xl:grid-cols-3">
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4 h-full xl:min-h-[680px]">
-          <h2 className="text-[15px] font-semibold text-text-primary">New message</h2>
-
-          <div>
-            <p className="mb-1.5 text-[12px] font-medium text-text-secondary">Category</p>
-            <select className="input w-full" value={category} onChange={(event) => setCategory(event.target.value as FeedbackThread['category'])}>
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-[12px] font-medium text-text-secondary">Subject</p>
-            <input
-              className="input w-full"
-              value={subject}
-              onChange={(event) => setSubject(event.target.value)}
-              placeholder="Short title..."
-              maxLength={120}
-            />
-          </div>
-
-          <div>
-            <p className="mb-1.5 text-[12px] font-medium text-text-secondary">Message</p>
-            <textarea
-              className="input min-h-32 w-full"
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="Describe the issue or feedback..."
-              maxLength={4000}
-            />
-          </div>
-
-          {hasTurnstile && <Turnstile onVerify={setFeedbackTurnstileToken} onAvailabilityChange={setHasTurnstile} />}
-
-          <button disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)} onClick={handleCreateThread} className="btn-accent w-full">
-            Send message
-          </button>
-        </section>
-
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2 h-full xl:min-h-[680px]">
-          <div className="grid h-full gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-2 h-[70vh] min-h-[420px] max-h-[680px] overflow-auto backdrop-blur-sm">
-              <p className="px-2 py-1 text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Your threads</p>
-              {isLoading ? (
-                <p className="px-2 py-4 text-[13px] text-text-muted">Loading...</p>
-              ) : threads.length === 0 ? (
-                <p className="px-2 py-4 text-[13px] text-text-muted">No threads yet.</p>
-              ) : (
-                <div className="space-y-1">
-                  {threads.map((thread) => (
-                    <button
-                      key={thread.id}
-                      onClick={() => setSelectedThreadId(thread.id)}
-                      className={cn(
-                        'w-full rounded-[8px] px-2.5 py-2 text-left transition-all',
-                        selectedThreadId === thread.id
-                          ? 'border-accent/30 bg-accent/10 shadow-[0_1px_6px_var(--accent-glow)]'
-                          : 'border-transparent hover:bg-[var(--bg-glass-light)]'
-                      )}
-                    >
-                      <p className="text-[12px] font-medium text-text-primary line-clamp-1">{thread.subject}</p>
-                      <p className="mt-0.5 text-[11px] text-text-muted">{thread.category} · {thread.status === 'answered' ? 'resolved' : thread.status}</p>
-                      {thread.status === 'closed' && (
-                        <p className="mt-1 text-[10px] text-red-500/80 font-medium">Archived · Visible for 14 days</p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+        <div className="grid items-stretch gap-6 xl:grid-cols-3">
+          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-6 space-y-5 h-full xl:min-h-[680px]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1 h-5 bg-accent rounded-full shadow-[0_0_8px_var(--accent-glow)]" />
+              <h2 className="text-[16px] font-semibold text-text-primary">New message</h2>
             </div>
 
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 min-h-[420px] h-[70vh] max-h-[680px] overflow-hidden flex flex-col backdrop-blur-sm">
-              {!selectedThread ? (
-                <div className="flex h-full flex-col items-center justify-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-glass-light)]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                  </div>
-                  <p className="text-[13px] text-text-muted">Select a thread to view messages</p>
-                </div>
-              ) : (
-                <>
-                  <div className="border-b border-[var(--border)] pb-2">
-                    <p className="text-[13px] font-semibold text-text-primary line-clamp-1">{selectedThread.subject}</p>
-                    <p className="mt-0.5 text-[11px] text-text-muted">{selectedThread.category} · {selectedStatus === 'answered' ? 'resolved by admin' : selectedStatus}</p>
-                    {selectedStatus === 'answered' && <p className="mt-1 text-[11px] font-semibold text-emerald-500">Marked as resolved</p>}
-                    {selectedStatus === 'closed' && (
-                      <p className="mt-1 text-[11px] font-semibold text-red-500/80">
-                        Archived thread (read-only) · Visible for 14 days after closing
-                      </p>
-                    )}
-                  </div>
+            <div className="space-y-4">
+              <div>
+                <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Category</p>
+                <select className="input w-full bg-white/[0.04] border-white/10" value={category} onChange={(event) => setCategory(event.target.value as FeedbackThread['category'])}>
+                  {CATEGORY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
 
-                  <div className="mt-3 flex-1 min-h-0 space-y-3 overflow-auto pr-1">
-                    {messages.length === 0 ? (
-                      <p className="text-[13px] text-text-muted">No messages yet.</p>
-                    ) : (
-                      messages.map((item) => (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            "flex flex-col gap-1",
-                            item.senderRole === 'user' ? "items-end" : "items-start"
-                          )}
-                        >
+              <div>
+                <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Subject</p>
+                <input
+                  className="input w-full bg-white/[0.04] border-white/10"
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="Short, descriptive title..."
+                  maxLength={120}
+                />
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Message</p>
+                <textarea
+                  className="input min-h-[180px] w-full bg-white/[0.04] border-white/10 resize-none"
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder="Describe your issue or feedback in detail..."
+                  maxLength={4000}
+                />
+              </div>
+
+              {hasTurnstile && (
+                <div className="py-2">
+                  <Turnstile onVerify={setFeedbackTurnstileToken} onAvailabilityChange={setHasTurnstile} />
+                </div>
+              )}
+
+              <button 
+                disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)} 
+                onClick={handleCreateThread} 
+                className="btn-accent w-full flex items-center justify-center gap-2 py-3"
+              >
+                {isSubmitting ? (
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                )}
+                Send message
+              </button>
+            </div>
+          </section>
+
+          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-6 xl:col-span-2 h-full xl:min-h-[680px]">
+            <div className="grid h-full gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+              <div className="rounded-[20px] bg-white/[0.03] border border-white/5 p-3 h-[70vh] min-h-[420px] max-h-[680px] overflow-auto backdrop-blur-sm">
+                <p className="px-3 py-2 text-[11px] font-bold text-text-muted uppercase tracking-widest border-b border-white/5 mb-3">Your Activity</p>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <svg className="animate-spin h-5 w-5 text-text-muted" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                  </div>
+                ) : threads.length === 0 ? (
+                  <div className="px-3 py-10 text-center">
+                    <p className="text-[13px] text-text-muted">No messages yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {threads.map((thread) => (
+                      <button
+                        key={thread.id}
+                        onClick={() => setSelectedThreadId(thread.id)}
+                        className={cn(
+                          'w-full rounded-[14px] px-4 py-3 text-left transition-all duration-200 border',
+                          selectedThreadId === thread.id
+                            ? 'bg-accent/15 border-accent/30 shadow-[0_4px_12px_var(--accent-glow)]'
+                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.06] hover:border-white/10'
+                        )}
+                      >
+                        <p className={cn("text-[13px] font-semibold line-clamp-1", selectedThreadId === thread.id ? "text-accent" : "text-text-primary")}>
+                          {thread.subject}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/5 text-text-muted capitalize">{thread.category}</span>
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-tighter",
+                            thread.status === 'answered' ? "text-emerald-400" : 
+                            thread.status === 'closed' ? "text-text-muted" : "text-blue-400"
+                          )}>
+                            {thread.status === 'answered' ? 'resolved' : thread.status}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-[20px] bg-white/[0.03] border border-white/5 p-4 min-h-[420px] h-[70vh] max-h-[680px] overflow-hidden flex flex-col backdrop-blur-sm">
+                {!selectedThread ? (
+                  <div className="flex h-full flex-col items-center justify-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.03] border border-white/5">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    </div>
+                    <p className="text-[14px] text-text-muted font-medium">Select a thread to view the conversation</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="border-b border-white/10 pb-4 mb-4 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-[15px] font-bold text-text-primary line-clamp-1">{selectedThread.subject}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                           <span className={cn(
+                            "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
+                            selectedStatus === 'answered' ? "bg-emerald-500/10 text-emerald-400" : 
+                            selectedStatus === 'closed' ? "bg-white/10 text-text-muted" : "bg-blue-500/10 text-blue-400"
+                          )}>
+                            {selectedStatus === 'answered' ? 'resolved' : selectedStatus}
+                          </span>
+                          <span className="text-[11px] text-text-muted">{selectedThread.category} thread</span>
+                        </div>
+                      </div>
+                      {selectedStatus === 'closed' && (
+                        <div className="bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">
+                           <p className="text-[10px] text-red-400 font-bold uppercase">Archived</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-h-0 space-y-4 overflow-auto pr-2 custom-scrollbar">
+                      {messages.length === 0 ? (
+                        <p className="text-[13px] text-text-muted text-center py-10">Starting conversation...</p>
+                      ) : (
+                        messages.map((item) => (
                           <div
+                            key={item.id}
                             className={cn(
-                              "max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] leading-relaxed shadow-sm",
-                              item.senderRole === 'admin'
-                                ? "bg-accent text-white rounded-tr-[4px]"
-                                : "bg-white/10 text-white/90 rounded-tl-[4px]"
+                              "flex flex-col gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300",
+                              item.senderRole === 'user' ? "items-end" : "items-start"
                             )}
                           >
-                            <p className="whitespace-pre-wrap">{item.message}</p>
+                            <div
+                              className={cn(
+                                "max-w-[85%] rounded-[20px] px-5 py-3 text-[13.5px] shadow-lg border",
+                                item.senderRole === 'admin'
+                                  ? "bg-accent border-white/20 text-white rounded-tr-[4px] shadow-[0_4px_15px_rgba(var(--accent-rgb),0.3)]"
+                                  : "bg-white/[0.05] border-white/10 text-white/95 rounded-tl-[4px]"
+                              )}
+                            >
+                              <p className="whitespace-pre-wrap leading-relaxed">{item.message}</p>
+                            </div>
+                            <div className="flex items-center gap-2 px-1">
+                               <p className="text-[10px] text-white/40 font-bold uppercase tracking-tight">
+                                {item.senderRole === 'admin' ? 'Support Agent' : 'You'}
+                               </p>
+                               <span className="text-white/20 text-[10px]">•</span>
+                               <p className="text-[10px] text-white/40">
+                                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                               </p>
+                            </div>
                           </div>
-                          <p className="text-[10px] text-white/30 px-1 font-medium">
-                            {item.senderRole === 'admin' ? 'Support' : 'You'} · {new Date(item.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="mt-3 border-t border-[var(--border)] pt-3">
-                    <div className="flex gap-2">
-                      <textarea
-                        className="input min-h-12 max-h-32 flex-1"
-                        value={replyText}
-                        onChange={(event) => setReplyText(event.target.value)}
-                        placeholder={isSelectedClosed ? 'Thread is archived' : 'Write message...'}
-                        maxLength={4000}
-                        disabled={isSelectedClosed || isSubmitting}
-                        rows={1}
-                      />
-                      <button
-                        disabled={isSubmitting || isSelectedClosed || !replyText.trim()}
-                        onClick={handleReply}
-                        className="btn-accent px-5 shrink-0"
-                      >
-                        Send
-                      </button>
+                        ))
+                      )}
                     </div>
-                  </div>
-                </>
-              )}
+
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <div className="flex items-end gap-3 glass-card bg-white/[0.02] p-1.5 rounded-[22px] border-white/5">
+                        <textarea
+                          className={cn(
+                            "input min-h-[50px] max-h-32 flex-1 !bg-transparent !border-0 !shadow-none !ring-0 py-3 px-4 resize-none text-[14px]",
+                            isSelectedClosed && "opacity-50"
+                          )}
+                          value={replyText}
+                          onChange={(event) => setReplyText(event.target.value)}
+                          placeholder={isSelectedClosed ? 'This conversation has been archived.' : 'Type your reply here...'}
+                          maxLength={4000}
+                          disabled={isSelectedClosed || isSubmitting}
+                          rows={1}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && replyText.trim() && !isSubmitting && !isSelectedClosed) {
+                              e.preventDefault();
+                              handleReply();
+                            }
+                          }}
+                        />
+                        <button
+                          disabled={isSubmitting || isSelectedClosed || !replyText.trim()}
+                          onClick={handleReply}
+                          className="btn-accent !rounded-full p-3.5 mb-1 shrink-0 aspect-square flex items-center justify-center"
+                          title="Send Message"
+                        >
+                          {isSubmitting ? (
+                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>
+                          )}
+                        </button>
+                      </div>
+                      {isSelectedClosed && (
+                        <p className="text-[11px] text-center text-text-muted mt-2">Closed threads are visible for 14 days and cannot be reopened.</p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   );
