@@ -1795,7 +1795,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
         'player-container nexvid-player group relative bg-black [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]',
         fullViewport && 'full-viewport h-full w-full rounded-none',
         isFullscreen && 'is-fullscreen fixed inset-0 z-50 rounded-none',
-        controlsVisible && 'controls-visible'
+        (controlsVisible || settingsPanel !== null) && 'controls-visible'
       )}
       onMouseMove={handleMouseMove}
       onMouseLeave={hideControls}
@@ -2088,11 +2088,11 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       )}
 
       {/* Top Bar - shown for all stream types */}
-      <div className={cn(
+    <div className={cn(
         'absolute top-0 left-0 right-0 flex items-center gap-3 px-3 sm:px-5 pt-4 pb-12 z-[40]',
         'bg-gradient-to-b from-black/80 to-transparent',
         'transition-opacity duration-300',
-        (stream?.type === 'embed' || controlsVisible || scrapeStatus === 'error' || (error && !stream)) ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        (stream?.type === 'embed' || controlsVisible || settingsPanel !== null || scrapeStatus === 'error' || (error && !stream)) ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}>
         {onBack && (
           <button onClick={onBack} className="rounded-[10px] p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors" aria-label="Go back" title="Go back">
@@ -2154,7 +2154,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
       <div className={cn(
         'player-controls',
         'transition-opacity duration-300',
-        controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        (controlsVisible || settingsPanel !== null) ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}>
         {/* Progress Bar */}
         <div
@@ -2268,7 +2268,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
                 {/* Episodes Panel */}
                 {settingsPanel === 'episodes' && (
-                  <div className="fixed bottom-24 left-1/2 z-[30] mb-0 w-[min(92vw,20rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in max-h-[60vh] overflow-y-auto sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
+                  <div className="fixed bottom-20 landscape:bottom-12 left-1/2 z-[30] mb-0 w-[min(92vw,20rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in max-h-[60vh] landscape:max-h-[80vh] overflow-y-auto sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-[11px] font-semibold text-white/80">Episodes</p>
                       {(media as Show)?.seasons && (media as Show).seasons.length > 1 && (
@@ -2366,7 +2366,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
               {/* Unified Settings Panel */}
               {settingsPanel && !['info', 'episodes'].includes(settingsPanel) && (
-                <div className="fixed bottom-24 left-1/2 z-[30] mb-0 w-[min(90vw,18rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed bottom-20 landscape:bottom-12 left-1/2 z-[30] mb-0 w-[min(90vw,18rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in max-h-[65vh] landscape:max-h-[85vh] overflow-y-auto sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
                   {/* Main Grid */}
                   {settingsPanel === 'main' && (
                     <div className="space-y-3">
