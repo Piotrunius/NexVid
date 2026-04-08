@@ -1,4 +1,3 @@
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 import { isRequestFromAllowedSite } from '@/lib/request-verification';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -9,19 +8,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { error: 'Forbidden origin' },
       { status: 403 }
-    );
-  }
-
-  const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.publicConfig);
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimit.retryAfter || 60),
-        },
-      }
     );
   }
 

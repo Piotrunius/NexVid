@@ -1,5 +1,4 @@
 import { isValidCloudSession } from '@/lib/auth-server';
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
@@ -43,19 +42,6 @@ function normalizeSegments(raw: any): Segment[] {
 }
 
 export async function GET(request: NextRequest) {
-  // Rate limiting check
-  const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.segments);
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { segments: EMPTY_SEGMENTS, error: 'Too many requests' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimit.retryAfter || 60),
-        },
-      }
-    );
-  }
 
   const tmdbId = request.nextUrl.searchParams.get('tmdbId');
   const type = request.nextUrl.searchParams.get('type');

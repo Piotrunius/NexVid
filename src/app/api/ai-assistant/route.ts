@@ -1,27 +1,10 @@
 import { isValidCloudSession } from '@/lib/auth-server';
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    // Convert Request to NextRequest for rate limiting check
-    const request = req instanceof NextRequest ? req : new NextRequest(req);
-
-    // Rate limiting check - AI assistant is expensive
-    const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.aiAssistant);
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimit.retryAfter || 60),
-          },
-        }
-      );
-    }
 
     const { mood, type, selectedGenres, era, groqApiKey: userApiKey } = await req.json();
 
