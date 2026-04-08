@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthStore>()(
         const token = getCloudToken();
         void logoutCloudSession();
         clearCloudToken();
-        
+
         // Safety: If they were logged in via cloud, reset sensitive settings and clear watchlist upon logout
         if (token) {
           try {

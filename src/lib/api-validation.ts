@@ -23,7 +23,7 @@ export function validateStreamParams(searchParams: URLSearchParams): {
   data?: StreamRequestParams;
 } {
   const errors: string[] = [];
-  
+
   // Validate tmdbId
   const tmdbId = (searchParams.get('tmdbId') || searchParams.get('id') || '').trim();
   if (!tmdbId) {
@@ -31,36 +31,36 @@ export function validateStreamParams(searchParams: URLSearchParams): {
   } else if (!/^\d+$/.test(tmdbId)) {
     errors.push('Invalid tmdbId: must be numeric');
   }
-  
+
   // Validate type
   const rawType = searchParams.get('type') || searchParams.get('mediaType') || '';
   const type = normalizeType(rawType);
   if (!type) {
     errors.push('Invalid type: must be movie/show');
   }
-  
+
   // Validate season/episode (must be positive integers if provided)
   const season = searchParams.get('season');
   const episode = searchParams.get('episode');
-  
+
   if (season && !/^\d+$/.test(season)) {
     errors.push('Invalid season: must be numeric');
   }
   if (episode && !/^\d+$/.test(episode)) {
     errors.push('Invalid episode: must be numeric');
   }
-  
+
   // Validate source (allowlist)
   const sourceId = (searchParams.get('source') || 'febbox').trim().toLowerCase();
-  const validSources = ['febbox', 'vixsrc', 'pobreflix'];
+  const validSources = ['febbox', 'pobreflix', 'beta', 'alpha'];
   if (!validSources.includes(sourceId)) {
     errors.push(`Invalid source: must be one of ${validSources.join(', ')}`);
   }
-  
+
   if (errors.length > 0) {
     return { valid: false, errors };
   }
-  
+
   return {
     valid: true,
     errors: [],
