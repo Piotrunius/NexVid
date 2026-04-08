@@ -7,7 +7,7 @@ import { createGenericErrorResponse, createValidationErrorResponse } from '@/lib
 import { validateStreamParams } from '@/lib/api-validation';
 import { isValidCloudSession } from '@/lib/auth-server';
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
-import { verifyRequestSignature } from '@/lib/request-verification';
+import { isRequestFromAllowedSite, verifyRequestSignature } from '@/lib/request-verification';
 import { getFebBoxToken, resolveStream } from '@/lib/showbox';
 import { getMovieDetails, getShowDetails } from '@/lib/tmdb';
 import { NextRequest, NextResponse } from 'next/server';
@@ -29,6 +29,14 @@ function normalizeType(rawType: string | null, season?: number, episode?: number
 
 export async function GET(request: NextRequest) {
   try {
+    // Block requests not originating from nexvid.online in production.
+    if (!isRequestFromAllowedSite(request)) {
+      return NextResponse.json(
+        { error: 'Forbidden origin' },
+        { status: 403 }
+      );
+    }
+
     // 1. Input validation (do this first to get sourceId)
     const validation = validateStreamParams(new URL(request.url).searchParams);
     if (!validation.valid) {
@@ -58,16 +66,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Authentication check
-    const isAuthenticated = await isValidCloudSession(request);
-    if (!isAuthenticated) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // 4. Alpha source requires FebBox token header
+    // 3. Alpha source requires FebBox token (no auth session needed)
     if (sourceId === 'alpha') {
       const febboxToken = request.headers.get('x-febbox-cookie') ||
                          request.nextUrl.searchParams.get('febboxToken') || '';
@@ -256,6 +255,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isRequestFromAllowedSite(request)) {
+      return NextResponse.json(
+        { error: 'Forbidden origin' },
+        { status: 403 }
+      );
+    }
+
     // Rate limiting check
     const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.stream);
     if (!rateLimit.allowed) {
