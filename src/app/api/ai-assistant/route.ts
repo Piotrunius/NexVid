@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { isValidCloudSession } from '@/lib/auth-server';
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     }
 
     const { mood, type, selectedGenres, era, groqApiKey: userApiKey } = await req.json();
-    
+
     // If user provided their own key, we don't strictly need a Cloud account
     if (!userApiKey || userApiKey === '__PUBLIC_GROQ_KEY__') {
       const isAuthorized = await isValidCloudSession(req);

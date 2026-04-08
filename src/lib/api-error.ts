@@ -32,7 +32,7 @@ export function createGenericErrorResponse(
     stack: error?.stack,
     details: process.env.NODE_ENV === 'development' ? error : undefined,
   });
-  
+
   // Return generic message to client
   const messages: Record<number, string> = {
     400: 'Invalid request',
@@ -44,9 +44,9 @@ export function createGenericErrorResponse(
     502: 'Service unavailable',
     503: 'Service unavailable',
   };
-  
+
   const message = messages[status] || 'An error occurred';
-  
+
   return NextResponse.json(
     { error: message },
     { status }
