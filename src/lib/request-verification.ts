@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server';
 
 const NEXVID_APP_SECRET = process.env.NEXVID_APP_SECRET || 'nexvid-app-default-secret';
 const CANONICAL_HOST = (process.env.NEXT_PUBLIC_CANONICAL_HOST || 'nexvid.online').toLowerCase();
-const ALLOWED_HOSTS = new Set (process.env.CANONICAL_HOST);
+const ALLOWED_HOSTS = new Set ([CANONICAL_HOST, `www.${CANONICAL_HOST}`]);
 
 /**
  * Convert bytes to hex string
