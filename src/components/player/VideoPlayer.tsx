@@ -13,13 +13,13 @@ import { resolveFebboxToken } from '@/lib/febbox';
 import type { MediaSegments } from '@/lib/tidb';
 import { submitSegment } from '@/lib/tidb';
 import { getSeasonDetails } from '@/lib/tmdb';
-import { cn, formatTime, getQualityLabel, getAccentHex } from '@/lib/utils';
+import { cn, formatTime, getAccentHex, getQualityLabel } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { usePlayerStore } from '@/stores/player';
 import { useSettingsStore } from '@/stores/settings';
 import { useWatchlistStore } from '@/stores/watchlist';
 import type { AudioTrack, Caption, Episode, Movie, Season, Show, SourceResult, Stream, StreamQuality, WatchlistStatus } from '@/types';
-import { Activity, Award, CheckCircle2, ChevronLeft, ChevronRight, Clock, Compass, Crown, FastForward, Gem, Infinity as InfinityIcon, Info, Link, ListVideo, Pause, PauseCircle, Play, PlayCircle, Rocket, Server, Settings2, Sparkles, Star, Volume1, Volume2, VolumeX, XCircle, Zap } from 'lucide-react';
+import { Award, CheckCircle2, ChevronLeft, ChevronRight, Clock, Compass, Crown, FastForward, Gem, Infinity as InfinityIcon, Info, Link, ListVideo, Pause, PauseCircle, Play, PlayCircle, Rocket, Server, Settings2, Sparkles, Volume1, Volume2, VolumeX, XCircle, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
@@ -324,6 +324,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [idleSnapshot, setIdleSnapshot] = useState<string | null>(null);
   const [isFinished, setIsFinished] = useState(false);
   const [autoNextLocked, setAutoNextLocked] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
   const nextEpisodeAutoNavRef = useRef(false);
@@ -374,6 +375,23 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const sourceResults = allSourceResults || [];
   const safeSourceResults = allSourceResults ?? sourceResults;
   const currentSourceIndex = Math.max(0, Math.min(typeof propSourceIndex === 'number' ? propSourceIndex : 0, Math.max(sourceResults.length - 1, 0)));
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    const mediaQuery = window.matchMedia('(hover: none), (pointer: coarse)');
+    const syncTouchDevice = () => setIsTouchDevice(mediaQuery.matches);
+
+    syncTouchDevice();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncTouchDevice);
+      return () => mediaQuery.removeEventListener('change', syncTouchDevice);
+    }
+
+    mediaQuery.addListener(syncTouchDevice);
+    return () => mediaQuery.removeListener(syncTouchDevice);
+  }, []);
 
   const formatSourceName = useCallback((sourceId?: string) => {
     if (!sourceId) return 'Source';
@@ -1787,6 +1805,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const bufferProgress = duration > 0 ? (buffered / duration) * 100 : 0;
   const hoverPercent = hoverProgress !== null && duration > 0 ? (hoverProgress / duration) * 100 : null;
   const subtitleBottomPercent = Math.max(-6, Math.min(35, 100 - subVertical));
+  const isMobilePlayerPanelOpen = isTouchDevice && stream?.type !== 'embed' && settingsPanel !== null && settingsPanel !== 'info';
 
   return (
     <div
@@ -2148,8 +2167,15 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
               <span className="rounded-[6px] bg-accent/80 px-2 py-0.5 text-[11px] font-bold text-white">{playbackSpeed}x</span>
             )}
             </div>
-            </div>      {stream?.type === 'embed' ? null : (
+            </div>
+      {stream?.type === 'embed' ? null : (
       <>
+      {isMobilePlayerPanelOpen && (
+        <div
+          className="fixed inset-0 z-[90] bg-black/45 backdrop-blur-[2px]"
+          onClick={() => setSettingsPanel(null)}
+        />
+      )}
       {/* Bottom Controls */}
       <div className={cn(
         'player-controls',
@@ -2268,7 +2294,15 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
                 {/* Episodes Panel */}
                 {settingsPanel === 'episodes' && (
-                  <div className="fixed bottom-20 landscape:bottom-12 left-1/2 z-[30] mb-0 w-[min(92vw,20rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in max-h-[60vh] landscape:max-h-[80vh] overflow-y-auto sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className={cn(
+                      'mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto',
+                      isTouchDevice
+                        ? 'fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]'
+                        : 'absolute bottom-full right-0 z-[30] mb-2 max-h-[60vh]'
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-[11px] font-semibold text-white/80">Episodes</p>
                       {(media as Show)?.seasons && (media as Show).seasons.length > 1 && (
@@ -2366,7 +2400,15 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
               {/* Unified Settings Panel */}
               {settingsPanel && !['info', 'episodes'].includes(settingsPanel) && (
-                <div className="fixed bottom-20 landscape:bottom-12 left-1/2 z-[30] mb-0 w-[min(90vw,18rem)] -translate-x-1/2 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in max-h-[65vh] landscape:max-h-[85vh] overflow-y-auto sm:absolute sm:bottom-full sm:right-0 sm:left-auto sm:mb-2 sm:translate-x-0" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className={cn(
+                    'mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto',
+                    isTouchDevice
+                      ? 'fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]'
+                      : 'absolute bottom-full right-0 z-[30] mb-2 max-h-[65vh]'
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {/* Main Grid */}
                   {settingsPanel === 'main' && (
                     <div className="space-y-3">
