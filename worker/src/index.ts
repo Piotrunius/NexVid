@@ -234,10 +234,10 @@ function buildAuthCookieClear(): string {
 }
 
 function getClientIp(request: Request): string {
-  const cfIp = request.headers.get('CF-Connecting-IP');
-  if (cfIp) return cfIp.trim();
   const forwarded = request.headers.get('X-Forwarded-For');
   if (forwarded) return forwarded.split(',')[0].trim();
+  const cfIp = request.headers.get('CF-Connecting-IP');
+  if (cfIp) return cfIp.trim();
   return 'unknown';
 }
 
@@ -453,7 +453,7 @@ const lastSeenCache = new Map<string, number>();
 async function updateActiveUser(env: Env, request: Request, userId?: string): Promise<void> {
   try {
     const nowMs = Date.now();
-    const identifier = userId || `guest_${await sha256Hex(request.headers.get('CF-Connecting-IP') || '0.0.0.0')}`;
+    const identifier = userId || `guest_${await sha256Hex(getClientIp(request))}`;
 
     // In-memory throttle to 2 minutes
     const last = lastSeenCache.get(`active:${identifier}`);
