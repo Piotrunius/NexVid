@@ -1,5 +1,4 @@
 import { isValidCloudSession } from '@/lib/auth-server';
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 import { isRequestFromAllowedSite } from '@/lib/request-verification';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -38,21 +37,6 @@ export async function middleware(request: NextRequest) {
         NextResponse.json(
           { error: 'Forbidden origin' },
           { status: 403 }
-        )
-      );
-    }
-
-    const globalLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.apiGlobal);
-    if (!globalLimit.allowed) {
-      return applySecurityHeaders(
-        NextResponse.json(
-          { error: 'Too many requests' },
-          {
-            status: 429,
-            headers: {
-              'Retry-After': String(globalLimit.retryAfter || 60),
-            },
-          }
         )
       );
     }

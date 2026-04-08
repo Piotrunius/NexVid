@@ -6,7 +6,6 @@
 import { createGenericErrorResponse, createValidationErrorResponse } from '@/lib/api-error';
 import { validateStreamParams } from '@/lib/api-validation';
 import { isValidCloudSession } from '@/lib/auth-server';
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 import { isRequestFromAllowedSite, verifyRequestSignature } from '@/lib/request-verification';
 import { getFebBoxToken, resolveStream } from '@/lib/showbox';
 import { getMovieDetails, getShowDetails } from '@/lib/tmdb';
@@ -26,22 +25,6 @@ function normalizeType(rawType: string | null, season?: number, episode?: number
   return null;
 }
 
-function getQuotaIdentifier(request: NextRequest): string | undefined {
-  const sessionToken = (request.cookies.get('nexvid_session')?.value || '').trim();
-  if (sessionToken) {
-    return `session:${sessionToken.slice(0, 32)}`;
-  }
-
-  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization') || '';
-  if (authHeader.startsWith('Bearer ')) {
-    const token = authHeader.slice(7).trim();
-    if (token) {
-      return `bearer:${token.slice(0, 32)}`;
-    }
-  }
-
-  return undefined;
-}
 
 
 export async function GET(request: NextRequest) {
@@ -61,27 +44,6 @@ export async function GET(request: NextRequest) {
     }
 
     const { sourceId } = validation.data!;
-
-    // 2. Source-specific rate limiting
-    let rateLimitConfig = RATE_LIMIT_CONFIG.stream;
-    if (sourceId === 'beta') {
-      rateLimitConfig = RATE_LIMIT_CONFIG.streamBeta;
-    } else if (sourceId === 'alpha') {
-      rateLimitConfig = RATE_LIMIT_CONFIG.streamAlpha;
-    }
-
-    const rateLimit = checkRateLimit(request, rateLimitConfig, getQuotaIdentifier(request));
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimit.retryAfter || 60),
-          },
-        }
-      );
-    }
 
     // 3. FebBox-based sources require explicit user token
     if (sourceId === 'alpha' || sourceId === 'febbox') {
@@ -276,20 +238,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Forbidden origin' },
         { status: 403 }
-      );
-    }
-
-    // Rate limiting check
-    const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.stream, getQuotaIdentifier(request));
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimit.retryAfter || 60),
-          },
-        }
       );
     }
 
