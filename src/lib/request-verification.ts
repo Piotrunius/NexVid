@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server';
 
 const NEXVID_APP_SECRET = process.env.NEXVID_APP_SECRET || 'nexvid-app-default-secret';
 const CANONICAL_HOST = (process.env.NEXT_PUBLIC_CANONICAL_HOST || 'nexvid.online').toLowerCase();
-const ALLOWED_HOSTS = new Set ([CANONICAL_HOST, `www.${CANONICAL_HOST}`]);
+const ALLOWED_HOSTS = new Set([CANONICAL_HOST, `www.${CANONICAL_HOST}`]);
 
 /**
  * Convert bytes to hex string
@@ -118,18 +118,31 @@ export function isRequestFromAllowedSite(request: NextRequest): boolean {
     return true;
   }
 
+  const hostHeader = (request.headers.get('host') || '').split(':')[0].toLowerCase();
+  if (hostHeader && !ALLOWED_HOSTS.has(hostHeader)) {
+    return false;
+  }
+
   const originHost = extractHostname(request.headers.get('origin'));
   const refererHost = extractHostname(request.headers.get('referer'));
 
-  if (originHost) {
-    return ALLOWED_HOSTS.has(originHost);
+  if (originHost && !ALLOWED_HOSTS.has(originHost)) {
+    return false;
   }
 
-  if (refererHost) {
-    return ALLOWED_HOSTS.has(refererHost);
+  if (refererHost && !ALLOWED_HOSTS.has(refererHost)) {
+    return false;
   }
 
-  // Browser same-origin requests may omit Origin/Referer.
+  // Require at least one browser provenance header in production.
+  if (!originHost && !refererHost) {
+    return false;
+  }
+
   const secFetchSite = (request.headers.get('sec-fetch-site') || '').toLowerCase();
-  return secFetchSite === 'same-origin' || secFetchSite === 'same-site';
+  if (secFetchSite && secFetchSite !== 'same-origin' && secFetchSite !== 'same-site') {
+    return false;
+  }
+
+  return true;
 }
