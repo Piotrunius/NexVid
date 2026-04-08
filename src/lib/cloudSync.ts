@@ -107,7 +107,7 @@ export async function cloudFetch<T = any>(path: string, init: RequestInit = {}):
       ...init,
       headers,
     });
-    
+
     // [MOD] Checking for seamless session migration (required for frontend to clear legacy token)
     if (typeof window !== 'undefined') {
       const migratedToken = response.headers.get('x-token-migrated');

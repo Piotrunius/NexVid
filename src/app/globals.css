@@ -481,6 +481,12 @@ select.input option {
     transition: opacity 0.4s var(--ease-out-expo);
 }
 
+@media (orientation: landscape) and (max-height: 500px) {
+    .player-controls {
+        padding-top: 40px;
+    }
+}
+
 .player-container.controls-visible .player-controls {
     opacity: 1;
 }
