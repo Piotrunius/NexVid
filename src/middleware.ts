@@ -1,15 +1,26 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
 import { isValidCloudSession } from '@/lib/auth-server';
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 import { isRequestFromAllowedSite } from '@/lib/request-verification';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const CANONICAL_HOST = (process.env.NEXT_PUBLIC_CANONICAL_HOST || 'nexvid.online').toLowerCase();
 const REDIRECT_HOSTS = new Set(['nexvid.pl', 'www.nexvid.pl', 'www.nexvid.online']);
 
-function applyAntiIframeHeaders(response: NextResponse) {
+function applySecurityHeaders(response: NextResponse) {
   response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  response.headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+
+  // Avoid overriding more comprehensive CSP set elsewhere.
+  if (!response.headers.has('Content-Security-Policy')) {
+    response.headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+  }
+
   return response;
 }
 
@@ -23,22 +34,26 @@ export async function middleware(request: NextRequest) {
   // Lock API usage to requests coming from nexvid.online and throttle globally.
   if (url.startsWith('/api/')) {
     if (!isRequestFromAllowedSite(request)) {
-      return NextResponse.json(
-        { error: 'Forbidden origin' },
-        { status: 403 }
+      return applySecurityHeaders(
+        NextResponse.json(
+          { error: 'Forbidden origin' },
+          { status: 403 }
+        )
       );
     }
 
     const globalLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.apiGlobal);
     if (!globalLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(globalLimit.retryAfter || 60),
-          },
-        }
+      return applySecurityHeaders(
+        NextResponse.json(
+          { error: 'Too many requests' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(globalLimit.retryAfter || 60),
+            },
+          }
+        )
       );
     }
   }
@@ -50,7 +65,7 @@ export async function middleware(request: NextRequest) {
     if (!token) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
-      return applyAntiIframeHeaders(NextResponse.redirect(loginUrl));
+      return applySecurityHeaders(NextResponse.redirect(loginUrl));
     }
 
     // Validation of token correctness through contact with Worker
@@ -59,25 +74,25 @@ export async function middleware(request: NextRequest) {
     if (!isValid) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
-      const response = applyAntiIframeHeaders(NextResponse.redirect(loginUrl));
+      const response = applySecurityHeaders(NextResponse.redirect(loginUrl));
       response.cookies.delete('nexvid_session'); // Removing the forged cookie
       return response;
     }
   }
 
   if (!host || host === CANONICAL_HOST) {
-    return applyAntiIframeHeaders(NextResponse.next());
+    return applySecurityHeaders(NextResponse.next());
   }
 
   if (!REDIRECT_HOSTS.has(host)) {
-    return applyAntiIframeHeaders(NextResponse.next());
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const targetUrl = request.nextUrl.clone();
   targetUrl.protocol = 'https';
   targetUrl.host = CANONICAL_HOST;
 
-  return applyAntiIframeHeaders(NextResponse.redirect(targetUrl, 308));
+  return applySecurityHeaders(NextResponse.redirect(targetUrl, 308));
 }
 
 export const config = {
