@@ -32,8 +32,8 @@ export const RATE_LIMIT_CONFIG = {
   // Segments: 20 requests per minute per IP
   segments: { maxRequests: 20, windowSeconds: 60 },
 
-  // Public config: 30 requests per minute per IP
-  publicConfig: { maxRequests: 30, windowSeconds: 60 },
+  // Public config: 10 requests per minute per IP
+  publicConfig: { maxRequests: 10, windowSeconds: 60 },
 };
 
 /**
@@ -43,6 +43,14 @@ function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0].trim();
+  }
+  const cfConnectingIp = request.headers.get('cf-connecting-ip');
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim();
+  }
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
   }
   return request.headers.get('x-client-ip') || 'unknown';
 }

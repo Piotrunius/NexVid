@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const turnstileSiteKey = String(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || process.env.TURNSTILE_SITE_KEY || '').trim();
   return NextResponse.json({ turnstileSiteKey }, {
     headers: {
-      'Cache-Control': 'public, max-age=60, s-maxage=60',
+      'Cache-Control': 'no-store',
     },
   });
 }
