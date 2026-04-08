@@ -19,7 +19,6 @@ const SITE_URL = (process.env.APP_BASE_URL || 'https://nexvid.online').replace(/
 
 const SITE_NAME = 'NexVid';
 const SITE_DESCRIPTION = 'Watch trending movies and TV shows online in one fast, modern streaming hub with smart search, watchlists, and seamless playback.';
-const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/opengraph-image`;
 
 export const viewport: Viewport = {
   themeColor: '#000000',
@@ -63,21 +62,11 @@ export const metadata: Metadata = {
     type: 'website',
     url: SITE_URL,
     locale: 'en_US',
-    images: [
-      {
-        url: DEFAULT_SOCIAL_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: 'NexVid',
-        type: 'image/png',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'NexVid — Watch Movies and TV Shows Online Streaming',
     description: SITE_DESCRIPTION,
-    images: [DEFAULT_SOCIAL_IMAGE],
   },
   icons: {
     icon: [
