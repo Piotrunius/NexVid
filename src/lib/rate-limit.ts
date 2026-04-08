@@ -36,14 +36,11 @@ export const RATE_LIMIT_CONFIG = {
   publicConfig: { maxRequests: 10, windowSeconds: 60 },
 };
 
-/**
- * Get client IP address, handling proxies
- */
 function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0].trim();
-  }
+  // Use the IP address provided by the platform if available (Next.js/Vercel/CF)
+  const ip = (request as any).ip || request.headers.get('x-forwarded-for')?.split(',')[0].trim();
+  if (ip) return ip;
+
   const cfConnectingIp = request.headers.get('cf-connecting-ip');
   if (cfConnectingIp) {
     return cfConnectingIp.trim();
