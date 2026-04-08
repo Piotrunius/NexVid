@@ -83,16 +83,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Require authenticated cloud session/JWT
-    const isAuthenticated = await isValidCloudSession(request);
-    if (!isAuthenticated) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // 4. FebBox-based sources require explicit user token
+    // 3. FebBox-based sources require explicit user token
     if (sourceId === 'alpha' || sourceId === 'febbox') {
       const febboxToken = request.headers.get('x-febbox-cookie') ||
                          request.nextUrl.searchParams.get('febboxToken') || '';
