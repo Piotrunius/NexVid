@@ -1,28 +1,53 @@
 /**
  * Request verification for stream sources
  * Ensures requests come from legitimate app instances
+ * Uses Web Crypto API for Edge Runtime compatibility
  */
 
-import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 
 const NEXVID_APP_SECRET = process.env.NEXVID_APP_SECRET || 'nexvid-app-default-secret';
 
 /**
- * Generate a request signature
+ * Convert hex string to bytes
+ */
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+/**
+ * Convert bytes to hex string
+ */
+function bytesToHex(bytes: ArrayBuffer): string {
+  return Array.from(new Uint8Array(bytes))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Generate a request signature using Web Crypto API
  * Used by the frontend to sign requests for beta/alpha sources
  */
-export function generateRequestSignature(
+export async function generateRequestSignature(
   tmdbId: string,
   type: string,
   sourceId: string,
   timestamp: number
-): string {
+): Promise<string> {
   const payload = `${tmdbId}:${type}:${sourceId}:${timestamp}`;
-  return crypto
-    .createHmac('sha256', NEXVID_APP_SECRET)
-    .update(payload)
-    .digest('hex');
+  const encoder = new TextEncoder();
+
+  const keyData = encoder.encode(NEXVID_APP_SECRET);
+  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+  ]);
+
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  return bytesToHex(signature);
 }
 
 /**
@@ -30,12 +55,12 @@ export function generateRequestSignature(
  * If signature provided, it must be valid
  * If not provided, request is still allowed (for backwards compatibility)
  */
-export function verifyRequestSignature(
+export async function verifyRequestSignature(
   request: NextRequest,
   tmdbId: string,
   type: string,
   sourceId: string
-): boolean {
+): Promise<boolean> {
   const signature = request.headers.get('x-nexvid-signature');
   const timestamp = request.headers.get('x-nexvid-timestamp');
 
@@ -53,17 +78,14 @@ export function verifyRequestSignature(
   }
 
   // Verify signature matches
-  const expectedSignature = generateRequestSignature(
+  const expectedSignature = await generateRequestSignature(
     tmdbId,
     type,
     sourceId,
     Math.floor(requestTime / 1000) // Round to seconds
   );
 
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+  const isValid = signature === expectedSignature;
 
   if (!isValid) {
     console.warn('[Stream] Invalid request signature');

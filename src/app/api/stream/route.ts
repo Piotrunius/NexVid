@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // 5. Optional signature verification for beta/alpha sources
     if (['alpha', 'beta'].includes(sourceId)) {
-      const isSignatureValid = verifyRequestSignature(request, tmdbId, type, sourceId);
+      const isSignatureValid = await verifyRequestSignature(request, tmdbId, type, sourceId);
       if (!isSignatureValid) {
         console.warn(`[Stream] Invalid signature for ${sourceId} source`);
         // Don't block on invalid signature - just log it (backwards compatibility)
