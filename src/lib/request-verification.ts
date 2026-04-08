@@ -7,17 +7,8 @@
 import { NextRequest } from 'next/server';
 
 const NEXVID_APP_SECRET = process.env.NEXVID_APP_SECRET || 'nexvid-app-default-secret';
-
-/**
- * Convert hex string to bytes
- */
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-  }
-  return bytes;
-}
+const CANONICAL_HOST = (process.env.NEXT_PUBLIC_CANONICAL_HOST || 'nexvid.online').toLowerCase();
+const ALLOWED_HOSTS = new Set (process.env.CANONICAL_HOST);
 
 /**
  * Convert bytes to hex string
@@ -106,4 +97,39 @@ export function isRequestFromApp(request: NextRequest): boolean {
 
   // Allow requests with valid signature
   return request.headers.has('x-nexvid-signature');
+}
+
+function extractHostname(headerValue: string | null): string | null {
+  if (!headerValue) return null;
+
+  try {
+    return new URL(headerValue).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Restrict requests to pages served from nexvid.online.
+ * In development this check is skipped.
+ */
+export function isRequestFromAllowedSite(request: NextRequest): boolean {
+  if (process.env.NODE_ENV !== 'production') {
+    return true;
+  }
+
+  const originHost = extractHostname(request.headers.get('origin'));
+  const refererHost = extractHostname(request.headers.get('referer'));
+
+  if (originHost) {
+    return ALLOWED_HOSTS.has(originHost);
+  }
+
+  if (refererHost) {
+    return ALLOWED_HOSTS.has(refererHost);
+  }
+
+  // Browser same-origin requests may omit Origin/Referer.
+  const secFetchSite = (request.headers.get('sec-fetch-site') || '').toLowerCase();
+  return secFetchSite === 'same-origin' || secFetchSite === 'same-site';
 }
