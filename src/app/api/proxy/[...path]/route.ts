@@ -23,6 +23,11 @@ export async function ANY(req: NextRequest, { params }: { params: { path: string
     headers.set('Host', new URL(WORKER_URL).host);
     headers.delete('Cookie'); // Remove frontend cookies for purity
 
+    // Ensure the original client IP is passed to the worker for accurate statistics (active guests)
+    if (req.ip) {
+      headers.set('X-Forwarded-For', req.ip);
+    }
+
     if (cookieToken) {
       // Replace the dummy token with the real one from the cookie (new system)
       headers.set('Authorization', `Bearer ${cookieToken}`);
