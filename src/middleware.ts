@@ -19,6 +19,7 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.pathname;
 
+  // Protect /admin route (requires cloud session)
   if (url.startsWith('/admin')) {
     const token = request.cookies.get('nexvid_session')?.value;
 

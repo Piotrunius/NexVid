@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [newUsername, setNewUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
   const normalizedCustomAccentHex = useMemo(() => {
     const raw = String(settings.customAccentHex || '').trim();
     if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();

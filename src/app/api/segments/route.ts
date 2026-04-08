@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidCloudSession } from '@/lib/auth-server';
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -42,16 +43,30 @@ function normalizeSegments(raw: any): Segment[] {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting check
+  const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.segments);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { segments: EMPTY_SEGMENTS, error: 'Too many requests' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfter || 60),
+        },
+      }
+    );
+  }
+
   const tmdbId = request.nextUrl.searchParams.get('tmdbId');
   const type = request.nextUrl.searchParams.get('type');
   const season = request.nextUrl.searchParams.get('season');
   const episode = request.nextUrl.searchParams.get('episode');
 
   if (!tmdbId || !/^\d+$/.test(tmdbId)) {
-    return NextResponse.json({ segments: EMPTY_SEGMENTS, error: 'Invalid tmdbId' }, { status: 400 });
+    return NextResponse.json({ segments: EMPTY_SEGMENTS, error: 'Invalid request' }, { status: 400 });
   }
   if (type !== 'movie' && type !== 'show') {
-    return NextResponse.json({ segments: EMPTY_SEGMENTS, error: 'Invalid type' }, { status: 400 });
+    return NextResponse.json({ segments: EMPTY_SEGMENTS, error: 'Invalid request' }, { status: 400 });
   }
 
   const cacheKey = `${type}:${tmdbId}:${season || '0'}:${episode || '0'}`;
@@ -105,8 +120,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (!res.ok || !data || typeof data !== 'object' || data.error) {
-        const errorMessage = String(data?.error || data?.message || `Upstream ${res.status}`);
-        const value = { segments: EMPTY_SEGMENTS, error: errorMessage };
+        const value = { segments: EMPTY_SEGMENTS, error: 'Unable to fetch' };
         cache.set(cacheKey, { value, expiresAt: Date.now() + 2 * 60 * 1000 });
         return value;
       }

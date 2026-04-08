@@ -1,17 +1,38 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { isValidCloudSession } from '@/lib/auth-server';
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
 
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
+    // Convert Request to NextRequest for rate limiting check
+    const request = req instanceof NextRequest ? req : new NextRequest(req);
+
+    // Rate limiting check - AI assistant is expensive
+    const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.aiAssistant);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter || 60),
+          },
+        }
+      );
+    }
+
     const { mood, type, selectedGenres, era, groqApiKey: userApiKey } = await req.json();
     
     // If user provided their own key, we don't strictly need a Cloud account
     if (!userApiKey || userApiKey === '__PUBLIC_GROQ_KEY__') {
       const isAuthorized = await isValidCloudSession(req);
       if (!isAuthorized) {
-        return NextResponse.json({ error: 'AI Assistant requires a Cloud account or your own Groq API key in Settings.' }, { status: 401 });
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        );
       }
     }
 
@@ -19,7 +40,10 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       console.error('[AI] Missing GROQ_API_KEY in Pages Environment Variables');
-      return NextResponse.json({ error: 'AI Assistant is temporarily unavailable (Missing API Key)' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
     }
 
     const systemPrompt = `You are a movie expert. Your goal is to find 10 movies or TV shows based on the user's specific genre, vibe, and era preferences.
@@ -77,26 +101,39 @@ Task: Recommend 10 titles that perfectly match these criteria.`;
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Groq API Error:', errorText);
-      return NextResponse.json({ error: 'AI Connection Error' }, { status: response.status });
+      return NextResponse.json(
+        { error: 'Service error' },
+        { status: response.status >= 500 ? 502 : response.status }
+      );
     }
 
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
 
     if (!content) {
-      return NextResponse.json({ error: 'Empty response from AI' }, { status: 500 });
+      console.error('[AI] Empty response from Groq API');
+      return NextResponse.json(
+        { error: 'Service error' },
+        { status: 502 }
+      );
     }
 
     try {
       const jsonResponse = JSON.parse(content);
       return NextResponse.json(jsonResponse);
-    } catch {
-      console.error('JSON Parse Error:', content);
-      return NextResponse.json({ error: 'AI Data Formatting Error' }, { status: 500 });
+    } catch (e) {
+      console.error('JSON Parse Error:', content, e);
+      return NextResponse.json(
+        { error: 'Service error' },
+        { status: 502 }
+      );
     }
 
   } catch (error) {
-    console.error('Server Error:', error);
-    return NextResponse.json({ error: 'Server Error' }, { status: 500 });
+    console.error('[AI] Unhandled error:', error);
+    return NextResponse.json(
+      { error: 'Internal error' },
+      { status: 500 }
+    );
   }
 }

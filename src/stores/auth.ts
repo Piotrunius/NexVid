@@ -39,6 +39,12 @@ export const useAuthStore = create<AuthStore>()(
       authToken: '',
 
       loginLocal: (username: string) => {
+        // Disable local auth in production for security
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+          console.error('[Auth] Local authentication is disabled in production');
+          throw new Error('Local authentication is not available in production');
+        }
+
         const user: User = {
           id: generateId(),
           username,
@@ -73,6 +79,12 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       registerLocal: (username: string) => {
+        // Disable local auth in production for security
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+          console.error('[Auth] Local authentication is disabled in production');
+          throw new Error('Local authentication is not available in production');
+        }
+
         const user: User = {
           id: generateId(),
           username,

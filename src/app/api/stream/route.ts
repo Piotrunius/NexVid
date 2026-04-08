@@ -6,6 +6,10 @@
 import { getFebBoxToken, resolveStream } from '@/lib/showbox';
 import { getMovieDetails, getShowDetails } from '@/lib/tmdb';
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidCloudSession } from '@/lib/auth-server';
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
+import { validateStreamParams } from '@/lib/api-validation';
+import { createGenericErrorResponse, createValidationErrorResponse } from '@/lib/api-error';
 
 // Import providers
 import { VixSrcProvider } from '@/lib/providers/vixsrc';
@@ -22,108 +26,143 @@ function normalizeType(rawType: string | null, season?: number, episode?: number
   return null;
 }
 
+
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const season = searchParams.get('season') ? parseInt(searchParams.get('season')!, 10) : undefined;
-  const episode = searchParams.get('episode') ? parseInt(searchParams.get('episode')!, 10) : undefined;
-  const sourceId = String(searchParams.get('source') || 'febbox').trim().toLowerCase();
-
-  const tmdbId = searchParams.get('tmdbId') || searchParams.get('id') || searchParams.get('tmdb') || '';
-  const type = normalizeType(searchParams.get('type') || searchParams.get('mediaType'), season, episode);
-
-  let title = (searchParams.get('title') || searchParams.get('name') || searchParams.get('q') || '').trim();
-  const year = parseInt(searchParams.get('year') || '0', 10);
-
-  if (!tmdbId || !type) {
-    return NextResponse.json({ error: 'Missing tmdbId or type' }, { status: 400 });
-  }
-
   try {
+    // 1. Rate limiting check
+    const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.stream);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter || 60),
+          },
+        }
+      );
+    }
+
+    // 2. Authentication check
+    const isAuthenticated = await isValidCloudSession(request);
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // 3. Input validation
+    const validation = validateStreamParams(new URL(request.url).searchParams);
+    if (!validation.valid) {
+      return createValidationErrorResponse(validation.errors);
+    }
+
+    const { tmdbId, type, season, episode, sourceId, title: inputTitle, year } = validation.data!;
+
+    let title = inputTitle || '';
+
     // If title is missing, fetch it from TMDB
     if (!title) {
+      try {
         if (type === 'movie') {
-            const movie = await getMovieDetails(tmdbId);
-            title = movie?.title || '';
+          const movie = await getMovieDetails(tmdbId);
+          title = movie?.title || '';
         } else {
-            const show = await getShowDetails(tmdbId);
-            title = show?.title || '';
+          const show = await getShowDetails(tmdbId);
+          title = show?.title || '';
         }
+      } catch (tmdbError) {
+        console.error('[API /stream] TMDB fetch failed:', tmdbError);
+        return createGenericErrorResponse(tmdbError, 502, '/stream');
+      }
     }
 
     // Handle integrated providers from core-main
     if (['vixsrc', 'pobreflix'].includes(sourceId)) {
-        console.log(`[API /stream] Handling provider source: ${sourceId}`);
-        let provider: any;
-        switch (sourceId) {
-            case 'vixsrc': provider = new VixSrcProvider(); break;
-            case 'pobreflix': provider = new PobreflixProvider(); break;
+      console.log(`[API /stream] Handling provider source: ${sourceId}`);
+      let provider: any;
+      switch (sourceId) {
+        case 'vixsrc':
+          provider = new VixSrcProvider();
+          break;
+        case 'pobreflix':
+          provider = new PobreflixProvider();
+          break;
+      }
+
+      const media = {
+        type: type === 'show' ? ('show' as const) : ('movie' as const),
+        tmdbId,
+        title,
+        releaseYear: year || 2024,
+        s: season,
+        e: episode,
+      };
+
+      try {
+        const result =
+          type === 'movie'
+            ? await provider.getMovieSources(media)
+            : await provider.getTVSources(media);
+
+        console.log(`[API /stream] Provider ${sourceId} returned ${result.sources.length} sources`);
+
+        if (result.sources.length > 0) {
+          // Map the first provider source to our Stream format
+          const first = result.sources[0];
+
+          // For HLS
+          if (first.type === 'hls') {
+            return NextResponse.json({
+              success: true,
+              data: {
+                type: 'hls',
+                url: first.url,
+                playlist: first.url,
+                captions: result.subtitles,
+                headers: first.headers,
+              },
+            });
+          }
+
+          // For File (mp4/mkv)
+          const qualities: any = {};
+          result.sources.forEach((s: any) => {
+            qualities[s.quality || '1080p'] = {
+              url: s.url,
+              headers: s.headers,
+            };
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: {
+              type: 'file',
+              qualities,
+              captions: result.subtitles,
+              audioTracks: first.audioTracks,
+              headers: first.headers, // Fallback for some player logic
+            },
+          });
         }
+      } catch (provErr) {
+        console.error(`[API /stream] Provider ${sourceId} error:`, provErr);
+        return createGenericErrorResponse(provErr, 502, '/stream');
+      }
 
-        const media = {
-            type: type === 'show' ? 'show' as const : 'movie' as const,
-            tmdbId,
-            title,
-            releaseYear: year || 2024,
-            s: season,
-            e: episode
-        };
-
-        try {
-            const result = type === 'movie' 
-                ? await provider.getMovieSources(media)
-                : await provider.getTVSources(media);
-
-            console.log(`[API /stream] Provider ${sourceId} returned ${result.sources.length} sources`);
-
-            if (result.sources.length > 0) {
-                // Map the first provider source to our Stream format
-                const first = result.sources[0];
-                
-                // For HLS
-                if (first.type === 'hls') {
-                    return NextResponse.json({
-                        success: true,
-                        data: {
-                            type: 'hls',
-                            url: first.url,
-                            playlist: first.url,
-                            captions: result.subtitles,
-                            headers: first.headers
-                        }
-                    });
-                }
-                
-                // For File (mp4/mkv)
-                const qualities: any = {};
-                result.sources.forEach((s: any) => {
-                    qualities[s.quality || '1080p'] = { 
-                        url: s.url,
-                        headers: s.headers
-                    };
-                });
-
-                return NextResponse.json({
-                    success: true,
-                    data: {
-                        type: 'file',
-                        qualities,
-                        captions: result.subtitles,
-                        audioTracks: first.audioTracks,
-                        headers: first.headers // Fallback for some player logic
-                    }
-                });
-            }
-        } catch (provErr) {
-            console.error(`[API /stream] Provider ${sourceId} threw:`, provErr);
-        }
-
-        return NextResponse.json({ success: false, error: 'No sources found from provider' });
+      return NextResponse.json(
+        { error: 'No streams found' },
+        { status: 404 }
+      );
     }
 
     // Default: FebBox resolution
-    const queryToken = searchParams.get('febboxToken') || '';
+    const queryToken = request.nextUrl.searchParams.get('febboxToken') || '';
     const headerCookie = request.headers.get('x-febbox-cookie') || '';
-    const uiCookie = (queryToken || headerCookie || process.env.FEBBOX_UI_COOKIE || '').trim().replace(/^["']|["']$/g, '');
+    const uiCookie = (queryToken || headerCookie || process.env.FEBBOX_UI_COOKIE || '')
+      .trim()
+      .replace(/^["']|["']$/g, '');
 
     const febboxResult = await resolveStream({
       title,
@@ -135,32 +174,56 @@ export async function GET(request: NextRequest) {
     });
 
     if (!febboxResult.stream || febboxResult.stream.qualities.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'No streams found',
-        logs: febboxResult.logs,
-      });
+      return NextResponse.json(
+        { error: 'No streams found' },
+        { status: 404 }
+      );
     }
 
+    // Return stream data WITHOUT internal logs
     return NextResponse.json({
       success: true,
       data: febboxResult.stream,
-      logs: febboxResult.logs,
     });
   } catch (error: any) {
-    console.error('Stream resolution error:', error);
-    return NextResponse.json({ error: error.message || 'Internal error' }, { status: 500 });
+    return createGenericErrorResponse(error, 500, '/stream');
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting check
+    const rateLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.stream);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter || 60),
+          },
+        }
+      );
+    }
+
+    // Authentication check
+    const isAuthenticated = await isValidCloudSession(request);
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     if (body.action === 'validate-febbox') {
       const clientId = process.env.FEBBOX_CLIENT_ID || body.clientId || '';
       const clientSecret = process.env.FEBBOX_CLIENT_SECRET || body.clientSecret || '';
       if (!clientId || !clientSecret) {
-        return NextResponse.json({ valid: false, error: 'Missing FebBox credentials' });
+        return NextResponse.json(
+          { error: 'Invalid request' },
+          { status: 400 }
+        );
       }
       const tokenRes = await getFebBoxToken(clientId, clientSecret);
       if (tokenRes.code === 1 && tokenRes.data?.access_token) {
@@ -170,10 +233,16 @@ export async function POST(request: NextRequest) {
           tokenType: tokenRes.data.token_type,
         });
       }
-      return NextResponse.json({ valid: false, error: tokenRes.msg });
+      return NextResponse.json(
+        { error: 'Validation failed' },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid request' },
+      { status: 400 }
+    );
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return createGenericErrorResponse(error, 500, '/stream POST');
   }
 }
