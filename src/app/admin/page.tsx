@@ -6,6 +6,7 @@ import {
   addAdminBlockedMedia,
   banAdminTarget,
   clearAllActiveSessions,
+  clearUserActiveSessions,
   cloudFetch,
   createAdminAnnouncement,
   deleteAdminAccountLimit,
@@ -470,7 +471,7 @@ export default function AdminPage() {
       toast('Enter nickname or full user ID', 'error');
       return;
     }
-    if (!confirm('This action cannot be undone. Are you sure?')) return;
+    if (!confirm(`Delete user data for ${identifier}? This action cannot be undone.`)) return;
 
     setIsSubmitting(true);
     try {
@@ -581,6 +582,34 @@ export default function AdminPage() {
       window.location.href = '/login';
     } catch (error: any) {
       toast(error?.message || 'Failed to clear active sessions', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClearUserSessions = async (userId: string, username: string) => {
+    if (!isOwnerConfirmed) {
+      toast('Only owner can clear user sessions', 'error');
+      return;
+    }
+
+    const shouldClear = window.confirm(`Force logout all active sessions for "${username}"?`);
+    if (!shouldClear) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await clearUserActiveSessions(userId);
+      toast(`Cleared ${result.clearedCount} active sessions for ${result.user.username}`, 'success');
+
+      if (result.user.id === user?.id) {
+        logout();
+        window.location.href = '/login';
+        return;
+      }
+
+      await loadAll();
+    } catch (error: any) {
+      toast(error?.message || 'Failed to clear user sessions', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -1000,11 +1029,11 @@ export default function AdminPage() {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">Account bans (nickname / ID)</h3>
-                  <p className="text-[11px] text-text-muted">Ban an account by nickname or full user ID.</p>
+                  <h3 className="text-[13px] font-semibold text-text-primary">Account bans</h3>
+                  <p className="text-[11px] text-text-muted">Ban an account.</p>
                   <input
                     className="input w-full"
-                    placeholder="Enter nickname or full user ID"
+                    placeholder="nickname or user ID"
                     value={banValue}
                     onChange={(e) => setBanValue(e.target.value)}
                   />
@@ -1016,8 +1045,8 @@ export default function AdminPage() {
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm text-red-400/90 border border-red-500/10">
                   <h3 className="text-[13px] font-semibold">Danger Zone</h3>
-                  <p className="text-[11px] text-red-400/60">Wipe account data permanently or reset password using nickname or full user ID.</p>
-                  <input className="input w-full border-red-500/20 focus:border-red-500/40" placeholder="Enter nickname or full user ID" value={deleteUsername} onChange={(e) => setDeleteUsername(e.target.value)} />
+                  <p className="text-[11px] text-red-400/60">Wipe account data permanently or reset password.</p>
+                  <input className="input w-full border-red-500/20 focus:border-red-500/40" placeholder="nickname or user ID" value={deleteUsername} onChange={(e) => setDeleteUsername(e.target.value)} />
                   <div className="flex gap-2">
                     <button disabled={isSubmitting} onClick={handleDeleteUser} className="btn-glass flex-1 text-red-400 hover:bg-red-500/10">
                       Delete user data
@@ -1031,12 +1060,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">Account lookup (nickname / ID)</h3>
-                  <p className="text-[11px] text-text-muted">Find accounts linked through recent shared IP history for this account.</p>
+                  <h3 className="text-[13px] font-semibold text-text-primary">Account lookup</h3>
+                  <p className="text-[11px] text-text-muted">Find accounts linked through shared IP history.</p>
                   <div className="flex gap-2">
                     <input
                       className="input flex-1"
-                      placeholder="nickname or full user ID"
+                      placeholder="nickname or user ID"
                       value={lookupValue}
                       onChange={(e) => setLookupValue(e.target.value)}
                     />
@@ -1064,12 +1093,6 @@ export default function AdminPage() {
                                 <p className="text-[13px] font-medium text-text-primary">{account.username}</p>
                                 <p className="text-[10px] font-mono text-white/30 break-all">{account.id}</p>
                               </div>
-                              <button
-                                onClick={() => handleCreateAdminChat(account.id, account.username)}
-                                className="btn-accent px-3 py-1 rounded-[6px] text-[10px]"
-                              >
-                                Chat
-                              </button>
                             </div>
                             {account.lastSeenAt && <p className="text-[10px] text-white/20 mt-0.5">Last seen: {new Date(account.lastSeenAt).toLocaleString()}</p>}
                           </div>
@@ -1080,12 +1103,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">User account limit (nickname / ID)</h3>
-                  <p className="text-[11px] text-text-muted">Override max accounts allowed for this user (resolved by nickname or full user ID).</p>
+                  <h3 className="text-[13px] font-semibold text-text-primary">User account limit</h3>
+                  <p className="text-[11px] text-text-muted">Override max accounts allowed for this user.</p>
                   <div className="grid gap-2">
                     <input
                       className="input w-full"
-                      placeholder="nickname or full user ID"
+                      placeholder="nickname or user ID"
                       value={limitValue}
                       onChange={(e) => setLimitValue(e.target.value)}
                     />
@@ -1406,12 +1429,23 @@ export default function AdminPage() {
                     <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.createdAt).toLocaleString()}</td>
                     <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.lastActiveAt).toLocaleString()}</td>
                     <td className="px-3 py-3 text-right">
-                      <button
-                        onClick={() => handleCreateAdminChat(item.id, item.username)}
-                        className="btn-glass text-[10px] py-1.5 px-3 bg-white/5 border-white/5 hover:bg-white/10"
-                      >
-                        Chat
-                      </button>
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          onClick={() => handleCreateAdminChat(item.id, item.username)}
+                          className="btn-glass text-[10px] py-1.5 px-3 bg-white/5 border-white/5 hover:bg-white/10"
+                        >
+                          Chat
+                        </button>
+                        {isOwnerConfirmed && (
+                          <button
+                            onClick={() => handleClearUserSessions(item.id, item.username)}
+                            disabled={isSubmitting}
+                            className="btn-glass text-[10px] py-1.5 px-3 text-amber-300 border-amber-500/20 hover:bg-amber-500/10"
+                          >
+                            Clear sessions
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

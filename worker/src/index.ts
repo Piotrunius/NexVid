@@ -3021,6 +3021,47 @@ async function handleAdminSessions(request: Request, env: Env): Promise<Response
   });
 }
 
+async function handleAdminUserSessions(request: Request, env: Env): Promise<Response> {
+  const session = await requireRole(request, env, ['owner']);
+  if (session instanceof Response) return session;
+
+  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+
+  const body = await readJson<{ identifier?: string; userId?: string; username?: string }>(request);
+  const rawIdentifier = (body.identifier || body.userId || body.username || '').trim();
+  const resolved = await findUserByIdentifier(env, rawIdentifier);
+
+  if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+  if (!resolved.user) return json(request, env, { error: 'User not found' }, 404);
+
+  const now = new Date().toISOString();
+  const targetUserId = resolved.user.id;
+  const targetUsername = resolved.user.username;
+
+  const activeCount = await env.DB
+    .prepare('SELECT COUNT(*) as count FROM sessions WHERE user_id = ? AND expires_at > ?')
+    .bind(targetUserId, now)
+    .first<{ count: number }>();
+
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND expires_at > ?').bind(targetUserId, now).run();
+
+  await writeAdminAuditLog(env, session.user.id, 'force_clear_user_sessions', 'user', targetUserId, {
+    username: targetUsername,
+    inputValue: rawIdentifier,
+    matchedBy: resolved.matchType,
+    clearedCount: activeCount?.count || 0,
+  });
+
+  return json(request, env, {
+    ok: true,
+    clearedCount: activeCount?.count || 0,
+    user: {
+      id: targetUserId,
+      username: targetUsername,
+    },
+  });
+}
+
 async function handleAdminAuditLogs(request: Request, env: Env): Promise<Response> {
   const session = await requireAdmin(request, env);
   if (session instanceof Response) return session;
@@ -3953,6 +3994,9 @@ export default {
         case '/admin/sessions/clear':
           if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminSessions(request, env);
+        case '/admin/sessions/clear-user':
+          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleAdminUserSessions(request, env);
         case '/admin/audit-logs':
           if (!['GET'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminAuditLogs(request, env);

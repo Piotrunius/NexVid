@@ -323,6 +323,13 @@ export async function clearAllActiveSessions() {
   return cloudFetch<{ ok: boolean; clearedCount: number }>('/admin/sessions/clear', { method: 'POST' });
 }
 
+export async function clearUserActiveSessions(identifier: string) {
+  return cloudFetch<{ ok: boolean; clearedCount: number; user: { id: string; username: string } }>('/admin/sessions/clear-user', {
+    method: 'POST',
+    body: JSON.stringify({ identifier }),
+  });
+}
+
 export async function loadAdminAuditLogs(params?: { limit?: number; offset?: number }) {
   const limit = Math.max(1, Math.min(100, params?.limit ?? 20));
   const offset = Math.max(0, params?.offset ?? 0);
