@@ -4,6 +4,43 @@ export const runtime = 'edge';
 
 const WORKER_URL = (process.env.API_URL || 'https://nexvid-proxy.piotrunius.workers.dev').replace(/\/+$/, '');
 
+function sanitizeIpCandidate(value?: string | null): string | null {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (raw.toLowerCase() === 'unknown') return null;
+
+  const first = raw.split(',')[0]?.trim() || '';
+  if (!first) return null;
+
+  // Handle IPv6 wrapped IPv4, e.g. ::ffff:203.0.113.10
+  const normalized = first.startsWith('::ffff:') ? first.slice(7) : first;
+
+  const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+  const ipv6 = /^[0-9a-fA-F:]+$/;
+
+  if (ipv4.test(normalized)) return normalized;
+  if (ipv6.test(normalized)) return normalized;
+  return null;
+}
+
+function getClientIpFromRequest(req: NextRequest): string | null {
+  const requestWithIp = req as NextRequest & { ip?: string };
+  const candidates = [
+    requestWithIp.ip,
+    req.headers.get('CF-Connecting-IP'),
+    req.headers.get('True-Client-IP'),
+    req.headers.get('X-Real-IP'),
+    req.headers.get('X-Forwarded-For'),
+  ];
+
+  for (const candidate of candidates) {
+    const ip = sanitizeIpCandidate(candidate);
+    if (ip) return ip;
+  }
+
+  return null;
+}
+
 export async function ANY(req: NextRequest, { params }: { params: { path: string[] } }) {
   try {
     const path = params.path ? params.path.join('/') : '';
@@ -13,7 +50,7 @@ export async function ANY(req: NextRequest, { params }: { params: { path: string
     // Read token from the protected cookie
     const cookieToken = req.cookies.get('nexvid_session')?.value;
     const authHeader = req.headers.get('Authorization');
-    
+
     // Check if the user has a legacy token stored in localstorage
     const isLegacyToken = !cookieToken && authHeader && authHeader.startsWith('Bearer ') && authHeader !== 'Bearer server-proxy-token';
     const legacyTokenStr = isLegacyToken ? authHeader.substring(7) : null;
@@ -23,9 +60,15 @@ export async function ANY(req: NextRequest, { params }: { params: { path: string
     headers.set('Host', new URL(WORKER_URL).host);
     headers.delete('Cookie'); // Remove frontend cookies for purity
 
-    // Ensure the original client IP is passed to the worker for accurate statistics (active guests)
-    if (req.ip) {
-      headers.set('X-Forwarded-For', req.ip);
+    // Ensure the original client IP is passed to the worker, even when req.ip is unavailable.
+    const clientIp = getClientIpFromRequest(req);
+    headers.delete('X-Forwarded-For');
+    headers.delete('X-Real-IP');
+    headers.delete('X-NexVid-Client-IP');
+    if (clientIp) {
+      headers.set('X-Forwarded-For', clientIp);
+      headers.set('X-Real-IP', clientIp);
+      headers.set('X-NexVid-Client-IP', clientIp);
     }
 
     if (cookieToken) {
@@ -59,14 +102,14 @@ export async function ANY(req: NextRequest, { params }: { params: { path: string
       responseHeaders.set('X-Token-Migrated', 'server-proxy-token');
       // Control is intercepted here to edit cookies!
     }
-    
+
     if ((path === 'auth/login' || path === 'auth/register' || path === 'auth/change-password') && workerResponse.ok) {
       const data = await workerResponse.json();
-      
+
       if (data.token) {
         const tokenVal = data.token;
         data.token = 'server-proxy-token'; // Dummy - the client gets a safe truncated token "knowing" it is logged in
-        
+
         const newResponse = NextResponse.json(data, {
           status: workerResponse.status,
           headers: responseHeaders,
@@ -80,7 +123,7 @@ export async function ANY(req: NextRequest, { params }: { params: { path: string
           sameSite: 'lax',
           maxAge: 30 * 24 * 60 * 60, // 30 days
         });
-        
+
         return newResponse;
       }
 

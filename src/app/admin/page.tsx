@@ -69,6 +69,8 @@ type AccountLookupResult = {
   query: { type: 'username'; value: string };
   accountCount: number;
   ipGroupCount?: number;
+  inspectedIpGroupCount?: number;
+  ignoredSharedIpGroupCount?: number;
   accounts: { id: string; username: string; lastSeenAt?: string | null }[];
 };
 
@@ -1045,6 +1047,14 @@ export default function AdminPage() {
                   {lookupResult && (
                     <div className="rounded-[10px] p-2.5 space-y-1 bg-white/5">
                       <p className="text-[13px] font-medium text-text-primary">Accounts found: {lookupResult.accountCount}</p>
+                      {typeof lookupResult.inspectedIpGroupCount === 'number' && (
+                        <p className="text-[11px] text-white/45">
+                          IP groups used: {lookupResult.ipGroupCount ?? 0}/{lookupResult.inspectedIpGroupCount}
+                          {lookupResult.ignoredSharedIpGroupCount
+                            ? ` (ignored as shared: ${lookupResult.ignoredSharedIpGroupCount})`
+                            : ''}
+                        </p>
+                      )}
                       <div className="max-h-40 overflow-auto space-y-1.5 pt-1">
                         {lookupResult.accounts.map((account) => (
                           <div key={account.id} className="rounded-[8px] bg-white/5 px-2.5 py-2">
