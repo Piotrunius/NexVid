@@ -233,11 +233,36 @@ function buildAuthCookieClear(): string {
   return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
 
+function sanitizeIpCandidate(value?: string | null): string | null {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (raw.toLowerCase() === 'unknown') return null;
+
+  const first = raw.split(',')[0]?.trim() || '';
+  if (!first) return null;
+
+  const normalized = first.startsWith('::ffff:') ? first.slice(7) : first;
+  const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+  const ipv6 = /^[0-9a-fA-F:]+$/;
+
+  if (ipv4.test(normalized)) return normalized;
+  if (ipv6.test(normalized)) return normalized;
+  return null;
+}
+
 function getClientIp(request: Request): string {
-  const forwarded = request.headers.get('X-Forwarded-For');
-  if (forwarded) return forwarded.split(',')[0].trim();
-  const cfIp = request.headers.get('CF-Connecting-IP');
-  if (cfIp) return cfIp.trim();
+  const candidates = [
+    request.headers.get('X-NexVid-Client-IP'),
+    request.headers.get('X-Forwarded-For'),
+    request.headers.get('X-Real-IP'),
+    request.headers.get('CF-Connecting-IP'),
+  ];
+
+  for (const candidate of candidates) {
+    const ip = sanitizeIpCandidate(candidate);
+    if (ip) return ip;
+  }
+
   return 'unknown';
 }
 
@@ -808,12 +833,20 @@ async function cleanupExpiredWatchParties(env: Env): Promise<void> {
 
 type RequestIdentifiers = {
   ip: string;
-  ipHash: string;
-  fingerprintHash: string;
+  ipHash: string | null;
+  fingerprintHash: string | null;
 };
 
 async function getRequestIdentifiers(request: Request): Promise<RequestIdentifiers> {
   const ip = getClientIp(request);
+  if (!ip || ip === 'unknown') {
+    return {
+      ip: 'unknown',
+      ipHash: null,
+      fingerprintHash: null,
+    };
+  }
+
   const userAgent = (request.headers.get('User-Agent') || '').slice(0, 500);
   const ipHash = await sha256Hex(`ip:${ip}`);
   const fingerprintHash = await sha256Hex(`fp:${ip}|${userAgent}`);
@@ -821,17 +854,32 @@ async function getRequestIdentifiers(request: Request): Promise<RequestIdentifie
 }
 
 async function getBannedIdentifierReason(env: Env, identifiers: RequestIdentifiers): Promise<string | null> {
+  if (!identifiers.ipHash && !identifiers.fingerprintHash) return null;
+
   await ensureSecurityTables(env);
-  const row = await env.DB
-    .prepare('SELECT reason FROM banned_identifiers WHERE identifier IN (?, ?) LIMIT 1')
-    .bind(identifiers.ipHash, identifiers.fingerprintHash)
-    .first<{ reason: string | null }>();
+
+  let row: { reason: string | null } | null = null;
+  if (identifiers.ipHash && identifiers.fingerprintHash) {
+    row = await env.DB
+      .prepare('SELECT reason FROM banned_identifiers WHERE identifier IN (?, ?) LIMIT 1')
+      .bind(identifiers.ipHash, identifiers.fingerprintHash)
+      .first<{ reason: string | null }>();
+  } else {
+    const identifier = identifiers.ipHash || identifiers.fingerprintHash;
+    row = await env.DB
+      .prepare('SELECT reason FROM banned_identifiers WHERE identifier = ? LIMIT 1')
+      .bind(identifier)
+      .first<{ reason: string | null }>();
+  }
+
   if (!row) return null;
   const reason = (row.reason || '').trim();
   return reason || 'Device/network banned';
 }
 
 async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, normalizedUsername: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!identifiers.ipHash) return { ok: true };
+
   await ensureSecurityTables(env);
 
   const usernameOverride = await env.DB
@@ -876,6 +924,8 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
 }
 
 async function linkUserIdentifiers(env: Env, userId: string, identifiers: RequestIdentifiers): Promise<void> {
+  if (!identifiers.ipHash || !identifiers.fingerprintHash) return;
+
   const nowMs = Date.now();
   const cacheKey = `link:${userId}:${identifiers.ipHash}`;
   const last = lastSeenCache.get(cacheKey);
@@ -2453,6 +2503,8 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
 
   const url = new URL(request.url);
   const rawValue = (url.searchParams.get('value') || '').trim();
+  const LOOKUP_IP_WINDOW_DAYS = 30;
+  const LOOKUP_MAX_USERS_PER_IP = Math.max(DEFAULT_MAX_ACCOUNTS_PER_IP * 2, 4);
 
   if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
@@ -2465,10 +2517,11 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
        JOIN users u ON u.id = ui.user_id
        WHERE ui.id_type = 'ip'
          AND ui.identifier IN (${placeholders})
+         AND datetime(ui.last_seen_at) >= datetime('now', ?)
        GROUP BY u.id, u.username
        ORDER BY LOWER(u.username) ASC`
     )
-      .bind(...ipHashes)
+      .bind(...ipHashes, `-${LOOKUP_IP_WINDOW_DAYS} days`)
       .all<{ id: string; username: string; last_seen_at: string | null }>();
 
     return (rows.results || []).map((row) => ({
@@ -2491,21 +2544,65 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
   }
 
   const userIpRows = await env.DB.prepare(
-    `SELECT DISTINCT identifier
+    `SELECT identifier
      FROM user_identifiers
      WHERE user_id = ?
        AND id_type = 'ip'
+       AND datetime(last_seen_at) >= datetime('now', ?)
      ORDER BY last_seen_at DESC
      LIMIT 50`
-  ).bind(baseUser.id).all<{ identifier: string }>();
+  ).bind(baseUser.id, `-${LOOKUP_IP_WINDOW_DAYS} days`).all<{ identifier: string }>();
 
-  const ipHashes = (userIpRows.results || []).map((row) => row.identifier);
-  const accounts = await getAccountsByIpHashes(ipHashes);
+  let candidateIpHashes = Array.from(new Set((userIpRows.results || []).map((row) => row.identifier)));
+
+  if (candidateIpHashes.length === 0) {
+    const fallbackUserIpRows = await env.DB.prepare(
+      `SELECT identifier
+       FROM user_identifiers
+       WHERE user_id = ?
+         AND id_type = 'ip'
+       ORDER BY last_seen_at DESC
+       LIMIT 10`
+    ).bind(baseUser.id).all<{ identifier: string }>();
+
+    candidateIpHashes = Array.from(new Set((fallbackUserIpRows.results || []).map((row) => row.identifier)));
+  }
+
+  if (candidateIpHashes.length === 0) {
+    return json(request, env, {
+      query: { type: 'username', value: username },
+      accountCount: 1,
+      ipGroupCount: 0,
+      accounts: [{ id: baseUser.id, username: baseUser.username, lastSeenAt: null }],
+    });
+  }
+
+  const ipPlaceholders = candidateIpHashes.map(() => '?').join(', ');
+  const ipDensityRows = await env.DB.prepare(
+    `SELECT identifier, COUNT(DISTINCT user_id) AS user_count
+     FROM user_identifiers
+     WHERE id_type = 'ip'
+       AND identifier IN (${ipPlaceholders})
+     GROUP BY identifier`
+  ).bind(...candidateIpHashes).all<{ identifier: string; user_count: number }>();
+
+  const ipDensityByHash = new Map((ipDensityRows.results || []).map((row) => [row.identifier, Number(row.user_count || 0)]));
+  const filteredIpHashes = candidateIpHashes.filter((ipHash) => {
+    const usersOnIp = ipDensityByHash.get(ipHash) || 0;
+    return usersOnIp > 0 && usersOnIp <= LOOKUP_MAX_USERS_PER_IP;
+  });
+
+  const accounts = await getAccountsByIpHashes(filteredIpHashes);
+  if (!accounts.some((account) => account.id === baseUser.id)) {
+    accounts.unshift({ id: baseUser.id, username: baseUser.username, lastSeenAt: null });
+  }
 
   return json(request, env, {
     query: { type: 'username', value: username },
     accountCount: accounts.length,
-    ipGroupCount: ipHashes.length,
+    ipGroupCount: filteredIpHashes.length,
+    inspectedIpGroupCount: candidateIpHashes.length,
+    ignoredSharedIpGroupCount: Math.max(0, candidateIpHashes.length - filteredIpHashes.length),
     accounts,
   });
 }

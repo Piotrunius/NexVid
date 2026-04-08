@@ -211,6 +211,8 @@ export async function lookupAdminAccounts(type: 'username', value: string) {
     query: { type: 'username'; value: string };
     accountCount: number;
     ipGroupCount?: number;
+    inspectedIpGroupCount?: number;
+    ignoredSharedIpGroupCount?: number;
     accounts: { id: string; username: string; lastSeenAt?: string | null }[];
   }>(`/admin/account-lookup?type=${encodeURIComponent(type)}&value=${encodeURIComponent(value)}`, {
     method: 'GET',
