@@ -208,7 +208,7 @@ export async function deleteAdminAccountLimit(type: 'username', value: string) {
 
 export async function lookupAdminAccounts(type: 'username', value: string) {
   return cloudFetch<{
-    query: { type: 'username'; value: string };
+    query: { type: 'username' | 'id'; value: string };
     accountCount: number;
     ipGroupCount?: number;
     inspectedIpGroupCount?: number;
@@ -289,14 +289,14 @@ export async function deleteAdminAnnouncement(id: string) {
   return cloudFetch(`/admin/announcements?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
-export async function deleteAdminUserByUsername(username: string) {
-  return cloudFetch(`/admin/users?username=${encodeURIComponent(username)}`, { method: 'DELETE' });
+export async function deleteAdminUserByUsername(identifier: string) {
+  return cloudFetch(`/admin/users?identifier=${encodeURIComponent(identifier)}`, { method: 'DELETE' });
 }
 
-export async function resetUserPassword(username: string) {
+export async function resetUserPassword(identifier: string) {
   return cloudFetch<{ ok: boolean; temporaryPassword?: string }>('/admin/users/reset-password', {
     method: 'POST',
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ identifier }),
   });
 }
 

@@ -66,7 +66,7 @@ type AccountLimitItem = {
 };
 
 type AccountLookupResult = {
-  query: { type: 'username'; value: string };
+  query: { type: 'username' | 'id'; value: string };
   accountCount: number;
   ipGroupCount?: number;
   inspectedIpGroupCount?: number;
@@ -190,7 +190,7 @@ export default function AdminPage() {
   const [selectedFeedbackThreadMeta, setSelectedFeedbackThreadMeta] = useState<{ status: 'open' | 'answered' | 'closed'; closedExpiresAt?: string; closedRemainingMs?: number } | null>(null);
   const [feedbackReply, setFeedbackReply] = useState('');
 
-  const [banType, setBanType] = useState<'username' | 'ip'>('username');
+  const banType: 'username' = 'username';
   const [banValue, setBanValue] = useState('');
   const [banReason, setBanReason] = useState('');
   const [deleteUsername, setDeleteUsername] = useState('');
@@ -433,7 +433,7 @@ export default function AdminPage() {
   const handleBanTarget = async () => {
     const value = banValue.trim();
     if (!value) {
-      toast('Enter nickname or IP', 'error');
+      toast('Enter nickname or full user ID', 'error');
       return;
     }
 
@@ -443,7 +443,7 @@ export default function AdminPage() {
       setBanValue('');
       setBanReason('');
       await loadAll();
-      toast(`${banType === 'ip' ? 'IP' : 'Nickname'} banned`, 'success');
+      toast('Account banned', 'success');
     } catch (error: any) {
       toast(error?.message || 'Failed to ban target', 'error');
     } finally {
@@ -465,16 +465,16 @@ export default function AdminPage() {
   };
 
   const handleDeleteUser = async () => {
-    const username = deleteUsername.trim();
-    if (!username) {
-      toast('Enter nickname', 'error');
+    const identifier = deleteUsername.trim();
+    if (!identifier) {
+      toast('Enter nickname or full user ID', 'error');
       return;
     }
     if (!confirm('This action cannot be undone. Are you sure?')) return;
 
     setIsSubmitting(true);
     try {
-      await deleteAdminUserByUsername(username);
+      await deleteAdminUserByUsername(identifier);
       setDeleteUsername('');
       await loadAll();
       toast('User data deleted from D1', 'success');
@@ -486,16 +486,16 @@ export default function AdminPage() {
   };
 
   const handleResetPassword = async () => {
-    const username = deleteUsername.trim();
-    if (!username) {
-      toast('Enter nickname first', 'error');
+    const identifier = deleteUsername.trim();
+    if (!identifier) {
+      toast('Enter nickname or full user ID first', 'error');
       return;
     }
-    if (!confirm(`Reset password for ${username}? This will generate a temporary one.`)) return;
+    if (!confirm(`Reset password for ${identifier}? This will generate a temporary one.`)) return;
 
     setIsSubmitting(true);
     try {
-      const res = await resetUserPassword(username);
+      const res = await resetUserPassword(identifier);
       if (res.temporaryPassword) {
         prompt('Password reset successful. Copy the temporary password:', res.temporaryPassword);
       } else {
@@ -511,7 +511,7 @@ export default function AdminPage() {
   const handleSetLimit = async () => {
     const value = limitValue.trim();
     if (!value) {
-      toast('Enter nickname or IP for override', 'error');
+      toast('Enter nickname or full user ID for override', 'error');
       return;
     }
     if (!Number.isFinite(limitAmount) || limitAmount < 1) {
@@ -548,7 +548,7 @@ export default function AdminPage() {
   const handleLookupAccounts = async () => {
     const value = lookupValue.trim();
     if (!value) {
-      toast('Enter nickname or IP to inspect', 'error');
+      toast('Enter nickname or full user ID to inspect', 'error');
       return;
     }
 
@@ -1000,23 +1000,24 @@ export default function AdminPage() {
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">Nickname bans</h3>
+                  <h3 className="text-[13px] font-semibold text-text-primary">Account bans (nickname / ID)</h3>
+                  <p className="text-[11px] text-text-muted">Ban an account by nickname or full user ID.</p>
                   <input
                     className="input w-full"
-                    placeholder="Enter nickname to ban"
+                    placeholder="Enter nickname or full user ID"
                     value={banValue}
                     onChange={(e) => setBanValue(e.target.value)}
                   />
                   <input className="input w-full" placeholder="Reason (optional)" value={banReason} onChange={(e) => setBanReason(e.target.value)} />
                   <button disabled={isSubmitting} onClick={handleBanTarget} className="btn-accent w-full">
-                    Ban user
+                    Ban account
                   </button>
                 </div>
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm text-red-400/90 border border-red-500/10">
                   <h3 className="text-[13px] font-semibold">Danger Zone</h3>
-                  <p className="text-[11px] text-red-400/60">Wipe user data permanently or reset account password.</p>
-                  <input className="input w-full border-red-500/20 focus:border-red-500/40" placeholder="Enter nickname" value={deleteUsername} onChange={(e) => setDeleteUsername(e.target.value)} />
+                  <p className="text-[11px] text-red-400/60">Wipe account data permanently or reset password using nickname or full user ID.</p>
+                  <input className="input w-full border-red-500/20 focus:border-red-500/40" placeholder="Enter nickname or full user ID" value={deleteUsername} onChange={(e) => setDeleteUsername(e.target.value)} />
                   <div className="flex gap-2">
                     <button disabled={isSubmitting} onClick={handleDeleteUser} className="btn-glass flex-1 text-red-400 hover:bg-red-500/10">
                       Delete user data
@@ -1030,12 +1031,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">Nickname lookup</h3>
-                  <p className="text-[11px] text-text-muted">Find all accounts linked to the same fingerprints as this nickname.</p>
+                  <h3 className="text-[13px] font-semibold text-text-primary">Account lookup (nickname / ID)</h3>
+                  <p className="text-[11px] text-text-muted">Find accounts linked through recent shared IP history for this account.</p>
                   <div className="flex gap-2">
                     <input
                       className="input flex-1"
-                      placeholder="nickname"
+                      placeholder="nickname or full user ID"
                       value={lookupValue}
                       onChange={(e) => setLookupValue(e.target.value)}
                     />
@@ -1049,9 +1050,9 @@ export default function AdminPage() {
                       <p className="text-[13px] font-medium text-text-primary">Accounts found: {lookupResult.accountCount}</p>
                       {typeof lookupResult.inspectedIpGroupCount === 'number' && (
                         <p className="text-[11px] text-white/45">
-                          IP groups used: {lookupResult.ipGroupCount ?? 0}/{lookupResult.inspectedIpGroupCount}
+                          IP's used: {lookupResult.ipGroupCount ?? 0}/{lookupResult.inspectedIpGroupCount}
                           {lookupResult.ignoredSharedIpGroupCount
-                            ? ` (ignored as shared: ${lookupResult.ignoredSharedIpGroupCount})`
+                            ? ` (ignored: ${lookupResult.ignoredSharedIpGroupCount})`
                             : ''}
                         </p>
                       )}
@@ -1061,7 +1062,7 @@ export default function AdminPage() {
                             <div className="flex items-center justify-between gap-2">
                               <div>
                                 <p className="text-[13px] font-medium text-text-primary">{account.username}</p>
-                                <p className="text-[10px] font-mono text-white/30">{account.id.slice(0, 8)}...</p>
+                                <p className="text-[10px] font-mono text-white/30 break-all">{account.id}</p>
                               </div>
                               <button
                                 onClick={() => handleCreateAdminChat(account.id, account.username)}
@@ -1079,12 +1080,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">User account limit</h3>
-                  <p className="text-[11px] text-text-muted">Override max accounts allowed for this specific user's fingerprint.</p>
+                  <h3 className="text-[13px] font-semibold text-text-primary">User account limit (nickname / ID)</h3>
+                  <p className="text-[11px] text-text-muted">Override max accounts allowed for this user (resolved by nickname or full user ID).</p>
                   <div className="grid gap-2">
                     <input
                       className="input w-full"
-                      placeholder="nickname"
+                      placeholder="nickname or full user ID"
                       value={limitValue}
                       onChange={(e) => setLimitValue(e.target.value)}
                     />

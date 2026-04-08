@@ -1042,6 +1042,52 @@ function isValidIp(value: string): boolean {
   return ipv4.test(candidate) || (candidate.includes(':') && ipv6.test(candidate));
 }
 
+function isValidUserId(value: string): boolean {
+  const candidate = value.trim();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate);
+}
+
+type UserIdentifierMatchType = 'username' | 'id';
+
+async function findUserByIdentifier(
+  env: Env,
+  rawValue: string,
+): Promise<{ user: { id: string; username: string } | null; matchType: UserIdentifierMatchType | null; validIdentifier: boolean }> {
+  const value = String(rawValue || '').trim();
+  if (!value) {
+    return { user: null, matchType: null, validIdentifier: false };
+  }
+
+  if (isValidUserId(value)) {
+    const byId = await env.DB
+      .prepare('SELECT id, username FROM users WHERE id = ? LIMIT 1')
+      .bind(value)
+      .first<{ id: string; username: string }>();
+
+    return {
+      user: byId?.id ? { id: byId.id, username: byId.username } : null,
+      matchType: 'id',
+      validIdentifier: true,
+    };
+  }
+
+  if (isValidUsername(value)) {
+    const normalizedUsername = normalizeUsername(value);
+    const byUsername = await env.DB
+      .prepare('SELECT id, username FROM users WHERE LOWER(username) = ? LIMIT 1')
+      .bind(normalizedUsername)
+      .first<{ id: string; username: string }>();
+
+    return {
+      user: byUsername?.id ? { id: byUsername.id, username: byUsername.username } : null,
+      matchType: 'username',
+      validIdentifier: true,
+    };
+  }
+
+  return { user: null, matchType: null, validIdentifier: false };
+}
+
 function sanitizeAnnouncementType(value: string | undefined): AnnouncementType {
   const candidate = (value || 'info').toLowerCase();
   if (candidate === 'warning' || candidate === 'update' || candidate === 'success') return candidate;
@@ -2320,21 +2366,29 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
     const now = new Date().toISOString();
 
     if (type === 'username') {
-      if (!isValidUsername(value)) return json(request, env, { error: 'Invalid nickname format' }, 400);
-      const username = normalizeUsername(value);
+      const resolved = await findUserByIdentifier(env, value);
+      if (!resolved.validIdentifier) {
+        return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+      }
 
-      const targetUser = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
-      if (targetUser?.id) {
-        if (targetUser.id === session.user.id) {
+      if (resolved.matchType === 'id' && !resolved.user) {
+        return json(request, env, { error: 'User not found for this ID' }, 404);
+      }
+
+      const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(value);
+      const targetUserId = resolved.user?.id || null;
+
+      if (targetUserId) {
+        if (targetUserId === session.user.id) {
           return json(request, env, { error: 'You cannot ban your own account' }, 403);
         }
 
-        const targetRole = await getUserRole(env, targetUser.id);
+        const targetRole = await getUserRole(env, targetUserId);
         if (isAdminRole(targetRole)) {
           return json(request, env, { error: 'Cannot ban Owner/Admin/Moderator accounts' }, 403);
         }
 
-        const protectedTarget = await isUserProtectedFromBan(env, targetUser.id);
+        const protectedTarget = await isUserProtectedFromBan(env, targetUserId);
         if (protectedTarget) {
           return json(request, env, { error: 'Cannot ban administrators or accounts created by administrators' }, 403);
         }
@@ -2346,9 +2400,9 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
          ON CONFLICT(username) DO UPDATE SET reason = excluded.reason, created_at = excluded.created_at, created_by_user_id = excluded.created_by_user_id`
       ).bind(username, reason || null, now, session.user.id).run();
 
-      if (targetUser?.id) {
-        await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUser.id).run();
-        const identifiers = await env.DB.prepare('SELECT identifier, id_type FROM user_identifiers WHERE user_id = ?').bind(targetUser.id).all<{ identifier: string; id_type: string }>();
+      if (targetUserId) {
+        await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUserId).run();
+        const identifiers = await env.DB.prepare('SELECT identifier, id_type FROM user_identifiers WHERE user_id = ?').bind(targetUserId).all<{ identifier: string; id_type: string }>();
         for (const identifier of identifiers.results || []) {
           await env.DB.prepare(
             `INSERT INTO banned_identifiers (identifier, id_type, reason, created_at, created_by_user_id)
@@ -2358,7 +2412,12 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
         }
       }
 
-      await writeAdminAuditLog(env, session.user.id, 'ban_username', 'username', username, { reason: reason || null });
+      await writeAdminAuditLog(env, session.user.id, 'ban_username', 'username', username, {
+        reason: reason || null,
+        inputValue: value,
+        matchedBy: resolved.matchType,
+        targetUserId: targetUserId || null,
+      });
       return json(request, env, { ok: true });
     }
 
@@ -2400,16 +2459,34 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
     if (!value) return json(request, env, { error: 'Missing value' }, 400);
 
     if (type === 'username') {
-      const username = normalizeUsername(value);
+      const resolved = await findUserByIdentifier(env, value);
+      if (!resolved.validIdentifier) {
+        return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+      }
+
+      if (resolved.matchType === 'id' && !resolved.user) {
+        return json(request, env, { error: 'User not found for this ID' }, 404);
+      }
+
+      const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(value);
+
       await env.DB.prepare('DELETE FROM banned_usernames WHERE username = ?').bind(username).run();
-      const user = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
+
+      const user = resolved.user?.id
+        ? { id: resolved.user.id }
+        : await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
+
       if (user?.id) {
         const identifiers = await env.DB.prepare('SELECT identifier FROM user_identifiers WHERE user_id = ?').bind(user.id).all<{ identifier: string }>();
         for (const identifier of identifiers.results || []) {
           await env.DB.prepare('DELETE FROM banned_identifiers WHERE identifier = ?').bind(identifier.identifier).run();
         }
       }
-      await writeAdminAuditLog(env, session.user.id, 'unban_username', 'username', username, null);
+
+      await writeAdminAuditLog(env, session.user.id, 'unban_username', 'username', username, {
+        inputValue: value,
+        matchedBy: resolved.matchType,
+      });
       return json(request, env, { ok: true });
     }
 
@@ -2464,8 +2541,11 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
 
     if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
-    const username = normalizeUsername(rawValue);
-    if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
+    const resolved = await findUserByIdentifier(env, rawValue);
+    if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+    if (resolved.matchType === 'id' && !resolved.user) return json(request, env, { error: 'User not found for this ID' }, 404);
+
+    const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(rawValue);
 
     await env.DB.prepare(
       `INSERT INTO account_limit_overrides (type, value, value_label, max_accounts, created_at, updated_at, created_by_user_id)
@@ -2473,7 +2553,12 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
        ON CONFLICT(type, value) DO UPDATE SET value_label = excluded.value_label, max_accounts = excluded.max_accounts, updated_at = excluded.updated_at, created_by_user_id = excluded.created_by_user_id`
     ).bind('username', username, username, maxAccounts, now, now, session.user.id).run();
 
-    await writeAdminAuditLog(env, session.user.id, 'set_account_limit_override', 'username', username, { maxAccounts });
+    await writeAdminAuditLog(env, session.user.id, 'set_account_limit_override', 'username', username, {
+      maxAccounts,
+      inputValue: rawValue,
+      matchedBy: resolved.matchType,
+      targetUserId: resolved.user?.id || null,
+    });
     return json(request, env, { ok: true });
   }
 
@@ -2483,10 +2568,18 @@ async function handleAdminAccountLimits(request: Request, env: Env): Promise<Res
 
     if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
-    const username = normalizeUsername(rawValue);
-    if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
+    const resolved = await findUserByIdentifier(env, rawValue);
+    if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+    if (resolved.matchType === 'id' && !resolved.user) return json(request, env, { error: 'User not found for this ID' }, 404);
+
+    const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(rawValue);
+
     await env.DB.prepare('DELETE FROM account_limit_overrides WHERE type = ? AND value = ?').bind('username', username).run();
-    await writeAdminAuditLog(env, session.user.id, 'delete_account_limit_override', 'username', username, null);
+    await writeAdminAuditLog(env, session.user.id, 'delete_account_limit_override', 'username', username, {
+      inputValue: rawValue,
+      matchedBy: resolved.matchType,
+      targetUserId: resolved.user?.id || null,
+    });
     return json(request, env, { ok: true });
   }
 
@@ -2531,17 +2624,21 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
     }));
   };
 
-  const username = normalizeUsername(rawValue);
-  if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
+  const resolved = await findUserByIdentifier(env, rawValue);
+  if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
 
-  const baseUser = await env.DB.prepare('SELECT id, username FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string; username: string }>();
+  const baseUser = resolved.user;
   if (!baseUser) {
+    const queryValue = resolved.matchType === 'username' ? normalizeUsername(rawValue) : rawValue;
     return json(request, env, {
-      query: { type: 'username', value: username },
+      query: { type: resolved.matchType || 'username', value: queryValue },
       accountCount: 0,
       accounts: [],
     });
   }
+
+  const queryType = resolved.matchType || 'username';
+  const queryValue = queryType === 'username' ? normalizeUsername(rawValue) : rawValue;
 
   const userIpRows = await env.DB.prepare(
     `SELECT identifier
@@ -2570,7 +2667,7 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
 
   if (candidateIpHashes.length === 0) {
     return json(request, env, {
-      query: { type: 'username', value: username },
+      query: { type: queryType, value: queryValue },
       accountCount: 1,
       ipGroupCount: 0,
       accounts: [{ id: baseUser.id, username: baseUser.username, lastSeenAt: null }],
@@ -2598,7 +2695,7 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
   }
 
   return json(request, env, {
-    query: { type: 'username', value: username },
+    query: { type: queryType, value: queryValue },
     accountCount: accounts.length,
     ipGroupCount: filteredIpHashes.length,
     inspectedIpGroupCount: candidateIpHashes.length,
@@ -2708,19 +2805,23 @@ async function handleAdminResetPassword(request: Request, env: Env): Promise<Res
   const session = await requireRole(request, env, ['owner']);
   if (session instanceof Response) return session;
 
-  const body = await readJson<{ username: string }>(request);
-  const username = normalizeUsername(body.username || '');
-  if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
+  const body = await readJson<{ identifier?: string; username?: string }>(request);
+  const rawIdentifier = (body.identifier || body.username || '').trim();
+  const resolved = await findUserByIdentifier(env, rawIdentifier);
 
-  const targetUser = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
-  if (!targetUser?.id) return json(request, env, { error: 'User not found' }, 404);
+  if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+  if (!resolved.user) return json(request, env, { error: 'User not found' }, 404);
 
   // Generate 8-char temp password
   const tempPassword = crypto.randomUUID().slice(0, 8);
   const hash = await hashPassword(tempPassword);
 
-  await env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 1 WHERE id = ?').bind(hash, targetUser.id).run();
-  await writeAdminAuditLog(env, session.user.id, 'reset_password', 'user', targetUser.id, { username });
+  await env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 1 WHERE id = ?').bind(hash, resolved.user.id).run();
+  await writeAdminAuditLog(env, session.user.id, 'reset_password', 'user', resolved.user.id, {
+    username: resolved.user.username,
+    inputValue: rawIdentifier,
+    matchedBy: resolved.matchType,
+  });
 
   return json(request, env, { ok: true, temporaryPassword: tempPassword });
 }
@@ -2759,19 +2860,22 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
     if (session.user.role !== 'owner' && session.user.role !== 'admin') {
       return json(request, env, { error: 'Forbidden: Insufficient permissions' }, 403);
     }
-    const url = new URL(request.url);
-    const username = normalizeUsername(url.searchParams.get('username') || '');
-    if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
 
-    if (username === normalizeUsername(session.user.username)) {
+    const url = new URL(request.url);
+    const rawIdentifier = (url.searchParams.get('identifier') || url.searchParams.get('username') || '').trim();
+    const resolved = await findUserByIdentifier(env, rawIdentifier);
+    if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+    if (!resolved.user) return json(request, env, { error: 'User not found' }, 404);
+
+    const targetUserId = resolved.user.id;
+    const targetUsername = resolved.user.username;
+
+    if (targetUserId === session.user.id) {
       return json(request, env, { error: 'You cannot delete your own account from admin panel' }, 400);
     }
 
-    const row = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
-    if (!row?.id) return json(request, env, { error: 'User not found' }, 404);
-
     // Hierarchy protection: Admins cannot delete other Admins or Owners
-    const targetRole = await getUserRole(env, row.id);
+    const targetRole = await getUserRole(env, targetUserId);
     if (session.user.role === 'admin') {
       if (targetRole === 'admin' || targetRole === 'owner') {
         return json(request, env, { error: 'Admins cannot delete other Admins or Owners' }, 403);
@@ -2779,15 +2883,19 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
     }
 
     await env.DB.batch([
-      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(row.id),
-      env.DB.prepare('DELETE FROM user_settings WHERE user_id = ?').bind(row.id),
-      env.DB.prepare('DELETE FROM watchlist WHERE user_id = ?').bind(row.id),
-      env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(row.id),
-      env.DB.prepare('DELETE FROM user_identifiers WHERE user_id = ?').bind(row.id),
-      env.DB.prepare('DELETE FROM users WHERE id = ?').bind(row.id),
+      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUserId),
+      env.DB.prepare('DELETE FROM user_settings WHERE user_id = ?').bind(targetUserId),
+      env.DB.prepare('DELETE FROM watchlist WHERE user_id = ?').bind(targetUserId),
+      env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(targetUserId),
+      env.DB.prepare('DELETE FROM user_identifiers WHERE user_id = ?').bind(targetUserId),
+      env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetUserId),
     ]);
 
-    await writeAdminAuditLog(env, session.user.id, 'delete_user', 'user', row.id, { username });
+    await writeAdminAuditLog(env, session.user.id, 'delete_user', 'user', targetUserId, {
+      username: targetUsername,
+      inputValue: rawIdentifier,
+      matchedBy: resolved.matchType,
+    });
     return json(request, env, { ok: true });
   }
 
