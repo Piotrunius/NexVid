@@ -1,5 +1,8 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { isValidCloudSession } from '@/lib/auth-server';
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rate-limit';
+import { isRequestFromAllowedSite } from '@/lib/request-verification';
 
 const CANONICAL_HOST = (process.env.NEXT_PUBLIC_CANONICAL_HOST || 'nexvid.online').toLowerCase();
 const REDIRECT_HOSTS = new Set(['nexvid.pl', 'www.nexvid.pl', 'www.nexvid.online']);
@@ -10,14 +13,35 @@ function applyAntiIframeHeaders(response: NextResponse) {
   return response;
 }
 
-import { isValidCloudSession } from '@/lib/auth-server';
-
 
 export async function middleware(request: NextRequest) {
   const hostHeader = request.headers.get('host') || '';
   const host = hostHeader.split(':')[0].toLowerCase();
 
   const url = request.nextUrl.pathname;
+
+  // Lock API usage to requests coming from nexvid.online and throttle globally.
+  if (url.startsWith('/api/')) {
+    if (!isRequestFromAllowedSite(request)) {
+      return NextResponse.json(
+        { error: 'Forbidden origin' },
+        { status: 403 }
+      );
+    }
+
+    const globalLimit = checkRateLimit(request, RATE_LIMIT_CONFIG.apiGlobal);
+    if (!globalLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(globalLimit.retryAfter || 60),
+          },
+        }
+      );
+    }
+  }
 
   // Protect /admin route (requires cloud session)
   if (url.startsWith('/admin')) {

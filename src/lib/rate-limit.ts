@@ -11,6 +11,9 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 // Configuration (in seconds)
 export const RATE_LIMIT_CONFIG = {
+  // Global API protection: 120 requests per minute per IP
+  apiGlobal: { maxRequests: 120, windowSeconds: 60 },
+
   // Stream endpoint: 30 requests per minute per IP
   stream: { maxRequests: 30, windowSeconds: 60 },
 
@@ -28,6 +31,9 @@ export const RATE_LIMIT_CONFIG = {
 
   // Segments: 20 requests per minute per IP
   segments: { maxRequests: 20, windowSeconds: 60 },
+
+  // Public config: 30 requests per minute per IP
+  publicConfig: { maxRequests: 30, windowSeconds: 60 },
 };
 
 /**
