@@ -250,8 +250,3 @@ When configured, the frontend will route problematic URLs through the resolver b
 - Source aggregation is implemented in `src/lib/providers.ts` using built-in source resolver logic and the `/api/stream` worker endpoint.
 
 ---
-
-## License
-
-Private.
-
