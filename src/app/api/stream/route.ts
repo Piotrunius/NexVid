@@ -14,44 +14,6 @@ import { NextRequest, NextResponse } from 'next/server';
 // Import providers
 import { PobreflixProvider } from '@/lib/providers/pobreflix';
 
-// Internal proxy wrapping logic (replaces external proxy-signer)
-async function wrapWithProxy(targetUrl: string): Promise<string> {
-  const proxyBase = '/api/hls-proxy';
-  const baseUrl = 'https://nexvid.online';
-  try {
-    const proxiedUrl = new URL(proxyBase, baseUrl);
-    proxiedUrl.searchParams.set('url', targetUrl);
-    return proxiedUrl.toString();
-  } catch (err) {
-    console.error('[Stream API] Failed to construct proxy URL:', err);
-    return targetUrl;
-  }
-}
-
-async function processStreamData(data: any): Promise<any> {
-  if (!data) return data;
-  const processedData = { ...data };
-
-  if (processedData.url) {
-    processedData.url = await wrapWithProxy(processedData.url);
-  }
-  if (processedData.playlist) {
-    processedData.playlist = await wrapWithProxy(processedData.playlist);
-  }
-
-  if (processedData.qualities) {
-    const proxiedQualities: any = {};
-    for (const [q, val] of Object.entries(processedData.qualities) as [string, any][]) {
-      proxiedQualities[q] = {
-        ...val,
-        url: await wrapWithProxy(val.url)
-      };
-    }
-    processedData.qualities = proxiedQualities;
-  }
-
-  return processedData;
-}
 
 // Edge runtime is required for Cloudflare Pages
 export const runtime = 'edge';
@@ -180,14 +142,13 @@ export async function GET(request: NextRequest) {
           const first = result.sources[0];
 
           // For HLS
-          if (first.type === 'hls') {
-            const signedData = await processStreamData({
+            const signedData = {
               type: 'hls',
               url: first.url,
               playlist: first.url,
               captions: result.subtitles,
               headers: first.headers,
-            });
+            };
 
             return NextResponse.json({
               success: true,
@@ -204,13 +165,13 @@ export async function GET(request: NextRequest) {
             };
           });
 
-          const signedData = await processStreamData({
+          const signedData = {
             type: 'file',
             qualities,
             captions: result.subtitles,
             audioTracks: first.audioTracks,
             headers: first.headers, // Fallback for some player logic
-          });
+          };
 
           return NextResponse.json({
             success: true,
@@ -250,7 +211,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const signedData = await processStreamData(febboxResult.stream);
+      const signedData = febboxResult.stream;
 
       return NextResponse.json({
         success: true,
