@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS user_identifiers (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier);
+CREATE INDEX IF NOT EXISTS idx_user_identifiers_type_identifier ON user_identifiers(id_type, identifier);
+CREATE INDEX IF NOT EXISTS idx_user_identifiers_last_seen ON user_identifiers(last_seen_at);
 
 CREATE TABLE IF NOT EXISTS banned_entities (
   ban_type TEXT NOT NULL, -- 'username' | 'identifier'
