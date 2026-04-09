@@ -8,7 +8,13 @@
    Dev:    npx wrangler dev
    ============================================ */
 
-import { argon2id } from 'hash-wasm';
+import { argon2id, setWASMModules } from 'argon2-wasm-edge';
+// @ts-ignore
+import argon2WASM from "argon2-wasm-edge/wasm/argon2.wasm?module";
+// @ts-ignore
+import blake2bWASM from "argon2-wasm-edge/wasm/blake2b.wasm?module";
+
+setWASMModules({ argon2WASM, blake2bWASM });
 
 export interface Env {
   ALLOWED_ORIGINS: string;
@@ -217,49 +223,60 @@ async function pbkdf2Hex(password: string, saltHex: string, iterations: number):
 }
 
 async function hashPassword(password: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const saltHex = bytesToHex(salt);
-  
-  // Use Argon2id with recommended security parameters for Cloudflare Workers (Paid Plan/128MB limit)
-  // Memory: 64MB (65536 KB), Iterations: 3, Parallelism: 1
-  const hash = await argon2id({
-    password,
-    salt,
-    parallelism: 1,
-    iterations: 3,
-    memorySize: 65536,
-    hashLength: 32,
-    outputType: 'hex',
-  });
-
-  return `argon2id$v=19$m=65536,t=3,p=1$${saltHex}$${hash}`;
-}
-
-async function verifyPassword(password: string, storedHash: string): Promise<{ ok: boolean; shouldUpdate: boolean }> {
-  // 1. Handle Argon2id (Current Standard)
-  if (storedHash.startsWith('argon2id$')) {
-    const parts = storedHash.split('$');
-    if (parts.length !== 5) return { ok: false, shouldUpdate: false };
-    
-    // Parse params (m=65536,t=3,p=1)
-    const params: Record<string, number> = {};
-    parts[2].split(',').forEach(p => {
-      const [k, v] = p.split('=');
-      params[k] = parseInt(v);
-    });
-
-    const saltHex = parts[3];
-    const computed = await argon2id({
+  try {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const hash = await argon2id({
       password,
-      salt: hexToBytes(saltHex),
-      parallelism: params.p || 1,
-      iterations: params.t || 3,
-      memorySize: params.m || 65536,
+      salt,
+      parallelism: 1,
+      iterations: 3,
+      memorySize: 65536,
       hashLength: 32,
       outputType: 'hex',
     });
+    const saltHex = Array.from(salt).map((b) => b.toString(16).padStart(2, '0')).join('');
+    return `argon2id$v=19$m=65536,t=3,p=1$${saltHex}$${hash}`;
+  } catch (err) {
+    console.error('[Security] Argon2id failure, falling back to PBKDF2:', err);
+    const legacySalt = createToken().slice(0, 16);
+    const hash = await pbkdf2Hex(password, legacySalt, 100000);
+    return `pbkdf2$100000$${legacySalt}$${hash}`;
+  }
+}
 
-    return { ok: secureCompare(computed, parts[4]), shouldUpdate: false };
+async function verifyPassword(password: string, storedHash: string): Promise<{ ok: boolean; shouldUpdate: boolean }> {
+  // 1. Handle Argon2id
+  if (storedHash.startsWith('argon2id$')) {
+    try {
+      const parts = storedHash.split('$');
+      if (parts.length !== 5) return { ok: false, shouldUpdate: false };
+      
+      const paramsPart = parts[2];
+      const params: Record<string, number> = {};
+      paramsPart.split(',').forEach(p => {
+        const [k, v] = p.split('=');
+        if (k && v) params[k] = parseInt(v);
+      });
+
+      const saltHex = parts[3];
+      const computed = await argon2id({
+        password,
+        salt: hexToBytes(saltHex),
+        parallelism: params.p || 1,
+        iterations: params.t || 3,
+        memorySize: params.m || 65536,
+        hashLength: 32,
+        outputType: 'hex',
+      });
+
+      return { ok: secureCompare(computed, parts[4]), shouldUpdate: false };
+    } catch (err) {
+      console.error('[Security] Argon2id verification failure, falling back to PBKDF2 check:', err);
+      // If we are here, it means Argon2id failed (likely WASM load error).
+      // We can't verify an Argon2id hash without WASM, but we can return false 
+      // instead of crashing with 500.
+      return { ok: false, shouldUpdate: false };
+    }
   }
 
   // 2. Handle PBKDF2 (Legacy - will be upgraded on login)
@@ -960,29 +977,39 @@ async function getRequestIdentifiers(request: Request): Promise<RequestIdentifie
     try {
       const decoded = atob(decodeURIComponent(dnaHeader));
       const parsed = JSON.parse(decoded);
-      dna = {
-        canvas: String(parsed.canvas || ''),
-        webgl: String(parsed.webgl || ''),
-        audio: String(parsed.audio || ''),
-        fonts: String(parsed.fonts || ''),
-        hardware: String(parsed.hardware || ''),
-      };
+    dna = {
+      canvas: String(parsed?.canvas || ''),
+      webgl: String(parsed?.webgl || ''),
+      audio: String(parsed?.audio || ''),
+      fonts: String(parsed?.fonts || ''),
+      hardware: String(parsed?.hardware || ''),
+    };
     } catch {
-      // ignore parse errors
+      dna = {
+        canvas: 'error',
+        webgl: 'error',
+        audio: 'error',
+        fonts: 'error',
+        hardware: 'error',
+      };
     }
   } else {
-    const canvas = new OffscreenCanvas(1, 1);
-    const gl = canvas.getContext('webgl');
     dna = {
       canvas: 'unsupported',
-      webgl: gl ? 'supported' : 'unsupported',
+      webgl: 'unsupported',
       audio: 'unsupported',
       fonts: 'unsupported',
       hardware: 'unsupported',
     };
   }
 
-  return { ip, userAgent, fingerprintHash, ipHash, dna };
+  return { 
+    ip, 
+    userAgent, 
+    fingerprintHash: fingerprintHash || 'unknown', 
+    ipHash: ipHash || 'unknown', 
+    dna 
+  };
 }
 
 async function getBannedIdentifierReason(env: Env, identifiers: RequestIdentifiers): Promise<string | null> {
