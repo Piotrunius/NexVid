@@ -26,7 +26,7 @@ export interface Env {
   BREVO_API_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   GROQ_API_KEY?: string;
-  SIGNING_SECRET?: string;
+  NEXVID_SECRET?: string;
 }
 
 export interface RequestIdentifiers {
@@ -3459,11 +3459,32 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
 
   // Target URL from query param
   const targetUrl = url.searchParams.get('url');
+  const sig = url.searchParams.get('sig');
+  const exp = url.searchParams.get('exp');
+
   if (!targetUrl) {
     return new Response(JSON.stringify({ error: 'Missing ?url= parameter' }), {
       status: 400,
       headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
     });
+  }
+
+  // Mandatory Signature Check
+  const secret = (env.NEXVID_SECRET || '').trim();
+  if (!secret) {
+    console.error('[Proxy] Security misconfiguration: NEXVID_SECRET is missing.');
+    return json(request, env, { error: 'Internal Server Error: Proxy security misconfiguration' }, 500);
+  }
+
+  const session = await getSessionUser(request, env);
+  if (!session) {
+    return json(request, env, { error: 'Unauthorized: Session required for proxy verification' }, 401);
+  }
+
+  const isValid = await verifyUrlSignature(targetUrl, session.token, sig || '', exp || '', secret);
+  if (!isValid) {
+    console.warn('[Proxy] Invalid or expired signature', { targetUrl, exp });
+    return json(request, env, { error: 'Forbidden: Invalid or expired proxy signature' }, 403);
   }
 
   try {
@@ -3780,25 +3801,23 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  // Enforce Signature Check
-  const secret = (env.SIGNING_SECRET || '').trim();
-  if (secret) {
-    const session = await getSessionUser(request, env);
-    if (!session) {
-      return json(request, env, { error: 'Unauthorized: Session required for HLS signature verification' }, 401);
-    }
-
-    const isValid = await verifyUrlSignature(targetUrl, session.token, sig || '', exp || '', secret);
-    
-    if (!isValid) {
-      console.warn('[HLS Proxy] Invalid or expired signature', { targetUrl, exp });
-      return json(request, env, { error: 'Forbidden: Invalid or expired HLS signature' }, 403);
-    }
+  // Mandatory Signature Check
+  const secret = (env.NEXVID_SECRET || '').trim();
+  if (!secret) {
+    console.error('[HLS Proxy] Security misconfiguration: NEXVID_SECRET is missing.');
+    return json(request, env, { error: 'Internal Server Error: HLS proxy security misconfiguration' }, 500);
   }
 
   const session = await getSessionUser(request, env);
   if (!session) {
-    return json(request, env, { error: 'Unauthorized' }, 401);
+    return json(request, env, { error: 'Unauthorized: Session required for HLS signature verification' }, 401);
+  }
+
+  const isValid = await verifyUrlSignature(targetUrl, session.token, sig || '', exp || '', secret);
+  
+  if (!isValid) {
+    console.warn('[HLS Proxy] Invalid or expired signature', { targetUrl, exp });
+    return json(request, env, { error: 'Forbidden: Invalid or expired HLS signature' }, 403);
   }
 
   const proxyBase = `${url.origin}/proxy?url=`;

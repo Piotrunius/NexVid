@@ -36,10 +36,20 @@ async function sha256Hex(message: string): Promise<string> {
  * @param ttlSeconds How long the signature should be valid (default 4 hours)
  */
 export async function signProxyUrl(targetUrl: string, sessionId: string, ttlSeconds = 14400): Promise<string> {
-  const secret = process.env.SIGNING_SECRET || process.env.NEXT_PUBLIC_SIGNING_SECRET;
+  // Use NEXVID_SECRET for both server-side and client-side (public) if available
+  const secret = process.env.NEXVID_SECRET || process.env.NEXT_PUBLIC_NEXVID_SECRET;
+  
   if (!secret) {
-    console.warn('[ProxySigner] SIGNING_SECRET is not configured. Returning original URL.');
-    return targetUrl;
+    if (typeof window !== 'undefined') {
+      console.error('[ProxySigner] NEXVID_SECRET (NEXT_PUBLIC_NEXVID_SECRET) is not configured! Proxying will fail.');
+    }
+    // Still return the proxy URL so the worker can block it with a 500 error, 
+    // rather than leaking the original URL and bypassing the proxy entirely.
+    const proxyBase = '/api/proxy';
+    const errorUrl = new URL(proxyBase, typeof window !== 'undefined' ? window.location.origin : undefined);
+    errorUrl.searchParams.set('url', targetUrl);
+    errorUrl.searchParams.set('error', 'missing_secret');
+    return errorUrl.toString();
   }
 
   const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
@@ -49,8 +59,8 @@ export async function signProxyUrl(targetUrl: string, sessionId: string, ttlSeco
   const message = `${targetUrl}|${sessionHash}|${expires}`;
   const sig = await hmacSha256(message, secret);
 
-  const proxyBase = 'https://nexvid.online/api/proxy';
-  const signedUrl = new URL(proxyBase);
+  const proxyBase = '/api/proxy'; // Use relative path for Next.js proxying
+  const signedUrl = new URL(proxyBase, typeof window !== 'undefined' ? window.location.origin : undefined);
   signedUrl.searchParams.set('url', targetUrl);
   signedUrl.searchParams.set('sig', sig);
   signedUrl.searchParams.set('exp', expires.toString());
