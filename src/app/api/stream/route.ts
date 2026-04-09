@@ -16,7 +16,7 @@ import { PobreflixProvider } from '@/lib/providers/pobreflix';
 
 // Internal proxy wrapping logic (replaces external proxy-signer)
 async function wrapWithProxy(targetUrl: string): Promise<string> {
-  const proxyBase = '/api/proxy';
+  const proxyBase = '/api/hls-proxy';
   const baseUrl = 'https://nexvid.online';
   try {
     const proxiedUrl = new URL(proxyBase, baseUrl);
