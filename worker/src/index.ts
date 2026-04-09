@@ -29,19 +29,11 @@ export interface Env {
   SIGNING_SECRET?: string;
 }
 
-type RequestIdentifiers = {
+export interface RequestIdentifiers {
   ip: string;
   userAgent: string;
-  fingerprintHash: string | null;
   ipHash: string | null;
-  dna?: {
-    canvas: string;
-    webgl: string;
-    audio: string;
-    fonts: string;
-    hardware: string;
-  };
-};
+}
 
 const PASSWORD_ITERATIONS = 100_000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -356,17 +348,19 @@ function sanitizeIpCandidate(value?: string | null): string | null {
 }
 
 function getClientIp(request: Request): string {
-  // Trust proxy headers from our Next.js frontend if present
-  const forwarded = request.headers.get('X-Forwarded-For');
-  const realIp = request.headers.get('X-Real-IP');
-  const cfIp = request.headers.get('CF-Connecting-IP');
+  const candidates = [
+    request.headers.get('X-NexVid-Client-IP'),
+    request.headers.get('X-Forwarded-For'),
+    request.headers.get('X-Real-IP'),
+    request.headers.get('CF-Connecting-IP'),
+  ];
 
-  const ip = sanitizeIpCandidate(forwarded?.split(',')[0].trim()) || 
-             sanitizeIpCandidate(realIp) ||
-             sanitizeIpCandidate(cfIp) || 
-             '127.0.0.1';
-  
-  return ip;
+  for (const candidate of candidates) {
+    const ip = sanitizeIpCandidate(candidate);
+    if (ip) return ip;
+  }
+
+  return 'unknown';
 }
 
 async function verifyTurnstileToken(request: Request, env: Env, token: string): Promise<boolean> {
@@ -963,78 +957,32 @@ async function getRequestIdentifiers(request: Request): Promise<RequestIdentifie
       ip: 'unknown',
       userAgent: 'unknown',
       ipHash: null,
-      fingerprintHash: null,
     };
   }
 
   const userAgent = request.headers.get('User-Agent') || 'unknown';
   const ipHash = await sha256Hex(ip);
-  const fingerprintHash = await sha256Hex(`fp:${ip}|${userAgent}`);
-
-  // Advanced DNA Fingerprint
-  let dna;
-  const dnaHeader = request.headers.get('NexVid-Fingerprint');
-  if (dnaHeader) {
-    try {
-      const decoded = atob(decodeURIComponent(dnaHeader));
-      const parsed = JSON.parse(decoded);
-    dna = {
-      canvas: String(parsed?.canvas || ''),
-      webgl: String(parsed?.webgl || ''),
-      audio: String(parsed?.audio || ''),
-      fonts: String(parsed?.fonts || ''),
-      hardware: String(parsed?.hardware || ''),
-    };
-    } catch {
-      dna = {
-        canvas: 'error',
-        webgl: 'error',
-        audio: 'error',
-        fonts: 'error',
-        hardware: 'error',
-      };
-    }
-  } else {
-    dna = {
-      canvas: 'unsupported',
-      webgl: 'unsupported',
-      audio: 'unsupported',
-      fonts: 'unsupported',
-      hardware: 'unsupported',
-    };
-  }
 
   return { 
     ip, 
     userAgent, 
-    fingerprintHash: fingerprintHash || 'unknown', 
-    ipHash: ipHash || 'unknown', 
-    dna 
+    ipHash: ipHash || null
   };
 }
 
 async function getBannedIdentifierReason(env: Env, identifiers: RequestIdentifiers): Promise<string | null> {
-  if (!identifiers.ipHash && !identifiers.fingerprintHash) return null;
+  if (!identifiers.ipHash) return null;
 
   await ensureSecurityTables(env);
 
-  let row: { reason: string | null } | null = null;
-  if (identifiers.ipHash && identifiers.fingerprintHash) {
-    row = await env.DB
-      .prepare('SELECT reason FROM banned_identifiers WHERE identifier IN (?, ?) LIMIT 1')
-      .bind(identifiers.ipHash, identifiers.fingerprintHash)
-      .first<{ reason: string | null }>();
-  } else {
-    const identifier = identifiers.ipHash || identifiers.fingerprintHash;
-    row = await env.DB
-      .prepare('SELECT reason FROM banned_identifiers WHERE identifier = ? LIMIT 1')
-      .bind(identifier)
-      .first<{ reason: string | null }>();
-  }
+  const row = await env.DB
+    .prepare('SELECT reason FROM banned_identifiers WHERE identifier = ? LIMIT 1')
+    .bind(identifiers.ipHash)
+    .first<{ reason: string | null }>();
 
   if (!row) return null;
   const reason = (row.reason || '').trim();
-  return reason || 'Device/network banned';
+  return reason || 'IP banned';
 }
 
 async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, normalizedUsername: string): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -1066,15 +1014,9 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
     .bind('ip', identifiers.ipHash)
     .first<{ max_accounts: number }>();
 
-  const fpOverride = await env.DB
-    .prepare('SELECT max_accounts FROM account_limit_overrides WHERE type = ? AND value = ? LIMIT 1')
-    .bind('fingerprint', identifiers.fingerprintHash)
-    .first<{ max_accounts: number }>();
-
   const maxAccounts = Math.max(
     DEFAULT_MAX_ACCOUNTS_PER_IP,
     Number(ipOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
-    Number(fpOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
     Number(linkedUsernameOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
   );
   const current = await env.DB
@@ -1090,7 +1032,7 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
 }
 
 async function linkUserIdentifiers(env: Env, userId: string, identifiers: RequestIdentifiers): Promise<void> {
-  if (!identifiers.ipHash || !identifiers.fingerprintHash) return;
+  if (!identifiers.ipHash) return;
 
   const nowMs = Date.now();
   const cacheKey = `link:${userId}:${identifiers.ipHash}`;
@@ -1108,33 +1050,8 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
        ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at
        WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
     ).bind(userId, identifiers.ipHash, 'ip', now, now),
-    env.DB.prepare(
-      `INSERT INTO user_identifiers (user_id, identifier, id_type, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at
-       WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
-    ).bind(userId, identifiers.fingerprintHash, 'fingerprint', now, now),
     env.DB.prepare('UPDATE user_identifiers SET last_seen_at = ? WHERE user_id = ? AND identifier = ?').bind(now, userId, identifiers.ipHash),
-    env.DB.prepare('UPDATE user_identifiers SET last_seen_at = ? WHERE user_id = ? AND identifier = ?').bind(now, userId, identifiers.fingerprintHash),
   ];
-
-  if (identifiers.dna) {
-    const d = identifiers.dna;
-    const dnaBatch = [
-      { id: d.canvas, type: 'fp_canvas' },
-      { id: d.webgl, type: 'fp_webgl' },
-      { id: d.audio, type: 'fp_audio' },
-      { id: d.fonts, type: 'fp_fonts' },
-      { id: d.hardware, type: 'fp_hardware' },
-    ].filter(item => item.id).map(item => {
-      return env.DB.prepare(
-        `INSERT INTO user_identifiers (user_id, identifier, id_type, created_at, last_seen_at)
-         VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at`
-      ).bind(userId, item.id, item.type, now, now);
-    });
-    batch.push(...dnaBatch);
-  }
 
   // Optimized Cleanup: Keep only the 15 newest identifiers per user
   batch.push(
@@ -4078,7 +3995,7 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
        )
      LIMIT 1`
   )
-    .bind(surveyId, session?.user.id || null, session?.user.id || null, identifiers.ipHash, identifiers.fingerprintHash)
+    .bind(surveyId, session?.user.id || null, session?.user.id || null, identifiers.ipHash, null)
     .first<{ '1': number }>();
 
   if (duplicateSubmission) {
@@ -4090,7 +4007,7 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
   await env.DB.prepare(
     'INSERT INTO survey_submissions (survey_id, user_id, ip_hash, fingerprint_hash, created_at) VALUES (?, ?, ?, ?, ?)'
   )
-    .bind(surveyId, session?.user.id || null, identifiers.ipHash, identifiers.fingerprintHash, now)
+    .bind(surveyId, session?.user.id || null, identifiers.ipHash, null, now)
     .run();
 
   await env.DB.prepare('INSERT INTO survey_responses (survey_id, user_id, answers, created_at) VALUES (?, ?, ?, ?)')
