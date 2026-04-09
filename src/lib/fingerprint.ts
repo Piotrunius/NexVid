@@ -41,13 +41,24 @@ export async function getDeviceDNA(): Promise<DeviceDNA> {
               data: { audio: audioRaw, fonts: fontsRaw, hardware: hardwareRaw }
             });
 
-            worker.onmessage = (e) => {
+            worker.onmessage = async (e) => {
               if (e.data.status === 'success') {
                 cachedDNA = e.data.dna;
                 resolve(cachedDNA!);
               } else {
-                throw new Error(e.data.error || 'Worker failed');
+                console.warn('[DNA] Worker reported error, falling back', e.data.error);
+                const dna = await generateDNAMainThread(audioRaw, fontsRaw, hardwareRaw);
+                cachedDNA = dna;
+                resolve(dna);
               }
+              worker.terminate();
+            };
+
+            worker.onerror = async (err) => {
+              console.warn('[DNA] Worker runtime error, falling back', err);
+              const dna = await generateDNAMainThread(audioRaw, fontsRaw, hardwareRaw);
+              cachedDNA = dna;
+              resolve(dna);
               worker.terminate();
             };
             return;
@@ -133,6 +144,7 @@ function getFontList(): string[] {
   const testString = 'mmmmmmmmmmlli';
   const testSize = '72px';
   const h = document.body;
+  if (!h) return [];
 
   const s = document.createElement('span');
   s.style.position = 'absolute';
