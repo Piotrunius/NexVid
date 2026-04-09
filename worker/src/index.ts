@@ -33,6 +33,7 @@ export interface RequestIdentifiers {
   userAgent: string;
   ipHash: string | null;
   ipHashScoped: string | null;
+  fingerprintHash: string | null;
   deviceHash: string | null;
   deviceKind: 'pc' | 'mobile' | 'tablet' | 'tv' | 'other';
   shouldSetDeviceCookie: boolean;
@@ -325,7 +326,21 @@ function isValidDeviceId(value: string | null): boolean {
   return /^[a-zA-Z0-9-]{16,128}$/.test(trimmed);
 }
 
-async function getDeviceIdentifier(request: Request): Promise<{ id: string | null; cookieValue: string | null; shouldSetCookie: boolean }> {
+async function getDeviceIdentifier(request: Request): Promise<{ id: string | null; cookieValue: string | null; shouldSetCookie: boolean; fingerprint?: string }> {
+  // 1. High Priority: NexVid-Fingerprint Header (Most Stable)
+  const headerFingerprint = request.headers.get('NexVid-Fingerprint');
+  if (headerFingerprint) {
+    try {
+      const decoded = JSON.parse(atob(headerFingerprint));
+      if (decoded && typeof decoded.id === 'string' && decoded.id.length >= 16) {
+        return { id: decoded.id, cookieValue: decoded.id, shouldSetCookie: false, fingerprint: headerFingerprint };
+      }
+    } catch {
+      // Decode failed, fallback to cookies
+    }
+  }
+
+  // 2. Fallback: Cookie-based ID (Legacy/Compatibility)
   const raw = getCookieValue(request, DEVICE_COOKIE_NAME);
   if (isValidDeviceId(raw)) {
     const value = raw!.trim();
@@ -1092,11 +1107,23 @@ async function getRequestIdentifiers(
   options?: { includeGeneratedDeviceHash?: boolean }
 ): Promise<RequestIdentifiers> {
   const device = await getDeviceIdentifier(request);
-  const userAgent = request.headers.get('User-Agent') || 'unknown';
+  const userAgent = (request.headers.get('User-Agent') || 'unknown').slice(0, 500);
   const deviceKind = detectDeviceKind(userAgent);
-  const deviceIdForHash = device.id || (options?.includeGeneratedDeviceHash ? device.cookieValue : null);
-  const deviceHashHex = deviceIdForHash ? await sha256Hex(`device:${deviceIdForHash}`) : '';
-  const deviceHash = deviceHashHex ? `device:${deviceHashHex}` : null;
+  
+  const fingerprintHash = device.fingerprint ? await sha256Hex(`dna:${device.fingerprint}`) : null;
+  
+  // Combine persistent ID with fingerprint for a robust, multi-attribute device identifier
+  // This minimizes false positives and ensures identification survives cookie clearouts.
+  let deviceHash: string | null = null;
+  const deviceId = device.id || (options?.includeGeneratedDeviceHash ? device.cookieValue : null);
+  
+  if (deviceId) {
+    // If we have a fingerprint (from header), use it to salt the ID for higher entropy.
+    // Otherwise fallback to User-Agent as a basic entropy source.
+    const entropy = device.fingerprint || userAgent;
+    const deviceHashHex = await sha256Hex(`device:${deviceId}:${entropy}`);
+    deviceHash = `device:${deviceHashHex}`;
+  }
 
   const ip = getClientIp(request);
   if (!ip || ip === 'unknown') {
@@ -1105,6 +1132,7 @@ async function getRequestIdentifiers(
       userAgent,
       ipHash: null,
       ipHashScoped: null,
+      fingerprintHash,
       deviceHash,
       deviceKind,
       shouldSetDeviceCookie: device.shouldSetCookie,
@@ -1120,6 +1148,7 @@ async function getRequestIdentifiers(
     userAgent, 
     ipHash: ipHash || null,
     ipHashScoped: ipHashScoped || null,
+    fingerprintHash,
     deviceHash,
     deviceKind,
     shouldSetDeviceCookie: device.shouldSetCookie,
@@ -1130,12 +1159,15 @@ async function getRequestIdentifiers(
 async function getBannedIdentifierReason(env: Env, identifiers: RequestIdentifiers): Promise<string | null> {
   await ensureSecurityTables(env);
 
-  const candidates: { value: string; type: 'ip' | 'device' }[] = [];
+  const candidates: { value: string; type: 'ip' | 'device' | 'fingerprint' }[] = [];
   for (const ipHash of [identifiers.ipHash, identifiers.ipHashScoped]) {
     if (ipHash) candidates.push({ value: ipHash, type: 'ip' });
   }
   if (identifiers.deviceHash) {
     candidates.push({ value: identifiers.deviceHash, type: 'device' });
+  }
+  if (identifiers.fingerprintHash) {
+    candidates.push({ value: identifiers.fingerprintHash, type: 'fingerprint' });
   }
   if (candidates.length === 0) return null;
 
@@ -1146,7 +1178,7 @@ async function getBannedIdentifierReason(env: Env, identifiers: RequestIdentifie
        FROM banned_entities
        WHERE ban_type = 'identifier'
          AND ban_value = ?
-         AND (id_type = ? OR id_type IS NULL)
+         AND (id_type = ? OR id_type IS NULL OR id_type = 'ip')
        LIMIT 1`
     ).bind(candidate.value, candidate.type).first<{ reason: string | null }>();
     if (row) break;
@@ -1210,7 +1242,17 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
       .first<{ count: number }>()
     : null;
 
-  if ((currentDevice?.count || 0) >= 2) {
+  const currentFingerprint = identifiers.fingerprintHash
+    ? await env.DB
+      .prepare('SELECT COUNT(DISTINCT user_id) AS count FROM user_identifiers WHERE identifier = ? AND id_type = ?')
+      .bind(identifiers.fingerprintHash, 'fingerprint')
+      .first<{ count: number }>()
+    : null;
+
+  if (
+    (currentDevice?.count || 0) >= 2 || 
+    (currentFingerprint?.count || 0) >= 2
+  ) {
     return { ok: false, error: 'Account limit reached for this device (2).' };
   }
 
@@ -1230,7 +1272,7 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
   if (!identifiers.ipHash && !identifiers.deviceHash) return;
 
   const nowMs = Date.now();
-  const cacheKey = `link:${userId}:${identifiers.ipHash || 'none'}:${identifiers.deviceHash || 'none'}:${identifiers.deviceKind}`;
+  const cacheKey = `link:${userId}:${identifiers.ipHash || 'none'}:${identifiers.deviceHash || 'none'}:${identifiers.fingerprintHash || 'none'}:${identifiers.deviceKind}`;
   const last = lastSeenCache.get(cacheKey);
   if (last && nowMs - last < 10 * 60 * 1000) return;
   lastSeenCache.set(cacheKey, nowMs);
@@ -1238,7 +1280,7 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
   await ensureSecurityTables(env);
   const now = new Date().toISOString();
 
-  const insertIdentifier = (identifier: string, idType: 'ip' | 'device', deviceKind: string | null = null) => [
+  const insertIdentifier = (identifier: string, idType: 'ip' | 'device' | 'fingerprint', deviceKind: string | null = null) => [
     env.DB.prepare(
       `INSERT INTO user_identifiers (user_id, identifier, id_type, device_kind, created_at, last_seen_at)
        VALUES (?, ?, ?, ?, ?, ?)
@@ -1253,6 +1295,7 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
   const batch: D1PreparedStatement[] = [];
   if (identifiers.ipHash) batch.push(...insertIdentifier(identifiers.ipHash, 'ip'));
   if (identifiers.deviceHash) batch.push(...insertIdentifier(identifiers.deviceHash, 'device', identifiers.deviceKind));
+  if (identifiers.fingerprintHash) batch.push(...insertIdentifier(identifiers.fingerprintHash, 'fingerprint', identifiers.deviceKind));
 
   // Keep only the newest N device identifiers per device kind for this user.
   batch.push(
