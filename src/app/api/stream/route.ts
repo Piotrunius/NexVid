@@ -14,7 +14,6 @@ import { NextRequest, NextResponse } from 'next/server';
 // Import providers
 import { PobreflixProvider } from '@/lib/providers/pobreflix';
 
-
 // Edge runtime is required for Cloudflare Pages
 export const runtime = 'edge';
 
@@ -25,8 +24,6 @@ function normalizeType(rawType: string | null, season?: number, episode?: number
   if (typeof season === 'number' || typeof episode === 'number') return 'show';
   return null;
 }
-
-
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,7 +44,6 @@ export async function GET(request: NextRequest) {
     const { sourceId } = validation.data!;
 
     // 2. Auth Check & Token Extraction
-    // We need the token for session-based signature binding
     const authHeader = request.headers.get('Authorization');
     const cookieHeader = request.headers.get('cookie') || '';
     const token = authHeader?.startsWith('Bearer ') 
@@ -60,7 +56,6 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
-    const sessionId = token;
 
     // 3. FebBox-based sources require explicit user token
     if (sourceId === 'alpha' || sourceId === 'febbox') {
@@ -85,7 +80,6 @@ export async function GET(request: NextRequest) {
       const isSignatureValid = await verifyRequestSignature(request, tmdbId, type, sourceId);
       if (!isSignatureValid) {
         console.warn(`[Stream] Invalid signature for ${sourceId} source`);
-        // Don't block on invalid signature - just log it (backwards compatibility)
       }
     }
 
@@ -142,17 +136,16 @@ export async function GET(request: NextRequest) {
           const first = result.sources[0];
 
           // For HLS
-            const signedData = {
-              type: 'hls',
-              url: first.url,
-              playlist: first.url,
-              captions: result.subtitles,
-              headers: first.headers,
-            };
-
+          if (first.type === 'hls') {
             return NextResponse.json({
               success: true,
-              data: signedData,
+              data: {
+                type: 'hls',
+                url: first.url,
+                playlist: first.url,
+                captions: result.subtitles,
+                headers: first.headers,
+              },
             });
           }
 
@@ -165,27 +158,27 @@ export async function GET(request: NextRequest) {
             };
           });
 
-          const signedData = {
-            type: 'file',
-            qualities,
-            captions: result.subtitles,
-            audioTracks: first.audioTracks,
-            headers: first.headers, // Fallback for some player logic
-          };
-
           return NextResponse.json({
             success: true,
-            data: signedData,
+            data: {
+              type: 'file',
+              qualities,
+              captions: result.subtitles,
+              audioTracks: first.audioTracks,
+              headers: first.headers, // Fallback for some player logic
+            },
           });
         }
       } catch (provErr) {
         console.error(`[API /stream] Provider ${actualSourceId} error:`, provErr);
-        return NextResponse.json(
+        return createGenericErrorResponse(provErr, 502, '/stream');
+      }
+
+      return NextResponse.json(
         { error: 'No streams found' },
         { status: 404 }
       );
     }
-  }
 
     // Handle alpha (Premium FebBox with user's token)
     if (sourceId === 'alpha') {
@@ -211,11 +204,9 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const signedData = febboxResult.stream;
-
       return NextResponse.json({
         success: true,
-        data: signedData,
+        data: febboxResult.stream,
       });
     }
 
@@ -242,13 +233,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-    const signedData = await processStreamData(febboxResult.stream);
-
     // Return stream data WITHOUT internal logs
     return NextResponse.json({
       success: true,
-      data: signedData,
+      data: febboxResult.stream,
     });
   } catch (error: any) {
     return createGenericErrorResponse(error, 500, '/stream');
