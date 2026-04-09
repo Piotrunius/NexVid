@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS user_identifiers (
   user_id TEXT NOT NULL,
   identifier TEXT NOT NULL,
   id_type TEXT NOT NULL,
+  device_kind TEXT,
   created_at TEXT NOT NULL,
   last_seen_at TEXT NOT NULL,
   PRIMARY KEY (user_id, identifier)
@@ -60,6 +61,7 @@ CREATE TABLE IF NOT EXISTS user_identifiers (
 CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier);
 CREATE INDEX IF NOT EXISTS idx_user_identifiers_type_identifier ON user_identifiers(id_type, identifier);
 CREATE INDEX IF NOT EXISTS idx_user_identifiers_last_seen ON user_identifiers(last_seen_at);
+CREATE INDEX IF NOT EXISTS idx_user_identifiers_user_type_kind_seen ON user_identifiers(user_id, id_type, device_kind, last_seen_at DESC);
 
 CREATE TABLE IF NOT EXISTS banned_entities (
   ban_type TEXT NOT NULL, -- 'username' | 'identifier'
