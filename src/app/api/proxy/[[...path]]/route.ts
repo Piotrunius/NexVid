@@ -43,7 +43,7 @@ function getClientIpFromRequest(req: NextRequest): string | null {
 
 export async function ANY(req: NextRequest, { params }: { params?: { path?: string[] } } = {}) {
   try {
-    const path = params?.path ? params.path.join('/') : '';
+    const path = params?.path && params.path.length > 0 ? params.path.join('/') : 'proxy';
     const searchParams = req.nextUrl.search;
     const targetUrl = `${WORKER_URL}/${path}${searchParams}`;
 
