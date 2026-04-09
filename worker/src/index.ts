@@ -3469,22 +3469,10 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  // Mandatory Signature Check
-  const secret = (env.NEXVID_SECRET || '').trim();
-  if (!secret) {
-    console.error('[Proxy] Security misconfiguration: NEXVID_SECRET is missing.');
-    return json(request, env, { error: 'Internal Server Error: Proxy security misconfiguration' }, 500);
-  }
-
+  // Session check is still mandatory for proxy tracing and security
   const session = await getSessionUser(request, env);
   if (!session) {
-    return json(request, env, { error: 'Unauthorized: Session required for proxy verification' }, 401);
-  }
-
-  const isValid = await verifyUrlSignature(targetUrl, session.token, sig || '', exp || '', secret);
-  if (!isValid) {
-    console.warn('[Proxy] Invalid or expired signature', { targetUrl, exp });
-    return json(request, env, { error: 'Forbidden: Invalid or expired proxy signature' }, 403);
+    return json(request, env, { error: 'Unauthorized: Session required' }, 401);
   }
 
   try {
@@ -3801,23 +3789,10 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  // Mandatory Signature Check
-  const secret = (env.NEXVID_SECRET || '').trim();
-  if (!secret) {
-    console.error('[HLS Proxy] Security misconfiguration: NEXVID_SECRET is missing.');
-    return json(request, env, { error: 'Internal Server Error: HLS proxy security misconfiguration' }, 500);
-  }
-
+  // Session check is still mandatory for HLS rewriting
   const session = await getSessionUser(request, env);
   if (!session) {
-    return json(request, env, { error: 'Unauthorized: Session required for HLS signature verification' }, 401);
-  }
-
-  const isValid = await verifyUrlSignature(targetUrl, session.token, sig || '', exp || '', secret);
-  
-  if (!isValid) {
-    console.warn('[HLS Proxy] Invalid or expired signature', { targetUrl, exp });
-    return json(request, env, { error: 'Forbidden: Invalid or expired HLS signature' }, 403);
+    return json(request, env, { error: 'Unauthorized: Session required' }, 401);
   }
 
   const proxyBase = `${url.origin}/proxy?url=`;
