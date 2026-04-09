@@ -1266,27 +1266,6 @@ export default function AdminPage() {
             </select>
           </div>
         </div>
-
-        {/* Live Now Section */}
-        {adminUsers.some(u => (Date.now() - new Date(u.lastActiveAt).getTime()) < 5 * 60 * 1000) && (
-          <div className="rounded-[12px] bg-emerald-500/10 border border-emerald-500/20 p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <h3 className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Live Now</h3>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {adminUsers
-                .filter(u => (Date.now() - new Date(u.lastActiveAt).getTime()) < 5 * 60 * 1000)
-                .map(u => (
-                  <span key={u.id} className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-medium border border-emerald-500/10">
-                    {u.username}
-                  </span>
-                ))
-              }
-            </div>
-          </div>
-        )}
-
         <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] custom-scrollbar">
           {isLoading ? (
             <p className="p-3 text-[13px] text-text-muted">Loading...</p>
