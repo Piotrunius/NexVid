@@ -26,7 +26,6 @@ export interface Env {
   BREVO_API_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   GROQ_API_KEY?: string;
-  NEXVID_SECRET?: string;
 }
 
 export interface RequestIdentifiers {
@@ -45,7 +44,7 @@ const AUTH_COOKIE_NAME = 'nexvid_session';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, NexVid-Activity, NexVid-Fingerprint',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, NexVid-Activity',
   'Access-Control-Expose-Headers': '*',
   'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400',
@@ -169,34 +168,6 @@ async function sha256Hex(password: string): Promise<string> {
   const data = new TextEncoder().encode(password);
   const hash = await crypto.subtle.digest('SHA-256', data);
   return bytesToHex(new Uint8Array(hash));
-}
-
-async function hmacSha256(message: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const msgData = encoder.encode(message);
-  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, msgData);
-  return bytesToHex(new Uint8Array(sig));
-}
-
-async function signUrl(url: string, ip: string, expires: number, secret: string): Promise<string> {
-  const message = `${url}|${ip}|${expires}`;
-  const sig = await hmacSha256(message, secret);
-  const urlObj = new URL(url);
-  urlObj.searchParams.set('sig', sig);
-  urlObj.searchParams.set('exp', expires.toString());
-  return urlObj.toString();
-}
-
-async function verifyUrlSignature(targetUrl: string, sessionId: string, sig: string, exp: string, secret: string): Promise<boolean> {
-  const expires = parseInt(exp);
-  if (isNaN(expires) || Date.now() / 1000 > expires) return false;
-
-  const sessionHash = await sha256Hex(sessionId);
-  const message = `${targetUrl}|${sessionHash}|${exp}`;
-  const validSig = await hmacSha256(message, secret);
-  return secureCompare(sig, validSig);
 }
 
 async function pbkdf2Hex(password: string, saltHex: string, iterations: number): Promise<string> {
@@ -502,7 +473,6 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              survey_id TEXT NOT NULL,
              user_id TEXT,
              ip_hash TEXT,
-             fingerprint_hash TEXT,
              created_at TEXT NOT NULL,
              PRIMARY KEY (survey_id, created_at)
            )`
@@ -510,7 +480,6 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_survey ON survey_submissions(survey_id, created_at DESC)'),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_user ON survey_submissions(user_id, survey_id)'),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_ip ON survey_submissions(ip_hash, survey_id)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_fp ON survey_submissions(fingerprint_hash, survey_id)'),
       ]);
 
       try {
@@ -3708,45 +3677,6 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
       redirect: 'follow',
     }));
 
-    if (!upstreamResponse.ok && (upstreamResponse.status === 403 || upstreamResponse.status === 429)) {
-      const isVix = targetHost.includes('vix') || targetHost.includes('vixsrc');
-      if (isVix) {
-        // Fallback dla IP zablokowanych przez filtry VixSrc/CDN
-        const backupProxies = [
-            'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest=',
-            'https://api.allorigins.win/raw?url='
-        ];
-
-        for (const proxyUrlBase of backupProxies) {
-           const fullUrl = proxyUrlBase + encodeURIComponent(target);
-           try {
-             // W niektórych darmowych API nagłówki mogą być odrzucane, dlatego upraszczamy je w fallbacku
-             const fallbackHeaders = new Headers({
-                'User-Agent': upstreamHeaders.get('User-Agent') || 'Mozilla/5.0'
-             });
-             if (proxyUrlBase.includes('corsproxy.io')) {
-                // corsproxy.io wspiera pełne nagłówki
-                fallbackHeaders.set('Referer', upstreamHeaders.get('Referer') || '');
-                fallbackHeaders.set('Origin', upstreamHeaders.get('Origin') || '');
-             }
-
-             const fallbackResp = await fetch(new Request(fullUrl, {
-                method: 'GET',
-                headers: fallbackHeaders,
-                redirect: 'follow'
-             }));
-
-             if (fallbackResp.ok) {
-                upstreamResponse = fallbackResp;
-                break;
-             }
-           } catch {
-             // ignorujemy błędy i próbujemy kolejny serwer
-           }
-        }
-      }
-    }
 
     // Special handling for subtitles - automatic retry if failed or empty
     const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
@@ -3988,11 +3918,10 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
        AND (
          (? IS NOT NULL AND user_id = ?)
          OR ip_hash = ?
-         OR fingerprint_hash = ?
        )
      LIMIT 1`
   )
-    .bind(surveyId, session?.user.id || null, session?.user.id || null, identifiers.ipHash, null)
+    .bind(surveyId, session?.user.id || null, session?.user.id || null, identifiers.ipHash)
     .first<{ '1': number }>();
 
   if (duplicateSubmission) {
@@ -4002,9 +3931,9 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
   const now = new Date().toISOString();
 
   await env.DB.prepare(
-    'INSERT INTO survey_submissions (survey_id, user_id, ip_hash, fingerprint_hash, created_at) VALUES (?, ?, ?, ?, ?)'
+    'INSERT INTO survey_submissions (survey_id, user_id, ip_hash, created_at) VALUES (?, ?, ?, ?)'
   )
-    .bind(surveyId, session?.user.id || null, identifiers.ipHash, null, now)
+    .bind(surveyId, session?.user.id || null, identifiers.ipHash, now)
     .run();
 
   await env.DB.prepare('INSERT INTO survey_responses (survey_id, user_id, answers, created_at) VALUES (?, ?, ?, ?)')
