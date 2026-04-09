@@ -3614,6 +3614,9 @@ const DIRECT_RESOLVER_ALLOWED_HOSTS = [
   '*.workers.dev',
   'videostr.net',
   'vidlink.pro',
+  '*.shegu.net',
+  '*.febbox.com',
+  '*.febbox.org',
 ];
 
 function isDirectResolverHostAllowed(hostname: string): boolean {
