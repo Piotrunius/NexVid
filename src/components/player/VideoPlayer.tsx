@@ -80,7 +80,7 @@ interface PlayerProps {
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
-const KNOWN_SOURCE_ORDER = ['febbox', 'vixsrc', 'vidlink'] as const;
+const KNOWN_SOURCE_ORDER = ['febbox', 'vidlink'] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = 'nexvid-subtitle-appearance';
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 
@@ -395,7 +395,6 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
   const formatSourceName = useCallback((sourceId?: string) => {
     if (!sourceId) return 'Source';
-    if (sourceId === 'vixsrc') return 'VixSrc';
     if (sourceId === 'febbox') return 'Alpha';
     if (sourceId === 'pobreflix') return 'Beta';
     if (sourceId === 'zxcstream') return 'Gamma';

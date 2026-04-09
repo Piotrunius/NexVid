@@ -38,7 +38,7 @@ export default function PrivacyPage() {
             <li>Account data: nickname, password hash, account creation date</li>
             <li>Session data: authentication tokens and token expiry data</li>
             <li>App data: settings, watchlist, playback-related preferences</li>
-            <li>Security data: hashed anti-abuse identifiers (e.g. hashed IP/fingerprint signals)</li>
+            <li>Security data: hashed anti-abuse identifiers (e.g. hashed IP signals)</li>
             <li>Moderation/admin data: bans, audit logs, security events, timestamps</li>
           </ul>
           <p className="mt-2">

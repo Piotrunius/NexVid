@@ -14,6 +14,30 @@ const ALLOWED_HEADER_KEYS = new Set([
   'connection',
 ]);
 
+function parseCsvSet(value: string | undefined): string[] {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function matchHostname(hostname: string, pattern: string): boolean {
+  const host = hostname.toLowerCase();
+  const candidate = pattern.toLowerCase();
+  if (candidate === '*') return true;
+  if (candidate.startsWith('*.')) {
+    const base = candidate.slice(2);
+    return host === base || host.endsWith(`.${base}`);
+  }
+  return host === candidate;
+}
+
+function isAllowedHost(hostname: string): boolean {
+  const allowed = parseCsvSet(process.env.PROXY_ALLOWED_HOSTS || process.env.NEXT_PUBLIC_PROXY_ALLOWED_HOSTS);
+  if (allowed.length === 0) return true;
+  return allowed.some((pattern) => matchHostname(hostname, pattern));
+}
+
 function parseHeadersJson(raw: string | null): Record<string, string> {
   if (!raw) return {};
   const parsed = (() => {
@@ -179,6 +203,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const target = new URL(targetUrl);
+    const hostname = target.hostname.toLowerCase();
+    const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
+    if (blockedHosts.includes(hostname) || hostname.endsWith('.internal')) {
+      return NextResponse.json({ success: false, error: 'Target host is not allowed' }, { status: 403 });
+    }
+    if (!isAllowedHost(hostname)) {
+      return NextResponse.json({ success: false, error: 'Target host is not in allowlist' }, { status: 403 });
+    }
+
     const upstreamHeaders: Record<string, string> = {
       ...forwardHeaders,
       referer: forwardHeaders.referer || `${target.origin}/`,
@@ -212,45 +245,6 @@ export async function GET(request: NextRequest) {
         }
       }
       
-      // Jeśli zewnętrzny /direct-resolver nie pomógł lub go brakuje, wymuś awaryjne darmowe obejścia dla VixSrc
-      if (!upstream.ok) {
-        const targetHost = target.hostname.toLowerCase();
-        const isVix = targetHost.includes('vix') || targetHost.includes('vixsrc');
-
-        if (isVix) {
-          const backupProxies = [
-              'https://corsproxy.io/?',
-              'https://api.codetabs.com/v1/proxy?quest=',
-              'https://api.allorigins.win/raw?url='
-          ];
-
-          for (const proxyUrlBase of backupProxies) {
-             const fullUrl = proxyUrlBase + encodeURIComponent(targetUrl);
-             try {
-               const fallbackHeaders = new Headers();
-               if (upstreamHeaders['user-agent']) fallbackHeaders.set('User-Agent', upstreamHeaders['user-agent']);
-               
-               if (proxyUrlBase.includes('corsproxy.io')) {
-                  if (upstreamHeaders.referer) fallbackHeaders.set('Referer', upstreamHeaders.referer);
-                  if (upstreamHeaders.origin) fallbackHeaders.set('Origin', upstreamHeaders.origin);
-               }
-               
-               const fallbackResp = await fetch(fullUrl, {
-                  method: request.method,
-                  headers: fallbackHeaders,
-                  signal: AbortSignal.timeout(10000)
-               });
-
-               if (fallbackResp.ok) {
-                  upstream = fallbackResp;
-                  break;
-               }
-             } catch {
-               // spróbuj kolejny proxy na liście
-             }
-          }
-        }
-      }
     }
 
     if (!upstream.ok) {
