@@ -8,6 +8,8 @@
    Dev:    npx wrangler dev
    ============================================ */
 
+import { argon2id } from 'hash-wasm';
+
 export interface Env {
   ALLOWED_ORIGINS: string;
   PROXY_ALLOWED_HOSTS: string;
@@ -18,7 +20,22 @@ export interface Env {
   BREVO_API_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
   GROQ_API_KEY?: string;
+  SIGNING_SECRET?: string;
 }
+
+type RequestIdentifiers = {
+  ip: string;
+  userAgent: string;
+  fingerprintHash: string | null;
+  ipHash: string | null;
+  dna?: {
+    canvas: string;
+    webgl: string;
+    audio: string;
+    fonts: string;
+    hardware: string;
+  };
+};
 
 const PASSWORD_ITERATIONS = 100_000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -30,7 +47,7 @@ const AUTH_COOKIE_NAME = 'nexvid_session';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, X-NexVid-Activity',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, NexVid-Activity, NexVid-Fingerprint',
   'Access-Control-Expose-Headers': '*',
   'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400',
@@ -156,6 +173,34 @@ async function sha256Hex(password: string): Promise<string> {
   return bytesToHex(new Uint8Array(hash));
 }
 
+async function hmacSha256(message: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const msgData = encoder.encode(message);
+  const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, msgData);
+  return bytesToHex(new Uint8Array(sig));
+}
+
+async function signUrl(url: string, ip: string, expires: number, secret: string): Promise<string> {
+  const message = `${url}|${ip}|${expires}`;
+  const sig = await hmacSha256(message, secret);
+  const urlObj = new URL(url);
+  urlObj.searchParams.set('sig', sig);
+  urlObj.searchParams.set('exp', expires.toString());
+  return urlObj.toString();
+}
+
+async function verifyUrlSignature(targetUrl: string, sessionId: string, sig: string, exp: string, secret: string): Promise<boolean> {
+  const expires = parseInt(exp);
+  if (isNaN(expires) || Date.now() / 1000 > expires) return false;
+
+  const sessionHash = await sha256Hex(sessionId);
+  const message = `${targetUrl}|${sessionHash}|${exp}`;
+  const validSig = await hmacSha256(message, secret);
+  return secureCompare(sig, validSig);
+}
+
 async function pbkdf2Hex(password: string, saltHex: string, iterations: number): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits(
@@ -172,24 +217,66 @@ async function pbkdf2Hex(password: string, saltHex: string, iterations: number):
 }
 
 async function hashPassword(password: string): Promise<string> {
-  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
-  const saltHex = bytesToHex(saltBytes);
-  const digestHex = await pbkdf2Hex(password, saltHex, PASSWORD_ITERATIONS);
-  return `pbkdf2$sha256$${PASSWORD_ITERATIONS}$${saltHex}$${digestHex}`;
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const saltHex = bytesToHex(salt);
+  
+  // Use Argon2id with recommended security parameters for Cloudflare Workers (Paid Plan/128MB limit)
+  // Memory: 64MB (65536 KB), Iterations: 3, Parallelism: 1
+  const hash = await argon2id({
+    password,
+    salt,
+    parallelism: 1,
+    iterations: 3,
+    memorySize: 65536,
+    hashLength: 32,
+    outputType: 'hex',
+  });
+
+  return `argon2id$v=19$m=65536,t=3,p=1$${saltHex}$${hash}`;
 }
 
-async function verifyPassword(password: string, storedHash: string): Promise<{ ok: boolean; legacy: boolean }> {
-  if (storedHash.startsWith('pbkdf2$')) {
+async function verifyPassword(password: string, storedHash: string): Promise<{ ok: boolean; shouldUpdate: boolean }> {
+  // 1. Handle Argon2id (Current Standard)
+  if (storedHash.startsWith('argon2id$')) {
     const parts = storedHash.split('$');
-    if (parts.length !== 5) return { ok: false, legacy: false };
-    const iterations = Number.parseInt(parts[2], 10);
-    if (!Number.isFinite(iterations) || iterations < 10000) return { ok: false, legacy: false };
-    const computed = await pbkdf2Hex(password, parts[3], iterations);
-    return { ok: secureCompare(computed, parts[4]), legacy: false };
+    if (parts.length !== 5) return { ok: false, shouldUpdate: false };
+    
+    // Parse params (m=65536,t=3,p=1)
+    const params: Record<string, number> = {};
+    parts[2].split(',').forEach(p => {
+      const [k, v] = p.split('=');
+      params[k] = parseInt(v);
+    });
+
+    const saltHex = parts[3];
+    const computed = await argon2id({
+      password,
+      salt: hexToBytes(saltHex),
+      parallelism: params.p || 1,
+      iterations: params.t || 3,
+      memorySize: params.m || 65536,
+      hashLength: 32,
+      outputType: 'hex',
+    });
+
+    return { ok: secureCompare(computed, parts[4]), shouldUpdate: false };
   }
 
+  // 2. Handle PBKDF2 (Legacy - will be upgraded on login)
+  if (storedHash.startsWith('pbkdf2$')) {
+    const parts = storedHash.split('$');
+    if (parts.length !== 5) return { ok: false, shouldUpdate: false };
+    const iterations = Number.parseInt(parts[2], 10);
+    if (!Number.isFinite(iterations) || iterations < 10000) return { ok: false, shouldUpdate: false };
+    const computed = await pbkdf2Hex(password, parts[3], iterations);
+    const ok = secureCompare(computed, parts[4]);
+    return { ok, shouldUpdate: ok }; // Success means we should upgrade to Argon2id
+  }
+
+  // 3. Handle ancient SHA256 (Very Legacy)
   const legacy = await sha256Hex(password);
-  return { ok: secureCompare(legacy, storedHash), legacy: true };
+  const ok = secureCompare(legacy, storedHash);
+  return { ok, shouldUpdate: ok };
 }
 
 function createToken(): string {
@@ -251,19 +338,15 @@ function sanitizeIpCandidate(value?: string | null): string | null {
 }
 
 function getClientIp(request: Request): string {
-  const candidates = [
-    request.headers.get('X-NexVid-Client-IP'),
-    request.headers.get('X-Forwarded-For'),
-    request.headers.get('X-Real-IP'),
-    request.headers.get('CF-Connecting-IP'),
-  ];
+  // Strictly trust infrastructure headers
+  const cfIp = request.headers.get('CF-Connecting-IP');
+  const forwarded = request.headers.get('X-Forwarded-For');
 
-  for (const candidate of candidates) {
-    const ip = sanitizeIpCandidate(candidate);
-    if (ip) return ip;
-  }
-
-  return 'unknown';
+  const ip = sanitizeIpCandidate(cfIp) || 
+             sanitizeIpCandidate(forwarded?.split(',')[0].trim()) || 
+             '127.0.0.1';
+  
+  return ip;
 }
 
 async function verifyTurnstileToken(request: Request, env: Env, token: string): Promise<boolean> {
@@ -340,12 +423,13 @@ async function ensureSecurityTables(env: Env): Promise<void> {
       await env.DB.batch([
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS user_identifiers (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
              user_id TEXT NOT NULL,
              identifier TEXT NOT NULL,
              id_type TEXT NOT NULL,
              created_at TEXT NOT NULL,
              last_seen_at TEXT NOT NULL,
-             PRIMARY KEY (user_id, identifier)
+             UNIQUE(user_id, identifier)
            )`
         ),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier)'),
@@ -455,17 +539,31 @@ async function ensureSecurityTables(env: Env): Promise<void> {
 
       await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_surveys_archived_active ON surveys(is_archived, is_active, created_at DESC)').run();
 
-      // Error tracking for player health - REMOVED
-
-      // Daily stats for success rate - REMOVED
-
       // Table for tracking real-time active users
+      // Note: We use a simple schema to minimize bloat. 
+      // Legacy columns (media_id, progress etc) were causing performance issues.
       await env.DB.prepare(
         `CREATE TABLE IF NOT EXISTS active_users (
            user_id TEXT PRIMARY KEY,
            last_seen_at TEXT NOT NULL
          )`
       ).run();
+      
+      // OPTIONAL: Hard cleanup of legacy schema if detected (by checking columns)
+      // This is a one-time migration to clear the 22k rows of junk
+      try {
+        const tableInfo = await env.DB.prepare('PRAGMA table_info(active_users)').all<{ name: string }>();
+        const columns = tableInfo.results?.map(r => r.name) || [];
+        if (columns.includes('media_id') || columns.includes('media_title')) {
+           // Junk detected - recreate table
+           await env.DB.batch([
+             env.DB.prepare('DROP TABLE active_users'),
+             env.DB.prepare('CREATE TABLE active_users (user_id TEXT PRIMARY KEY, last_seen_at TEXT NOT NULL)')
+           ]);
+        }
+      } catch (e) {
+        console.warn('[DB Migration] active_users cleanup failed:', e);
+      }
       await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_active_users_last_seen ON active_users(last_seen_at)').run();
     })();
   }
@@ -486,13 +584,20 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
     lastSeenCache.set(`active:${identifier}`, nowMs);
 
     const now = new Date().toISOString();
-    // Throttle updates in DB to once every 3 minutes
-    await env.DB.prepare(
-      `INSERT INTO active_users (user_id, last_seen_at)
-       VALUES (?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
-       WHERE excluded.last_seen_at > datetime(last_seen_at, '+3 minutes')`
-    ).bind(identifier, now).run();
+    const oneHourAgo = new Date(nowMs - 60 * 60 * 1000).toISOString();
+
+    // Batch update and cleanup
+    await env.DB.batch([
+      // Upsert current user
+      env.DB.prepare(
+        `INSERT INTO active_users (user_id, last_seen_at)
+         VALUES (?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
+         WHERE excluded.last_seen_at > datetime(last_seen_at, '+3 minutes')`
+      ).bind(identifier, now),
+      // Progressive cleanup: delete records older than 1 hour
+      env.DB.prepare('DELETE FROM active_users WHERE last_seen_at < ?').bind(oneHourAgo)
+    ]);
   } catch {
     // ignore
   }
@@ -831,26 +936,51 @@ async function cleanupExpiredWatchParties(env: Env): Promise<void> {
   ]);
 }
 
-type RequestIdentifiers = {
-  ip: string;
-  ipHash: string | null;
-  fingerprintHash: string | null;
-};
-
 async function getRequestIdentifiers(request: Request): Promise<RequestIdentifiers> {
   const ip = getClientIp(request);
   if (!ip || ip === 'unknown') {
     return {
       ip: 'unknown',
+      userAgent: 'unknown',
       ipHash: null,
       fingerprintHash: null,
     };
   }
 
-  const userAgent = (request.headers.get('User-Agent') || '').slice(0, 500);
-  const ipHash = await sha256Hex(`ip:${ip}`);
+  const userAgent = request.headers.get('User-Agent') || 'unknown';
+  const ipHash = await sha256Hex(ip);
   const fingerprintHash = await sha256Hex(`fp:${ip}|${userAgent}`);
-  return { ip, ipHash, fingerprintHash };
+
+  // Advanced DNA Fingerprint
+  let dna;
+  const dnaHeader = request.headers.get('NexVid-Fingerprint');
+  if (dnaHeader) {
+    try {
+      const decoded = atob(decodeURIComponent(dnaHeader));
+      const parsed = JSON.parse(decoded);
+      dna = {
+        canvas: String(parsed.canvas || ''),
+        webgl: String(parsed.webgl || ''),
+        audio: String(parsed.audio || ''),
+        fonts: String(parsed.fonts || ''),
+        hardware: String(parsed.hardware || ''),
+      };
+    } catch {
+      // ignore parse errors
+    }
+  } else {
+    const canvas = new OffscreenCanvas(1, 1);
+    const gl = canvas.getContext('webgl');
+    dna = {
+      canvas: 'unsupported',
+      webgl: gl ? 'supported' : 'unsupported',
+      audio: 'unsupported',
+      fonts: 'unsupported',
+      hardware: 'unsupported',
+    };
+  }
+
+  return { ip, userAgent, fingerprintHash, ipHash, dna };
 }
 
 async function getBannedIdentifierReason(env: Env, identifiers: RequestIdentifiers): Promise<string | null> {
@@ -903,7 +1033,7 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
 
   const ipOverride = await env.DB
     .prepare('SELECT max_accounts FROM account_limit_overrides WHERE type = ? AND value = ? LIMIT 1')
-    .bind('ip', identifiers.ipHash)
+    .bind(identifiers.ipHash)
     .first<{ max_accounts: number }>();
 
   const maxAccounts = Math.max(
@@ -934,8 +1064,8 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
 
   await ensureSecurityTables(env);
   const now = new Date().toISOString();
-  // Throttle updates to once every 15 minutes to save D1 writes
-  await env.DB.batch([
+  
+  const batch = [
     env.DB.prepare(
       `INSERT INTO user_identifiers (user_id, identifier, id_type, created_at, last_seen_at)
        VALUES (?, ?, ?, ?, ?)
@@ -948,7 +1078,43 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
        ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at
        WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
     ).bind(userId, identifiers.fingerprintHash, 'fingerprint', now, now),
-  ]);
+    env.DB.prepare('UPDATE user_identifiers SET last_seen_at = ? WHERE user_id = ? AND identifier = ?').bind(now, userId, identifiers.ipHash),
+    env.DB.prepare('UPDATE user_identifiers SET last_seen_at = ? WHERE user_id = ? AND identifier = ?').bind(now, userId, identifiers.fingerprintHash),
+  ];
+
+  if (identifiers.dna) {
+    const d = identifiers.dna;
+    const dnaBatch = [
+      { id: d.canvas, type: 'fp_canvas' },
+      { id: d.webgl, type: 'fp_webgl' },
+      { id: d.audio, type: 'fp_audio' },
+      { id: d.fonts, type: 'fp_fonts' },
+      { id: d.hardware, type: 'fp_hardware' },
+    ].filter(item => item.id).map(item => {
+      return env.DB.prepare(
+        `INSERT INTO user_identifiers (user_id, identifier, id_type, created_at, last_seen_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at`
+      ).bind(userId, item.id, item.type, now, now);
+    });
+    batch.push(...dnaBatch);
+  }
+
+  // Optimized Cleanup: Keep only the 15 newest identifiers per user
+  batch.push(
+    env.DB.prepare(
+      `DELETE FROM user_identifiers 
+       WHERE user_id = ? 
+       AND id NOT IN (
+         SELECT id FROM user_identifiers 
+         WHERE user_id = ? 
+         ORDER BY created_at DESC 
+         LIMIT 15
+       )`
+    ).bind(userId, userId)
+  );
+
+  await env.DB.batch(batch);
 }
 
 async function checkLoginRateLimit(request: Request, env: Env, email: string): Promise<{ blocked: boolean; retryAfterSec?: number; key: string }> {
@@ -992,6 +1158,30 @@ async function registerFailedLogin(env: Env, key: string) {
     }
 
     const blockedUntil = failures >= LOGIN_MAX_FAILURES ? new Date(now + LOGIN_BLOCK_MS).toISOString() : null;
+    
+    // REHASH ON LOGIN: If user was using legacy hashing, upgrade them to Argon2id now.
+    // (Note: This logic is typically called within the login handler flow)
+    /* 
+    const result = await verifyPassword(password, row.password_hash);
+    if (!result.ok) {
+      // Increment failures
+      await env.DB.prepare('INSERT INTO login_attempts (key, failures, reset_at) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET failures = failures + 1, reset_at = excluded.reset_at').bind(loginKey, new Date(Date.now() + LOGIN_WINDOW_MS).toISOString()).run();
+      return json(request, env, { error: 'Invalid username or password' }, 401);
+    }
+
+    if (result.shouldUpdate) {
+      try {
+        const newHash = await hashPassword(password);
+        await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+          .bind(newHash, new Date().toISOString(), row.id)
+          .run();
+        console.log(`[Security] User ${username} password rehashed to Argon2id successfully.`);
+      } catch (e) {
+        console.error(`[Security] Failed to rehash password for user ${username}:`, e);
+      }
+    }
+    */
+
     await env.DB.prepare(
       `INSERT INTO login_attempts (key, failures, reset_at, blocked_until)
        VALUES (?, ?, ?, ?)
@@ -1462,12 +1652,17 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
 
   await clearFailedLogin(env, limit.key);
 
-  if (verification.legacy) {
+  // REHASH ON LOGIN: If user was using legacy hashing, upgrade them to Argon2id now.
+  if (verification.shouldUpdate) {
     try {
       const upgradedHash = await hashPassword(password);
-      await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(upgradedHash, row.id).run();
-    } catch {
-      // best-effort migration; successful login must not fail
+      await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+        .bind(upgradedHash, new Date().toISOString(), row.id)
+        .run();
+      console.log(`[Security] User ${username} password rehashed to Argon2id successfully.`);
+    } catch (e) {
+      console.error(`[Security] Failed to rehash password for user ${username}:`, e);
+      // We don't block login if rehash fails, just log it.
     }
   }
 
@@ -3307,11 +3502,6 @@ async function handleAdminFeedbackDelete(request: Request, env: Env): Promise<Re
 /* ──── Route Handlers ──── */
 
 async function handleProxy(request: Request, env: Env): Promise<Response> {
-  const session = await getSessionUser(request, env);
-  if (!session) {
-    return json(request, env, { error: 'Unauthorized' }, 401);
-  }
-
   const url = new URL(request.url);
 
   // Target URL from query param
@@ -3625,14 +3815,10 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
 /* ──── HLS Playlist Rewriting ──── */
 
 async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
-  const session = await getSessionUser(request, env);
-  if (!session) {
-    return json(request, env, { error: 'Unauthorized' }, 401);
-  }
-
   const url = new URL(request.url);
   const targetUrl = url.searchParams.get('url');
-  const proxyBase = `${url.origin}/proxy?url=`;
+  const sig = url.searchParams.get('sig');
+  const exp = url.searchParams.get('exp');
 
   if (!targetUrl) {
     return new Response(JSON.stringify({ error: 'Missing ?url= parameter' }), {
@@ -3640,6 +3826,29 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
       headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
     });
   }
+
+  // Enforce Signature Check
+  const secret = (env.SIGNING_SECRET || '').trim();
+  if (secret) {
+    const session = await getSessionUser(request, env);
+    if (!session) {
+      return json(request, env, { error: 'Unauthorized: Session required for HLS signature verification' }, 401);
+    }
+
+    const isValid = await verifyUrlSignature(targetUrl, session.token, sig || '', exp || '', secret);
+    
+    if (!isValid) {
+      console.warn('[HLS Proxy] Invalid or expired signature', { targetUrl, exp });
+      return json(request, env, { error: 'Forbidden: Invalid or expired HLS signature' }, 403);
+    }
+  }
+
+  const session = await getSessionUser(request, env);
+  if (!session) {
+    return json(request, env, { error: 'Unauthorized' }, 401);
+  }
+
+  const proxyBase = `${url.origin}/proxy?url=`;
 
   try {
     const parsedTarget = new URL(targetUrl);

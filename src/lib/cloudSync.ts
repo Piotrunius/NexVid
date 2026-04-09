@@ -1,6 +1,7 @@
 const AUTH_TOKEN_KEY = 'nexvid-auth-token';
 const DEFAULT_PROD_API_URL = 'https://nexvid-proxy.piotrunius.workers.dev';
 const CLOUD_REQUEST_TIMEOUT_MS = 10000;
+import { getDeviceDNA } from './fingerprint';
 
 export class CloudApiError extends Error {
   status: number;
@@ -100,6 +101,17 @@ export async function cloudFetch<T = any>(path: string, init: RequestInit = {}):
   const headers = new Headers(init.headers || {});
   headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  // Add Device DNA Fingerprint
+  if (typeof window !== 'undefined') {
+    try {
+      const dna = await getDeviceDNA();
+      const encodedDna = btoa(encodeURIComponent(JSON.stringify(dna)));
+      headers.set('NexVid-Fingerprint', encodedDna);
+    } catch (e) {
+      console.warn('[Fingerprint] Failed to attach DNA:', e);
+    }
+  }
 
   let response: Response;
   try {

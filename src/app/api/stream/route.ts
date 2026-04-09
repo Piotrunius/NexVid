@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Import providers
 import { PobreflixProvider } from '@/lib/providers/pobreflix';
+import { signStreamData } from '@/lib/proxy-signer';
 
 // Edge runtime is required for Cloudflare Pages
 export const runtime = 'edge';
@@ -44,6 +45,22 @@ export async function GET(request: NextRequest) {
     }
 
     const { sourceId } = validation.data!;
+
+    // 2. Auth Check & Token Extraction
+    // We need the token for session-based signature binding
+    const authHeader = request.headers.get('Authorization');
+    const cookieHeader = request.headers.get('cookie') || '';
+    const token = authHeader?.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : cookieHeader.match(/nexvid_session=([^;]+)/)?.[1];
+
+    if (!token || !(await isValidCloudSession(request))) {
+      return NextResponse.json(
+        { error: 'Unauthorized', details: 'Stream resolution requires an active NexVid session' },
+        { status: 401 }
+      );
+    }
+    const sessionId = token;
 
     // 3. FebBox-based sources require explicit user token
     if (sourceId === 'alpha' || sourceId === 'febbox') {
@@ -126,15 +143,17 @@ export async function GET(request: NextRequest) {
 
           // For HLS
           if (first.type === 'hls') {
+            const signedData = await signStreamData({
+              type: 'hls',
+              url: first.url,
+              playlist: first.url,
+              captions: result.subtitles,
+              headers: first.headers,
+            }, sessionId);
+
             return NextResponse.json({
               success: true,
-              data: {
-                type: 'hls',
-                url: first.url,
-                playlist: first.url,
-                captions: result.subtitles,
-                headers: first.headers,
-              },
+              data: signedData,
             });
           }
 
@@ -147,27 +166,27 @@ export async function GET(request: NextRequest) {
             };
           });
 
+          const signedData = await signStreamData({
+            type: 'file',
+            qualities,
+            captions: result.subtitles,
+            audioTracks: first.audioTracks,
+            headers: first.headers, // Fallback for some player logic
+          }, sessionId);
+
           return NextResponse.json({
             success: true,
-            data: {
-              type: 'file',
-              qualities,
-              captions: result.subtitles,
-              audioTracks: first.audioTracks,
-              headers: first.headers, // Fallback for some player logic
-            },
+            data: signedData,
           });
         }
       } catch (provErr) {
         console.error(`[API /stream] Provider ${actualSourceId} error:`, provErr);
-        return createGenericErrorResponse(provErr, 502, '/stream');
-      }
-
-      return NextResponse.json(
+        return NextResponse.json(
         { error: 'No streams found' },
         { status: 404 }
       );
     }
+  }
 
     // Handle alpha (Premium FebBox with user's token)
     if (sourceId === 'alpha') {
@@ -193,9 +212,11 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      const signedData = await signStreamData(febboxResult.stream, sessionId);
+
       return NextResponse.json({
         success: true,
-        data: febboxResult.stream,
+        data: signedData,
       });
     }
 
@@ -222,10 +243,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+    const signedData = await signStreamData(febboxResult.stream, clientIp);
+
     // Return stream data WITHOUT internal logs
     return NextResponse.json({
       success: true,
-      data: febboxResult.stream,
+      data: signedData,
     });
   } catch (error: any) {
     return createGenericErrorResponse(error, 500, '/stream');
