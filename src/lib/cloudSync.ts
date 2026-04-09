@@ -212,8 +212,11 @@ export async function lookupAdminAccounts(type: 'username', value: string) {
     query: { type: 'username' | 'id'; value: string };
     accountCount: number;
     ipGroupCount?: number;
+    deviceGroupCount?: number;
     inspectedIpGroupCount?: number;
+    inspectedDeviceGroupCount?: number;
     ignoredSharedIpGroupCount?: number;
+    ignoredSharedDeviceGroupCount?: number;
     accounts: { id: string; username: string; lastSeenAt?: string | null }[];
   }>(`/admin/account-lookup?type=${encodeURIComponent(type)}&value=${encodeURIComponent(value)}`, {
     method: 'GET',

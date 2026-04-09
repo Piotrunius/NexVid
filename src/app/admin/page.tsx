@@ -72,8 +72,11 @@ type AccountLookupResult = {
   query: { type: 'username' | 'id'; value: string };
   accountCount: number;
   ipGroupCount?: number;
+  deviceGroupCount?: number;
   inspectedIpGroupCount?: number;
+  inspectedDeviceGroupCount?: number;
   ignoredSharedIpGroupCount?: number;
+  ignoredSharedDeviceGroupCount?: number;
   accounts: { id: string; username: string; lastSeenAt?: string | null }[];
 };
 
@@ -1098,7 +1101,7 @@ export default function AdminPage() {
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
                   <h3 className="text-[13px] font-semibold text-text-primary">Account lookup</h3>
-                  <p className="text-[11px] text-text-muted">Find accounts linked through shared IP history.</p>
+                  <p className="text-[11px] text-text-muted">Find accounts linked through shared IP and device history.</p>
                   <div className="flex gap-2">
                     <input
                       className="input flex-1"
@@ -1119,6 +1122,14 @@ export default function AdminPage() {
                           IP's used: {lookupResult.ipGroupCount ?? 0}/{lookupResult.inspectedIpGroupCount}
                           {lookupResult.ignoredSharedIpGroupCount
                             ? ` (ignored: ${lookupResult.ignoredSharedIpGroupCount})`
+                            : ''}
+                        </p>
+                      )}
+                      {typeof lookupResult.inspectedDeviceGroupCount === 'number' && (
+                        <p className="text-[11px] text-white/45">
+                          Devices used: {lookupResult.deviceGroupCount ?? 0}/{lookupResult.inspectedDeviceGroupCount}
+                          {lookupResult.ignoredSharedDeviceGroupCount
+                            ? ` (ignored: ${lookupResult.ignoredSharedDeviceGroupCount})`
                             : ''}
                         </p>
                       )}

@@ -34,7 +34,7 @@ export interface RequestIdentifiers {
   ipHash: string | null;
   ipHashScoped: string | null;
   deviceHash: string | null;
-  userAgentHash: string | null;
+  deviceKind: 'pc' | 'mobile' | 'tablet' | 'tv' | 'other';
   shouldSetDeviceCookie: boolean;
   deviceCookieValue: string | null;
 }
@@ -49,6 +49,7 @@ const AUTH_COOKIE_NAME = 'nexvid_session';
 const DEVICE_COOKIE_NAME = 'nexvid_device';
 const DEVICE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
 const IDENTIFIER_RETENTION_DAYS = 90;
+const MAX_DEVICE_IDENTIFIERS_PER_KIND = 3;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
@@ -340,6 +341,31 @@ function appendDeviceCookieIfNeeded(response: Response, identifiers: RequestIden
   response.headers.append('Set-Cookie', buildDeviceCookie(identifiers.deviceCookieValue));
 }
 
+function detectDeviceKind(userAgent: string): 'pc' | 'mobile' | 'tablet' | 'tv' | 'other' {
+  const ua = String(userAgent || '').toLowerCase();
+  if (!ua) return 'other';
+
+  // Smart TV / OTT
+  if (/(smart-tv|smarttv|hbbtv|appletv|tizen|web0s|webos|googletv|android tv|aft[bt]|roku|netcast|viera)/.test(ua)) {
+    return 'tv';
+  }
+
+  // Tablet first to avoid matching "mobile" before "ipad"/tablet signatures.
+  if (/(ipad|tablet|nexus 7|nexus 9|sm-t|tab |kindle|silk\/|playbook)/.test(ua)) {
+    return 'tablet';
+  }
+
+  if (/iphone|ipod|android.+mobile|mobile|mobi/.test(ua)) {
+    return 'mobile';
+  }
+
+  if (/(windows nt|macintosh|x11|linux x86_64|cros)/.test(ua)) {
+    return 'pc';
+  }
+
+  return 'other';
+}
+
 function sanitizeIpCandidate(value?: string | null): string | null {
   const raw = String(value || '').trim();
   if (!raw) return null;
@@ -451,6 +477,7 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              user_id TEXT NOT NULL,
              identifier TEXT NOT NULL,
              id_type TEXT NOT NULL,
+             device_kind TEXT,
              created_at TEXT NOT NULL,
              last_seen_at TEXT NOT NULL,
              UNIQUE(user_id, identifier)
@@ -459,6 +486,7 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier)'),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_type_identifier ON user_identifiers(id_type, identifier)'),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_last_seen ON user_identifiers(last_seen_at)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_user_type_kind_seen ON user_identifiers(user_id, id_type, device_kind, last_seen_at DESC)'),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS banned_entities (
              ban_type TEXT NOT NULL,
@@ -518,6 +546,11 @@ async function ensureSecurityTables(env: Env): Promise<void> {
       }
       try {
         await env.DB.prepare('ALTER TABLE banned_entities ADD COLUMN target_user_id TEXT').run();
+      } catch {
+        // already exists on upgraded schemas
+      }
+      try {
+        await env.DB.prepare('ALTER TABLE user_identifiers ADD COLUMN device_kind TEXT').run();
       } catch {
         // already exists on upgraded schemas
       }
@@ -600,6 +633,9 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         env.DB.prepare('DROP TABLE IF EXISTS banned_ip_hashes'),
         env.DB.prepare('DROP TABLE IF EXISTS banned_identifiers'),
       ]);
+
+      // Legacy cleanup: we no longer store UA identifiers as separate rows.
+      await env.DB.prepare(`DELETE FROM user_identifiers WHERE id_type = 'ua'`).run();
 
       // Remove obsolete announcements column.
       try {
@@ -1046,13 +1082,15 @@ async function cleanupExpiredWatchParties(env: Env): Promise<void> {
   ]);
 }
 
-async function getRequestIdentifiers(request: Request): Promise<RequestIdentifiers> {
+async function getRequestIdentifiers(
+  request: Request,
+  options?: { includeGeneratedDeviceHash?: boolean }
+): Promise<RequestIdentifiers> {
   const device = await getDeviceIdentifier(request);
   const userAgent = request.headers.get('User-Agent') || 'unknown';
-  const normalizedUserAgent = userAgent.trim().toLowerCase();
-  const userAgentHashHex = await sha256Hex(`ua:${normalizedUserAgent}`);
-  const userAgentHash = userAgentHashHex ? `ua:${userAgentHashHex}` : null;
-  const deviceHashHex = device.id ? await sha256Hex(`device:${device.id}`) : '';
+  const deviceKind = detectDeviceKind(userAgent);
+  const deviceIdForHash = device.id || (options?.includeGeneratedDeviceHash ? device.cookieValue : null);
+  const deviceHashHex = deviceIdForHash ? await sha256Hex(`device:${deviceIdForHash}`) : '';
   const deviceHash = deviceHashHex ? `device:${deviceHashHex}` : null;
 
   const ip = getClientIp(request);
@@ -1063,7 +1101,7 @@ async function getRequestIdentifiers(request: Request): Promise<RequestIdentifie
       ipHash: null,
       ipHashScoped: null,
       deviceHash,
-      userAgentHash,
+      deviceKind,
       shouldSetDeviceCookie: device.shouldSetCookie,
       deviceCookieValue: device.cookieValue,
     };
@@ -1078,7 +1116,7 @@ async function getRequestIdentifiers(request: Request): Promise<RequestIdentifie
     ipHash: ipHash || null,
     ipHashScoped: ipHashScoped || null,
     deviceHash,
-    userAgentHash,
+    deviceKind,
     shouldSetDeviceCookie: device.shouldSetCookie,
     deviceCookieValue: device.cookieValue,
   };
@@ -1184,10 +1222,10 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
 }
 
 async function linkUserIdentifiers(env: Env, userId: string, identifiers: RequestIdentifiers): Promise<void> {
-  if (!identifiers.ipHash && !identifiers.deviceHash && !identifiers.userAgentHash) return;
+  if (!identifiers.ipHash && !identifiers.deviceHash) return;
 
   const nowMs = Date.now();
-  const cacheKey = `link:${userId}:${identifiers.ipHash || 'none'}:${identifiers.deviceHash || 'none'}:${identifiers.userAgentHash || 'none'}`;
+  const cacheKey = `link:${userId}:${identifiers.ipHash || 'none'}:${identifiers.deviceHash || 'none'}:${identifiers.deviceKind}`;
   const last = lastSeenCache.get(cacheKey);
   if (last && nowMs - last < 10 * 60 * 1000) return;
   lastSeenCache.set(cacheKey, nowMs);
@@ -1195,20 +1233,40 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
   await ensureSecurityTables(env);
   const now = new Date().toISOString();
 
-  const insertIdentifier = (identifier: string, idType: string) => [
+  const insertIdentifier = (identifier: string, idType: 'ip' | 'device', deviceKind: string | null = null) => [
     env.DB.prepare(
-      `INSERT INTO user_identifiers (user_id, identifier, id_type, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(user_id, identifier) DO UPDATE SET last_seen_at = excluded.last_seen_at
+      `INSERT INTO user_identifiers (user_id, identifier, id_type, device_kind, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, identifier) DO UPDATE SET
+         last_seen_at = excluded.last_seen_at,
+         device_kind = COALESCE(excluded.device_kind, user_identifiers.device_kind)
        WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
-    ).bind(userId, identifier, idType, now, now),
+    ).bind(userId, identifier, idType, deviceKind, now, now),
     env.DB.prepare('UPDATE user_identifiers SET last_seen_at = ? WHERE user_id = ? AND identifier = ?').bind(now, userId, identifier),
   ];
 
   const batch: D1PreparedStatement[] = [];
   if (identifiers.ipHash) batch.push(...insertIdentifier(identifiers.ipHash, 'ip'));
-  if (identifiers.deviceHash) batch.push(...insertIdentifier(identifiers.deviceHash, 'device'));
-  if (identifiers.userAgentHash) batch.push(...insertIdentifier(identifiers.userAgentHash, 'ua'));
+  if (identifiers.deviceHash) batch.push(...insertIdentifier(identifiers.deviceHash, 'device', identifiers.deviceKind));
+
+  // Keep only the newest N device identifiers per device kind for this user.
+  batch.push(
+    env.DB.prepare(
+      `DELETE FROM user_identifiers
+       WHERE user_id = ?
+         AND id_type = 'device'
+         AND device_kind = ?
+         AND rowid NOT IN (
+           SELECT rowid
+           FROM user_identifiers
+           WHERE user_id = ?
+             AND id_type = 'device'
+             AND device_kind = ?
+           ORDER BY last_seen_at DESC
+           LIMIT ?
+         )`
+    ).bind(userId, identifiers.deviceKind, userId, identifiers.deviceKind, MAX_DEVICE_IDENTIFIERS_PER_KIND)
+  );
 
   // Optimized Cleanup: Keep only the 40 newest identifiers per user
   batch.push(
@@ -1650,7 +1708,7 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     return json(request, env, { error: message }, 403);
   }
 
-  const identifiers = await getRequestIdentifiers(request);
+  const identifiers = await getRequestIdentifiers(request, { includeGeneratedDeviceHash: true });
   const bannedIdentifierReason = await getBannedIdentifierReason(env, identifiers);
   if (bannedIdentifierReason) {
     return json(request, env, { error: `Registration blocked: ${bannedIdentifierReason}` }, 403);
@@ -1758,7 +1816,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     return json(request, env, { error: 'Too many failed attempts. Try again later.' }, 429);
   }
 
-  const identifiers = await getRequestIdentifiers(request);
+  const identifiers = await getRequestIdentifiers(request, { includeGeneratedDeviceHash: true });
   const bannedIdentifierReason = await getBannedIdentifierReason(env, identifiers);
   if (bannedIdentifierReason) {
     return json(request, env, { error: `Login blocked: ${bannedIdentifierReason}` }, 403);
@@ -1848,7 +1906,8 @@ async function handleMe(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
   const response = json(request, env, { user: session.user });
-  const identifiers = await getRequestIdentifiers(request);
+  const identifiers = await getRequestIdentifiers(request, { includeGeneratedDeviceHash: true });
+  await linkUserIdentifiers(env, session.user.id, identifiers);
   appendDeviceCookieIfNeeded(response, identifiers);
   return response;
 }
@@ -2992,24 +3051,29 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
   const url = new URL(request.url);
   const rawValue = (url.searchParams.get('value') || '').trim();
   const LOOKUP_IP_WINDOW_DAYS = 30;
+  const LOOKUP_DEVICE_WINDOW_DAYS = 90;
   const LOOKUP_MAX_USERS_PER_IP = Math.max(DEFAULT_MAX_ACCOUNTS_PER_IP * 2, 4);
+  const LOOKUP_MAX_USERS_PER_DEVICE = 3;
 
   if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
 
-  const getAccountsByIpHashes = async (ipHashes: string[]) => {
-    if (ipHashes.length === 0) return [] as { id: string; username: string; lastSeenAt: string | null }[];
-    const placeholders = ipHashes.map(() => '?').join(', ');
+  const getAccountsByIdentifiers = async (identifiers: { idType: 'ip' | 'device'; value: string }[]) => {
+    if (identifiers.length === 0) return [] as { id: string; username: string; lastSeenAt: string | null }[];
+    const conditions = identifiers.map(() => '(ui.id_type = ? AND ui.identifier = ?)').join(' OR ');
+    const binds: string[] = [];
+    for (const identifier of identifiers) {
+      binds.push(identifier.idType, identifier.value);
+    }
     const rows = await env.DB.prepare(
       `SELECT u.id, u.username, MAX(ui.last_seen_at) AS last_seen_at
        FROM user_identifiers ui
        JOIN users u ON u.id = ui.user_id
-       WHERE ui.id_type = 'ip'
-         AND ui.identifier IN (${placeholders})
+       WHERE (${conditions})
          AND datetime(ui.last_seen_at) >= datetime('now', ?)
        GROUP BY u.id, u.username
        ORDER BY LOWER(u.username) ASC`
     )
-      .bind(...ipHashes, `-${LOOKUP_IP_WINDOW_DAYS} days`)
+      .bind(...binds, `-${Math.max(LOOKUP_IP_WINDOW_DAYS, LOOKUP_DEVICE_WINDOW_DAYS)} days`)
       .all<{ id: string; username: string; last_seen_at: string | null }>();
 
     return (rows.results || []).map((row) => ({
@@ -3060,31 +3124,87 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
     candidateIpHashes = Array.from(new Set((fallbackUserIpRows.results || []).map((row) => row.identifier)));
   }
 
-  if (candidateIpHashes.length === 0) {
+  const userDeviceRows = await env.DB.prepare(
+    `SELECT identifier
+     FROM user_identifiers
+     WHERE user_id = ?
+       AND id_type = 'device'
+       AND datetime(last_seen_at) >= datetime('now', ?)
+     ORDER BY last_seen_at DESC
+     LIMIT 50`
+  ).bind(baseUser.id, `-${LOOKUP_DEVICE_WINDOW_DAYS} days`).all<{ identifier: string }>();
+
+  let candidateDeviceHashes = Array.from(new Set((userDeviceRows.results || []).map((row) => row.identifier)));
+
+  if (candidateDeviceHashes.length === 0) {
+    const fallbackUserDeviceRows = await env.DB.prepare(
+      `SELECT identifier
+       FROM user_identifiers
+       WHERE user_id = ?
+         AND id_type = 'device'
+       ORDER BY last_seen_at DESC
+       LIMIT 10`
+    ).bind(baseUser.id).all<{ identifier: string }>();
+
+    candidateDeviceHashes = Array.from(new Set((fallbackUserDeviceRows.results || []).map((row) => row.identifier)));
+  }
+
+  if (candidateIpHashes.length === 0 && candidateDeviceHashes.length === 0) {
     return json(request, env, {
       query: { type: queryType, value: queryValue },
       accountCount: 1,
       ipGroupCount: 0,
+      deviceGroupCount: 0,
       accounts: [{ id: baseUser.id, username: baseUser.username, lastSeenAt: null }],
     });
   }
 
-  const ipPlaceholders = candidateIpHashes.map(() => '?').join(', ');
-  const ipDensityRows = await env.DB.prepare(
-    `SELECT identifier, COUNT(DISTINCT user_id) AS user_count
-     FROM user_identifiers
-     WHERE id_type = 'ip'
-       AND identifier IN (${ipPlaceholders})
-     GROUP BY identifier`
-  ).bind(...candidateIpHashes).all<{ identifier: string; user_count: number }>();
+  const ipDensityByHash = new Map<string, number>();
+  if (candidateIpHashes.length > 0) {
+    const ipPlaceholders = candidateIpHashes.map(() => '?').join(', ');
+    const ipDensityRows = await env.DB.prepare(
+      `SELECT identifier, COUNT(DISTINCT user_id) AS user_count
+       FROM user_identifiers
+       WHERE id_type = 'ip'
+         AND identifier IN (${ipPlaceholders})
+       GROUP BY identifier`
+    ).bind(...candidateIpHashes).all<{ identifier: string; user_count: number }>();
+    for (const row of ipDensityRows.results || []) {
+      ipDensityByHash.set(row.identifier, Number(row.user_count || 0));
+    }
+  }
 
-  const ipDensityByHash = new Map((ipDensityRows.results || []).map((row) => [row.identifier, Number(row.user_count || 0)]));
   const filteredIpHashes = candidateIpHashes.filter((ipHash) => {
     const usersOnIp = ipDensityByHash.get(ipHash) || 0;
     return usersOnIp > 0 && usersOnIp <= LOOKUP_MAX_USERS_PER_IP;
   });
 
-  const accounts = await getAccountsByIpHashes(filteredIpHashes);
+  const deviceDensityByHash = new Map<string, number>();
+  if (candidateDeviceHashes.length > 0) {
+    const devicePlaceholders = candidateDeviceHashes.map(() => '?').join(', ');
+    const deviceDensityRows = await env.DB.prepare(
+      `SELECT identifier, COUNT(DISTINCT user_id) AS user_count
+       FROM user_identifiers
+       WHERE id_type = 'device'
+         AND identifier IN (${devicePlaceholders})
+       GROUP BY identifier`
+    ).bind(...candidateDeviceHashes).all<{ identifier: string; user_count: number }>();
+    for (const row of deviceDensityRows.results || []) {
+      deviceDensityByHash.set(row.identifier, Number(row.user_count || 0));
+    }
+  }
+
+  const filteredDeviceHashes = candidateDeviceHashes.filter((deviceHash) => {
+    const usersOnDevice = deviceDensityByHash.get(deviceHash) || 0;
+    return usersOnDevice > 0 && usersOnDevice <= LOOKUP_MAX_USERS_PER_DEVICE;
+  });
+
+  const lookupIdentifiers = [
+    ...filteredIpHashes.map((value) => ({ idType: 'ip' as const, value })),
+    ...filteredDeviceHashes.map((value) => ({ idType: 'device' as const, value })),
+  ];
+
+  const accounts = await getAccountsByIdentifiers(lookupIdentifiers);
   if (!accounts.some((account) => account.id === baseUser.id)) {
     accounts.unshift({ id: baseUser.id, username: baseUser.username, lastSeenAt: null });
   }
@@ -3093,8 +3213,11 @@ async function handleAdminAccountLookup(request: Request, env: Env): Promise<Res
     query: { type: queryType, value: queryValue },
     accountCount: accounts.length,
     ipGroupCount: filteredIpHashes.length,
+    deviceGroupCount: filteredDeviceHashes.length,
     inspectedIpGroupCount: candidateIpHashes.length,
+    inspectedDeviceGroupCount: candidateDeviceHashes.length,
     ignoredSharedIpGroupCount: Math.max(0, candidateIpHashes.length - filteredIpHashes.length),
+    ignoredSharedDeviceGroupCount: Math.max(0, candidateDeviceHashes.length - filteredDeviceHashes.length),
     accounts,
   });
 }
