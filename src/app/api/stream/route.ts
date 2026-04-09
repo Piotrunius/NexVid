@@ -43,21 +43,7 @@ export async function GET(request: NextRequest) {
 
     const { sourceId } = validation.data!;
 
-    // 2. Auth Check & Token Extraction
-    const authHeader = request.headers.get('Authorization');
-    const cookieHeader = request.headers.get('cookie') || '';
-    const token = authHeader?.startsWith('Bearer ') 
-      ? authHeader.substring(7) 
-      : cookieHeader.match(/nexvid_session=([^;]+)/)?.[1];
-
-    if (!token || !(await isValidCloudSession(request))) {
-      return NextResponse.json(
-        { error: 'Unauthorized', details: 'Stream resolution requires an active NexVid session' },
-        { status: 401 }
-      );
-    }
-
-    // 3. FebBox-based sources require explicit user token
+    // 2. FebBox-based sources require explicit user token
     if (sourceId === 'alpha' || sourceId === 'febbox') {
       const febboxToken = request.headers.get('x-febbox-cookie') ||
                          request.nextUrl.searchParams.get('febboxToken') || '';
