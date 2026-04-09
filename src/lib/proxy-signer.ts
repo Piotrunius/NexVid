@@ -1,73 +1,26 @@
 /**
- * Proxy Signer Utility
- * Used to sign URLs for the Cloudflare Worker proxy.
+ * Proxy Utility
+ * Used to proxy URLs for the NexVid player.
  */
-
-async function hmacSha256(message: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const msgData = encoder.encode(message);
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', 
-    keyData, 
-    { name: 'HMAC', hash: 'SHA-256' }, 
-    false, 
-    ['sign']
-  );
-  
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
-  return Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-async function sha256Hex(message: string): Promise<string> {
-  const msgUint8 = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 /**
- * Signs a URL for use with the NexVid proxy.
+ * Proxies a URL for use with the NexVid proxy.
+ * (No longer signs with HMAC, as signatures were removed for simplicity)
  * @param targetUrl The upstream URL to proxy
- * @param sessionId The user's session ID/token (to bind the signature)
- * @param ttlSeconds How long the signature should be valid (default 4 hours)
+ * @param _sessionId Ignored (previously used for signing)
  */
-export async function signProxyUrl(targetUrl: string, sessionId: string, ttlSeconds = 14400): Promise<string> {
-  // Use NEXVID_SECRET for both server-side and client-side (public) if available
-  const secret = process.env.NEXVID_SECRET || process.env.NEXT_PUBLIC_NEXVID_SECRET;
-  
-  if (!secret) {
-    if (typeof window !== 'undefined') {
-      console.error('[ProxySigner] NEXVID_SECRET (NEXT_PUBLIC_NEXVID_SECRET) is not configured! Proxying will fail.');
-    }
-    // Still return the proxy URL so the worker can block it with a 500 error, 
-    // rather than leaking the original URL and bypassing the proxy entirely.
-    const proxyBase = '/api/proxy';
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexvid.online';
-    const errorUrl = new URL(proxyBase, baseUrl);
-    errorUrl.searchParams.set('url', targetUrl);
-    errorUrl.searchParams.set('error', 'missing_secret');
-    return errorUrl.toString();
-  }
-
-  const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
-  
-  // We hash the sessionId before including it in the HMAC message to avoid any potential leaking
-  const sessionHash = await sha256Hex(sessionId);
-  const message = `${targetUrl}|${sessionHash}|${expires}`;
-  const sig = await hmacSha256(message, secret);
-
+export async function signProxyUrl(targetUrl: string, _sessionId?: string): Promise<string> {
   const proxyBase = '/api/proxy'; // Use relative path for Next.js proxying
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexvid.online';
-  const signedUrl = new URL(proxyBase, baseUrl);
-  signedUrl.searchParams.set('url', targetUrl);
-  signedUrl.searchParams.set('sig', sig);
-  signedUrl.searchParams.set('exp', expires.toString());
-
-  return signedUrl.toString();
+  
+  try {
+    const proxiedUrl = new URL(proxyBase, baseUrl);
+    proxiedUrl.searchParams.set('url', targetUrl);
+    return proxiedUrl.toString();
+  } catch (err) {
+    console.error('[ProxySigner] Failed to construct proxy URL:', err);
+    return targetUrl; // Fallback to original URL if proxy construction fails
+  }
 }
 
 /**
