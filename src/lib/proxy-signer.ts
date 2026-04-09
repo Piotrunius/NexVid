@@ -46,7 +46,8 @@ export async function signProxyUrl(targetUrl: string, sessionId: string, ttlSeco
     // Still return the proxy URL so the worker can block it with a 500 error, 
     // rather than leaking the original URL and bypassing the proxy entirely.
     const proxyBase = '/api/proxy';
-    const errorUrl = new URL(proxyBase, typeof window !== 'undefined' ? window.location.origin : undefined);
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexvid.online';
+    const errorUrl = new URL(proxyBase, baseUrl);
     errorUrl.searchParams.set('url', targetUrl);
     errorUrl.searchParams.set('error', 'missing_secret');
     return errorUrl.toString();
@@ -60,7 +61,8 @@ export async function signProxyUrl(targetUrl: string, sessionId: string, ttlSeco
   const sig = await hmacSha256(message, secret);
 
   const proxyBase = '/api/proxy'; // Use relative path for Next.js proxying
-  const signedUrl = new URL(proxyBase, typeof window !== 'undefined' ? window.location.origin : undefined);
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexvid.online';
+  const signedUrl = new URL(proxyBase, baseUrl);
   signedUrl.searchParams.set('url', targetUrl);
   signedUrl.searchParams.set('sig', sig);
   signedUrl.searchParams.set('exp', expires.toString());
