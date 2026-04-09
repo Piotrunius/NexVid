@@ -1141,8 +1141,8 @@ async function linkUserIdentifiers(env: Env, userId: string, identifiers: Reques
     env.DB.prepare(
       `DELETE FROM user_identifiers 
        WHERE user_id = ? 
-       AND id NOT IN (
-         SELECT id FROM user_identifiers 
+       AND rowid NOT IN (
+         SELECT rowid FROM user_identifiers 
          WHERE user_id = ? 
          ORDER BY created_at DESC 
          LIMIT 15
