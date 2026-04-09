@@ -486,7 +486,6 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier)'),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_type_identifier ON user_identifiers(id_type, identifier)'),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_last_seen ON user_identifiers(last_seen_at)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_user_type_kind_seen ON user_identifiers(user_id, id_type, device_kind, last_seen_at DESC)'),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS banned_entities (
              ban_type TEXT NOT NULL,
@@ -554,6 +553,7 @@ async function ensureSecurityTables(env: Env): Promise<void> {
       } catch {
         // already exists on upgraded schemas
       }
+      await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_user_type_kind_seen ON user_identifiers(user_id, id_type, device_kind, last_seen_at DESC)').run();
 
       // Ensure admin_users table exists with role column
       await env.DB.prepare(
@@ -714,7 +714,12 @@ async function ensureSecurityTables(env: Env): Promise<void> {
     })();
   }
 
-  await securityTablesInit;
+  try {
+    await securityTablesInit;
+  } catch (error) {
+    securityTablesInit = null;
+    throw error;
+  }
 }
 
 const lastSeenCache = new Map<string, number>();
