@@ -114,13 +114,13 @@ export function Navbar() {
     };
 
     syncSupportUnread();
-    const interval = setInterval(syncSupportUnread, 10000);
+    const interval = setInterval(syncSupportUnread, 180000); // Poll every 3 minutes instead of 10s
 
     return () => {
       isCancelled = true;
       clearInterval(interval);
     };
-  }, [isLoggedIn, pathname]);
+  }, [isLoggedIn]); // Removed pathname dependency to prevent re-polling on every navigation
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

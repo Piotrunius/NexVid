@@ -64,11 +64,10 @@ export async function ANY(req: NextRequest, { params }: { params: { path: string
     const clientIp = getClientIpFromRequest(req);
     headers.delete('X-Forwarded-For');
     headers.delete('X-Real-IP');
-    headers.delete('X-NexVid-Client-IP');
     if (clientIp) {
       headers.set('X-Forwarded-For', clientIp);
       headers.set('X-Real-IP', clientIp);
-      headers.set('X-NexVid-Client-IP', clientIp);
+      headers.set('CF-Connecting-IP', clientIp);
     }
 
     if (cookieToken) {
