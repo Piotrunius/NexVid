@@ -1,0 +1,1 @@
+*.febbox.com,febbox.com,*.shegu.net,*.febbox.org,*.stream.febbox.com,*.pobreflix.com,pobreflix.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org,*.vidlink.pro,vidlink.pro,*.vodvidl.site,*.b-cdn.net,videostr.net,oneproxy.1x2.space,*.1x2.space
