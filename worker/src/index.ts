@@ -2702,9 +2702,10 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
          u.id,
          u.username,
          u.created_at,
-         COALESCE(
-           (SELECT MAX(s.created_at) FROM sessions s WHERE s.user_id = u.id),
-           u.created_at
+         MAX(
+           u.created_at,
+           COALESCE((SELECT MAX(s.created_at) FROM sessions s WHERE s.user_id = u.id), '0000-01-01'),
+           COALESCE((SELECT last_seen_at FROM active_users au WHERE au.user_id = u.id), '0000-01-01')
          ) AS last_active_at
        FROM users u
        ORDER BY datetime(last_active_at) DESC
@@ -3811,12 +3812,6 @@ export default {
           return json(request, env, { ok: true });
         case '/admin/bans':          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminBans(request, env);
-        case '/admin/account-limits':
-          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
-          return await handleAdminAccountLimits(request, env);
-        case '/admin/account-lookup':
-          if (!['GET'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
-          return await handleAdminAccountLookup(request, env);
         case '/admin/announcements':
           if (!['GET', 'POST', 'PUT', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleAdminAnnouncements(request, env);
