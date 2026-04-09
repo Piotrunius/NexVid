@@ -875,8 +875,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.clearInterval(interval);
   }, [activeCaption, manualCues, subDelayMs, renderedSubtitle]);
 
-  async function loadHls(url: string, video: HTMLVideoElement, _headers?: Record<string, string>) {
+  async function loadHls(url: string, video: HTMLVideoElement, headers?: Record<string, string>) {
     try {
+      const proxiedUrl = buildHlsProxyUrl(url, headers);
       const Hls = (await import('hls.js')).default;
       if (Hls.isSupported()) {
         if (hlsRef.current) hlsRef.current.destroy();
@@ -887,7 +888,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           lowLatencyMode: false
         });
         hlsRef.current = hls;
-        hls.loadSource(url);
+        hls.loadSource(proxiedUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setLoading(false);
@@ -929,7 +930,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
+        video.src = proxiedUrl;
         video.addEventListener('loadedmetadata', () => {
           setLoading(false);
           if (autoPlay) video.play().catch(() => {});
