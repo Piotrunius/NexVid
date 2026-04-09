@@ -236,8 +236,9 @@ async function hashPassword(password: string): Promise<string> {
     });
     const saltHex = Array.from(salt).map((b) => b.toString(16).padStart(2, '0')).join('');
     return `argon2id$v=19$m=65536,t=3,p=1$${saltHex}$${hash}`;
-  } catch (err) {
-    console.error('[Security] Argon2id failure, falling back to PBKDF2:', err);
+  } catch (err: any) {
+    console.error('[Security] Argon2id failure:', err.message || err);
+    console.error('[Security] Falling back to PBKDF2 for password update.');
     const legacySalt = createToken().slice(0, 16);
     const hash = await pbkdf2Hex(password, legacySalt, 100000);
     return `pbkdf2$100000$${legacySalt}$${hash}`;
