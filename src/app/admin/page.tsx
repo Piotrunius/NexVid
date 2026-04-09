@@ -1020,12 +1020,8 @@ export default function AdminPage() {
                 className={`input w-full resize-none break-all whitespace-pre-wrap ${announcementFontClass}`}
                 placeholder="Write announcement message..."
                 value={message}
-                onChange={(e) => setMessage(e.target.value.slice(0, ANNOUNCEMENT_MAX_CHARS))}
-                maxLength={ANNOUNCEMENT_MAX_CHARS}
-                rows={announcementRows}
-              />
-              <p className="text-right text-[11px] text-text-muted">{announcementLength}/{ANNOUNCEMENT_MAX_CHARS}</p>
-
+                onChange={(e) => setMessage(e.target.value)}
+                rows={announcementRows}/>
               <div className="grid grid-cols-1 gap-2">
                 <select
                   className="input w-full"
@@ -1271,6 +1267,26 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Live Now Section */}
+        {adminUsers.some(u => (Date.now() - new Date(u.lastActiveAt).getTime()) < 5 * 60 * 1000) && (
+          <div className="rounded-[12px] bg-emerald-500/10 border border-emerald-500/20 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h3 className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Live Now</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {adminUsers
+                .filter(u => (Date.now() - new Date(u.lastActiveAt).getTime()) < 5 * 60 * 1000)
+                .map(u => (
+                  <span key={u.id} className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-medium border border-emerald-500/10">
+                    {u.username}
+                  </span>
+                ))
+              }
+            </div>
+          </div>
+        )}
+
         <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] custom-scrollbar">
           {isLoading ? (
             <p className="p-3 text-[13px] text-text-muted">Loading...</p>
@@ -1288,41 +1304,55 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedUsers.map((item) => (
-                  <tr key={item.id} className="border-t border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                    <td className="px-3 py-3 text-text-primary font-medium">{item.username}</td>
-                    <td className="px-3 py-3">
-                      <button
-                        className="text-[11px] font-mono text-text-muted hover:text-accent transition-colors"
-                        onClick={() => { navigator.clipboard.writeText(item.id); toast('User ID copied', 'success'); }}
-                        title="Click to copy full ID"
-                      >
-                        {item.id.slice(0, 12)}...
-                      </button>
-                    </td>
-                    <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.createdAt).toLocaleString()}</td>
-                    <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.lastActiveAt).toLocaleString()}</td>
-                    <td className="px-3 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
+                {filteredAndSortedUsers.map((item) => {
+                  const isLive = (Date.now() - new Date(item.lastActiveAt).getTime()) < 5 * 60 * 1000;
+                  return (
+                    <tr key={item.id} className="border-t border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                      <td className="px-3 py-3 text-text-primary font-medium">
+                        <div className="flex items-center gap-2">
+                          {item.username}
+                          {isLive && (
+                            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" title="Active in last 5m" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
                         <button
-                          onClick={() => handleCreateAdminChat(item.id, item.username)}
-                          className="btn-glass text-[10px] py-1.5 px-3 bg-white/5 border-white/5 hover:bg-white/10"
+                          className="text-[11px] font-mono text-text-muted hover:text-accent transition-colors"
+                          onClick={() => { navigator.clipboard.writeText(item.id); toast('User ID copied', 'success'); }}
+                          title="Click to copy full ID"
                         >
-                          Chat
+                          {item.id.slice(0, 12)}...
                         </button>
-                        {isOwnerConfirmed && (
+                      </td>
+                      <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.createdAt).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-[12px] text-text-muted">
+                        <span className={isLive ? 'text-emerald-400 font-medium' : ''}>
+                          {new Date(item.lastActiveAt).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <div className="inline-flex items-center gap-2">
                           <button
-                            onClick={() => handleClearUserSessions(item.id, item.username)}
-                            disabled={isSubmitting}
-                            className="btn-glass text-[10px] py-1.5 px-3 text-amber-300 border-amber-500/20 hover:bg-amber-500/10"
+                            onClick={() => handleCreateAdminChat(item.id, item.username)}
+                            className="btn-glass text-[10px] py-1.5 px-3 bg-white/5 border-white/5 hover:bg-white/10"
                           >
-                            Clear sessions
+                            Chat
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {isOwnerConfirmed && (
+                            <button
+                              onClick={() => handleClearUserSessions(item.id, item.username)}
+                              disabled={isSubmitting}
+                              className="btn-glass text-[10px] py-1.5 px-3 text-amber-300 border-amber-500/20 hover:bg-amber-500/10"
+                            >
+                              Clear sessions
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
