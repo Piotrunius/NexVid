@@ -11,7 +11,7 @@ self.onmessage = async (event) => {
       const results: Record<string, string> = {};
       
       // 1. Graphics Fingerprinting using OffscreenCanvas
-      if (typeof OffscreenCanvas !== 'undefined') {
+      if (typeof self !== 'undefined' && typeof (self as any).OffscreenCanvas !== 'undefined') {
         results.canvas = await generateCanvasFingerprint();
         results.webgl = await generateWebGLFingerprint();
       }
@@ -37,7 +37,10 @@ async function sha256(message: string): Promise<string> {
 
 async function generateCanvasFingerprint(): Promise<string> {
   try {
-    const canvas = new OffscreenCanvas(200, 50);
+    const Offscreen = (self as any).OffscreenCanvas;
+    if (!Offscreen) return 'unsupported';
+    
+    const canvas = new Offscreen(200, 50);
     const ctx = canvas.getContext('2d');
     if (!ctx) return 'unsupported';
 
@@ -63,7 +66,10 @@ async function generateCanvasFingerprint(): Promise<string> {
 
 async function generateWebGLFingerprint(): Promise<string> {
   try {
-    const canvas = new OffscreenCanvas(1, 1);
+    const Offscreen = (self as any).OffscreenCanvas;
+    if (!Offscreen) return 'unsupported';
+
+    const canvas = new Offscreen(1, 1);
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') as WebGLRenderingContext;
     if (!gl) return 'unsupported';
 
