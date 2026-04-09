@@ -34,8 +34,98 @@ function matchHostname(hostname: string, pattern: string): boolean {
 
 function isAllowedHost(hostname: string): boolean {
   const allowed = parseCsvSet(process.env.PROXY_ALLOWED_HOSTS || process.env.NEXT_PUBLIC_PROXY_ALLOWED_HOSTS);
-  if (allowed.length === 0) return true;
+  if (allowed.length === 0) return false;
   return allowed.some((pattern) => matchHostname(hostname, pattern));
+}
+
+function parseIPv4(hostname: string): number[] | null {
+  const parts = hostname.split('.');
+  if (parts.length !== 4) return null;
+  const octets = parts.map((part) => Number.parseInt(part, 10));
+  if (octets.some((value, index) => !/^\d+$/.test(parts[index]) || Number.isNaN(value) || value < 0 || value > 255)) {
+    return null;
+  }
+  return octets;
+}
+
+function isPrivateIPv4(octets: number[]): boolean {
+  const [a, b] = octets;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 0) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // Carrier-grade NAT
+  return false;
+}
+
+function expandIPv6(hostname: string): number[] | null {
+  const normalized = hostname.toLowerCase();
+  if (!normalized.includes(':')) return null;
+  if (normalized.includes('.') && normalized.includes(':')) {
+    const lastColon = normalized.lastIndexOf(':');
+    const head = normalized.slice(0, lastColon);
+    const tail = normalized.slice(lastColon + 1);
+    const ipv4 = parseIPv4(tail);
+    if (!ipv4) return null;
+    const mapped = `${head}:${((ipv4[0] << 8) | ipv4[1]).toString(16)}:${((ipv4[2] << 8) | ipv4[3]).toString(16)}`;
+    return expandIPv6(mapped);
+  }
+
+  const parts = normalized.split('::');
+  if (parts.length > 2) return null;
+
+  const left = parts[0] ? parts[0].split(':').filter(Boolean) : [];
+  const right = parts[1] ? parts[1].split(':').filter(Boolean) : [];
+  if (left.length + right.length > 8) return null;
+  if (parts.length === 1 && left.length !== 8) return null;
+
+  const fillCount = 8 - (left.length + right.length);
+  const full = [...left, ...Array(fillCount).fill('0'), ...right];
+  if (full.length !== 8) return null;
+
+  const hextets = full.map((part) => Number.parseInt(part, 16));
+  if (hextets.some((value, index) => !/^[0-9a-f]{1,4}$/i.test(full[index]) || Number.isNaN(value) || value < 0 || value > 0xffff)) {
+    return null;
+  }
+  return hextets;
+}
+
+function isPrivateIPv6(hextets: number[]): boolean {
+  const [a, b, c, d, e, f, g, h] = hextets;
+  const isUnspecified = hextets.every((value) => value === 0);
+  const isLoopback = a === 0 && b === 0 && c === 0 && d === 0 && e === 0 && f === 0 && g === 0 && h === 1;
+  const isUniqueLocal = (a & 0xfe00) === 0xfc00; // fc00::/7
+  const isLinkLocal = (a & 0xffc0) === 0xfe80; // fe80::/10
+  if (isUnspecified || isLoopback || isUniqueLocal || isLinkLocal) return true;
+
+  // IPv4-mapped IPv6 address ::ffff:x.x.x.x
+  if (a === 0 && b === 0 && c === 0 && d === 0 && e === 0 && f === 0xffff) {
+    const ipv4 = [g >> 8, g & 0xff, h >> 8, h & 0xff];
+    return isPrivateIPv4(ipv4);
+  }
+
+  return false;
+}
+
+function isBlockedTargetHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.internal')) return true;
+
+  const ipv4 = parseIPv4(host);
+  if (ipv4) {
+    if (isPrivateIPv4(ipv4)) return true;
+    if (host === '169.254.169.254') return true; // cloud metadata endpoint
+    return false;
+  }
+
+  const ipv6 = expandIPv6(host);
+  if (ipv6) {
+    return isPrivateIPv6(ipv6);
+  }
+
+  return false;
 }
 
 function parseHeadersJson(raw: string | null): Record<string, string> {
@@ -204,8 +294,7 @@ export async function GET(request: NextRequest) {
   try {
     const target = new URL(targetUrl);
     const hostname = target.hostname.toLowerCase();
-    const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
-    if (blockedHosts.includes(hostname) || hostname.endsWith('.internal')) {
+    if (isBlockedTargetHost(hostname)) {
       return NextResponse.json({ success: false, error: 'Target host is not allowed' }, { status: 403 });
     }
     if (!isAllowedHost(hostname)) {

@@ -6,7 +6,7 @@
 import { createGenericErrorResponse, createValidationErrorResponse } from '@/lib/api-error';
 import { validateStreamParams } from '@/lib/api-validation';
 import { isValidCloudSession } from '@/lib/auth-server';
-import { isRequestFromAllowedSite, verifyRequestSignature } from '@/lib/request-verification';
+import { isRequestFromAllowedSite } from '@/lib/request-verification';
 import { getFebBoxToken, resolveStream } from '@/lib/showbox';
 import { getMovieDetails, getShowDetails } from '@/lib/tmdb';
 import { NextRequest, NextResponse } from 'next/server';
@@ -74,14 +74,6 @@ export async function GET(request: NextRequest) {
     }
 
     const { tmdbId, type, season, episode, title: inputTitle, year } = validation.data!;
-
-    // 5. Optional signature verification for beta/alpha sources
-    if (['alpha', 'beta'].includes(sourceId)) {
-      const isSignatureValid = await verifyRequestSignature(request, tmdbId, type, sourceId);
-      if (!isSignatureValid) {
-        console.warn(`[Stream] Invalid signature for ${sourceId} source`);
-      }
-    }
 
     let title = inputTitle || '';
 
