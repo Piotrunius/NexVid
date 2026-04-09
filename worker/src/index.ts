@@ -425,6 +425,7 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              ban_value TEXT NOT NULL,
              value_label TEXT,
              id_type TEXT,
+             target_user_id TEXT,
              reason TEXT,
              created_at TEXT NOT NULL,
              created_by_user_id TEXT,
@@ -472,6 +473,11 @@ async function ensureSecurityTables(env: Env): Promise<void> {
 
       try {
         await env.DB.prepare('ALTER TABLE account_limit_overrides ADD COLUMN value_label TEXT').run();
+      } catch {
+        // already exists on upgraded schemas
+      }
+      try {
+        await env.DB.prepare('ALTER TABLE banned_entities ADD COLUMN target_user_id TEXT').run();
       } catch {
         // already exists on upgraded schemas
       }
@@ -2563,26 +2569,49 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
 
   if (request.method === 'GET') {
     const usernameRows = await env.DB.prepare(
-      `SELECT ban_value, reason, created_at, created_by_user_id
-       FROM banned_entities
-       WHERE ban_type = 'username'
-       ORDER BY created_at DESC
+      `SELECT b.ban_value, b.reason, b.created_at, b.created_by_user_id,
+              COALESCE(b.target_user_id, u.id) AS target_user_id
+       FROM banned_entities b
+       LEFT JOIN users u ON LOWER(u.username) = b.ban_value
+       WHERE b.ban_type = 'username'
+       ORDER BY b.created_at DESC
        LIMIT 200`
-    ).all<{ ban_value: string; reason: string | null; created_at: string; created_by_user_id: string | null }>();
+    ).all<{ ban_value: string; reason: string | null; created_at: string; created_by_user_id: string | null; target_user_id: string | null }>();
 
     const ipRows = await env.DB.prepare(
-      `SELECT value_label, reason, created_at, created_by_user_id
-       FROM banned_entities
-       WHERE ban_type = 'identifier'
-         AND id_type = 'ip'
-         AND value_label IS NOT NULL
-       ORDER BY created_at DESC
+      `SELECT b.value_label, b.reason, b.created_at, b.created_by_user_id,
+              b.target_user_id,
+              GROUP_CONCAT(DISTINCT ui.user_id) AS linked_user_ids
+       FROM banned_entities b
+       LEFT JOIN user_identifiers ui
+         ON ui.identifier = b.ban_value AND ui.id_type = 'ip'
+       WHERE b.ban_type = 'identifier'
+         AND b.id_type = 'ip'
+         AND b.value_label IS NOT NULL
+       GROUP BY b.ban_value, b.value_label, b.reason, b.created_at, b.created_by_user_id, b.target_user_id
+       ORDER BY b.created_at DESC
        LIMIT 200`
-    ).all<{ value_label: string; reason: string | null; created_at: string; created_by_user_id: string | null }>();
+    ).all<{ value_label: string; reason: string | null; created_at: string; created_by_user_id: string | null; target_user_id: string | null; linked_user_ids: string | null }>();
 
     const items = [
-      ...(usernameRows.results || []).map((row) => ({ type: 'username' as const, value: row.ban_value, reason: row.reason || undefined, created_at: row.created_at })),
-      ...(ipRows.results || []).map((row) => ({ type: 'ip' as const, value: row.value_label, reason: row.reason || undefined, created_at: row.created_at })),
+      ...(usernameRows.results || []).map((row) => ({
+        type: 'username' as const,
+        value: row.ban_value,
+        reason: row.reason || undefined,
+        created_at: row.created_at,
+        userId: row.target_user_id || undefined,
+      })),
+      ...(ipRows.results || []).map((row) => ({
+        type: 'ip' as const,
+        value: row.value_label,
+        reason: row.reason || undefined,
+        created_at: row.created_at,
+        userId: row.target_user_id || undefined,
+        linkedUserIds: (row.linked_user_ids || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
+      })),
     ].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 
     return json(request, env, { items });
@@ -2625,31 +2654,33 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
       }
 
       await env.DB.prepare(
-        `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, reason, created_at, created_by_user_id)
-         VALUES ('username', ?, ?, 'username', ?, ?, ?)
+        `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, target_user_id, reason, created_at, created_by_user_id)
+         VALUES ('username', ?, ?, 'username', ?, ?, ?, ?)
          ON CONFLICT(ban_type, ban_value)
          DO UPDATE SET
            value_label = excluded.value_label,
            id_type = excluded.id_type,
+           target_user_id = excluded.target_user_id,
            reason = excluded.reason,
            created_at = excluded.created_at,
            created_by_user_id = excluded.created_by_user_id`
-      ).bind(username, username, reason || null, now, session.user.id).run();
+      ).bind(username, username, targetUserId, reason || null, now, session.user.id).run();
 
       if (targetUserId) {
         await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUserId).run();
         const identifiers = await env.DB.prepare('SELECT identifier, id_type FROM user_identifiers WHERE user_id = ?').bind(targetUserId).all<{ identifier: string; id_type: string }>();
         for (const identifier of identifiers.results || []) {
           await env.DB.prepare(
-            `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, reason, created_at, created_by_user_id)
-             VALUES ('identifier', ?, NULL, ?, ?, ?, ?)
+            `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, target_user_id, reason, created_at, created_by_user_id)
+             VALUES ('identifier', ?, NULL, ?, ?, ?, ?, ?)
              ON CONFLICT(ban_type, ban_value)
              DO UPDATE SET
                id_type = COALESCE(excluded.id_type, banned_entities.id_type),
+               target_user_id = COALESCE(excluded.target_user_id, banned_entities.target_user_id),
                reason = excluded.reason,
                created_at = excluded.created_at,
                created_by_user_id = excluded.created_by_user_id`
-          ).bind(identifier.identifier, identifier.id_type || null, reason || 'Banned user', now, session.user.id).run();
+          ).bind(identifier.identifier, identifier.id_type || null, targetUserId, reason || 'Banned user', now, session.user.id).run();
         }
       }
 
@@ -2670,6 +2701,8 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
       const usersWithIp = await env.DB.prepare(
         'SELECT user_id FROM user_identifiers WHERE identifier IN (?, ?) AND id_type = ?'
       ).bind(ipHashScoped, ipHashLegacy, 'ip').all<{ user_id: string }>();
+      const ipLinkedUserIds = Array.from(new Set((usersWithIp.results || []).map((row) => row.user_id).filter(Boolean)));
+      const targetUserId = ipLinkedUserIds.length === 1 ? ipLinkedUserIds[0] : null;
       for (const row of usersWithIp.results || []) {
         const targetRole = await getUserRole(env, row.user_id);
         if (isAdminRole(targetRole)) {
@@ -2678,16 +2711,17 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
       }
 
       await env.DB.prepare(
-        `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, reason, created_at, created_by_user_id)
-         VALUES ('identifier', ?, ?, 'ip', ?, ?, ?)
+        `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, target_user_id, reason, created_at, created_by_user_id)
+         VALUES ('identifier', ?, ?, 'ip', ?, ?, ?, ?)
          ON CONFLICT(ban_type, ban_value)
          DO UPDATE SET
            value_label = excluded.value_label,
            id_type = excluded.id_type,
+           target_user_id = excluded.target_user_id,
            reason = excluded.reason,
            created_at = excluded.created_at,
            created_by_user_id = excluded.created_by_user_id`
-      ).bind(ipHashScoped, value, reason || 'Banned IP', now, session.user.id).run();
+      ).bind(ipHashScoped, value, targetUserId, reason || 'Banned IP', now, session.user.id).run();
 
       await writeAdminAuditLog(env, session.user.id, 'ban_ip', 'ip', value, { reason: reason || null });
       return json(request, env, { ok: true });

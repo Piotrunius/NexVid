@@ -91,13 +91,13 @@ export default function LoginPage() {
         {/* Glass card */}
         <div className="glass-card glass-liquid p-8">
           {/* Segmented control */}
-          <div className="flex rounded-full bg-white/[0.04] backdrop-blur-2xl p-1 mb-6">
+          <div className="flex rounded-full bg-white/[0.04] backdrop-blur-2xl p-1 mb-6 overflow-hidden">
             <button
               onClick={() => setMode('login')}
               className={cn(
-                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center',
+                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center flex items-center justify-center leading-none',
                 mode === 'login'
-                  ? 'bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]'
+                  ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary',
               )}
             >
@@ -106,9 +106,9 @@ export default function LoginPage() {
             <button
               onClick={() => setMode('register')}
               className={cn(
-                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center',
+                'flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center flex items-center justify-center leading-none',
                 mode === 'register'
-                  ? 'bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]'
+                  ? 'bg-accent text-white'
                   : 'text-text-secondary hover:text-text-primary',
               )}
             >
@@ -135,7 +135,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting || (hasTurnstile && !turnstileToken)}
-              className="btn-accent w-full !py-3 !rounded-full text-[14px] disabled:opacity-50"
+              className="btn-accent w-full !py-3 !rounded-full text-[14px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-center leading-none !gap-0 overflow-hidden"
             >
               {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>

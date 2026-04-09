@@ -187,7 +187,7 @@ export async function loadAdminOverview() {
 }
 
 export async function loadAdminBans() {
-  return cloudFetch<{ items: { type: 'username' | 'ip'; value: string; reason?: string; created_at: string }[] }>('/admin/bans', { method: 'GET' });
+  return cloudFetch<{ items: { type: 'username' | 'ip'; value: string; reason?: string; created_at: string; userId?: string; linkedUserIds?: string[] }[] }>('/admin/bans', { method: 'GET' });
 }
 
 export async function loadAdminAccountLimits() {

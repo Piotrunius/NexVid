@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS banned_entities (
   ban_value TEXT NOT NULL,
   value_label TEXT,
   id_type TEXT, -- for identifiers, e.g. 'ip'
+  target_user_id TEXT,
   reason TEXT,
   created_at TEXT NOT NULL,
   created_by_user_id TEXT,
