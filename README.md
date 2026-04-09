@@ -34,13 +34,13 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 | Display Name | Internal ID | Type | Remote Link / Source Target |
 |--------------|-------------|------|-------------------------------|
 | Alpha        | `febbox`    | Direct | _FebBox API (Requires Token)_ |
-| Beta         | `pobreflix` | Direct | `https://pobreflix.codes` / `xpass` |
-| Gamma        | `zxcstream` | Embed  | `https://zxcstream.xyz/player/` |
-| Delta        | `cinesrc`   | Embed  | `https://cinesrc.st/embed/` |
-| Epsilon      | `vidking`   | Embed  | `https://www.vidking.net/embed/` |
+| Beta         | `pobreflix` | Direct | `https://pobreflix.codes` |
+| Gamma        | `zxcstream` | Embed  | `https://zxcstream.xyz` |
+| Delta        | `cinesrc`   | Embed  | `https://cinesrc.st` |
+| Epsilon      | `vidking`   | Embed  | `https://www.vidking.net` |
 | Zeta         | `vidfast`   | Embed  | `https://vidfast.pro/` |
 | Theta        | `videasy`   | Embed  | `https://videasy.net/` |
-| Kappa        | `vidsync`   | Embed  | `https://vidsync.xyz/embed/` |
+| Kappa        | `vidsync`   | Embed  | `https://vidsync.xyz` |
 | Omega        | `vidlink`   | Embed  | `https://vidlink.pro/` |
 
 ---
