@@ -233,7 +233,6 @@ body {
 
 .glass-liquid {
     position: relative;
-    overflow: hidden;
 }
 
 .glass-liquid::before {

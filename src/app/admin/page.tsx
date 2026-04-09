@@ -1038,7 +1038,7 @@ export default function AdminPage() {
               <input className="input w-full" placeholder="Optional link URL (https://...)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
               <input className="input w-full" placeholder="Optional link label" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} maxLength={60} />
 
-              <button disabled={isSubmitting} onClick={handleCreateAnnouncement} className="btn-accent w-full">
+              <button disabled={isSubmitting} onClick={handleCreateAnnouncement} className="btn-accent w-full relative z-10">
                 Create announcement
               </button>
             </section>
@@ -1291,7 +1291,7 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2">
                           {item.username}
                           {isLive && (
-                            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" title="Active in last 5m" />
+                            <span className="flex h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" title="Active in last 5m" />
                           )}
                         </div>
                       </td>
@@ -1306,7 +1306,7 @@ export default function AdminPage() {
                       </td>
                       <td className="px-3 py-3 text-[12px] text-text-muted">{new Date(item.createdAt).toLocaleString()}</td>
                       <td className="px-3 py-3 text-[12px] text-text-muted">
-                        <span className={isLive ? 'text-emerald-400 font-medium' : ''}>
+                        <span>
                           {new Date(item.lastActiveAt).toLocaleString()}
                         </span>
                       </td>
