@@ -338,12 +338,14 @@ function sanitizeIpCandidate(value?: string | null): string | null {
 }
 
 function getClientIp(request: Request): string {
-  // Strictly trust infrastructure headers
-  const cfIp = request.headers.get('CF-Connecting-IP');
+  // Trust proxy headers from our Next.js frontend if present
   const forwarded = request.headers.get('X-Forwarded-For');
+  const realIp = request.headers.get('X-Real-IP');
+  const cfIp = request.headers.get('CF-Connecting-IP');
 
-  const ip = sanitizeIpCandidate(cfIp) || 
-             sanitizeIpCandidate(forwarded?.split(',')[0].trim()) || 
+  const ip = sanitizeIpCandidate(forwarded?.split(',')[0].trim()) || 
+             sanitizeIpCandidate(realIp) ||
+             sanitizeIpCandidate(cfIp) || 
              '127.0.0.1';
   
   return ip;
@@ -1033,12 +1035,18 @@ async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, 
 
   const ipOverride = await env.DB
     .prepare('SELECT max_accounts FROM account_limit_overrides WHERE type = ? AND value = ? LIMIT 1')
-    .bind(identifiers.ipHash)
+    .bind('ip', identifiers.ipHash)
+    .first<{ max_accounts: number }>();
+
+  const fpOverride = await env.DB
+    .prepare('SELECT max_accounts FROM account_limit_overrides WHERE type = ? AND value = ? LIMIT 1')
+    .bind('fingerprint', identifiers.fingerprintHash)
     .first<{ max_accounts: number }>();
 
   const maxAccounts = Math.max(
     DEFAULT_MAX_ACCOUNTS_PER_IP,
     Number(ipOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
+    Number(fpOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
     Number(linkedUsernameOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
   );
   const current = await env.DB
