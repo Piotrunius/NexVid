@@ -38,19 +38,19 @@ export default function TermsPage() {
             You are responsible for the backend you connect to and its policies.
           </p>
           <p className="mt-2">
-            On this deployment, account authentication uses nickname and password. Email verification is not required.
-            Your sessions are secured through our backend proxy mechanisms, ensuring authentication tokens remain shielded from malicious scripts.
+            On this deployment, account authentication uses nickname and password.
+            You are responsible for maintaining the security of your account and session tokens.
           </p>
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">4. Anti-Abuse and Moderation</h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">4. Moderation</h2>
           <p>
-            To protect service integrity, this deployment may enforce anti-abuse controls including one-account policy,
-            rate limiting, and ban enforcement based on nickname and security identifiers (including IP/network signals).
+            To protect service integrity, this deployment may enforce moderation controls.
+            Bans and restrictions are applied strictly based on account identity (nickname or user ID).
           </p>
           <p className="mt-2">
-            Accounts may be suspended or blocked where abuse, evasion, fraud, or repeated violations are detected.
+            Accounts may be suspended or blocked where abuse, fraud, or repeated violations are detected.
           </p>
         </section>
 

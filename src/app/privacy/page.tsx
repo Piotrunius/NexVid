@@ -36,10 +36,9 @@ export default function PrivacyPage() {
           </p>
           <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
             <li>Account data: nickname, password hash, account creation date</li>
-            <li>Session data: authentication tokens and token expiry data</li>
+            <li>Session data: authentication tokens and session expiry</li>
             <li>App data: settings, watchlist, playback-related preferences</li>
-            <li>Security data: hashed anti-abuse identifiers (e.g. hashed IP signals)</li>
-            <li>Moderation/admin data: bans, audit logs, security events, timestamps</li>
+            <li>Moderation data: account bans, audit logs, and timestamps</li>
           </ul>
           <p className="mt-2">
             We do not require email verification to use accounts in the current deployment.
@@ -57,7 +56,7 @@ export default function PrivacyPage() {
           </p>
           <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
             <li><strong>Article 6(1)(b) GDPR</strong> (performance of a contract) for account/service operation</li>
-            <li><strong>Article 6(1)(f) GDPR</strong> (legitimate interest) for security, anti-abuse and moderation</li>
+            <li><strong>Article 6(1)(f) GDPR</strong> (legitimate interest) for service security and moderation</li>
           </ul>
           <p className="mt-2">
             Where local browser storage is strictly necessary for requested functionality, it is used on that basis.
@@ -85,7 +84,10 @@ export default function PrivacyPage() {
           <h2 className="text-[15px] font-semibold text-text-primary mb-2">5. Cookies and Local Storage</h2>
           <p>
             NexVid uses technically necessary client-side storage (like <code className="text-accent">localStorage</code>)
-            mainly for user interface preferences, and strict, secure <code className="text-accent">HttpOnly</code> cookies for managing sensitive authentication sessions. We do not use advertising or tracking cookies.
+            for user interface preferences and session authentication. We do not use advertising or tracking cookies.
+          </p>
+          <p className="mt-2">
+            To provide real-time occupancy statistics (Active Guests) without tracking IP addresses, the application uses an anonymous, randomly generated Client ID stored in your browser. This ID is not linked to your personal data.
           </p>
           <p className="mt-2">
             If non-essential analytics or marketing cookies are introduced in a future release,

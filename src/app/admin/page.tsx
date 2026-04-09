@@ -9,13 +9,11 @@ import {
   clearUserActiveSessions,
   cloudFetch,
   createAdminAnnouncement,
-  deleteAdminAccountLimit,
   deleteAdminAnnouncement,
   deleteAdminBlockedMedia,
   deleteAdminFeedbackThread,
   deleteAdminUserByUsername,
   grantAdminPermission,
-  loadAdminAccountLimits,
   loadAdminAnnouncements,
   loadAdminAuditLogs,
   loadAdminBans,
@@ -25,11 +23,9 @@ import {
   loadAdminGrantList,
   loadAdminOverview,
   loadAdminUsers,
-  lookupAdminAccounts,
   replyAdminFeedbackThread,
   resetUserPassword,
   revokeAdminPermission,
-  setAdminAccountLimit,
   unbanAdminTarget,
   updateAdminAnnouncement,
 } from '@/lib/cloudSync';
@@ -58,26 +54,6 @@ type BannedItem = {
   created_at: string;
   userId?: string;
   linkedUserIds?: string[];
-};
-
-type AccountLimitItem = {
-  type: 'username';
-  value: string;
-  maxAccounts: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type AccountLookupResult = {
-  query: { type: 'username' | 'id'; value: string };
-  accountCount: number;
-  ipGroupCount?: number;
-  deviceGroupCount?: number;
-  inspectedIpGroupCount?: number;
-  inspectedDeviceGroupCount?: number;
-  ignoredSharedIpGroupCount?: number;
-  ignoredSharedDeviceGroupCount?: number;
-  accounts: { id: string; username: string; lastSeenAt?: string | null }[];
 };
 
 type AdminUserItem = {
@@ -174,7 +150,6 @@ export default function AdminPage() {
   const [bans, setBans] = useState<BannedItem[]>([]);
   const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
   const [blockedMedia, setBlockedMedia] = useState<BlockedMediaItem[]>([]);
-  const [accountLimits, setAccountLimits] = useState<AccountLimitItem[]>([]);
   const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userSortKey, setUserSortKey] = useState<'username' | 'createdAt' | 'lastActiveAt'>('lastActiveAt');
@@ -200,9 +175,6 @@ export default function AdminPage() {
   const [banValue, setBanValue] = useState('');
   const [banReason, setBanReason] = useState('');
   const [deleteUsername, setDeleteUsername] = useState('');
-  const limitType: 'username' = 'username';
-  const [limitValue, setLimitValue] = useState('');
-  const [limitAmount, setLimitAmount] = useState(1);
   const [blockedTmdbId, setBlockedTmdbId] = useState('');
   const [blockedMediaType, setBlockedMediaType] = useState<'movie' | 'tv'>('movie');
   const [blockedReason, setBlockedReason] = useState('');
@@ -231,7 +203,6 @@ export default function AdminPage() {
   }, [auditLogs, auditActionFilter, auditAdminFilter]);
 
   const [lookupValue, setLookupValue] = useState('');
-  const [lookupResult, setLookupResult] = useState<AccountLookupResult | null>(null);
 
   const [message, setMessage] = useState('');
   const [announcementType, setAnnouncementType] = useState<AnnouncementType>('info');
@@ -346,7 +317,6 @@ export default function AdminPage() {
       if (canManageModeration) {
         promises.push(loadAdminBans());
         promises.push(loadAdminAnnouncements());
-        promises.push(loadAdminAccountLimits());
         promises.push(loadAdminAuditLogs({ limit: AUDIT_PAGE_SIZE, offset: 0 }));
         promises.push(loadAdminBlockedMedia());
       }
@@ -364,15 +334,14 @@ export default function AdminPage() {
       if (canManageModeration) {
         setBans(results[2].items || []);
         setAnnouncements(results[3].items || []);
-        setAccountLimits(results[4].items || []);
-        setAuditLogs(results[5].items || []);
-        setAuditHasMore(Boolean(results[5].hasMore));
-        setAuditNextOffset(Number(results[5].nextOffset || (results[5].items || []).length || 0));
-        setBlockedMedia(results[6].items || []);
+        setAuditLogs(results[4].items || []);
+        setAuditHasMore(Boolean(results[4].hasMore));
+        setAuditNextOffset(Number(results[4].nextOffset || (results[4].items || []).length || 0));
+        setBlockedMedia(results[5].items || []);
       }
 
       if (canManageAdmins) {
-        const grantIndex = canManageModeration ? 7 : 2;
+        const grantIndex = canManageModeration ? 6 : 2;
         if (results[grantIndex]) {
           setAdminGrants(results[grantIndex].items || []);
         }
@@ -509,62 +478,6 @@ export default function AdminPage() {
       }
     } catch (error: any) {
       toast(error?.message || 'Failed to reset password', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSetLimit = async () => {
-    const value = limitValue.trim();
-    if (!value) {
-      toast('Enter nickname or full user ID for override', 'error');
-      return;
-    }
-    if (!Number.isFinite(limitAmount) || limitAmount < 1) {
-      toast('Limit must be at least 1', 'error');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await setAdminAccountLimit(limitType, value, limitAmount);
-      setLimitValue('');
-      await loadAll();
-      toast('Account limit override saved', 'success');
-    } catch (error: any) {
-      toast(error?.message || 'Failed to save account limit override', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteLimit = async (type: 'username', value: string) => {
-    setIsSubmitting(true);
-    try {
-      await deleteAdminAccountLimit(type, value);
-      await loadAll();
-      toast('Account limit override removed', 'success');
-    } catch (error: any) {
-      toast(error?.message || 'Failed to remove account limit override', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleLookupAccounts = async () => {
-    const value = lookupValue.trim();
-    if (!value) {
-      toast('Enter nickname or full user ID to inspect', 'error');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const result = await lookupAdminAccounts(lookupType, value);
-      setLookupResult(result);
-      toast('Lookup Completed', 'success');
-    } catch (error: any) {
-      toast(error?.message || 'Failed to lookup accounts', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -1096,90 +1009,6 @@ export default function AdminPage() {
                         Reset Password
                       </button>
                     )}
-                  </div>
-                </div>
-
-                <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">Account lookup</h3>
-                  <p className="text-[11px] text-text-muted">Find accounts linked through shared IP and device history.</p>
-                  <div className="flex gap-2">
-                    <input
-                      className="input flex-1"
-                      placeholder="nickname or user ID"
-                      value={lookupValue}
-                      onChange={(e) => setLookupValue(e.target.value)}
-                    />
-                    <button disabled={isSubmitting} onClick={handleLookupAccounts} className="btn-glass">
-                      Lookup
-                    </button>
-                  </div>
-
-                  {lookupResult && (
-                    <div className="rounded-[10px] p-2.5 space-y-1 bg-white/5">
-                      <p className="text-[13px] font-medium text-text-primary">Accounts found: {lookupResult.accountCount}</p>
-                      {typeof lookupResult.inspectedIpGroupCount === 'number' && (
-                        <p className="text-[11px] text-white/45">
-                          IP's used: {lookupResult.ipGroupCount ?? 0}/{lookupResult.inspectedIpGroupCount}
-                          {lookupResult.ignoredSharedIpGroupCount
-                            ? ` (ignored: ${lookupResult.ignoredSharedIpGroupCount})`
-                            : ''}
-                        </p>
-                      )}
-                      {typeof lookupResult.inspectedDeviceGroupCount === 'number' && (
-                        <p className="text-[11px] text-white/45">
-                          Devices used: {lookupResult.deviceGroupCount ?? 0}/{lookupResult.inspectedDeviceGroupCount}
-                          {lookupResult.ignoredSharedDeviceGroupCount
-                            ? ` (ignored: ${lookupResult.ignoredSharedDeviceGroupCount})`
-                            : ''}
-                        </p>
-                      )}
-                      <div className="max-h-40 overflow-auto space-y-1.5 pt-1">
-                        {lookupResult.accounts.map((account) => (
-                          <div key={account.id} className="rounded-[8px] bg-white/5 px-2.5 py-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <div>
-                                <p className="text-[13px] font-medium text-text-primary">{account.username}</p>
-                                <p className="text-[10px] font-mono text-white/30 break-all">{account.id}</p>
-                              </div>
-                            </div>
-                            {account.lastSeenAt && <p className="text-[10px] text-white/20 mt-0.5">Last seen: {new Date(account.lastSeenAt).toLocaleString()}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                  <h3 className="text-[13px] font-semibold text-text-primary">User account limit</h3>
-                  <p className="text-[11px] text-text-muted">Override max accounts allowed for this user.</p>
-                  <div className="grid gap-2">
-                    <input
-                      className="input w-full"
-                      placeholder="nickname or user ID"
-                      value={limitValue}
-                      onChange={(e) => setLimitValue(e.target.value)}
-                    />
-                    <div className="flex gap-2">
-                      <input className="input flex-1" type="number" min={1} max={200} value={limitAmount} onChange={(e) => setLimitAmount(Number(e.target.value || 1))} />
-                      <button disabled={isSubmitting} onClick={handleSetLimit} className="btn-accent">
-                        Save
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="max-h-40 overflow-auto space-y-1 pt-1">
-                    {accountLimits.map((item) => (
-                      <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2 flex items-center justify-between gap-2 bg-white/5">
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-medium text-text-primary truncate">{item.value}</p>
-                          <p className="text-[10px] text-text-muted">Limit: {item.maxAccounts}</p>
-                        </div>
-                        <button className="btn-glass text-red-400 text-[10px]" disabled={isSubmitting} onClick={() => handleDeleteLimit(item.type, item.value)}>
-                          Remove
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>

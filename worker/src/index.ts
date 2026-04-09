@@ -31,13 +31,6 @@ export interface Env {
 export interface RequestIdentifiers {
   ip: string;
   userAgent: string;
-  ipHash: string | null;
-  ipHashScoped: string | null;
-  fingerprintHash: string | null;
-  deviceHash: string | null;
-  deviceKind: 'pc' | 'mobile' | 'tablet' | 'tv' | 'other';
-  shouldSetDeviceCookie: boolean;
-  deviceCookieValue: string | null;
 }
 
 const PASSWORD_ITERATIONS = 100_000;
@@ -45,12 +38,8 @@ const MIN_PASSWORD_LENGTH = 8;
 const LOGIN_MAX_FAILURES = 8;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_BLOCK_MS = 30 * 60 * 1000;
-const DEFAULT_MAX_ACCOUNTS_PER_IP = 2;
 const AUTH_COOKIE_NAME = 'nexvid_session';
-const DEVICE_COOKIE_NAME = 'nexvid_device';
-const DEVICE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
-const IDENTIFIER_RETENTION_DAYS = 90;
-const MAX_DEVICE_IDENTIFIERS_PER_KIND = 3;
+const DEFAULT_MAX_ACCOUNTS_PER_IP = 2;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
@@ -314,48 +303,6 @@ function buildAuthCookieClear(): string {
   return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
 
-function buildDeviceCookie(deviceId: string): string {
-  return `${DEVICE_COOKIE_NAME}=${encodeURIComponent(deviceId)}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${DEVICE_COOKIE_MAX_AGE_SECONDS}`;
-}
-
-function isValidDeviceId(value: string | null): boolean {
-  if (!value) return false;
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  // UUID v4 is expected, but keep validation tolerant for future format changes.
-  return /^[a-zA-Z0-9-]{16,128}$/.test(trimmed);
-}
-
-async function getDeviceIdentifier(request: Request): Promise<{ id: string | null; cookieValue: string | null; shouldSetCookie: boolean; fingerprint?: string }> {
-  // 1. High Priority: NexVid-Fingerprint Header (Most Stable)
-  const headerFingerprint = request.headers.get('NexVid-Fingerprint');
-  if (headerFingerprint) {
-    try {
-      const decoded = JSON.parse(atob(headerFingerprint));
-      if (decoded && typeof decoded.id === 'string' && decoded.id.length >= 16) {
-        return { id: decoded.id, cookieValue: decoded.id, shouldSetCookie: false, fingerprint: headerFingerprint };
-      }
-    } catch {
-      // Decode failed, fallback to cookies
-    }
-  }
-
-  // 2. Fallback: Cookie-based ID (Legacy/Compatibility)
-  const raw = getCookieValue(request, DEVICE_COOKIE_NAME);
-  if (isValidDeviceId(raw)) {
-    const value = raw!.trim();
-    return { id: value, cookieValue: value, shouldSetCookie: false };
-  }
-
-  const generated = crypto.randomUUID();
-  return { id: null, cookieValue: generated, shouldSetCookie: true };
-}
-
-function appendDeviceCookieIfNeeded(response: Response, identifiers: RequestIdentifiers): void {
-  if (!identifiers.shouldSetDeviceCookie || !identifiers.deviceCookieValue) return;
-  response.headers.append('Set-Cookie', buildDeviceCookie(identifiers.deviceCookieValue));
-}
-
 function detectDeviceKind(userAgent: string): 'pc' | 'mobile' | 'tablet' | 'tv' | 'other' {
   const ua = String(userAgent || '').toLowerCase();
   if (!ua) return 'other';
@@ -487,21 +434,6 @@ async function ensureSecurityTables(env: Env): Promise<void> {
     securityTablesInit = (async () => {
       await env.DB.batch([
         env.DB.prepare(
-          `CREATE TABLE IF NOT EXISTS user_identifiers (
-             id INTEGER PRIMARY KEY AUTOINCREMENT,
-             user_id TEXT NOT NULL,
-             identifier TEXT NOT NULL,
-             id_type TEXT NOT NULL,
-             device_kind TEXT,
-             created_at TEXT NOT NULL,
-             last_seen_at TEXT NOT NULL,
-             UNIQUE(user_id, identifier)
-           )`
-        ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_type_identifier ON user_identifiers(id_type, identifier)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_last_seen ON user_identifiers(last_seen_at)'),
-        env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS banned_entities (
              ban_type TEXT NOT NULL,
              ban_value TEXT NOT NULL,
@@ -515,18 +447,6 @@ async function ensureSecurityTables(env: Env): Promise<void> {
            )`
         ),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_banned_entities_type_created ON banned_entities(ban_type, id_type, created_at DESC)'),
-        env.DB.prepare(
-          `CREATE TABLE IF NOT EXISTS account_limit_overrides (
-             type TEXT NOT NULL,
-             value TEXT NOT NULL,
-             value_label TEXT,
-             max_accounts INTEGER NOT NULL,
-             created_at TEXT NOT NULL,
-             updated_at TEXT NOT NULL,
-             created_by_user_id TEXT,
-             PRIMARY KEY (type, value)
-           )`
-        ),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS admin_audit_logs (
              id TEXT PRIMARY KEY,
@@ -554,21 +474,10 @@ async function ensureSecurityTables(env: Env): Promise<void> {
       ]);
 
       try {
-        await env.DB.prepare('ALTER TABLE account_limit_overrides ADD COLUMN value_label TEXT').run();
-      } catch {
-        // already exists on upgraded schemas
-      }
-      try {
         await env.DB.prepare('ALTER TABLE banned_entities ADD COLUMN target_user_id TEXT').run();
       } catch {
         // already exists on upgraded schemas
       }
-      try {
-        await env.DB.prepare('ALTER TABLE user_identifiers ADD COLUMN device_kind TEXT').run();
-      } catch {
-        // already exists on upgraded schemas
-      }
-      await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_identifiers_user_type_kind_seen ON user_identifiers(user_id, id_type, device_kind, last_seen_at DESC)').run();
 
       // Ensure admin_users table exists with role column
       await env.DB.prepare(
@@ -642,15 +551,14 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         ).run();
       } catch { /* legacy table missing */ }
 
-      // Keep only one bans table in the DB.
+      // Keep only one bans table in the DB and drop obsolete tracking tables.
       await env.DB.batch([
         env.DB.prepare('DROP TABLE IF EXISTS banned_usernames'),
         env.DB.prepare('DROP TABLE IF EXISTS banned_ip_hashes'),
         env.DB.prepare('DROP TABLE IF EXISTS banned_identifiers'),
+        env.DB.prepare('DROP TABLE IF EXISTS user_identifiers'),
+        env.DB.prepare('DROP TABLE IF EXISTS account_limit_overrides'),
       ]);
-
-      // Legacy cleanup: we no longer store UA identifiers as separate rows.
-      await env.DB.prepare(`DELETE FROM user_identifiers WHERE id_type = 'ua'`).run();
 
       // Remove obsolete announcements column.
       try {
@@ -742,7 +650,10 @@ const lastSeenCache = new Map<string, number>();
 async function updateActiveUser(env: Env, request: Request, userId?: string): Promise<void> {
   try {
     const nowMs = Date.now();
-    const identifier = userId || `guest_${await sha256Hex(getClientIp(request))}`;
+    const clientId = request.headers.get('NexVid-Client-ID');
+    const identifier = userId || (clientId ? `guest_${clientId}` : null);
+
+    if (!identifier) return;
 
     // In-memory throttle to 2 minutes
     const last = lastSeenCache.get(`active:${identifier}`);
@@ -1103,244 +1014,15 @@ async function cleanupExpiredWatchParties(env: Env): Promise<void> {
 }
 
 async function getRequestIdentifiers(
-  request: Request,
-  options?: { includeGeneratedDeviceHash?: boolean }
+  request: Request
 ): Promise<RequestIdentifiers> {
-  const device = await getDeviceIdentifier(request);
   const userAgent = (request.headers.get('User-Agent') || 'unknown').slice(0, 500);
-  const deviceKind = detectDeviceKind(userAgent);
-  
-  const fingerprintHash = device.fingerprint ? await sha256Hex(`dna:${device.fingerprint}`) : null;
-  
-  // Combine persistent ID with fingerprint for a robust, multi-attribute device identifier
-  // This minimizes false positives and ensures identification survives cookie clearouts.
-  let deviceHash: string | null = null;
-  const deviceId = device.id || (options?.includeGeneratedDeviceHash ? device.cookieValue : null);
-  
-  if (deviceId) {
-    // If we have a fingerprint (from header), use it to salt the ID for higher entropy.
-    // Otherwise fallback to User-Agent as a basic entropy source.
-    const entropy = device.fingerprint || userAgent;
-    const deviceHashHex = await sha256Hex(`device:${deviceId}:${entropy}`);
-    deviceHash = `device:${deviceHashHex}`;
-  }
-
   const ip = getClientIp(request);
-  if (!ip || ip === 'unknown') {
-    return {
-      ip: 'unknown',
-      userAgent,
-      ipHash: null,
-      ipHashScoped: null,
-      fingerprintHash,
-      deviceHash,
-      deviceKind,
-      shouldSetDeviceCookie: device.shouldSetCookie,
-      deviceCookieValue: device.cookieValue,
-    };
-  }
-
-  const ipHash = await sha256Hex(ip);
-  const ipHashScoped = await sha256Hex(`ip:${ip}`);
-
-  return { 
-    ip, 
-    userAgent, 
-    ipHash: ipHash || null,
-    ipHashScoped: ipHashScoped || null,
-    fingerprintHash,
-    deviceHash,
-    deviceKind,
-    shouldSetDeviceCookie: device.shouldSetCookie,
-    deviceCookieValue: device.cookieValue,
-  };
-}
-
-async function getBannedIdentifierReason(env: Env, identifiers: RequestIdentifiers): Promise<string | null> {
-  await ensureSecurityTables(env);
-
-  const candidates: { value: string; type: 'ip' | 'device' | 'fingerprint' }[] = [];
-  for (const ipHash of [identifiers.ipHash, identifiers.ipHashScoped]) {
-    if (ipHash) candidates.push({ value: ipHash, type: 'ip' });
-  }
-  if (identifiers.deviceHash) {
-    candidates.push({ value: identifiers.deviceHash, type: 'device' });
-  }
-  if (identifiers.fingerprintHash) {
-    candidates.push({ value: identifiers.fingerprintHash, type: 'fingerprint' });
-  }
-  if (candidates.length === 0) return null;
-
-  let row: { reason: string | null } | null = null;
-  for (const candidate of candidates) {
-    row = await env.DB.prepare(
-      `SELECT reason
-       FROM banned_entities
-       WHERE ban_type = 'identifier'
-         AND ban_value = ?
-         AND (id_type = ? OR id_type IS NULL OR id_type = 'ip')
-       LIMIT 1`
-    ).bind(candidate.value, candidate.type).first<{ reason: string | null }>();
-    if (row) break;
-  }
-
-  if (!row) return null;
-  const reason = (row.reason || '').trim();
-  return reason || 'Identifier banned';
-}
-
-async function enforceNoMultiAccount(env: Env, identifiers: RequestIdentifiers, normalizedUsername: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!identifiers.ipHash && !identifiers.deviceHash) return { ok: true };
-
-  await ensureSecurityTables(env);
-
-  const usernameOverride = await env.DB
-    .prepare('SELECT max_accounts FROM account_limit_overrides WHERE type = ? AND value = ? LIMIT 1')
-    .bind('username', normalizedUsername)
-    .first<{ max_accounts: number }>();
-  if (usernameOverride?.max_accounts && usernameOverride.max_accounts > 0) {
-    return { ok: true };
-  }
-
-  const linkedUsernameOverride = identifiers.ipHash
-    ? await env.DB
-      .prepare(
-        `SELECT MAX(o.max_accounts) AS max_accounts
-         FROM user_identifiers ui
-         JOIN users u ON u.id = ui.user_id
-         JOIN account_limit_overrides o ON o.type = 'username' AND o.value = LOWER(u.username)
-         WHERE ui.identifier = ? AND ui.id_type = 'ip'`
-      )
-      .bind(identifiers.ipHash)
-      .first<{ max_accounts: number | null }>()
-    : null;
-
-  const ipOverride = identifiers.ipHash
-    ? await env.DB
-      .prepare('SELECT max_accounts FROM account_limit_overrides WHERE type = ? AND value = ? LIMIT 1')
-      .bind('ip', identifiers.ipHash)
-      .first<{ max_accounts: number }>()
-    : null;
-
-  const maxAccounts = Math.max(
-    DEFAULT_MAX_ACCOUNTS_PER_IP,
-    Number(ipOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
-    Number(linkedUsernameOverride?.max_accounts || DEFAULT_MAX_ACCOUNTS_PER_IP),
-  );
-
-  const currentIp = identifiers.ipHash
-    ? await env.DB
-      .prepare('SELECT COUNT(DISTINCT user_id) AS count FROM user_identifiers WHERE identifier = ? AND id_type = ?')
-      .bind(identifiers.ipHash, 'ip')
-      .first<{ count: number }>()
-    : null;
-
-  const currentDevice = identifiers.deviceHash
-    ? await env.DB
-      .prepare('SELECT COUNT(DISTINCT user_id) AS count FROM user_identifiers WHERE identifier = ? AND id_type = ?')
-      .bind(identifiers.deviceHash, 'device')
-      .first<{ count: number }>()
-    : null;
-
-  const currentFingerprint = identifiers.fingerprintHash
-    ? await env.DB
-      .prepare('SELECT COUNT(DISTINCT user_id) AS count FROM user_identifiers WHERE identifier = ? AND id_type = ?')
-      .bind(identifiers.fingerprintHash, 'fingerprint')
-      .first<{ count: number }>()
-    : null;
-
-  if (
-    (currentDevice?.count || 0) >= 2 || 
-    (currentFingerprint?.count || 0) >= 2
-  ) {
-    return { ok: false, error: 'Account limit reached for this device (2).' };
-  }
-
-  // Shared mobile/Wi-Fi IPs can map many people to one hash. If a brand new device arrives
-  // on a heavily shared IP, avoid a hard block and let device-level tracking handle it.
-  const sharedIpBypassThreshold = Math.max(maxAccounts * 3, 8);
-  const ipUserCount = currentIp?.count || 0;
-  const isNewDevice = (currentDevice?.count || 0) === 0;
-  if (identifiers.ipHash && ipUserCount >= maxAccounts && !(isNewDevice && ipUserCount >= sharedIpBypassThreshold)) {
-    return { ok: false, error: `Account limit reached for this network (${maxAccounts}).` };
-  }
-
-  return { ok: true };
+  return { ip: ip || 'unknown', userAgent };
 }
 
 async function linkUserIdentifiers(env: Env, userId: string, identifiers: RequestIdentifiers): Promise<void> {
-  if (!identifiers.ipHash && !identifiers.deviceHash) return;
-
-  const nowMs = Date.now();
-  const cacheKey = `link:${userId}:${identifiers.ipHash || 'none'}:${identifiers.deviceHash || 'none'}:${identifiers.fingerprintHash || 'none'}:${identifiers.deviceKind}`;
-  const last = lastSeenCache.get(cacheKey);
-  if (last && nowMs - last < 10 * 60 * 1000) return;
-  lastSeenCache.set(cacheKey, nowMs);
-
-  await ensureSecurityTables(env);
-  const now = new Date().toISOString();
-
-  const insertIdentifier = (identifier: string, idType: 'ip' | 'device' | 'fingerprint', deviceKind: string | null = null) => [
-    env.DB.prepare(
-      `INSERT INTO user_identifiers (user_id, identifier, id_type, device_kind, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id, identifier) DO UPDATE SET
-         last_seen_at = excluded.last_seen_at,
-         device_kind = COALESCE(excluded.device_kind, user_identifiers.device_kind)
-       WHERE excluded.last_seen_at > datetime(last_seen_at, '+15 minutes')`
-    ).bind(userId, identifier, idType, deviceKind, now, now),
-    env.DB.prepare('UPDATE user_identifiers SET last_seen_at = ? WHERE user_id = ? AND identifier = ?').bind(now, userId, identifier),
-  ];
-
-  const batch: D1PreparedStatement[] = [];
-  if (identifiers.ipHash) batch.push(...insertIdentifier(identifiers.ipHash, 'ip'));
-  if (identifiers.deviceHash) batch.push(...insertIdentifier(identifiers.deviceHash, 'device', identifiers.deviceKind));
-  if (identifiers.fingerprintHash) batch.push(...insertIdentifier(identifiers.fingerprintHash, 'fingerprint', identifiers.deviceKind));
-
-  // Keep only the newest N device identifiers per device kind for this user.
-  batch.push(
-    env.DB.prepare(
-      `DELETE FROM user_identifiers
-       WHERE user_id = ?
-         AND id_type = 'device'
-         AND device_kind = ?
-         AND rowid NOT IN (
-           SELECT rowid
-           FROM user_identifiers
-           WHERE user_id = ?
-             AND id_type = 'device'
-             AND device_kind = ?
-           ORDER BY last_seen_at DESC
-           LIMIT ?
-         )`
-    ).bind(userId, identifiers.deviceKind, userId, identifiers.deviceKind, MAX_DEVICE_IDENTIFIERS_PER_KIND)
-  );
-
-  // Optimized Cleanup: Keep only the 40 newest identifiers per user
-  batch.push(
-    env.DB.prepare(
-      `DELETE FROM user_identifiers 
-       WHERE user_id = ? 
-       AND rowid NOT IN (
-         SELECT rowid FROM user_identifiers 
-         WHERE user_id = ? 
-         ORDER BY created_at DESC 
-         LIMIT 40
-      )`
-    ).bind(userId, userId)
-  );
-
-  // Opportunistic global cleanup so the table does not grow indefinitely.
-  if (Math.random() < 0.02) {
-    batch.push(
-      env.DB.prepare(
-        `DELETE FROM user_identifiers
-         WHERE datetime(last_seen_at) < datetime('now', ?)`
-      ).bind(`-${IDENTIFIER_RETENTION_DAYS} days`)
-    );
-  }
-
-  await env.DB.batch(batch);
+  // Identification tracking removed
 }
 
 async function checkLoginRateLimit(request: Request, env: Env, email: string): Promise<{ blocked: boolean; retryAfterSec?: number; key: string }> {
@@ -1702,13 +1384,6 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
   }
 
   const identifiers = await getRequestIdentifiers(request);
-  const bannedIdentifierReason = await getBannedIdentifierReason(env, identifiers);
-  if (bannedIdentifierReason) {
-    console.log('[Auth] Banned identifier:', bannedIdentifierReason);
-    await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
-    return null;
-  }
-
   const usernameBan = await getUsernameBanInfo(env, row.username);
   if (usernameBan.banned) {
     console.log('[Auth] Banned username:', row.username);
@@ -1756,16 +1431,7 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     return json(request, env, { error: message }, 403);
   }
 
-  const identifiers = await getRequestIdentifiers(request, { includeGeneratedDeviceHash: true });
-  const bannedIdentifierReason = await getBannedIdentifierReason(env, identifiers);
-  if (bannedIdentifierReason) {
-    return json(request, env, { error: `Registration blocked: ${bannedIdentifierReason}` }, 403);
-  }
-
-  const noMulti = await enforceNoMultiAccount(env, identifiers, normalizedUsername);
-  if (!noMulti.ok) {
-    return json(request, env, { error: noMulti.error }, 429);
-  }
+  const identifiers = await getRequestIdentifiers(request);
 
   const existing = await env.DB
     .prepare('SELECT id FROM users WHERE LOWER(username) = ?')
@@ -1787,8 +1453,6 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     env.DB.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, userId, now, expires),
   ]);
 
-  await linkUserIdentifiers(env, userId, identifiers);
-
   const response = json(request, env, {
     user: {
       id: userId,
@@ -1801,7 +1465,6 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
   });
 
   response.headers.append('Set-Cookie', buildAuthCookie(token, ttlDays * 24 * 60 * 60));
-  appendDeviceCookieIfNeeded(response, identifiers);
   return response;
 }
 
@@ -1864,12 +1527,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     return json(request, env, { error: 'Too many failed attempts. Try again later.' }, 429);
   }
 
-  const identifiers = await getRequestIdentifiers(request, { includeGeneratedDeviceHash: true });
-  const bannedIdentifierReason = await getBannedIdentifierReason(env, identifiers);
-  if (bannedIdentifierReason) {
-    return json(request, env, { error: `Login blocked: ${bannedIdentifierReason}` }, 403);
-  }
-
+  const identifiers = await getRequestIdentifiers(request);
   const usernameBan = await getUsernameBanInfo(env, normalizedUsername);
   if (usernameBan.banned) {
     const message = usernameBan.reason ? `Login blocked: ${usernameBan.reason}` : 'Login blocked: this nickname is banned';
@@ -1933,7 +1591,6 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
   });
 
   response.headers.append('Set-Cookie', buildAuthCookie(token, ttlDays * 24 * 60 * 60));
-  appendDeviceCookieIfNeeded(response, identifiers);
   return response;
 }
 
@@ -1954,9 +1611,8 @@ async function handleMe(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
   const response = json(request, env, { user: session.user });
-  const identifiers = await getRequestIdentifiers(request, { includeGeneratedDeviceHash: true });
+  const identifiers = await getRequestIdentifiers(request);
   await linkUserIdentifiers(env, session.user.id, identifiers);
-  appendDeviceCookieIfNeeded(response, identifiers);
   return response;
 }
 
@@ -2608,7 +2264,6 @@ async function handleClearEverything(request: Request, env: Env): Promise<Respon
     env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(session.user.id),
     env.DB.prepare('DELETE FROM user_settings WHERE user_id = ?').bind(session.user.id),
     env.DB.prepare('DELETE FROM watchlist WHERE user_id = ?').bind(session.user.id),
-    env.DB.prepare('DELETE FROM user_identifiers WHERE user_id = ?').bind(session.user.id),
     env.DB.prepare('DELETE FROM user_notifications WHERE user_id = ?').bind(session.user.id),
     env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(session.user.id),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(session.user.id),
@@ -2783,29 +2438,12 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
 
   if (request.method === 'GET') {
     const usernameRows = await env.DB.prepare(
-      `SELECT b.ban_value, b.reason, b.created_at, b.created_by_user_id,
-              COALESCE(b.target_user_id, u.id) AS target_user_id
-       FROM banned_entities b
-       LEFT JOIN users u ON LOWER(u.username) = b.ban_value
-       WHERE b.ban_type = 'username'
-       ORDER BY b.created_at DESC
+      `SELECT ban_value, reason, created_at, created_by_user_id, target_user_id
+       FROM banned_entities
+       WHERE ban_type = 'username'
+       ORDER BY created_at DESC
        LIMIT 200`
     ).all<{ ban_value: string; reason: string | null; created_at: string; created_by_user_id: string | null; target_user_id: string | null }>();
-
-    const ipRows = await env.DB.prepare(
-      `SELECT b.value_label, b.reason, b.created_at, b.created_by_user_id,
-              b.target_user_id,
-              GROUP_CONCAT(DISTINCT ui.user_id) AS linked_user_ids
-       FROM banned_entities b
-       LEFT JOIN user_identifiers ui
-         ON ui.identifier = b.ban_value AND ui.id_type = 'ip'
-       WHERE b.ban_type = 'identifier'
-         AND b.id_type = 'ip'
-         AND b.value_label IS NOT NULL
-       GROUP BY b.ban_value, b.value_label, b.reason, b.created_at, b.created_by_user_id, b.target_user_id
-       ORDER BY b.created_at DESC
-       LIMIT 200`
-    ).all<{ value_label: string; reason: string | null; created_at: string; created_by_user_id: string | null; target_user_id: string | null; linked_user_ids: string | null }>();
 
     const items = [
       ...(usernameRows.results || []).map((row) => ({
@@ -2814,17 +2452,6 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
         reason: row.reason || undefined,
         created_at: row.created_at,
         userId: row.target_user_id || undefined,
-      })),
-      ...(ipRows.results || []).map((row) => ({
-        type: 'ip' as const,
-        value: row.value_label,
-        reason: row.reason || undefined,
-        created_at: row.created_at,
-        userId: row.target_user_id || undefined,
-        linkedUserIds: (row.linked_user_ids || '')
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean),
       })),
     ].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 
@@ -2882,23 +2509,6 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
 
       if (targetUserId) {
         await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUserId).run();
-        const identifiers = await env.DB
-          .prepare(`SELECT identifier, id_type FROM user_identifiers WHERE user_id = ? AND id_type IN ('ip', 'device')`)
-          .bind(targetUserId)
-          .all<{ identifier: string; id_type: string }>();
-        for (const identifier of identifiers.results || []) {
-          await env.DB.prepare(
-            `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, target_user_id, reason, created_at, created_by_user_id)
-             VALUES ('identifier', ?, NULL, ?, ?, ?, ?, ?)
-             ON CONFLICT(ban_type, ban_value)
-             DO UPDATE SET
-               id_type = COALESCE(excluded.id_type, banned_entities.id_type),
-               target_user_id = COALESCE(excluded.target_user_id, banned_entities.target_user_id),
-               reason = excluded.reason,
-               created_at = excluded.created_at,
-               created_by_user_id = excluded.created_by_user_id`
-          ).bind(identifier.identifier, identifier.id_type || null, targetUserId, reason || 'Banned user', now, session.user.id).run();
-        }
       }
 
       await writeAdminAuditLog(env, session.user.id, 'ban_username', 'username', username, {
@@ -2907,40 +2517,6 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
         matchedBy: resolved.matchType,
         targetUserId: targetUserId || null,
       });
-      return json(request, env, { ok: true });
-    }
-
-    if (type === 'ip') {
-      if (!isValidIp(value)) return json(request, env, { error: 'Invalid IP format' }, 400);
-      const ipHashScoped = await sha256Hex(`ip:${value}`);
-      const ipHashLegacy = await sha256Hex(value);
-
-      const usersWithIp = await env.DB.prepare(
-        'SELECT user_id FROM user_identifiers WHERE identifier IN (?, ?) AND id_type = ?'
-      ).bind(ipHashScoped, ipHashLegacy, 'ip').all<{ user_id: string }>();
-      const ipLinkedUserIds = Array.from(new Set((usersWithIp.results || []).map((row) => row.user_id).filter(Boolean)));
-      const targetUserId = ipLinkedUserIds.length === 1 ? ipLinkedUserIds[0] : null;
-      for (const row of usersWithIp.results || []) {
-        const targetRole = await getUserRole(env, row.user_id);
-        if (isAdminRole(targetRole)) {
-          return json(request, env, { error: 'Cannot ban an IP linked to administrative accounts' }, 403);
-        }
-      }
-
-      await env.DB.prepare(
-        `INSERT INTO banned_entities (ban_type, ban_value, value_label, id_type, target_user_id, reason, created_at, created_by_user_id)
-         VALUES ('identifier', ?, ?, 'ip', ?, ?, ?, ?)
-         ON CONFLICT(ban_type, ban_value)
-         DO UPDATE SET
-           value_label = excluded.value_label,
-           id_type = excluded.id_type,
-           target_user_id = excluded.target_user_id,
-           reason = excluded.reason,
-           created_at = excluded.created_at,
-           created_by_user_id = excluded.created_by_user_id`
-      ).bind(ipHashScoped, value, targetUserId, reason || 'Banned IP', now, session.user.id).run();
-
-      await writeAdminAuditLog(env, session.user.id, 'ban_ip', 'ip', value, { reason: reason || null });
       return json(request, env, { ok: true });
     }
 
@@ -2966,20 +2542,6 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
       const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(value);
 
       await env.DB.prepare(`DELETE FROM banned_entities WHERE ban_type = 'username' AND ban_value = ?`).bind(username).run();
-
-      const user = resolved.user?.id
-        ? { id: resolved.user.id }
-        : await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
-
-      if (user?.id) {
-        const identifiers = await env.DB
-          .prepare(`SELECT identifier FROM user_identifiers WHERE user_id = ? AND id_type IN ('ip', 'device')`)
-          .bind(user.id)
-          .all<{ identifier: string }>();
-        for (const identifier of identifiers.results || []) {
-          await env.DB.prepare(`DELETE FROM banned_entities WHERE ban_type = 'identifier' AND ban_value = ?`).bind(identifier.identifier).run();
-        }
-      }
 
       await writeAdminAuditLog(env, session.user.id, 'unban_username', 'username', username, {
         inputValue: value,
@@ -3007,268 +2569,6 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
   return json(request, env, { error: 'Method not allowed' }, 405);
 }
 
-async function handleAdminAccountLimits(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
-  if (session instanceof Response) return session;
-
-  await ensureSecurityTables(env);
-
-  if (request.method === 'GET') {
-    const rows = await env.DB
-      .prepare(
-        `SELECT type, value, value_label, max_accounts, created_at, updated_at
-         FROM account_limit_overrides
-         WHERE type = 'username'
-         ORDER BY updated_at DESC
-         LIMIT 300`
-      )
-      .all<{ type: 'username'; value: string; value_label: string | null; max_accounts: number; created_at: string; updated_at: string }>();
-
-    return json(request, env, {
-      items: (rows.results || []).map((row) => ({
-        type: row.type,
-        value: row.value_label || row.value,
-        maxAccounts: row.max_accounts,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      })),
-    });
-  }
-
-  if (request.method === 'POST') {
-    const body = await readJson<{ type?: string; value?: string; maxAccounts?: number }>(request);
-    const rawValue = (body.value || '').trim();
-    const maxAccounts = Math.max(1, Math.min(200, Number(body.maxAccounts || 1)));
-    const now = new Date().toISOString();
-
-    if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
-
-    const resolved = await findUserByIdentifier(env, rawValue);
-    if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
-    if (resolved.matchType === 'id' && !resolved.user) return json(request, env, { error: 'User not found for this ID' }, 404);
-
-    const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(rawValue);
-
-    await env.DB.prepare(
-      `INSERT INTO account_limit_overrides (type, value, value_label, max_accounts, created_at, updated_at, created_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(type, value) DO UPDATE SET value_label = excluded.value_label, max_accounts = excluded.max_accounts, updated_at = excluded.updated_at, created_by_user_id = excluded.created_by_user_id`
-    ).bind('username', username, username, maxAccounts, now, now, session.user.id).run();
-
-    await writeAdminAuditLog(env, session.user.id, 'set_account_limit_override', 'username', username, {
-      maxAccounts,
-      inputValue: rawValue,
-      matchedBy: resolved.matchType,
-      targetUserId: resolved.user?.id || null,
-    });
-    return json(request, env, { ok: true });
-  }
-
-  if (request.method === 'DELETE') {
-    const url = new URL(request.url);
-    const rawValue = (url.searchParams.get('value') || '').trim();
-
-    if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
-
-    const resolved = await findUserByIdentifier(env, rawValue);
-    if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
-    if (resolved.matchType === 'id' && !resolved.user) return json(request, env, { error: 'User not found for this ID' }, 404);
-
-    const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(rawValue);
-
-    await env.DB.prepare('DELETE FROM account_limit_overrides WHERE type = ? AND value = ?').bind('username', username).run();
-    await writeAdminAuditLog(env, session.user.id, 'delete_account_limit_override', 'username', username, {
-      inputValue: rawValue,
-      matchedBy: resolved.matchType,
-      targetUserId: resolved.user?.id || null,
-    });
-    return json(request, env, { ok: true });
-  }
-
-  return json(request, env, { error: 'Method not allowed' }, 405);
-}
-
-async function handleAdminAccountLookup(request: Request, env: Env): Promise<Response> {
-  const session = await requireAdmin(request, env);
-  if (session instanceof Response) return session;
-
-  await ensureSecurityTables(env);
-
-  if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
-
-  const url = new URL(request.url);
-  const rawValue = (url.searchParams.get('value') || '').trim();
-  const LOOKUP_IP_WINDOW_DAYS = 30;
-  const LOOKUP_DEVICE_WINDOW_DAYS = 90;
-  const LOOKUP_MAX_USERS_PER_IP = Math.max(DEFAULT_MAX_ACCOUNTS_PER_IP * 2, 4);
-  const LOOKUP_MAX_USERS_PER_DEVICE = 3;
-
-  if (!rawValue) return json(request, env, { error: 'Value is required' }, 400);
-
-  const getAccountsByIdentifiers = async (identifiers: { idType: 'ip' | 'device'; value: string }[]) => {
-    if (identifiers.length === 0) return [] as { id: string; username: string; lastSeenAt: string | null }[];
-    const conditions = identifiers.map(() => '(ui.id_type = ? AND ui.identifier = ?)').join(' OR ');
-    const binds: string[] = [];
-    for (const identifier of identifiers) {
-      binds.push(identifier.idType, identifier.value);
-    }
-    const rows = await env.DB.prepare(
-      `SELECT u.id, u.username, MAX(ui.last_seen_at) AS last_seen_at
-       FROM user_identifiers ui
-       JOIN users u ON u.id = ui.user_id
-       WHERE (${conditions})
-         AND datetime(ui.last_seen_at) >= datetime('now', ?)
-       GROUP BY u.id, u.username
-       ORDER BY LOWER(u.username) ASC`
-    )
-      .bind(...binds, `-${Math.max(LOOKUP_IP_WINDOW_DAYS, LOOKUP_DEVICE_WINDOW_DAYS)} days`)
-      .all<{ id: string; username: string; last_seen_at: string | null }>();
-
-    return (rows.results || []).map((row) => ({
-      id: row.id,
-      username: row.username,
-      lastSeenAt: row.last_seen_at,
-    }));
-  };
-
-  const resolved = await findUserByIdentifier(env, rawValue);
-  if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
-
-  const baseUser = resolved.user;
-  if (!baseUser) {
-    const queryValue = resolved.matchType === 'username' ? normalizeUsername(rawValue) : rawValue;
-    return json(request, env, {
-      query: { type: resolved.matchType || 'username', value: queryValue },
-      accountCount: 0,
-      accounts: [],
-    });
-  }
-
-  const queryType = resolved.matchType || 'username';
-  const queryValue = queryType === 'username' ? normalizeUsername(rawValue) : rawValue;
-
-  const userIpRows = await env.DB.prepare(
-    `SELECT identifier
-     FROM user_identifiers
-     WHERE user_id = ?
-       AND id_type = 'ip'
-       AND datetime(last_seen_at) >= datetime('now', ?)
-     ORDER BY last_seen_at DESC
-     LIMIT 50`
-  ).bind(baseUser.id, `-${LOOKUP_IP_WINDOW_DAYS} days`).all<{ identifier: string }>();
-
-  let candidateIpHashes = Array.from(new Set((userIpRows.results || []).map((row) => row.identifier)));
-
-  if (candidateIpHashes.length === 0) {
-    const fallbackUserIpRows = await env.DB.prepare(
-      `SELECT identifier
-       FROM user_identifiers
-       WHERE user_id = ?
-         AND id_type = 'ip'
-       ORDER BY last_seen_at DESC
-       LIMIT 10`
-    ).bind(baseUser.id).all<{ identifier: string }>();
-
-    candidateIpHashes = Array.from(new Set((fallbackUserIpRows.results || []).map((row) => row.identifier)));
-  }
-
-  const userDeviceRows = await env.DB.prepare(
-    `SELECT identifier
-     FROM user_identifiers
-     WHERE user_id = ?
-       AND id_type = 'device'
-       AND datetime(last_seen_at) >= datetime('now', ?)
-     ORDER BY last_seen_at DESC
-     LIMIT 50`
-  ).bind(baseUser.id, `-${LOOKUP_DEVICE_WINDOW_DAYS} days`).all<{ identifier: string }>();
-
-  let candidateDeviceHashes = Array.from(new Set((userDeviceRows.results || []).map((row) => row.identifier)));
-
-  if (candidateDeviceHashes.length === 0) {
-    const fallbackUserDeviceRows = await env.DB.prepare(
-      `SELECT identifier
-       FROM user_identifiers
-       WHERE user_id = ?
-         AND id_type = 'device'
-       ORDER BY last_seen_at DESC
-       LIMIT 10`
-    ).bind(baseUser.id).all<{ identifier: string }>();
-
-    candidateDeviceHashes = Array.from(new Set((fallbackUserDeviceRows.results || []).map((row) => row.identifier)));
-  }
-
-  if (candidateIpHashes.length === 0 && candidateDeviceHashes.length === 0) {
-    return json(request, env, {
-      query: { type: queryType, value: queryValue },
-      accountCount: 1,
-      ipGroupCount: 0,
-      deviceGroupCount: 0,
-      accounts: [{ id: baseUser.id, username: baseUser.username, lastSeenAt: null }],
-    });
-  }
-
-  const ipDensityByHash = new Map<string, number>();
-  if (candidateIpHashes.length > 0) {
-    const ipPlaceholders = candidateIpHashes.map(() => '?').join(', ');
-    const ipDensityRows = await env.DB.prepare(
-      `SELECT identifier, COUNT(DISTINCT user_id) AS user_count
-       FROM user_identifiers
-       WHERE id_type = 'ip'
-         AND identifier IN (${ipPlaceholders})
-       GROUP BY identifier`
-    ).bind(...candidateIpHashes).all<{ identifier: string; user_count: number }>();
-    for (const row of ipDensityRows.results || []) {
-      ipDensityByHash.set(row.identifier, Number(row.user_count || 0));
-    }
-  }
-
-  const filteredIpHashes = candidateIpHashes.filter((ipHash) => {
-    const usersOnIp = ipDensityByHash.get(ipHash) || 0;
-    return usersOnIp > 0 && usersOnIp <= LOOKUP_MAX_USERS_PER_IP;
-  });
-
-  const deviceDensityByHash = new Map<string, number>();
-  if (candidateDeviceHashes.length > 0) {
-    const devicePlaceholders = candidateDeviceHashes.map(() => '?').join(', ');
-    const deviceDensityRows = await env.DB.prepare(
-      `SELECT identifier, COUNT(DISTINCT user_id) AS user_count
-       FROM user_identifiers
-       WHERE id_type = 'device'
-         AND identifier IN (${devicePlaceholders})
-       GROUP BY identifier`
-    ).bind(...candidateDeviceHashes).all<{ identifier: string; user_count: number }>();
-    for (const row of deviceDensityRows.results || []) {
-      deviceDensityByHash.set(row.identifier, Number(row.user_count || 0));
-    }
-  }
-
-  const filteredDeviceHashes = candidateDeviceHashes.filter((deviceHash) => {
-    const usersOnDevice = deviceDensityByHash.get(deviceHash) || 0;
-    return usersOnDevice > 0 && usersOnDevice <= LOOKUP_MAX_USERS_PER_DEVICE;
-  });
-
-  const lookupIdentifiers = [
-    ...filteredIpHashes.map((value) => ({ idType: 'ip' as const, value })),
-    ...filteredDeviceHashes.map((value) => ({ idType: 'device' as const, value })),
-  ];
-
-  const accounts = await getAccountsByIdentifiers(lookupIdentifiers);
-  if (!accounts.some((account) => account.id === baseUser.id)) {
-    accounts.unshift({ id: baseUser.id, username: baseUser.username, lastSeenAt: null });
-  }
-
-  return json(request, env, {
-    query: { type: queryType, value: queryValue },
-    accountCount: accounts.length,
-    ipGroupCount: filteredIpHashes.length,
-    deviceGroupCount: filteredDeviceHashes.length,
-    inspectedIpGroupCount: candidateIpHashes.length,
-    inspectedDeviceGroupCount: candidateDeviceHashes.length,
-    ignoredSharedIpGroupCount: Math.max(0, candidateIpHashes.length - filteredIpHashes.length),
-    ignoredSharedDeviceGroupCount: Math.max(0, candidateDeviceHashes.length - filteredDeviceHashes.length),
-    accounts,
-  });
-}
 
 async function handleAdminAnnouncements(request: Request, env: Env): Promise<Response> {
   const session = await requireAdmin(request, env);
@@ -3403,7 +2703,6 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
          u.username,
          u.created_at,
          COALESCE(
-           (SELECT MAX(ui.last_seen_at) FROM user_identifiers ui WHERE ui.user_id = u.id),
            (SELECT MAX(s.created_at) FROM sessions s WHERE s.user_id = u.id),
            u.created_at
          ) AS last_active_at
@@ -3453,7 +2752,6 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
       env.DB.prepare('DELETE FROM user_settings WHERE user_id = ?').bind(targetUserId),
       env.DB.prepare('DELETE FROM watchlist WHERE user_id = ?').bind(targetUserId),
       env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(targetUserId),
-      env.DB.prepare('DELETE FROM user_identifiers WHERE user_id = ?').bind(targetUserId),
       env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetUserId),
     ]);
 
@@ -4360,17 +3658,11 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
   }
 
   const identifiers = await getRequestIdentifiers(request);
+  const ipHash = await sha256Hex(`ip:${identifiers.ip}`);
   const duplicateSubmission = await env.DB.prepare(
-    `SELECT 1
-     FROM survey_submissions
-     WHERE survey_id = ?
-       AND (
-         (? IS NOT NULL AND user_id = ?)
-         OR ip_hash = ?
-       )
-     LIMIT 1`
+    'SELECT 1 FROM survey_submissions WHERE survey_id = ? AND (user_id = ? OR ip_hash = ?) LIMIT 1'
   )
-    .bind(surveyId, session?.user.id || null, session?.user.id || null, identifiers.ipHash)
+    .bind(surveyId, session?.user.id || null, ipHash)
     .first<{ '1': number }>();
 
   if (duplicateSubmission) {
@@ -4382,7 +3674,7 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
   await env.DB.prepare(
     'INSERT INTO survey_submissions (survey_id, user_id, ip_hash, created_at) VALUES (?, ?, ?, ?)'
   )
-    .bind(surveyId, session?.user.id || null, identifiers.ipHash, now)
+    .bind(surveyId, session?.user.id || null, ipHash, now)
     .run();
 
   await env.DB.prepare('INSERT INTO survey_responses (survey_id, user_id, answers, created_at) VALUES (?, ?, ?, ?)')
