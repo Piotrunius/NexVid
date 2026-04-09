@@ -59,28 +59,17 @@ CREATE TABLE IF NOT EXISTS user_identifiers (
 
 CREATE INDEX IF NOT EXISTS idx_user_identifiers_identifier ON user_identifiers(identifier);
 
-CREATE TABLE IF NOT EXISTS banned_identifiers (
-  identifier TEXT PRIMARY KEY,
-  id_type TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS banned_entities (
+  ban_type TEXT NOT NULL, -- 'username' | 'identifier'
+  ban_value TEXT NOT NULL,
+  value_label TEXT,
+  id_type TEXT, -- for identifiers, e.g. 'ip'
   reason TEXT,
   created_at TEXT NOT NULL,
-  created_by_user_id TEXT
+  created_by_user_id TEXT,
+  PRIMARY KEY (ban_type, ban_value)
 );
-
-CREATE TABLE IF NOT EXISTS banned_usernames (
-  username TEXT PRIMARY KEY,
-  reason TEXT,
-  created_at TEXT NOT NULL,
-  created_by_user_id TEXT
-);
-
-CREATE TABLE IF NOT EXISTS banned_ip_hashes (
-  ip_hash TEXT PRIMARY KEY,
-  ip_label TEXT NOT NULL,
-  reason TEXT,
-  created_at TEXT NOT NULL,
-  created_by_user_id TEXT
-);
+CREATE INDEX IF NOT EXISTS idx_banned_entities_type_created ON banned_entities(ban_type, id_type, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS account_limit_overrides (
   type TEXT NOT NULL,
@@ -110,7 +99,6 @@ CREATE TABLE IF NOT EXISTS announcements (
   link_url TEXT,
   link_label TEXT,
   is_active INTEGER NOT NULL DEFAULT 1,
-  is_important INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   created_by_user_id TEXT,
