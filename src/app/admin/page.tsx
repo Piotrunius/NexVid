@@ -960,10 +960,7 @@ export default function AdminPage() {
                     Ban account
                   </button>
                   <div className="max-h-40 overflow-auto space-y-1.5 pt-1">
-                    {bans.length === 0 ? (
-                      <p className="text-[10px] text-text-muted">No active bans.</p>
-                    ) : (
-                      bans.map((item) => (
+                    {bans.map((item) => (
                         <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2 bg-white/5">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -992,7 +989,7 @@ export default function AdminPage() {
                           </div>
                         </div>
                       ))
-                    )}
+                    }
                   </div>
                 </div>
 
@@ -1378,9 +1375,6 @@ export default function AdminPage() {
                         <span className="block max-w-[180px] truncate">
                           {item.targetType}:{item.targetId || '-'} | {formatAuditMeta(item.meta)}
                         </span>
-                      </td>
-                      <td className="hidden px-3 py-2 text-text-muted sm:table-cell">
-                        <span className="block max-w-[260px] truncate">{item.targetType}:{item.targetId || '-'}</span>
                       </td>
                       <td className="hidden px-3 py-2 text-text-muted sm:table-cell">
                         <span className="block max-w-[320px] truncate">{formatAuditMeta(item.meta)}</span>
