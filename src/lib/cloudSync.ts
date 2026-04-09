@@ -1,4 +1,5 @@
 const AUTH_TOKEN_KEY = 'nexvid-auth-token';
+const DEVICE_ID_KEY = 'nexvid-device-id';
 const DEFAULT_PROD_API_URL = 'https://nexvid-proxy.piotrunius.workers.dev';
 const CLOUD_REQUEST_TIMEOUT_MS = 10000;
 
@@ -92,6 +93,33 @@ export function clearCloudToken() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
+function getDeviceId(): string {
+  if (typeof window === 'undefined') return '';
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+
+function getStableFingerprint(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const data = {
+      id: getDeviceId(),
+      ua: navigator.userAgent,
+      scr: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      lang: navigator.language,
+      cores: navigator.hardwareConcurrency || 0,
+    };
+    return btoa(JSON.stringify(data));
+  } catch {
+    return '';
+  }
+}
+
 export async function cloudFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const apiUrl = getApiUrl();
   if (!apiUrl) throw new Error('Cloud API URL is not configured');
@@ -100,6 +128,11 @@ export async function cloudFetch<T = any>(path: string, init: RequestInit = {}):
   const headers = new Headers(init.headers || {});
   headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const fingerprint = getStableFingerprint();
+  if (fingerprint) {
+    headers.set('NexVid-Fingerprint', fingerprint);
+  }
 
 
   let response: Response;
