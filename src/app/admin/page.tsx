@@ -56,6 +56,8 @@ type BannedItem = {
   value: string;
   reason?: string;
   created_at: string;
+  userId?: string;
+  linkedUserIds?: string[];
 };
 
 type AccountLimitItem = {
@@ -1041,6 +1043,41 @@ export default function AdminPage() {
                   <button disabled={isSubmitting} onClick={handleBanTarget} className="btn-accent w-full">
                     Ban account
                   </button>
+                  <div className="max-h-40 overflow-auto space-y-1.5 pt-1">
+                    {bans.length === 0 ? (
+                      <p className="text-[10px] text-text-muted">No active bans.</p>
+                    ) : (
+                      bans.map((item) => (
+                        <div key={`${item.type}:${item.value}`} className="rounded-[10px] p-2 bg-white/5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-medium text-text-primary break-all">
+                                {item.type === 'ip' ? 'IP' : 'User'}: {item.value}
+                              </p>
+                              {item.userId && (
+                                <p className="text-[10px] font-mono text-white/35 break-all">User ID: {item.userId}</p>
+                              )}
+                              {Array.isArray(item.linkedUserIds) && item.linkedUserIds.length > 0 && (
+                                <p className="text-[10px] font-mono text-white/35 break-all">
+                                  Linked IDs: {item.linkedUserIds.join(', ')}
+                                </p>
+                              )}
+                              <p className="text-[10px] text-text-muted">
+                                {item.reason ? `${item.reason} • ` : ''}{new Date(item.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <button
+                              className="btn-glass text-red-400 text-[10px] shrink-0"
+                              disabled={isSubmitting}
+                              onClick={() => handleUnban(item.type, item.value)}
+                            >
+                              Unban
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
 
                 <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm text-red-400/90 border border-red-500/10">
