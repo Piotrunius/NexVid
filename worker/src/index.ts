@@ -314,7 +314,7 @@ function buildAuthCookieClear(): string {
 }
 
 function buildDeviceCookie(deviceId: string): string {
-  return `${DEVICE_COOKIE_NAME}=${encodeURIComponent(deviceId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${DEVICE_COOKIE_MAX_AGE_SECONDS}`;
+  return `${DEVICE_COOKIE_NAME}=${encodeURIComponent(deviceId)}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${DEVICE_COOKIE_MAX_AGE_SECONDS}`;
 }
 
 function isValidDeviceId(value: string | null): boolean {
