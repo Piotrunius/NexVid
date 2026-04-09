@@ -321,10 +321,10 @@ function sanitizeIpCandidate(value?: string | null): string | null {
 
 function getClientIp(request: Request): string {
   const candidates = [
-    request.headers.get('X-NexVid-Client-IP'),
-    request.headers.get('X-Forwarded-For'),
-    request.headers.get('X-Real-IP'),
     request.headers.get('CF-Connecting-IP'),
+    request.headers.get('X-NexVid-Client-IP'),
+    request.headers.get('X-Real-IP'),
+    request.headers.get('X-Forwarded-For'),
   ];
 
   for (const candidate of candidates) {
