@@ -1013,7 +1013,6 @@ export default function AdminPage() {
 
             <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
               <h2 className="text-[15px] font-semibold text-text-primary flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                 Create announcement
               </h2>
               <textarea
@@ -1080,7 +1079,7 @@ export default function AdminPage() {
                         onChange={(e) => setBlockedReason(e.target.value)}
                       />
                     </div>
-                    <button disabled={isSubmitting} onClick={handleBlockMedia} className="btn-accent w-full py-4 text-[15px] font-black uppercase tracking-widest shadow-[0_4px_20px_rgba(var(--accent-rgb),0.3)]">
+                    <button disabled={isSubmitting} onClick={handleBlockMedia} className="btn-accent w-full py-4 text-[15px] font-black tracking-widest shadow-[0_4px_20px_rgba(var(--accent-rgb),0.3)]">
                       Block Content
                     </button>
                   </div>
@@ -1570,26 +1569,33 @@ export default function AdminPage() {
               <p className="text-[13px] text-text-muted">No announcements yet.</p>
             ) : (
               sortedAnnouncements.map((item) => (
-                <div key={item.id} className={cn(
-                  "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300",
-                  item.isActive ? "border-accent/40 shadow-[0_8px_32px_rgba(var(--accent-rgb),0.15)]" : "border-white/5"
-                )}>
+                  <div key={item.id} className={cn(
+                    "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300",
+                    item.isActive ? "border-accent/20 shadow-lg" : "border-white/5"
+                  )}>
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter",
-                          item.type === 'info' ? "bg-accent/20 text-accent" :
-                          item.type === 'warning' ? "bg-yellow-500/20 text-yellow-500" :
-                          item.type === 'update' ? "bg-blue-500/20 text-blue-500" :
-                          "bg-green-500/20 text-green-500"
-                        )}>
-                          {item.type}
-                        </span>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-1.5">
+                        {item.isActive && (
+                          <span className="text-[9px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/20">
+                            <span className="w-1 h-1 rounded-full bg-accent" />
+                            Active
+                          </span>
+                        )}
                       </div>
-                      {item.isActive && <span className="text-[9px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase">Active</span>}
                     </div>
-                    <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary leading-relaxed">{item.message}</p>
+                    <div className="flex items-start gap-3">
+                      <span className={cn(
+                        "text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shrink-0 mt-0.5",
+                        item.type === 'info' ? "bg-accent/20 text-accent" :
+                        item.type === 'warning' ? "bg-yellow-500/20 text-yellow-500" :
+                        item.type === 'update' ? "bg-blue-500/20 text-blue-500" :
+                        "bg-green-500/20 text-green-500"
+                      )}>
+                        {item.type}
+                      </span>
+                      <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary leading-relaxed">{item.message}</p>
+                    </div>
                     <p className="text-[10px] text-white/20 mt-3 font-medium">{new Date(item.updatedAt).toLocaleString()}</p>
                   </div>
                   <div className="flex gap-2">
