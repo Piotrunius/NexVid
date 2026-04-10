@@ -35,10 +35,11 @@ export const DEFAULT_SETTINGS: UserSettings = {
   omdbApiKey: PUBLIC_OMDB_API_KEY_PLACEHOLDER,
   preferredSources: [],
   disabledSources: [],
-  playerAspectRatio: 'original',
+  playerViewMode: 'fit',
   playerFillWidth: false,
   playerFillHeight: false,
 };
+
 
 
 const CLOUD_PERSISTED_KEYS = [
@@ -61,10 +62,11 @@ const CLOUD_PERSISTED_KEYS = [
   'introDbApiKey',
   'groqApiKey',
   'omdbApiKey',
-  'playerAspectRatio',
+  'playerViewMode',
   'playerFillWidth',
   'playerFillHeight',
 ] as const;
+
 
 
 function toCloudPersistedSettings(settings: UserSettings): Record<string, unknown> {

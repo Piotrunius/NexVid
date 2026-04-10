@@ -270,7 +270,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, enableUnsafeEmbeds, customAccentHex, accentColor, playerAspectRatio = 'original', playerFillWidth = false, playerFillHeight = false } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, enableUnsafeEmbeds, customAccentHex, accentColor, playerViewMode = 'fit', playerFillWidth = false, playerFillHeight = false } = useSettingsStore((s) => s.settings);
+
 
 
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -1868,16 +1869,17 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             ref={videoRef}
             className="h-full w-full nexvid-video"
             style={{
-              aspectRatio: playerAspectRatio !== 'original' && playerAspectRatio !== 'stretch' ? playerAspectRatio.replace(':', '/') : undefined,
-
-              objectFit: (playerAspectRatio === 'stretch' || (playerAspectRatio !== 'original' && playerAspectRatio !== 'stretch')) ? 'fill' : (
-                (playerFillWidth && playerFillHeight) ? 'cover' : (
-                  (playerFillWidth && videoNaturalAspectRatio && videoNaturalAspectRatio < (16 / 9)) ? 'cover' : (
-                    (playerFillHeight && videoNaturalAspectRatio && videoNaturalAspectRatio > (16 / 9)) ? 'cover' : 'contain'
+              objectFit: (playerViewMode === 'stretch') ? 'fill' : (
+                (playerViewMode === 'zoom') ? 'cover' : (
+                  (playerFillWidth && playerFillHeight) ? 'cover' : (
+                    (playerFillWidth && videoNaturalAspectRatio && videoNaturalAspectRatio < (16 / 9)) ? 'cover' : (
+                      (playerFillHeight && videoNaturalAspectRatio && videoNaturalAspectRatio > (16 / 9)) ? 'cover' : 'contain'
+                    )
                   )
                 )
               )
             }}
+
 
 
             playsInline
@@ -2665,7 +2667,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
                           Aspect Ratio
                         </div>
-                        <span className="text-[11px] text-accent font-medium">{playerAspectRatio === 'original' ? 'Original' : playerAspectRatio}</span>
+                        <span className="text-[11px] text-accent font-medium capitalize">{playerViewMode}</span>
+
                       </button>
                     </div>
                   )}
@@ -2679,20 +2682,21 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                       </button>
 
                       <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                        {(['original', '16:9', '4:3', '21:9', '2.35:1', '1:1', 'stretch'] as const).map((ratio) => (
+                        {(['fit', 'stretch', 'zoom'] as const).map((mode) => (
                           <button
-                            key={ratio}
-                            onClick={() => updateSettings({ playerAspectRatio: ratio })}
+                            key={mode}
+                            onClick={() => updateSettings({ playerViewMode: mode })}
                             className={cn(
                               'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
-                              playerAspectRatio === ratio ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10'
+                              playerViewMode === mode ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10'
                             )}
                           >
-                            <span className="capitalize">{ratio}</span>
-                            {playerAspectRatio === ratio && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
+                            <span className="capitalize">{mode === 'fit' ? 'Fit (Original)' : (mode === 'stretch' ? 'Stretch (Fill)' : 'Zoom (Crop)')}</span>
+                            {playerViewMode === mode && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
                           </button>
                         ))}
                       </div>
+
 
                       <hr className="my-3 border-white/[0.06]" />
                       
