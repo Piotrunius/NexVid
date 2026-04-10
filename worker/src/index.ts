@@ -18,7 +18,7 @@ setWASMModules({ argon2WASM, blake2bWASM });
 
 export interface Env {
   ALLOWED_ORIGINS: string;
-  PROXY_ALLOWED_HOSTS: string;
+  ALLOWED_HOSTS: string;
   DB: D1Database;
   SESSION_TTL_DAYS?: string;
   APP_BASE_URL?: string;
@@ -213,7 +213,7 @@ async function verifyPassword(password: string, storedHash: string): Promise<{ o
     try {
       const parts = storedHash.split('$');
       if (parts.length !== 5) return { ok: false, shouldUpdate: false };
-      
+
       const paramsPart = parts[2];
       const params: Record<string, number> = {};
       paramsPart.split(',').forEach(p => {
@@ -236,7 +236,7 @@ async function verifyPassword(password: string, storedHash: string): Promise<{ o
     } catch (err) {
       console.error('[Security] Argon2id verification failure, falling back to PBKDF2 check:', err);
       // If we are here, it means Argon2id failed (likely WASM load error).
-      // We can't verify an Argon2id hash without WASM, but we can return false 
+      // We can't verify an Argon2id hash without WASM, but we can return false
       // instead of crashing with 500.
       return { ok: false, shouldUpdate: false };
     }
@@ -609,7 +609,7 @@ async function ensureSecurityTables(env: Env): Promise<void> {
       await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_surveys_archived_active ON surveys(is_archived, is_active, created_at DESC)').run();
 
       // Table for tracking real-time active users
-      // Note: We use a simple schema to minimize bloat. 
+      // Note: We use a simple schema to minimize bloat.
       // Legacy columns (media_id, progress etc) were causing performance issues.
       await env.DB.prepare(
         `CREATE TABLE IF NOT EXISTS active_users (
@@ -617,7 +617,7 @@ async function ensureSecurityTables(env: Env): Promise<void> {
            last_seen_at TEXT NOT NULL
          )`
       ).run();
-      
+
       // OPTIONAL: Hard cleanup of legacy schema if detected (by checking columns)
       // This is a one-time migration to clear the 22k rows of junk
       try {
@@ -1075,10 +1075,10 @@ async function registerFailedLogin(env: Env, key: string) {
     }
 
     const blockedUntil = failures >= LOGIN_MAX_FAILURES ? new Date(now + LOGIN_BLOCK_MS).toISOString() : null;
-    
+
     // REHASH ON LOGIN: If user was using legacy hashing, upgrade them to Argon2id now.
     // (Note: This logic is typically called within the login handler flow)
-    /* 
+    /*
     const result = await verifyPassword(password, row.password_hash);
     if (!result.ok) {
       // Increment failures
@@ -3204,7 +3204,7 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
       return json(request, env, { error: 'Target host is not allowed' }, 403);
     }
 
-    const allowedHosts = parseCsvSet(env.PROXY_ALLOWED_HOSTS);
+    const allowedHosts = parseCsvSet(env.ALLOWED_HOSTS);
     if (allowedHosts.length === 0 || !allowedHosts.some((pattern) => matchHostname(hostname, pattern))) {
       return json(request, env, { error: 'Target host is not in allowlist' }, 403);
     }
@@ -3480,7 +3480,7 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
 
   try {
     const parsedTarget = new URL(targetUrl);
-    const allowedHosts = parseCsvSet(env.PROXY_ALLOWED_HOSTS);
+    const allowedHosts = parseCsvSet(env.ALLOWED_HOSTS);
     if (allowedHosts.length === 0 || !allowedHosts.some((pattern) => matchHostname(parsedTarget.hostname, pattern))) {
       return json(request, env, { error: 'Target host is not in allowlist' }, 403);
     }

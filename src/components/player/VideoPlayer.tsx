@@ -270,7 +270,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, enableUnsafeEmbeds, customAccentHex, accentColor } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, enableUnsafeEmbeds, customAccentHex, accentColor, playerAspectRatio = 'original', playerFillWidth = false, playerFillHeight = false } = useSettingsStore((s) => s.settings);
+
+
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
@@ -282,7 +284,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const effectiveTokenNoticeDismissLabel = tokenNoticeDismissLabel || 'Dismiss for this title';
   const handleTokenNoticeAction = onTokenNoticeAction;
 
-  const [settingsPanel, setSettingsPanel] = useState<'main' | 'quality' | 'speed' | 'subtitles' | 'subAppearance' | 'episodes' | 'info' | 'segments' | 'playback' | 'skip' | 'watchParty' | 'alternative' | 'sources' | null>(null);
+  const [settingsPanel, setSettingsPanel] = useState<'main' | 'quality' | 'speed' | 'subtitles' | 'subAppearance' | 'episodes' | 'info' | 'segments' | 'playback' | 'skip' | 'watchParty' | 'alternative' | 'sources' | 'aspectRatio' | null>(null);
+
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [hoverProgress, setHoverProgress] = useState<number | null>(null);
   const [captionTrackUrls, setCaptionTrackUrls] = useState<Record<string, string>>({});
@@ -297,7 +300,9 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
   const [submitStart, setSubmitStart] = useState('');
   const [submitEnd, setSubmitEnd] = useState('');
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
+  const [videoNaturalAspectRatio, setVideoNaturalAspectRatio] = useState<number | null>(null);
   const [episodePanelSeason, setEpisodePanelSeason] = useState(seasonNum);
+
   const [episodePanelEpisodes, setEpisodePanelEpisodes] = useState<Episode[]>(season?.episodes || []);
   const [episodePanelLoading, setEpisodePanelLoading] = useState(false);
   const [showNextPrompt, setShowNextPrompt] = useState(false);
@@ -1862,6 +1867,17 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
           <video
             ref={videoRef}
             className="h-full w-full nexvid-video"
+            style={{
+              aspectRatio: playerAspectRatio !== 'original' && playerAspectRatio !== 'stretch' ? playerAspectRatio.replace(':', '/') : undefined,
+              objectFit: (playerAspectRatio === 'stretch') ? 'fill' : (
+                (playerFillWidth && playerFillHeight) ? 'cover' : (
+                  (playerFillWidth && videoNaturalAspectRatio && videoNaturalAspectRatio < (16 / 9)) ? 'cover' : (
+                    (playerFillHeight && videoNaturalAspectRatio && videoNaturalAspectRatio > (16 / 9)) ? 'cover' : 'contain'
+                  )
+                )
+              )
+            }}
+
             playsInline
             onTimeUpdate={handleTimeUpdate}
             onDurationChange={handleDurationChange}
@@ -1874,8 +1890,15 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             onError={handleError}
             onClick={togglePlay}
             onDoubleClick={toggleFullscreen}
+            onLoadedMetadata={(e) => {
+              const video = e.currentTarget;
+              if (video.videoWidth && video.videoHeight) {
+                setVideoNaturalAspectRatio(video.videoWidth / video.videoHeight);
+              }
+            }}
             muted={isMuted}
             autoPlay={autoPlay}
+
           >
           </video>
           <audio ref={externalAudioRef} className="hidden" preload="auto" />
@@ -2634,8 +2657,58 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                           <p className="px-3 py-2 text-[11px] text-white/40">Single quality stream</p>
                         )}
                       </div>
+                      <hr className="my-2 border-white/[0.06]" />
+                      <button onClick={() => setSettingsPanel('aspectRatio')} className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+                          Aspect Ratio
+                        </div>
+                        <span className="text-[11px] text-accent font-medium">{playerAspectRatio === 'original' ? 'Original' : playerAspectRatio}</span>
+                      </button>
                     </div>
                   )}
+
+                  {/* Aspect Ratio Sub-panel */}
+                  {settingsPanel === 'aspectRatio' && (
+                    <div>
+                      <button onClick={() => setSettingsPanel('quality')} className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
+                        Aspect Ratio
+                      </button>
+
+                      <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                        {(['original', '16:9', '4:3', '21:9', '2.35:1', '1:1', 'stretch'] as const).map((ratio) => (
+                          <button
+                            key={ratio}
+                            onClick={() => updateSettings({ playerAspectRatio: ratio })}
+                            className={cn(
+                              'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
+                              playerAspectRatio === ratio ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10'
+                            )}
+                          >
+                            <span className="capitalize">{ratio}</span>
+                            {playerAspectRatio === ratio && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
+                          </button>
+                        ))}
+                      </div>
+
+                      <hr className="my-3 border-white/[0.06]" />
+                      
+                      <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
+                        <PlayerToggle 
+                          label="No side bars" 
+                          checked={playerFillWidth} 
+                          onChange={(v) => updateSettings({ playerFillWidth: v })} 
+                        />
+                        <PlayerToggle 
+                          label="No top/bottom bars" 
+                          checked={playerFillHeight} 
+                          onChange={(v) => updateSettings({ playerFillHeight: v })} 
+                        />
+                      </div>
+                    </div>
+                  )}
+
 
                   {/* Sources Sub-panel */}
                   {settingsPanel === 'sources' && (
