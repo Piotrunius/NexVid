@@ -1571,22 +1571,21 @@ export default function AdminPage() {
               sortedAnnouncements.map((item) => (
                   <div key={item.id} className={cn(
                     "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300",
-                    item.isActive ? "border-accent/20 shadow-lg" : "border-white/5"
+                    item.isActive ? "!border-accent/40 shadow-lg" : "border-white/5"
                   )}>
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-1.5">
                         {item.isActive && (
-                          <span className="text-[9px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/20">
-                            <span className="w-1 h-1 rounded-full bg-accent" />
+                          <span className="text-[9px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/30">
                             Active
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
+                    <div className="flex flex-col gap-2">
                       <span className={cn(
-                        "text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter shrink-0 mt-0.5",
+                        "text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter w-fit",
                         item.type === 'info' ? "bg-accent/20 text-accent" :
                         item.type === 'warning' ? "bg-yellow-500/20 text-yellow-500" :
                         item.type === 'update' ? "bg-blue-500/20 text-blue-500" :
