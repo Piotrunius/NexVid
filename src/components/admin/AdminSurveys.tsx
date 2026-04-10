@@ -258,7 +258,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
     return stats;
   };
 
-  if (isLoading) return <div className="p-8 text-center text-white/50">Loading surveys...</div>;
+  if (isLoading && surveys.length === 0) return <div className="p-8 text-center text-white/50">Loading surveys...</div>;
 
   return (
     <div className="space-y-6">

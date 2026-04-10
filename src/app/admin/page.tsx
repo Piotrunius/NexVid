@@ -1266,7 +1266,7 @@ export default function AdminPage() {
           </div>
         </div>
         <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] custom-scrollbar">
-          {isLoading ? (
+          {isLoading && adminUsers.length === 0 ? (
             <p className="p-3 text-[13px] text-text-muted">Loading...</p>
           ) : filteredAndSortedUsers.length === 0 ? (
             <p className="p-12 text-center text-[13px] text-text-muted">No users found matching your search.</p>
@@ -1357,7 +1357,7 @@ export default function AdminPage() {
           </div>
 
           <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
-            {isLoading ? (
+            {isLoading && auditLogs.length === 0 ? (
               <p className="p-3 text-[13px] text-text-muted">Loading...</p>
             ) : auditLogs.length === 0 ? (
               <p className="p-3 text-[13px] text-text-muted">No audit entries yet.</p>
@@ -1441,7 +1441,7 @@ export default function AdminPage() {
 
         <div className="grid items-stretch gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
           <div className="h-[72vh] min-h-[460px] max-h-[760px] overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] p-2 backdrop-blur-sm">
-            {isLoading ? (
+            {isLoading && feedbackThreads.length === 0 ? (
               <p className="px-2 py-4 text-[13px] text-text-muted">Loading...</p>
             ) : sortedFeedbackThreads.length === 0 ? (
               <p className="px-2 py-4 text-[13px] text-text-muted">No feedback threads yet.</p>
@@ -1573,7 +1573,7 @@ export default function AdminPage() {
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
           <h2 className="text-[15px] font-semibold text-text-primary">Announcements list</h2>
           <div className="space-y-2">
-            {isLoading ? (
+            {isLoading && announcements.length === 0 ? (
               <p className="text-[13px] text-text-muted">Loading...</p>
             ) : sortedAnnouncements.length === 0 ? (
               <p className="text-[13px] text-text-muted">No announcements yet.</p>
@@ -1594,15 +1594,6 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <span className={cn(
-                        "text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter w-fit",
-                        item.type === 'info' ? "bg-accent/20 text-accent" :
-                        item.type === 'warning' ? "bg-yellow-500/20 text-yellow-500" :
-                        item.type === 'update' ? "bg-blue-500/20 text-blue-500" :
-                        "bg-green-500/20 text-green-500"
-                      )}>
-                        {item.type}
-                      </span>
                       <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary leading-relaxed">{item.message}</p>
                     </div>
                     <p className="text-[10px] text-white/20 mt-3 font-medium">{new Date(item.updatedAt).toLocaleString()}</p>
