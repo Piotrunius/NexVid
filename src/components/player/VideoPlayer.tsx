@@ -1869,7 +1869,8 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
             className="h-full w-full nexvid-video"
             style={{
               aspectRatio: playerAspectRatio !== 'original' && playerAspectRatio !== 'stretch' ? playerAspectRatio.replace(':', '/') : undefined,
-              objectFit: (playerAspectRatio === 'stretch') ? 'fill' : (
+
+              objectFit: (playerAspectRatio === 'stretch' || (playerAspectRatio !== 'original' && playerAspectRatio !== 'stretch')) ? 'fill' : (
                 (playerFillWidth && playerFillHeight) ? 'cover' : (
                   (playerFillWidth && videoNaturalAspectRatio && videoNaturalAspectRatio < (16 / 9)) ? 'cover' : (
                     (playerFillHeight && videoNaturalAspectRatio && videoNaturalAspectRatio > (16 / 9)) ? 'cover' : 'contain'
@@ -1877,6 +1878,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                 )
               )
             }}
+
 
             playsInline
             onTimeUpdate={handleTimeUpdate}
