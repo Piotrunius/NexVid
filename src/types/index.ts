@@ -111,7 +111,7 @@ export type MediaItem = Movie | Show;
 
 export type StreamQuality = 'unknown' | '360' | '480' | '720' | '1080' | '2k' | '4k';
 
-export type PlayerViewMode = 'fit' | 'stretch' | 'zoom';
+export type PlayerViewMode = 'original' | 'stretch' | 'zoom';
 
 
 

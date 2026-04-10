@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   omdbApiKey: PUBLIC_OMDB_API_KEY_PLACEHOLDER,
   preferredSources: [],
   disabledSources: [],
-  playerViewMode: 'fit',
+  playerViewMode: 'original',
   playerFillWidth: false,
   playerFillHeight: false,
 };
