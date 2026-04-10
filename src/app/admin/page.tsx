@@ -1413,16 +1413,26 @@ export default function AdminPage() {
           <div>
             <h2 className="text-[15px] font-semibold text-text-primary">Feedback inbox</h2>
           </div>
-          <div className="flex gap-1.5 p-1 rounded-xl bg-white/5 w-fit">
+          <div className="flex gap-2 p-1 rounded-full bg-white/5 w-fit">
             <button
               onClick={() => setFeedbackInboxTab('active')}
-              className={cn("px-3 py-1.5 rounded-[8px] text-[11px] font-bold transition-all", feedbackInboxTab === 'active' ? "bg-accent text-white shadow-md" : "text-white/40 hover:text-white")}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border",
+                feedbackInboxTab === 'active' 
+                  ? "bg-accent-muted text-accent border-accent-glow" 
+                  : "bg-transparent text-white/40 border-transparent hover:text-white"
+              )}
             >
               Active
             </button>
             <button
               onClick={() => setFeedbackInboxTab('archive')}
-              className={cn("px-3 py-1.5 rounded-[8px] text-[11px] font-bold transition-all", feedbackInboxTab === 'archive' ? "bg-accent text-white shadow-md" : "text-white/40 hover:text-white")}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border",
+                feedbackInboxTab === 'archive' 
+                  ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30" 
+                  : "bg-transparent text-white/40 border-transparent hover:text-white"
+              )}
             >
               Archive
             </button>
@@ -1577,7 +1587,7 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-1.5">
                         {item.isActive && (
-                          <span className="text-[8px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/30">
+                          <span className="text-[8px] bg-accent-muted text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent-glow">
                             Active
                           </span>
                         )}
