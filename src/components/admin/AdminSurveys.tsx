@@ -278,14 +278,14 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
             {visibleSurveys.map(s => (
               <div key={s.id} className={cn(
                 "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 w-[260px] shrink-0 transition-all duration-300",
-                s.is_active ? "!border-accent-glow/50 shadow-lg" : s.is_archived ? "border-yellow-500/20 shadow-lg" : "border-white/5 shadow-lg"
+                s.is_active ? "!border-accent-glow shadow-lg" : s.is_archived ? "border-yellow-500/20 shadow-lg" : "border-white/5 shadow-lg"
               )}>
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <h3 className="font-bold text-white text-[14px] truncate">{s.title}</h3>
                     <div className="flex items-center gap-1.5">
                       {s.is_active === 1 && (
-                        <span className="text-[8px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/30">
+                        <span className="text-[8px] bg-accent-muted text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent-glow">
                           Active
                         </span>
                       )}
