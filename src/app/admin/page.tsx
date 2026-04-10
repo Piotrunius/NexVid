@@ -1571,13 +1571,13 @@ export default function AdminPage() {
               sortedAnnouncements.map((item) => (
                   <div key={item.id} className={cn(
                     "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300",
-                    item.isActive ? "!border-accent/40 shadow-lg" : "border-white/5"
+                    item.isActive ? "!border-accent-glow shadow-lg" : "border-white/5"
                   )}>
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-1.5">
                         {item.isActive && (
-                          <span className="text-[9px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/30">
+                          <span className="text-[8px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/30">
                             Active
                           </span>
                         )}
