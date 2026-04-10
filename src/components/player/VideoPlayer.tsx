@@ -270,7 +270,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
     return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration]);
 
-  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, enableUnsafeEmbeds, customAccentHex, accentColor, playerViewMode = 'fit', playerFillWidth = false, playerFillHeight = false } = useSettingsStore((s) => s.settings);
+  const { skipIntro, skipOutro, autoSkipSegments, autoSwitchSource, autoPlay, autoNext, idlePauseOverlay, playerVolume, introDbApiKey, defaultQuality, defaultSource, subtitleLanguage, febboxApiKey, enableUnsafeEmbeds, customAccentHex, accentColor, playerViewMode = 'original', playerFillWidth = false, playerFillHeight = false } = useSettingsStore((s) => s.settings);
 
 
 
@@ -2682,7 +2682,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                       </button>
 
                       <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                        {(['fit', 'stretch', 'zoom'] as const).map((mode) => (
+                        {(['original', 'stretch', 'zoom'] as const).map((mode) => (
                           <button
                             key={mode}
                             onClick={() => updateSettings({ playerViewMode: mode })}
@@ -2691,7 +2691,7 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
                               playerViewMode === mode ? 'bg-accent/20 text-accent font-bold' : 'text-white/60 hover:bg-white/10'
                             )}
                           >
-                            <span className="capitalize">{mode === 'fit' ? 'Fit (Original)' : (mode === 'stretch' ? 'Stretch (Fill)' : 'Zoom (Crop)')}</span>
+                            <span className="capitalize">{mode === 'original' ? 'Original (Fit)' : (mode === 'stretch' ? 'Stretch (Fill)' : 'Zoom (Crop)')}</span>
                             {playerViewMode === mode && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
                           </button>
                         ))}
@@ -2699,17 +2699,17 @@ export function VideoPlayer({ stream, onBack, title, subtitle, media, season, se
 
 
                       <hr className="my-3 border-white/[0.06]" />
-                      
+
                       <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
-                        <PlayerToggle 
-                          label="No side bars" 
-                          checked={playerFillWidth} 
-                          onChange={(v) => updateSettings({ playerFillWidth: v })} 
+                        <PlayerToggle
+                          label="No side bars"
+                          checked={playerFillWidth}
+                          onChange={(v) => updateSettings({ playerFillWidth: v })}
                         />
-                        <PlayerToggle 
-                          label="No top/bottom bars" 
-                          checked={playerFillHeight} 
-                          onChange={(v) => updateSettings({ playerFillHeight: v })} 
+                        <PlayerToggle
+                          label="No top/bottom bars"
+                          checked={playerFillHeight}
+                          onChange={(v) => updateSettings({ playerFillHeight: v })}
                         />
                       </div>
                     </div>
