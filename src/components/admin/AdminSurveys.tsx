@@ -278,28 +278,39 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
             {visibleSurveys.map(s => (
               <div key={s.id} className={cn(
                 "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 w-[260px] shrink-0 transition-all duration-300",
-                s.is_active ? "border-accent/40 shadow-[0_8px_32px_rgba(var(--accent-rgb),0.15)]" : s.is_archived ? "border-yellow-500/20 shadow-lg" : "border-white/5 shadow-lg"
+                s.is_active ? "border-accent/20 shadow-lg" : s.is_archived ? "border-yellow-500/20 shadow-lg" : "border-white/5 shadow-lg"
               )}>
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <h3 className="font-bold text-white text-[14px] truncate">{s.title}</h3>
-                    <div className="flex items-center gap-1">
-                      {s.is_active === 1 && <span className="text-[8px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-black uppercase">Active</span>}
-                      {s.is_archived === 1 && <span className="text-[8px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded-full font-black uppercase">Archived</span>}
+                    <div className="flex items-center gap-1.5">
+                      {s.is_active === 1 && (
+                        <span className="text-[8px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent/20">
+                          <span className="w-1 h-1 rounded-full bg-accent" />
+                          Active
+                        </span>
+                      )}
+                      {s.is_archived === 1 && (
+                        <span className="text-[8px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-yellow-500/20">
+                          <span className="w-1 h-1 rounded-full bg-yellow-500" />
+                          Archived
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className="text-[11px] text-white/40 line-clamp-1">{s.description || 'No description'}</p>
                   <p className="text-[9px] text-white/20 mt-2 font-medium">{new Date(s.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    disabled={s.is_archived === 1}
-                    onClick={() => toggleSurvey(s.id, s.is_active === 1)}
-                    className={cn(
-                      s.is_active === 1 ? "btn-glass text-[11px] py-2.5 px-3 font-semibold bg-white/10" : "btn-accent text-[11px] py-2.5 px-3 font-semibold",
-                      s.is_archived === 1 && 'opacity-40 cursor-not-allowed'
-                    )}
-                  >
+                    <button
+                      disabled={s.is_archived === 1}
+                      onClick={() => toggleSurvey(s.id, s.is_active === 1)}
+                      className={cn(
+                        "btn-glass text-[11px] py-2.5 px-3 font-semibold",
+                        s.is_active === 1 ? "bg-white/10" : "bg-white/5",
+                        s.is_archived === 1 && 'opacity-40 cursor-not-allowed'
+                      )}
+                    >
                     {s.is_active === 1 ? 'Stop' : 'Start'}
                   </button>
                   <button
@@ -386,7 +397,6 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
         {/* Create Survey */}
         <div className="glass-card p-5 space-y-4 h-fit sticky top-24 border-white/10 shadow-xl">
           <h2 className="text-[15px] font-bold text-white flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
             New Survey
           </h2>
           <div className="space-y-3">
@@ -460,7 +470,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
           <button
             disabled={isSubmitting || !newTitle.trim() || newQuestions.length === 0}
             onClick={handleCreate}
-            className="btn-accent w-full py-3 mt-2 font-bold uppercase tracking-widest text-[11px]"
+            className="btn-accent w-full py-3 mt-2 font-bold tracking-widest text-[11px]"
           >
             {isSubmitting ? 'Creating...' : 'Launch Survey'}
           </button>
