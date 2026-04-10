@@ -33,7 +33,7 @@ function matchHostname(hostname: string, pattern: string): boolean {
 }
 
 function isAllowedHost(hostname: string): boolean {
-  const allowed = parseCsvSet(process.env.PROXY_ALLOWED_HOSTS || process.env.NEXT_PUBLIC_PROXY_ALLOWED_HOSTS);
+  const allowed = parseCsvSet(process.env.ALLOWED_HOSTS || process.env.NEXT_PUBLIC_ALLOWED_HOSTS);
   if (allowed.length === 0) return false;
   return allowed.some((pattern) => matchHostname(hostname, pattern));
 }
@@ -333,7 +333,7 @@ export async function GET(request: NextRequest) {
         } catch {
         }
       }
-      
+
     }
 
     if (!upstream.ok) {

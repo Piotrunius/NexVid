@@ -111,6 +111,9 @@ export type MediaItem = Movie | Show;
 
 export type StreamQuality = 'unknown' | '360' | '480' | '720' | '1080' | '2k' | '4k';
 
+export type PlayerAspectRatio = 'original' | '16:9' | '4:3' | '21:9' | '2.35:1' | '1:1' | 'stretch';
+
+
 export interface StreamFile {
   type: 'mp4';
   url: string;
@@ -222,7 +225,11 @@ export interface UserSettings {
   omdbApiKey: string;
   preferredSources: string[];
   disabledSources: string[];
+  playerAspectRatio: PlayerAspectRatio;
+  playerFillWidth: boolean;
+  playerFillHeight: boolean;
 }
+
 
 export type AccentColor = 'indigo' | 'violet' | 'rose' | 'emerald' | 'amber' | 'cyan' | 'sky' | 'lime' | 'orange' | 'fuchsia' | 'teal' | 'red' | 'custom';
 export type Theme = 'dark' | 'light';
