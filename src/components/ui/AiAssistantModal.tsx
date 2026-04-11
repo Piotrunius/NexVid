@@ -11,6 +11,7 @@ import { Loader2, Search, Sparkles, Star, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "./Toaster";
 
 interface AiRecommendation {
   title: string;
@@ -98,6 +99,12 @@ export function AiAssistantModal({
   const handleGenerate = async () => {
     // mood is optional, it can add context but genres are the main filter.
 
+    if (isLocked) {
+      toast("AI Assistant requires a Cloud account or your own Groq API key in Settings.", "error");
+      setStep("input");
+      return;
+    }
+
     setStep("loading");
     setRecommendations([]);
     setErrorMsg(null);
@@ -154,7 +161,9 @@ export function AiAssistantModal({
       setStep("results");
     } catch (error: any) {
       console.error("AI Error:", error);
-      setErrorMsg(error.message || "Something went wrong");
+      const msg = error.message || "Something went wrong";
+      setErrorMsg(msg);
+      toast(msg, "error");
       setStep("input");
     }
   };
@@ -224,15 +233,6 @@ export function AiAssistantModal({
                   >
                     {step === "input" && (
                       <div className="flex flex-col h-full">
-                        {(errorMsg || isLocked) && (
-                          <div className="px-6 pt-4">
-                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-medium text-center">
-                              {isLocked
-                                ? "AI Assistant requires a Cloud account or your own Groq API key in Settings."
-                                : errorMsg}
-                            </div>
-                          </div>
-                        )}
                         {/* Top Bar: Type & Era */}
                         <div className="flex flex-wrap items-center justify-between gap-4 bg-white/[0.02] px-5 py-4 sm:px-6">
                           <div className="flex rounded-full bg-white/[0.05] p-1">
@@ -241,7 +241,7 @@ export function AiAssistantModal({
                               className={cn(
                                 "rounded-full px-4 py-1.5 text-xs font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
                                 type === "movie"
-                                  ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
+                                  ? "bg-accent/16 text-accent"
                                   : "text-white/80 hover:text-white",
                               )}
                             >
@@ -307,9 +307,6 @@ export function AiAssistantModal({
                               <label className="text-xs font-bold text-white/40 uppercase tracking-widest">
                                 Genres
                               </label>
-                              <span className="text-[10px] text-white/30">
-                                {selectedGenres.length} selected
-                              </span>
                             </div>
                             <div className="max-h-[220px] content-start overflow-y-auto custom-scrollbar flex flex-wrap gap-2">
                               {GENRES.map((genre) => (
@@ -340,7 +337,7 @@ export function AiAssistantModal({
                               onKeyDown={(e) =>
                                 e.key === "Enter" && handleGenerate()
                               }
-                              placeholder="Type specific keywords (e.g. 'Cyberpunk', 'Time Travel')..."
+                              placeholder="Type titles, genres, keywords or just anything you can think of..."
                               className="h-12 w-full appearance-none rounded-xl border border-transparent bg-white/5 pl-11 pr-4 text-sm text-white shadow-inner outline-none transition-all placeholder:text-white/20 focus:border-accent/45 focus:outline-none focus:ring-0 focus-visible:outline-none"
                             />
                           </div>
@@ -464,8 +461,7 @@ export function AiAssistantModal({
                         <button
                           onClick={handleGenerate}
                           disabled={
-                            isLocked ||
-                            (selectedGenres.length === 0 && !mood.trim())
+                            selectedGenres.length === 0 && !mood.trim()
                           }
                           className="group flex w-full items-center justify-center gap-3 rounded-xl bg-accent py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:text-base"
                         >
