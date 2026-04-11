@@ -61,7 +61,6 @@ export const useAuthStore = create<AuthStore>()(
       authToken: "",
 
       loginLocal: (username: string) => {
-        // Disable local auth in production for security
         if (
           typeof window !== "undefined" &&
           process.env.NODE_ENV === "production"
