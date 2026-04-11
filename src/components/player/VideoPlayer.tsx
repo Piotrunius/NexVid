@@ -1803,12 +1803,6 @@ export function VideoPlayer({
       return;
     }
 
-    // If controls are hidden, the first click only wakes them up
-    if (!controlsVisible) {
-      showControls();
-      return;
-    }
-
     // Standard playback toggle if requested (standard for desktop, optional for mobile)
     if (shouldTogglePlayback) {
       togglePlay();
@@ -1827,13 +1821,6 @@ export function VideoPlayer({
     const touchX = e.changedTouches[0].clientX - rect.left;
     const side = touchX < rect.width / 2 ? "left" : "right";
     const now = Date.now();
-
-    // If controls are hidden, first touch only shows them
-    if (!controlsVisible) {
-      showControls();
-      lastTapRef.current = null; // Reset double-tap on wake
-      return;
-    }
 
     if (lastTapRef.current && lastTapRef.current.side === side && now - lastTapRef.current.time < 350) {
       // Double tap detected
