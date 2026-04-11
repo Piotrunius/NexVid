@@ -1737,6 +1737,38 @@ export function VideoPlayer({
     preview: [],
   };
 
+  const effectiveVideoEndTime = useMemo(() => {
+    if (!duration || duration <= 0) return 0;
+    if (!autoSkipSegments) return duration;
+
+    // To decide the effective end, we look for segments that end at the video end.
+    // We check both the TIDB segments and the legacy introOutro.outro.
+    const endSegments: Array<{ start: number; end: number }> = [];
+
+    effectiveSegments.credits.forEach((s) => {
+      const start = s.startMs / 1000;
+      const end = s.endMs === 0 ? duration : s.endMs / 1000;
+      // If segment ends within 5s of the actual duration, we treat it as an end-segment.
+      if (end >= duration - 5) {
+        endSegments.push({ start, end });
+      }
+    });
+
+    if (introOutro?.outroStart !== undefined && introOutro?.outroEnd !== undefined) {
+      const start = introOutro.outroStart;
+      const end = introOutro.outroEnd;
+      if (end >= duration - 5) {
+        endSegments.push({ start, end });
+      }
+    }
+
+    if (endSegments.length === 0) return duration;
+
+    // Pick the earliest start time among segments that reach the end.
+    const earliestStart = Math.min(...endSegments.map((s) => s.start));
+    return earliestStart;
+  }, [duration, autoSkipSegments, effectiveSegments.credits, introOutro]);
+
   useEffect(() => {
     nextEpisodeAutoNavRef.current = false;
     setAutoNextLocked(false);
@@ -1761,6 +1793,7 @@ export function VideoPlayer({
       if (showNextPrompt) setShowNextPrompt(false);
       return;
     }
+
     if (
       !onNavigateEpisode ||
       mediaType !== "show" ||
@@ -1783,16 +1816,19 @@ export function VideoPlayer({
       return;
     }
 
-    const remaining = Math.max(0, duration - currentTime);
-    const shouldPrompt =
-      remaining <= 12 || (duration > 0 && currentTime / duration >= 0.985);
+    const remaining = Math.max(0, effectiveVideoEndTime - currentTime);
+    
+    // If we're within 12s of the effective end (e.g. credits start), show the prompt.
+    const shouldPrompt = remaining <= 12;
 
     if (shouldPrompt) {
       if (!showNextPrompt) setShowNextPrompt(true);
 
+      // Trigger automatic navigation if autoNext is on and we reached the effective end.
+      // We also check remaining <= 0.5 to allow for a tiny buffer.
       if (
         autoNext &&
-        nextCountdown <= 0 &&
+        (nextCountdown <= 0 || remaining <= 0.1) &&
         nextPromptHandledForRef.current !== promptKey
       ) {
         nextPromptHandledForRef.current = promptKey;
@@ -1808,6 +1844,7 @@ export function VideoPlayer({
   }, [
     currentTime,
     duration,
+    effectiveVideoEndTime, // Added dependency
     autoNext,
     nextCountdown,
     mediaType,
@@ -1914,6 +1951,12 @@ export function VideoPlayer({
         currentTime >= segment.startSec && currentTime < segment.endSec - 0.35,
     );
     if (!activeSegment) return;
+
+    // If autoNext is ON and this segment ends at the very end of the video,
+    // we let the Auto-Next logic handle it (transition via countdown).
+    // We only skip if it's NOT the final segment or if autoNext is OFF.
+    const isEndSegment = activeSegment.endSec >= duration - 1;
+    if (autoNext && isEndSegment) return;
 
     const now = Date.now();
     if (
@@ -5003,41 +5046,92 @@ export function VideoPlayer({
           </div>
 
           {showNextPrompt && isShowWithEpisodes && (
-            <div className="absolute right-4 bottom-20 z-30 w-[320px] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-4 animate-slide-up">
-              <p className="text-[13px] font-semibold text-white">
-                Next episode ready
-              </p>{" "}
-              <p className="text-[11px] text-white/60 mt-1">
-                {isEpisodeNavigating
-                  ? "Loading next episode…"
-                  : autoNext
-                    ? `Auto-play in ${nextCountdown}s`
-                    : "Auto-next is off"}
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    nextPromptHandledForRef.current = promptKey;
-                    navigateNextEpisode();
-                  }}
-                  disabled={isEpisodeNavigating}
-                  className="rounded-[8px] bg-accent/25 px-3 py-1.5 text-[11px] font-medium text-accent hover:bg-accent/35 disabled:opacity-60"
-                >
-                  {isEpisodeNavigating ? "Loading…" : "Play next now"}
-                </button>
-                {autoNext && (
-                  <button
-                    onClick={() => {
-                      nextPromptDismissedForRef.current = promptKey;
-                      setShowNextPrompt(false);
-                      setNextCountdown(8);
-                    }}
-                    className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20"
-                  >
-                    Cancel
-                  </button>
-                )}
+            <div className="absolute right-6 bottom-24 z-30 w-[340px] overflow-hidden rounded-[24px] bg-[#0A0A0B]/80 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.08)] p-5 animate-slide-up group/prompt">
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                      <FastForward className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[14px] font-black tracking-tight text-white uppercase italic">
+                        Up Next
+                      </p>
+                      <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mt-0.5">
+                        {isEpisodeNavigating
+                          ? "Loading next…"
+                          : autoNext
+                            ? `Starting in ${nextCountdown}s`
+                            : "Ready to play"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {autoNext && (
+                    <button
+                      onClick={() => {
+                        nextPromptDismissedForRef.current = promptKey;
+                        setShowNextPrompt(false);
+                        setNextCountdown(8);
+                      }}
+                      className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                   <div className="flex items-center gap-3">
+                      {media?.posterPath && (
+                         <div className="relative h-14 w-10 rounded-lg overflow-hidden shrink-0 shadow-lg shadow-black/40">
+                            <Image 
+                              src={`https://image.tmdb.org/t/p/w200${media.posterPath}`}
+                              alt="Next"
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                         </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-bold text-white truncate pr-2">
+                           {getNextEpisodeTarget() ? (
+                              season?.episodes?.find(e => e.episodeNumber === getNextEpisodeTarget()?.episode)?.title || "Next Episode"
+                           ) : "Next Episode"}
+                        </p>
+                        <p className="text-[11px] font-semibold text-white/50 mt-0.5">
+                           S{getNextEpisodeTarget()?.season} : E{getNextEpisodeTarget()?.episode}
+                        </p>
+                      </div>
+                   </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        nextPromptHandledForRef.current = promptKey;
+                        navigateNextEpisode();
+                      }}
+                      disabled={isEpisodeNavigating}
+                      className="flex-1 rounded-[14px] bg-accent px-4 py-3 text-[12px] font-black uppercase tracking-wider text-white shadow-lg shadow-accent/20 transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+                    >
+                      {isEpisodeNavigating ? "Loading…" : "Play Now"}
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {/* Progress Bar Background */}
+              {autoNext && !isEpisodeNavigating && (
+                <div className="absolute bottom-0 left-0 h-1 w-full bg-white/5">
+                  <motion.div
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${((8 - nextCountdown) / 8) * 100}%` }}
+                    className="h-full bg-accent"
+                    transition={{ duration: 1, ease: "linear" }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
