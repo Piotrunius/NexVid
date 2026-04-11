@@ -69,6 +69,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FaEarDeaf } from "react-icons/fa6";
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
   switch (status) {
@@ -126,9 +127,109 @@ interface PlayerProps {
 }
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+// Maps language code variants to a canonical group key
+const LANGUAGE_GROUP_MAP: Record<string, string> = {
+  // Chinese — actual wyzie codes: zh (simplified), zt (traditional), ze (bilingual)
+  zt: "zh",
+  ze: "zh",
+  // Cantonese (various codes used by different subtitle sources)
+  yue: "yue",
+  yc: "yue",
+  zc: "yue",
+  zcy: "yue",
+  // Legacy / other source codes for Chinese
+  zhs: "zh",
+  zht: "zh",
+  zhb: "zh",
+  "zh-hans": "zh",
+  "zh-hant": "zh",
+  "zh-cn": "zh",
+  "zh-tw": "zh",
+  "zh-sg": "zh",
+  "zh-hk": "yue",
+  "zh-mo": "yue",
+  // Portuguese — wyzie uses "pb" for Brazilian
+  pb: "br",
+  ptbr: "br",
+  "pt-br": "br",
+  "pt-pt": "pt",
+  // Spanish variants — wyzie uses "sp" for Spanish (EU), "ea" for Spanish (LA)
+  sp: "es",
+  ea: "mx",
+  spl: "es",
+  "es-la": "mx",
+  "es-419": "mx",
+  // Iberian regional languages — Catalan, Galician, Basque
+  ca: "es",
+  gl: "es",
+  eu: "es",
+  // Serbian
+  scc: "sr",
+  scr: "sr",
+  "sr-cyrl": "sr",
+  "sr-latn": "sr",
+  // Norwegian
+  nb: "no",
+  nn: "no",
+  nob: "no",
+  nno: "no",
+  // Malay
+  "ms-my": "ms",
+  "ms-sg": "ms",
+  // Kurdish
+  kmr: "ku",
+  ckb: "ku",
+  // Hebrew — old code
+  iw: "he",
+};
+
+// Canonical display name for grouped languages
+const LANGUAGE_GROUP_LABELS: Record<string, string> = {
+  zh: "Chinese",
+  yue: "Cantonese",
+  pt: "Portuguese",
+  br: "Brazilian",
+  es: "Spanish",
+  mx: "Mexican",
+  sr: "Serbian",
+  no: "Norwegian",
+  ms: "Malay",
+  ku: "Kurdish",
+  he: "Hebrew",
+};
+
+function getLanguageGroup(lang: string): string {
+  const normalized = lang.toLowerCase();
+  return LANGUAGE_GROUP_MAP[normalized] ?? normalized;
+}
+
+function resolveFlagUrl(lang: string, providedUrl?: string | null): string | null {
+  const normalized = lang.toLowerCase();
+  // Forced mappings per user request
+  if (normalized === "zh" || normalized === "zt" || normalized === "ze")
+    return "https://flagsapi.com/CN/flat/24.png";
+  if (normalized === "yue" || normalized === "yc" || normalized === "zc" || normalized === "zcy" || normalized === "zh-hk")
+    return "https://flagsapi.com/HK/flat/24.png";
+  if (normalized === "mx" || normalized === "ea" || normalized === "es-la" || normalized === "es-419")
+    return "https://flagsapi.com/MX/flat/24.png";
+  if (normalized === "br" || normalized === "pb" || normalized === "pt-br" || normalized === "ptbr")
+    return "https://flagsapi.com/BR/flat/24.png";
+  if (normalized === "es" || normalized === "sp")
+    return "https://flagsapi.com/ES/flat/24.png";
+  if (normalized === "pt" || normalized === "pt-pt")
+    return "https://flagsapi.com/PT/flat/24.png";
+  if (normalized === "pl")
+    return "https://flagsapi.com/PL/flat/24.png";
+  if (normalized === "en")
+    return "https://flagsapi.com/GB/flat/24.png";
+
+  if (providedUrl) return providedUrl;
+  return null;
+}
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
-const KNOWN_SOURCE_ORDER = ["febbox", "vidlink"] as const;
+const KNOWN_SOURCE_ORDER = ["febbox", "pobreflix","zxcstream", "cinesrc", "vidking", "vidfast", "videasy","vidsync", "vidlink"] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = "nexvid-subtitle-appearance";
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 
@@ -485,6 +586,7 @@ export function VideoPlayer({
     | "quality"
     | "speed"
     | "subtitles"
+    | "subtitlesPicker"
     | "subAppearance"
     | "episodes"
     | "info"
@@ -510,6 +612,9 @@ export function VideoPlayer({
   const [subDelayMs, setSubDelayMs] = useState(0);
   const [renderedSubtitle, setRenderedSubtitle] = useState("");
   const [captionTouchedByUser, setCaptionTouchedByUser] = useState(false);
+  const [subtitlePickerLanguage, setSubtitlePickerLanguage] = useState<
+    string | null
+  >(null);
   const [submitType, setSubmitType] = useState<
     "intro" | "recap" | "credits" | "preview"
   >("intro");
@@ -4171,113 +4276,303 @@ export function VideoPlayer({
                           </div>
                         )}
                         {/* Subtitles Sub-panel */}
-                        {settingsPanel === "subtitles" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("main")}
-                              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="m15 18-6-6 6-6" />
-                              </svg>
-                              Subtitles
-                            </button>
-                            <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
-                              <button
-                                onClick={() => {
-                                  setCaptionTouchedByUser(true);
-                                  setActiveCaption(null);
-                                  setRenderedSubtitle("");
-                                  setSettingsPanel("main");
-                                }}
-                                className={cn(
-                                  "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors",
-                                  !activeCaption
-                                    ? "bg-accent/20 text-accent font-bold"
-                                    : "text-white/60 hover:bg-white/10",
-                                )}
-                              >
-                                Off
-                              </button>
+                        {settingsPanel === "subtitles" &&
+                          (() => {
+                            // Group captions by language group (collapses variants like zh/zhs/zht)
+                            const captionsByLang: Record<
+                              string,
+                              typeof captions
+                            > = {};
+                            for (const cap of captions) {
+                              const group = getLanguageGroup(
+                                (cap.language || "").toLowerCase(),
+                              );
+                              if (!captionsByLang[group])
+                                captionsByLang[group] = [];
+                              captionsByLang[group].push(cap);
+                            }
+                            const langKeys = Object.keys(captionsByLang);
 
-                              {captions.map((cap) => (
+                            return (
+                              <div>
                                 <button
-                                  key={cap.id}
-                                  onClick={() => {
-                                    setCaptionTouchedByUser(true);
-                                    setActiveCaption(cap.id);
-                                    setSettingsPanel("main");
-                                  }}
-                                  className={cn(
-                                    "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between",
-                                    activeCaption === cap.id
-                                      ? "bg-accent/20 text-accent font-bold"
-                                      : "text-white/60 hover:bg-white/10",
-                                  )}
+                                  onClick={() => setSettingsPanel("main")}
+                                  className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
                                 >
-                                  <div className="flex items-center">
-                                    {cap.flagUrl ? (
-                                      <img
-                                        src={cap.flagUrl}
-                                        alt={cap.language}
-                                        className="mr-2 w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80"
-                                      />
-                                    ) : (
-                                      <span className="mr-2 opacity-50 italic">
-                                        🏳️
-                                      </span>
-                                    )}
-                                    <span>
-                                      {cap.label || cap.language.toUpperCase()}
-                                    </span>
-                                  </div>
-                                  {activeCaption === cap.id && (
-                                    <svg
-                                      width="12"
-                                      height="12"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="3"
-                                    >
-                                      <path d="M20 6 9 17l-5-5" />
-                                    </svg>
-                                  )}
+                                  <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path d="m15 18-6-6 6-6" />
+                                  </svg>
+                                  Subtitles
                                 </button>
-                              ))}
+                                <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                                  <button
+                                    onClick={() => {
+                                      setCaptionTouchedByUser(true);
+                                      setActiveCaption(null);
+                                      setRenderedSubtitle("");
+                                      setSettingsPanel("main");
+                                    }}
+                                    className={cn(
+                                      "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors",
+                                      !activeCaption
+                                        ? "bg-accent/20 text-accent font-bold"
+                                        : "text-white/60 hover:bg-white/10",
+                                    )}
+                                  >
+                                    Off
+                                  </button>
 
-                              {captions.length === 0 && (
-                                <p className="px-3 py-2 text-[11px] text-white/40 italic">
-                                  No external subtitles found
-                                </p>
-                              )}
-                            </div>
-                            <hr className="my-2 border-white/[0.06]" />
-                            <button
-                              onClick={() => setSettingsPanel("subAppearance")}
-                              className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="M4 7V4h16v3M9 20h6M12 4v16" />
-                              </svg>
-                              Subtitle Appearance
-                            </button>
-                          </div>
-                        )}{" "}
+                                  {langKeys.map((lang) => {
+                                    const caps = captionsByLang[lang];
+                                    const firstCap = caps[0];
+                                    const isActive = caps.some(
+                                      (c) => c.id === activeCaption,
+                                    );
+                                    const multipleOptions = caps.length > 1;
+                                    const allHI = caps.every(
+                                      (c) => c.isHearingImpaired,
+                                    );
+
+                                    return (
+                                      <button
+                                        key={lang}
+                                        onClick={() => {
+                                          if (multipleOptions) {
+                                            setSubtitlePickerLanguage(lang);
+                                            setSettingsPanel("subtitlesPicker");
+                                          } else {
+                                            setCaptionTouchedByUser(true);
+                                            setActiveCaption(firstCap.id);
+                                            setSettingsPanel("main");
+                                          }
+                                        }}
+                                        className={cn(
+                                          "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between",
+                                          isActive
+                                            ? "bg-accent/20 text-accent font-bold"
+                                            : "text-white/60 hover:bg-white/10",
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          {(() => {
+                                            const fUrl = resolveFlagUrl(
+                                              firstCap.language,
+                                              firstCap.flagUrl,
+                                            );
+                                            return fUrl ? (
+                                              <img
+                                                src={fUrl}
+                                                alt={lang}
+                                                className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                              />
+                                            ) : (
+                                              <img
+                                                src={`https://flagsapi.com/${firstCap.language.toUpperCase()}/flat/64.png`}
+                                                alt={lang}
+                                                className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                              />
+                                            );
+                                          })()}
+                                          <span>
+                                            {LANGUAGE_GROUP_LABELS[lang] ||
+                                              firstCap.label ||
+                                              lang.toUpperCase()}
+                                          </span>
+                                          {multipleOptions && allHI && (
+                                            <FaEarDeaf
+                                              className="shrink-0 text-yellow-400"
+                                              title="Hearing Impaired"
+                                              size={13}
+                                            />
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          {!multipleOptions && allHI && (
+                                            <FaEarDeaf
+                                              className="shrink-0 text-yellow-400"
+                                              title="Hearing Impaired"
+                                              size={13}
+                                            />
+                                          )}
+                                          {isActive && !multipleOptions && (
+                                            <svg
+                                              width="12"
+                                              height="12"
+                                              viewBox="0 0 24 24"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              strokeWidth="3"
+                                            >
+                                              <path d="M20 6 9 17l-5-5" />
+                                            </svg>
+                                          )}
+                                          {multipleOptions && (
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-[10px] opacity-50">
+                                                {caps.length}
+                                              </span>
+                                              <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                              >
+                                                <path d="m9 18 6-6-6-6" />
+                                              </svg>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+
+                                  {captions.length === 0 && (
+                                    <p className="px-3 py-2 text-[11px] text-white/40 italic">
+                                      No external subtitles found
+                                    </p>
+                                  )}
+                                </div>
+                                <hr className="my-2 border-white/[0.06]" />
+                                <button
+                                  onClick={() =>
+                                    setSettingsPanel("subAppearance")
+                                  }
+                                  className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                                >
+                                  <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                                  </svg>
+                                  Subtitle Appearance
+                                </button>
+                              </div>
+                            );
+                          })()}
+                        {/* Subtitles Picker Sub-panel (multiple captions for same language) */}
+                        {settingsPanel === "subtitlesPicker" &&
+                          subtitlePickerLanguage &&
+                          (() => {
+                            const caps = captions.filter(
+                              (c) =>
+                                getLanguageGroup(
+                                  (c.language || "").toLowerCase(),
+                                ) === subtitlePickerLanguage,
+                            );
+                            const firstCap = caps[0];
+                            const langLabel =
+                              LANGUAGE_GROUP_LABELS[subtitlePickerLanguage] ||
+                              firstCap?.label ||
+                              subtitlePickerLanguage.toUpperCase();
+
+                            return (
+                              <div>
+                                <button
+                                  onClick={() => setSettingsPanel("subtitles")}
+                                  className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                                >
+                                  <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                  >
+                                    <path d="m15 18-6-6 6-6" />
+                                  </svg>
+                                  {langLabel}
+                                </button>
+                                <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                                  {caps.map((cap) => (
+                                    <button
+                                      key={cap.id}
+                                      onClick={() => {
+                                        setCaptionTouchedByUser(true);
+                                        setActiveCaption(cap.id);
+                                        setSettingsPanel("main");
+                                      }}
+                                      className={cn(
+                                        "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between gap-2",
+                                        activeCaption === cap.id
+                                          ? "bg-accent/20 text-accent font-bold"
+                                          : "text-white/60 hover:bg-white/10",
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {(() => {
+                                          const fUrl = resolveFlagUrl(
+                                            cap.language,
+                                            cap.flagUrl,
+                                          );
+                                          return fUrl ? (
+                                            <img
+                                              src={fUrl}
+                                              alt={cap.language}
+                                              className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                            />
+                                          ) : (
+                                            <img
+                                              src={`https://flagsapi.com/${cap.language.toUpperCase()}/flat/64.png`}
+                                              alt={cap.language}
+                                              className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                            />
+                                          );
+                                        })()}
+                                        <span>
+                                          {cap.label ||
+                                            cap.language.toUpperCase()}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {cap.isHearingImpaired && (
+                                          <FaEarDeaf
+                                            className="shrink-0 text-yellow-400"
+                                            title="Hearing Impaired"
+                                            size={13}
+                                          />
+                                        )}
+                                        {cap.downloadCount != null &&
+                                          cap.downloadCount > 0 && (
+                                            <span className="text-[10px] opacity-40">
+                                              {cap.downloadCount >= 1000
+                                                ? `${Math.round(cap.downloadCount / 1000)}k`
+                                                : cap.downloadCount}
+                                            </span>
+                                          )}
+                                        {activeCaption === cap.id && (
+                                          <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="3"
+                                          >
+                                            <path d="M20 6 9 17l-5-5" />
+                                          </svg>
+                                        )}
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}{" "}
                         {/* Subtitle Appearance Sub-panel */}
                         {settingsPanel === "subAppearance" && (
                           <div>

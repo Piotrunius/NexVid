@@ -134,6 +134,9 @@ export interface Caption {
   label?: string;
   flagUrl?: string;
   isHearingImpaired?: boolean;
+  release?: string | null;
+  fileName?: string | null;
+  downloadCount?: number;
 }
 
 export interface AudioTrack {

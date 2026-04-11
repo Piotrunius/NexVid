@@ -29,25 +29,61 @@ function normalizeLanguage(input: string) {
       : value;
   const compact = base.replace(/[^a-z]/g, "");
   const aliases: Record<string, string> = {
-    pb: "pt",
-    br: "pt",
-    ptbr: "pt",
+    // Portuguese
+    pb: "br",
+    br: "br",
+    ptbr: "br",
     por: "pt",
+    // English
     eng: "en",
     gb: "en",
     us: "en",
+    // Greek
     ell: "el",
     gre: "el",
+    // Persian
     per: "fa",
     farsi: "fa",
+    // Hebrew
     iw: "he",
     heb: "he",
+    // Japanese
     jp: "ja",
     jpn: "ja",
+    // Korean
     kr: "ko",
     kor: "ko",
+    // Ukrainian
     ua: "uk",
     ukr: "uk",
+    // Chinese — wyzie uses zt (traditional), ze (bilingual), yue/yc/zc (Cantonese)
+    zt: "zh",
+    ze: "zh",
+    zhs: "zh",
+    zht: "zh",
+    zhb: "zh",
+    yue: "yue",
+    yc: "yue",
+    zc: "yue",
+    zcy: "yue",
+    // Spanish variants — wyzie uses "sp" for Spanish (EU), "ea" for Spanish (LA)
+    sp: "es",
+    ea: "mx",
+    spl: "es",
+    "es-la": "mx",
+    "es-419": "mx",
+    // Iberian regional languages — Catalan, Galician, Basque
+    ca: "es",
+    gl: "es",
+    eu: "es",
+    // Serbian
+    scc: "sr",
+    scr: "sr",
+    // Norwegian
+    nb: "no",
+    nn: "no",
+    nob: "no",
+    nno: "no",
   };
   return aliases[compact] || aliases[base] || base;
 }
