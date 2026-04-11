@@ -9,8 +9,8 @@ import {
   loadPublicAnnouncements,
   loadUserNotifications,
 } from "@/lib/cloudSync";
-import { searchMedia } from "@/lib/tmdb";
 import { normalizeMediaType } from "@/lib/mediaType";
+import { searchMedia } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { useBlockedContentStore } from "@/stores/blockedContent";
@@ -21,6 +21,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { TbBrandDiscord } from "react-icons/tb";
 
 interface Announcement {
   id: string;
@@ -124,6 +125,7 @@ export function Navbar() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [hasUnreadSupportReply, setHasUnreadSupportReply] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isDiscordClicked, setIsDiscordClicked] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLElement>(null);
   const { user, isLoggedIn, logout } = useAuthStore();
@@ -743,6 +745,37 @@ export function Navbar() {
               </div>
             </div>
           </Link>
+
+          {/* Discord only for non-admins */}
+          {!user?.isAdmin && (
+            <a
+              href="https://cloud.umami.is/q/vCu19Bcub"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsDiscordClicked(true);
+                setTimeout(() => setIsDiscordClicked(false), 600);
+                setTimeout(() => {
+                  window.open("https://cloud.umami.is/q/vCu19Bcub", "_blank");
+                }, 600);
+              }}
+              className="flex flex-col items-center flex-1 min-w-0 basis-0"
+              aria-label="Join Discord"
+            >
+              <div
+                className={cn(
+                  `${iconContainerBase} ${iconSize}`,
+                  isDiscordClicked ? navActiveClass : navIdleClass,
+                )}
+              >
+                <div className="relative flex flex-col items-center">
+                  <TbBrandDiscord size={20} />
+                </div>
+              </div>
+            </a>
+          )}
+
 
           {/* Contact only when logged in */}
           {isLoggedIn && (
