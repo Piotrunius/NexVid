@@ -471,11 +471,8 @@ export function VideoPlayer({
 
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
   const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
-  const effectiveShowTokenNotice =
-    typeof showTokenNotice === "boolean" ? showTokenNotice : !hasAnyFebboxToken;
-  const effectiveTokenNoticeText =
-    tokenNoticeText ||
-    "No FebBox token configured. Playback may still work, but often with much worse quality and stability.";
+  const effectiveShowTokenNotice = false;
+  const effectiveTokenNoticeText = "";
   const effectiveTokenNoticeActionLabel = tokenNoticeActionLabel;
   const effectiveTokenNoticeSettingsLabel =
     tokenNoticeSettingsLabel || "Settings";
