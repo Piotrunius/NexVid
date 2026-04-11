@@ -749,15 +749,15 @@ export function Navbar() {
           {/* Discord only for non-admins */}
           {!user?.isAdmin && (
             <a
-              href="https://cloud.umami.is/q/vCu19Bcub"
+              href={process.env.DISCORD_URL || "https://cloud.umami.is/q/vCu19Bcub"}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => {
                 e.preventDefault();
                 setIsDiscordClicked(true);
-                setTimeout(() => setIsDiscordClicked(false), 600);
+                setTimeout(() => setIsDiscordClicked(false), 5000);
                 setTimeout(() => {
-                  window.open("https://cloud.umami.is/q/vCu19Bcub", "_blank");
+                  window.open(process.env.DISCORD_URL || "https://cloud.umami.is/q/vCu19Bcub", "_blank");
                 }, 600);
               }}
               className="flex flex-col items-center flex-1 min-w-0 basis-0"
