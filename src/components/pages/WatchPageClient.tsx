@@ -270,8 +270,6 @@ export default function WatchPageClient({
   // Prevent duplicate loading
   const loadingRef = useRef(false);
   const lastLoadKey = useRef("");
-  /** Set to true when the user manually selects a source; prevents auto-switch to preferred. */
-  const userChangedSourceRef = useRef(false);
   /** Cache for prefetched next-episode scrape results: key = "season:episode" */
   const prefetchCacheRef = useRef<
     Map<string, import("@/types").SourceResult[]>
@@ -415,54 +413,10 @@ export default function WatchPageClient({
           });
         }
 
-        // ── Parallel source scraping ─────────────────────────────────────
         if (mediaData) {
           setScrapeStatus("loading");
-          setSourceResults([]);
-          setSourceIndex(0);
-          userChangedSourceRef.current = false;
 
-          // Per-invocation tracking (closure vars — safe across async callbacks)
-          let streamSet = false;
-          let preferredSourceSet = false;
-          const collectedFiltered: SourceResult[] = [];
-
-          const handleSourceFound = (result: SourceResult) => {
-            // Apply the same embed-filter as before
-            const isAllowed = enableUnsafeEmbeds
-              ? true
-              : result.stream.type !== "embed" ||
-                ["cinesrc", "vidking", "zxcstream"].includes(result.sourceId);
-
-            if (!isAllowed) return;
-
-            collectedFiltered.push(result);
-            // Functional update so concurrent callbacks don't race
-            setSourceResults((prev) => [...prev, result]);
-
-            const idx = collectedFiltered.length - 1;
-
-            // First valid source → show it immediately
-            if (!streamSet) {
-              setSourceIndex(idx);
-              setStream(withMergedCaptions(result.stream, externalCaptions));
-              setScrapeStatus("success");
-              streamSet = true;
-            }
-
-            // Preferred source arrived → auto-switch (unless user already picked manually)
-            if (
-              !preferredSourceSet &&
-              result.sourceId === defaultSource &&
-              !userChangedSourceRef.current
-            ) {
-              setSourceIndex(idx);
-              setStream(withMergedCaptions(result.stream, externalCaptions));
-              preferredSourceSet = true;
-            }
-          };
-
-          await scrapeAllSources({
+          const results = await scrapeAllSources({
             tmdbId: id,
             imdbId: extImdbId,
             title: mediaData.title,
@@ -480,11 +434,60 @@ export default function WatchPageClient({
             autoSkipSegments: skipIntro || skipOutro || autoSkipSegments,
             nextButton: true,
             episodeSelector: true,
-            onSourceFound: handleSourceFound,
           });
 
-          // If not a single valid source came through
-          if (!streamSet) {
+          const filteredResults = enableUnsafeEmbeds
+            ? results
+            : results.filter(
+                (r) =>
+                  r.stream.type !== "embed" ||
+                  ["cinesrc", "vidking", "zxcstream"].includes(r.sourceId),
+              );
+
+          if (filteredResults.length > 0) {
+            setSourceResults(filteredResults);
+
+            // Priority 1: User's default source from settings
+            const defaultIdx = filteredResults.findIndex(
+              (r) => r.sourceId === defaultSource,
+            );
+
+            if (defaultIdx !== -1) {
+              setSourceIndex(defaultIdx);
+              setStream(
+                withMergedCaptions(
+                  filteredResults[defaultIdx].stream,
+                  externalCaptions,
+                ),
+              );
+              setScrapeStatus("success");
+            } else {
+              // Priority 2: Best direct stream (non-embed) based on rank
+              const sortedResults = [...filteredResults].sort((a, b) => {
+                const rankA =
+                  SOURCES.find((s) => s.id === a.sourceId)?.rank || 0;
+                const rankB =
+                  SOURCES.find((s) => s.id === b.sourceId)?.rank || 0;
+                return rankB - rankA;
+              });
+
+              const bestDirect = sortedResults.find(
+                (r) => r.stream.type !== "embed",
+              );
+              const bestDirectIdx = bestDirect
+                ? filteredResults.indexOf(bestDirect)
+                : 0;
+
+              setSourceIndex(bestDirectIdx);
+              setStream(
+                withMergedCaptions(
+                  filteredResults[bestDirectIdx].stream,
+                  externalCaptions,
+                ),
+              );
+              setScrapeStatus("success");
+            }
+          } else {
             setScrapeStatus("error");
           }
         }
@@ -833,7 +836,6 @@ export default function WatchPageClient({
   const selectSource = useCallback(
     (idx: number) => {
       if (idx < 0 || idx >= sourceResults.length) return;
-      userChangedSourceRef.current = true;
       const currentStream = sourceResults[idx].stream;
       setSourceIndex(idx);
       setStream(withMergedCaptions(currentStream, externalCaptions));
