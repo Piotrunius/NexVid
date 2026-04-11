@@ -2896,7 +2896,7 @@ export function VideoPlayer({
           <audio ref={externalAudioRef} className="hidden" preload="auto" />
 
           {/* Combined Interaction & Mobile Gesture Layer */}
-          <div 
+          <div
             className="absolute inset-x-0 top-16 bottom-24 z-[20] touch-none select-none"
             onClick={handleInteractionAreaClick}
             onTouchEnd={handleInteractionAreaTouch}
@@ -2958,7 +2958,7 @@ export function VideoPlayer({
                       </div>
                     </div>
                     <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-accent transition-all duration-75"
                         style={{ width: `${(dragCurrentTime / (duration || 1)) * 100}%` }}
                       />
@@ -3738,8 +3738,6 @@ export function VideoPlayer({
                     )}
                   </div>
                 )}
-
-                {/* Deleted Native Info Panel Area */}
 
                 {/* Unified Settings Button */}
                 <div className="relative">
