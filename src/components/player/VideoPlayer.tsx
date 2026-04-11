@@ -3085,7 +3085,7 @@ export function VideoPlayer({
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipIntro}
             className={cn(
-              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+              "absolute right-6 bottom-24 z-20 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
@@ -3106,7 +3106,7 @@ export function VideoPlayer({
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipOutro}
             className={cn(
-              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+              "absolute right-6 bottom-24 z-20 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
@@ -3237,7 +3237,7 @@ export function VideoPlayer({
           {/* Bottom Controls */}
           <div
             className={cn(
-              "player-controls",
+              "player-controls z-[60]",
               "transition-opacity duration-300",
               controlsVisible || settingsPanel !== null
                 ? "opacity-100"
@@ -5083,7 +5083,7 @@ export function VideoPlayer({
                 exit={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                  "absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
+                  "absolute bottom-24 left-1/2 z-20 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
                   glassEffect
                     ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                     : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
