@@ -69,7 +69,9 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { FaEarDeaf } from "react-icons/fa6";
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
