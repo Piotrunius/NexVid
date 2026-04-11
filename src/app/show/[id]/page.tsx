@@ -1,35 +1,45 @@
-import ShowPageClient from '@/components/pages/ShowPageClient';
-import { loadPublicBlockedMedia } from '@/lib/cloudSync';
-import { getRecommendations, getShowDetails, getSimilar } from '@/lib/tmdb';
-import { tmdbImage } from '@/lib/utils';
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import ShowPageClient from "@/components/pages/ShowPageClient";
+import { loadPublicBlockedMedia } from "@/lib/cloudSync";
+import { getRecommendations, getShowDetails, getSimilar } from "@/lib/tmdb";
+import { tmdbImage } from "@/lib/utils";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-export const runtime = 'edge';
-const SITE_URL = (process.env.APP_BASE_URL || 'https://nexvid.online').replace(/\/$/, '');
+export const runtime = "edge";
+const SITE_URL = (process.env.APP_BASE_URL || "https://nexvid.online").replace(
+  /\/$/,
+  "",
+);
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { id } = await params;
 
   try {
     const blockedRes = await loadPublicBlockedMedia();
     const isBlocked = (blockedRes.items || []).some(
-      (item: any) => item.tmdbId === id && item.mediaType === 'tv'
+      (item: any) => item.tmdbId === id && item.mediaType === "tv",
     );
-    if (isBlocked) return { title: 'Not Found' };
+    if (isBlocked) return { title: "Not Found" };
   } catch (err) {}
 
   try {
     const show = await getShowDetails(id);
-    const releaseSuffix = show.releaseYear ? ` (${show.releaseYear})` : '';
+    const releaseSuffix = show.releaseYear ? ` (${show.releaseYear})` : "";
     const title = `Watch - ${show.title}${releaseSuffix} for free on NexVid`;
-    const description = (show.overview || `Watch ${show.title} online for free on NexVid. Explore episodes, cast, and recommendations.`).slice(0, 160);
+    const description = (
+      show.overview ||
+      `Watch ${show.title} online for free on NexVid. Explore episodes, cast, and recommendations.`
+    ).slice(0, 160);
     const imagePath = show.backdropPath || show.posterPath;
-    const imageUrl = imagePath ? tmdbImage(imagePath, 'w1280') : `${SITE_URL}/opengraph-image`;
+    const imageUrl = imagePath
+      ? tmdbImage(imagePath, "w1280")
+      : `${SITE_URL}/opengraph-image`;
 
     return {
       title,
@@ -50,11 +60,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         title,
         description,
         url: `${SITE_URL}/show/${id}`,
-        type: 'video.tv_show',
-        images: [{ url: imageUrl, width: 1280, height: 720, alt: show.title, type: 'image/jpeg' }],
+        type: "video.tv_show",
+        images: [
+          {
+            url: imageUrl,
+            width: 1280,
+            height: 720,
+            alt: show.title,
+            type: "image/jpeg",
+          },
+        ],
       },
       twitter: {
-        card: 'summary_large_image',
+        card: "summary_large_image",
         title,
         description,
         images: [imageUrl],
@@ -62,8 +80,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   } catch {
     return {
-      title: 'Watch TV Shows for free on NexVid',
-      description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
+      title: "Watch TV Shows for free on NexVid",
+      description:
+        "Watch show details, episodes, cast, and recommendations on NexVid.",
       robots: {
         index: false,
         follow: true,
@@ -77,16 +96,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         canonical: `/show/${id}`,
       },
       openGraph: {
-        title: 'Watch TV Shows for free on NexVid',
-        description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
+        title: "Watch TV Shows for free on NexVid",
+        description:
+          "Watch show details, episodes, cast, and recommendations on NexVid.",
         url: `${SITE_URL}/show/${id}`,
-        type: 'video.tv_show',
-        images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630, alt: 'NexVid', type: 'image/png' }],
+        type: "video.tv_show",
+        images: [
+          {
+            url: `${SITE_URL}/opengraph-image`,
+            width: 1200,
+            height: 630,
+            alt: "NexVid",
+            type: "image/png",
+          },
+        ],
       },
       twitter: {
-        card: 'summary_large_image',
-        title: 'Watch TV Shows for free on NexVid',
-        description: 'Watch show details, episodes, cast, and recommendations on NexVid.',
+        card: "summary_large_image",
+        title: "Watch TV Shows for free on NexVid",
+        description:
+          "Watch show details, episodes, cast, and recommendations on NexVid.",
         images: [`${SITE_URL}/opengraph-image`],
       },
     };
@@ -100,18 +129,18 @@ export default async function ShowPage({ params }: PageProps) {
   try {
     const blockedRes = await loadPublicBlockedMedia();
     const isBlocked = (blockedRes.items || []).some(
-      (item: any) => item.tmdbId === id && item.mediaType === 'tv'
+      (item: any) => item.tmdbId === id && item.mediaType === "tv",
     );
     if (isBlocked) return notFound();
   } catch (err) {
-    console.error('Failed to check blocked status:', err);
+    console.error("Failed to check blocked status:", err);
   }
 
   try {
     const [show, recommendations, similar] = await Promise.all([
       getShowDetails(id),
-      getRecommendations('tv', id),
-      getSimilar('tv', id),
+      getRecommendations("tv", id),
+      getSimilar("tv", id),
     ]);
 
     return (
@@ -122,7 +151,7 @@ export default async function ShowPage({ params }: PageProps) {
       />
     );
   } catch (err) {
-    console.error('Failed to fetch show details:', err);
+    console.error("Failed to fetch show details:", err);
     return <ShowPageClient />;
   }
 }

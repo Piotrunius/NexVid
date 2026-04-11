@@ -3,11 +3,21 @@
    Local-first auth with optional backend sync
    ============================================ */
 
-import { updateCloudNickname as apiUpdateNickname, changeCloudPassword, clearCloudToken, CloudApiError, getCloudApiUrl, getCloudToken, loadCloudMe, logoutCloudSession, setCloudToken } from '@/lib/cloudSync';
-import { generateId } from '@/lib/utils';
-import type { User } from '@/types';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import {
+  updateCloudNickname as apiUpdateNickname,
+  changeCloudPassword,
+  clearCloudToken,
+  CloudApiError,
+  getCloudApiUrl,
+  getCloudToken,
+  loadCloudMe,
+  logoutCloudSession,
+  setCloudToken,
+} from "@/lib/cloudSync";
+import { generateId } from "@/lib/utils";
+import type { User } from "@/types";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface AuthStore {
   user: User | null;
@@ -21,11 +31,22 @@ interface AuthStore {
   logout: () => void;
 
   // Backend auth (optional)
-  loginWithBackend: (username: string, password: string, turnstileToken?: string | null) => Promise<void>;
-  registerWithBackend: (username: string, password: string, turnstileToken?: string | null) => Promise<void>;
+  loginWithBackend: (
+    username: string,
+    password: string,
+    turnstileToken?: string | null,
+  ) => Promise<void>;
+  registerWithBackend: (
+    username: string,
+    password: string,
+    turnstileToken?: string | null,
+  ) => Promise<void>;
   hydrateBackendSession: () => Promise<void>;
   updateNicknameWithBackend: (username: string) => Promise<void>;
-  changePasswordWithBackend: (currentPassword?: string, newPassword?: string) => Promise<void>;
+  changePasswordWithBackend: (
+    currentPassword?: string,
+    newPassword?: string,
+  ) => Promise<void>;
   logoutOthersWithBackend: () => Promise<void>;
 
   updateProfile: (partial: Partial<User>) => void;
@@ -37,13 +58,20 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       isLoggedIn: false,
       isLoading: false,
-      authToken: '',
+      authToken: "",
 
       loginLocal: (username: string) => {
         // Disable local auth in production for security
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-          console.error('[Auth] Local authentication is disabled in production');
-          throw new Error('Local authentication is not available in production');
+        if (
+          typeof window !== "undefined" &&
+          process.env.NODE_ENV === "production"
+        ) {
+          console.error(
+            "[Auth] Local authentication is disabled in production",
+          );
+          throw new Error(
+            "Local authentication is not available in production",
+          );
         }
 
         const user: User = {
@@ -51,39 +79,46 @@ export const useAuthStore = create<AuthStore>()(
           username,
           createdAt: new Date().toISOString(),
           settings: {
-            theme: 'dark',
-            accentColor: 'indigo',
-            customAccentHex: '#6366f1',
+            theme: "dark",
+            accentColor: "indigo",
+            customAccentHex: "#6366f1",
             glassEffect: true,
-            language: 'en',
-            subtitleLanguage: 'en',
+            language: "en",
+            subtitleLanguage: "en",
             autoPlay: true,
             autoNext: true,
-            defaultQuality: '1080',
-            defaultSource: 'febbox',
+            defaultQuality: "1080",
+            defaultSource: "febbox",
             playerVolume: 1,
             skipIntro: true,
             skipOutro: true,
             autoSkipSegments: true,
             autoSwitchSource: true,
             idlePauseOverlay: true,
-            febboxApiKey: '',
+            febboxApiKey: "",
             enableUnsafeEmbeds: false,
-            introDbApiKey: '',
-            groqApiKey: '',
-            omdbApiKey: '',
+            introDbApiKey: "",
+            groqApiKey: "",
+            omdbApiKey: "",
             preferredSources: [],
             disabledSources: [],
           },
         };
-        set({ user, isLoggedIn: true, authToken: '' });
+        set({ user, isLoggedIn: true, authToken: "" });
       },
 
       registerLocal: (username: string) => {
         // Disable local auth in production for security
-        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-          console.error('[Auth] Local authentication is disabled in production');
-          throw new Error('Local authentication is not available in production');
+        if (
+          typeof window !== "undefined" &&
+          process.env.NODE_ENV === "production"
+        ) {
+          console.error(
+            "[Auth] Local authentication is disabled in production",
+          );
+          throw new Error(
+            "Local authentication is not available in production",
+          );
         }
 
         const user: User = {
@@ -91,32 +126,32 @@ export const useAuthStore = create<AuthStore>()(
           username,
           createdAt: new Date().toISOString(),
           settings: {
-            theme: 'dark',
-            accentColor: 'indigo',
-            customAccentHex: '#6366f1',
+            theme: "dark",
+            accentColor: "indigo",
+            customAccentHex: "#6366f1",
             glassEffect: true,
-            language: 'en',
-            subtitleLanguage: 'en',
+            language: "en",
+            subtitleLanguage: "en",
             autoPlay: true,
             autoNext: true,
-            defaultQuality: '1080',
-            defaultSource: 'febbox',
+            defaultQuality: "1080",
+            defaultSource: "febbox",
             playerVolume: 1,
             skipIntro: true,
             skipOutro: true,
             autoSkipSegments: true,
             autoSwitchSource: true,
             idlePauseOverlay: true,
-            febboxApiKey: '',
+            febboxApiKey: "",
             enableUnsafeEmbeds: false,
-            introDbApiKey: '',
-            groqApiKey: '',
-            omdbApiKey: '',
+            introDbApiKey: "",
+            groqApiKey: "",
+            omdbApiKey: "",
             preferredSources: [],
             disabledSources: [],
           },
         };
-        set({ user, isLoggedIn: true, authToken: '' });
+        set({ user, isLoggedIn: true, authToken: "" });
       },
 
       logout: () => {
@@ -127,44 +162,59 @@ export const useAuthStore = create<AuthStore>()(
         // Safety: If they were logged in via cloud, reset sensitive settings and clear watchlist upon logout
         if (token) {
           try {
-            const { useSettingsStore } = require('@/stores/settings');
-            const { useWatchlistStore } = require('@/stores/watchlist');
+            const { useSettingsStore } = require("@/stores/settings");
+            const { useWatchlistStore } = require("@/stores/watchlist");
             useSettingsStore.getState().resetSettings();
             useWatchlistStore.getState().clearAll();
           } catch (e) {
-            console.error('Failed to reset user data on logout:', e);
+            console.error("Failed to reset user data on logout:", e);
           }
         }
 
-        set({ user: null, isLoggedIn: false, authToken: '' });
+        set({ user: null, isLoggedIn: false, authToken: "" });
       },
 
-      loginWithBackend: async (username: string, password: string, turnstileToken?: string | null) => {
+      loginWithBackend: async (
+        username: string,
+        password: string,
+        turnstileToken?: string | null,
+      ) => {
         set({ isLoading: true });
         try {
           const apiUrl = getCloudApiUrl();
-          if (!apiUrl) throw new Error('Cloud API URL is not configured');
+          if (!apiUrl) throw new Error("Cloud API URL is not configured");
           let res: Response;
           try {
             res = await fetch(`${apiUrl}/auth/login`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ username, password, turnstileToken }),
             });
           } catch {
-            throw new CloudApiError('Network error while contacting cloud backend', 0, 'NETWORK_ERROR');
+            throw new CloudApiError(
+              "Network error while contacting cloud backend",
+              0,
+              "NETWORK_ERROR",
+            );
           }
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data?.error || 'Login failed');
-          setCloudToken(data.token || '');
-          set({ user: data.user, isLoggedIn: true, isLoading: false, authToken: data.token || '' });
+          if (!res.ok) throw new Error(data?.error || "Login failed");
+          setCloudToken(data.token || "");
+          set({
+            user: data.user,
+            isLoggedIn: true,
+            isLoading: false,
+            authToken: data.token || "",
+          });
 
           // Trigger immediate data fetch after login/reg
           void (async () => {
             try {
-              const { loadCloudSettings, loadCloudWatchlist } = await import('@/lib/cloudSync');
-              const { useSettingsStore, DEFAULT_SETTINGS } = await import('@/stores/settings');
-              const { useWatchlistStore } = await import('@/stores/watchlist');
+              const { loadCloudSettings, loadCloudWatchlist } =
+                await import("@/lib/cloudSync");
+              const { useSettingsStore, DEFAULT_SETTINGS } =
+                await import("@/stores/settings");
+              const { useWatchlistStore } = await import("@/stores/watchlist");
 
               const [settingsRes, watchlistRes] = await Promise.all([
                 loadCloudSettings(),
@@ -172,13 +222,18 @@ export const useAuthStore = create<AuthStore>()(
               ]);
 
               if (settingsRes?.settings) {
-                useSettingsStore.getState().setAllSettings({ ...DEFAULT_SETTINGS, ...settingsRes.settings });
+                useSettingsStore
+                  .getState()
+                  .setAllSettings({
+                    ...DEFAULT_SETTINGS,
+                    ...settingsRes.settings,
+                  });
               }
               if (Array.isArray(watchlistRes?.items)) {
                 useWatchlistStore.getState().setItems(watchlistRes.items);
               }
             } catch (e) {
-              console.error('Failed to sync data:', e);
+              console.error("Failed to sync data:", e);
             }
           })();
         } catch (error) {
@@ -187,32 +242,47 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      registerWithBackend: async (username: string, password: string, turnstileToken?: string | null) => {
+      registerWithBackend: async (
+        username: string,
+        password: string,
+        turnstileToken?: string | null,
+      ) => {
         set({ isLoading: true });
         try {
           const apiUrl = getCloudApiUrl();
-          if (!apiUrl) throw new Error('Cloud API URL is not configured');
+          if (!apiUrl) throw new Error("Cloud API URL is not configured");
           let res: Response;
           try {
             res = await fetch(`${apiUrl}/auth/register`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ username, password, turnstileToken }),
             });
           } catch {
-            throw new CloudApiError('Network error while contacting cloud backend', 0, 'NETWORK_ERROR');
+            throw new CloudApiError(
+              "Network error while contacting cloud backend",
+              0,
+              "NETWORK_ERROR",
+            );
           }
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(data?.error || 'Registration failed');
-          setCloudToken(data.token || '');
-          set({ user: data.user, isLoggedIn: true, isLoading: false, authToken: data.token || '' });
+          if (!res.ok) throw new Error(data?.error || "Registration failed");
+          setCloudToken(data.token || "");
+          set({
+            user: data.user,
+            isLoggedIn: true,
+            isLoading: false,
+            authToken: data.token || "",
+          });
 
           // Trigger immediate data fetch after login/reg
           void (async () => {
             try {
-              const { loadCloudSettings, loadCloudWatchlist } = await import('@/lib/cloudSync');
-              const { useSettingsStore, DEFAULT_SETTINGS } = await import('@/stores/settings');
-              const { useWatchlistStore } = await import('@/stores/watchlist');
+              const { loadCloudSettings, loadCloudWatchlist } =
+                await import("@/lib/cloudSync");
+              const { useSettingsStore, DEFAULT_SETTINGS } =
+                await import("@/stores/settings");
+              const { useWatchlistStore } = await import("@/stores/watchlist");
 
               const [settingsRes, watchlistRes] = await Promise.all([
                 loadCloudSettings(),
@@ -220,13 +290,18 @@ export const useAuthStore = create<AuthStore>()(
               ]);
 
               if (settingsRes?.settings) {
-                useSettingsStore.getState().setAllSettings({ ...DEFAULT_SETTINGS, ...settingsRes.settings });
+                useSettingsStore
+                  .getState()
+                  .setAllSettings({
+                    ...DEFAULT_SETTINGS,
+                    ...settingsRes.settings,
+                  });
               }
               if (Array.isArray(watchlistRes?.items)) {
                 useWatchlistStore.getState().setItems(watchlistRes.items);
               }
             } catch (e) {
-              console.error('Failed to sync data:', e);
+              console.error("Failed to sync data:", e);
             }
           })();
         } catch (error) {
@@ -243,10 +318,11 @@ export const useAuthStore = create<AuthStore>()(
             set({ user: me.user, isLoggedIn: true, authToken: token });
           }
         } catch (error: any) {
-          const status = error instanceof CloudApiError ? error.status : undefined;
+          const status =
+            error instanceof CloudApiError ? error.status : undefined;
           if (status === 401 || status === 403) {
             clearCloudToken();
-            set({ authToken: '', user: null, isLoggedIn: false });
+            set({ authToken: "", user: null, isLoggedIn: false });
             return;
           }
 
@@ -274,15 +350,23 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      changePasswordWithBackend: async (currentPassword?: string, newPassword?: string) => {
+      changePasswordWithBackend: async (
+        currentPassword?: string,
+        newPassword?: string,
+      ) => {
         set({ isLoading: true });
         try {
-          const result = await changeCloudPassword({ currentPassword, newPassword });
+          const result = await changeCloudPassword({
+            currentPassword,
+            newPassword,
+          });
           if (result?.token) {
             setCloudToken(result.token);
           }
           set((state: any) => ({
-            user: state.user ? { ...state.user, requiresPasswordChange: false } : null,
+            user: state.user
+              ? { ...state.user, requiresPasswordChange: false }
+              : null,
             authToken: result?.token || state.authToken,
             isLoading: false,
           }));
@@ -294,7 +378,7 @@ export const useAuthStore = create<AuthStore>()(
       logoutOthersWithBackend: async () => {
         set({ isLoading: true });
         try {
-          const { logoutOtherCloudSessions } = await import('@/lib/cloudSync');
+          const { logoutOtherCloudSessions } = await import("@/lib/cloudSync");
           await logoutOtherCloudSessions();
           set({ isLoading: false });
         } catch (error) {
@@ -309,7 +393,7 @@ export const useAuthStore = create<AuthStore>()(
         })),
     }),
     {
-      name: 'nexvid-auth',
-    }
-  )
+      name: "nexvid-auth",
+    },
+  ),
 );

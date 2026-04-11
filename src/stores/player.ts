@@ -2,8 +2,14 @@
    Player Store (Zustand)
    ============================================ */
 
-import type { AudioTrack, Caption, IntroOutro, Stream, StreamQuality } from '@/types';
-import { create } from 'zustand';
+import type {
+  AudioTrack,
+  Caption,
+  IntroOutro,
+  Stream,
+  StreamQuality,
+} from "@/types";
+import { create } from "zustand";
 
 interface PlayerStore {
   // Playback state
@@ -80,7 +86,7 @@ const initialState = {
   isLoading: false,
   error: null,
   currentStream: null,
-  currentQuality: '1080' as StreamQuality,
+  currentQuality: "1080" as StreamQuality,
   availableQualities: [] as StreamQuality[],
   captions: [] as Caption[],
   activeCaption: null,
@@ -138,7 +144,7 @@ export const usePlayerStore = create<PlayerStore>()((set, get) => ({
 
   setStream: (currentStream) => {
     const availableQualities: StreamQuality[] = [];
-    if (currentStream.type === 'file') {
+    if (currentStream.type === "file") {
       Object.keys(currentStream.qualities).forEach((q) => {
         availableQualities.push(q as StreamQuality);
       });
@@ -170,7 +176,8 @@ export const usePlayerStore = create<PlayerStore>()((set, get) => ({
     const state = get();
     if (state.controlsTimeout) clearTimeout(state.controlsTimeout);
 
-    const isFullscreen = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
+    const isFullscreen =
+      typeof document !== "undefined" && Boolean(document.fullscreenElement);
 
     if (isFullscreen) {
       const timeout = setTimeout(() => {

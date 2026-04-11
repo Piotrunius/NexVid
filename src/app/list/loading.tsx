@@ -15,7 +15,10 @@ export default function Loading() {
         {/* Status Tabs Skeleton */}
         <div className="flex gap-2 overflow-x-auto pb-4 mb-8">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="skeleton h-10 w-28 rounded-full flex-shrink-0" />
+            <div
+              key={i}
+              className="skeleton h-10 w-28 rounded-full flex-shrink-0"
+            />
           ))}
         </div>
 

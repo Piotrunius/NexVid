@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { Ghost } from 'lucide-react';
-import Link from 'next/link';
+import { motion } from "framer-motion";
+import { Ghost } from "lucide-react";
+import Link from "next/link";
 
 export default function NotFound() {
   return (
@@ -15,9 +15,13 @@ export default function NotFound() {
           className="relative"
         >
           <h1 className="select-none pb-2 text-[160px] font-black leading-[0.94] tracking-tight text-transparent sm:text-[240px]">
-            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">4</span>
+            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">
+              4
+            </span>
             <span className="relative inline-block">
-              <span className="bg-gradient-to-b from-accent via-accent to-accent/20 bg-clip-text text-transparent drop-shadow-[0_0_22px_var(--accent-glow)]">0</span>
+              <span className="bg-gradient-to-b from-accent via-accent to-accent/20 bg-clip-text text-transparent drop-shadow-[0_0_22px_var(--accent-glow)]">
+                0
+              </span>
               <motion.div
                 className="absolute inset-0 flex items-center justify-center opacity-50 blur-xl"
                 animate={{
@@ -27,13 +31,15 @@ export default function NotFound() {
                 transition={{
                   duration: 4,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                 }}
               >
                 <div className="h-32 w-32 rounded-full bg-accent/40" />
               </motion.div>
             </span>
-            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">4</span>
+            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">
+              4
+            </span>
           </h1>
 
           <motion.div
@@ -42,7 +48,7 @@ export default function NotFound() {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="absolute top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2"
           >
-             <Ghost className="h-24 w-24 text-white/10 opacity-0 sm:opacity-60 rotate-12" />
+            <Ghost className="h-24 w-24 text-white/10 opacity-0 sm:opacity-60 rotate-12" />
           </motion.div>
         </motion.div>
 
@@ -56,7 +62,8 @@ export default function NotFound() {
             This page is missing
           </h2>
           <p className="mx-auto max-w-[600px] text-base text-white/50 sm:text-lg leading-relaxed">
-            The link may be outdated, the page was moved, or it no longer exists.
+            The link may be outdated, the page was moved, or it no longer
+            exists.
           </p>
         </motion.div>
 

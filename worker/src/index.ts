@@ -8,7 +8,7 @@
    Dev:    npx wrangler dev
    ============================================ */
 
-import { argon2id, setWASMModules } from 'argon2-wasm-edge';
+import { argon2id, setWASMModules } from "argon2-wasm-edge";
 // @ts-ignore
 import argon2WASM from "argon2-wasm-edge/wasm/argon2.wasm?module";
 // @ts-ignore
@@ -38,20 +38,22 @@ const MIN_PASSWORD_LENGTH = 8;
 const LOGIN_MAX_FAILURES = 8;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_BLOCK_MS = 30 * 60 * 1000;
-const AUTH_COOKIE_NAME = 'nexvid_session';
+const AUTH_COOKIE_NAME = "nexvid_session";
 const DEFAULT_MAX_ACCOUNTS_PER_IP = 2;
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Origin, X-Requested-With, NexVid-Activity',
-  'Access-Control-Expose-Headers': '*',
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400',
+  "Access-Control-Allow-Methods":
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD",
+  "Access-Control-Allow-Headers":
+    "Authorization, Content-Type, Accept, Origin, X-Requested-With, NexVid-Activity",
+  "Access-Control-Expose-Headers": "*",
+  "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Max-Age": "86400",
 };
 
 function parseCsvSet(value: string | undefined): string[] {
-  return String(value || '')
-    .split(',')
+  return String(value || "")
+    .split(",")
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 }
@@ -59,8 +61,8 @@ function parseCsvSet(value: string | undefined): string[] {
 function matchHostname(hostname: string, pattern: string): boolean {
   const host = hostname.toLowerCase();
   const candidate = pattern.toLowerCase();
-  if (candidate === '*') return true;
-  if (candidate.startsWith('*.')) {
+  if (candidate === "*") return true;
+  if (candidate.startsWith("*.")) {
     const base = candidate.slice(2);
     return host === base || host.endsWith(`.${base}`);
   }
@@ -70,7 +72,7 @@ function matchHostname(hostname: string, pattern: string): boolean {
 function isOriginAllowed(origin: string, env: Env): boolean {
   const allowed = parseCsvSet(env.ALLOWED_ORIGINS);
   if (allowed.length === 0) return false;
-  if (allowed.includes('*')) return true;
+  if (allowed.includes("*")) return true;
 
   try {
     const originUrl = new URL(origin);
@@ -79,7 +81,7 @@ function isOriginAllowed(origin: string, env: Env): boolean {
     const originHostWithPort = originUrl.host.toLowerCase();
 
     return allowed.some((pattern) => {
-      if (pattern.startsWith('http://') || pattern.startsWith('https://')) {
+      if (pattern.startsWith("http://") || pattern.startsWith("https://")) {
         const schemeMatch = pattern.match(/^(https?):\/\/(.+)$/i);
         if (!schemeMatch) return false;
 
@@ -87,14 +89,14 @@ function isOriginAllowed(origin: string, env: Env): boolean {
         const hostPattern = schemeMatch[2].toLowerCase();
         if (originProtocol !== patternProtocol) return false;
 
-        if (hostPattern.includes(':') && !hostPattern.includes('*')) {
+        if (hostPattern.includes(":") && !hostPattern.includes("*")) {
           return originHostWithPort === hostPattern;
         }
 
         return matchHostname(originHost, hostPattern);
       }
 
-      if (pattern.includes(':') && !pattern.includes('*')) {
+      if (pattern.includes(":") && !pattern.includes("*")) {
         return originHostWithPort === pattern;
       }
 
@@ -106,11 +108,11 @@ function isOriginAllowed(origin: string, env: Env): boolean {
 }
 
 function getAllowedOrigin(request: Request, env: Env): string | null {
-  const origin = request.headers.get('Origin');
+  const origin = request.headers.get("Origin");
   if (!origin) {
     // If no Origin (server-to-server), use the first one from our config as default
-    const allowedStr = env.ALLOWED_ORIGINS || '';
-    return allowedStr.split(',')[0].trim() || null;
+    const allowedStr = env.ALLOWED_ORIGINS || "";
+    return allowedStr.split(",")[0].trim() || null;
   }
   return isOriginAllowed(origin, env) ? origin : null;
 }
@@ -119,16 +121,21 @@ function corsHeaders(request: Request, env: Env): Record<string, string> {
   const allowedOrigin = getAllowedOrigin(request, env);
   return {
     ...CORS_HEADERS,
-    ...(allowedOrigin ? { 'Access-Control-Allow-Origin': allowedOrigin } : {}),
+    ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin } : {}),
   };
 }
 
-function json(request: Request, env: Env, body: unknown, status = 200): Response {
+function json(
+  request: Request,
+  env: Env,
+  body: unknown,
+  status = 200,
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       ...corsHeaders(request, env),
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 }
@@ -138,7 +145,9 @@ async function readJson<T = any>(request: Request): Promise<T> {
 }
 
 function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -151,7 +160,10 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
 }
 
 function secureCompare(a: string, b: string): boolean {
@@ -165,16 +177,26 @@ function secureCompare(a: string, b: string): boolean {
 
 async function sha256Hex(password: string): Promise<string> {
   const data = new TextEncoder().encode(password);
-  const hash = await crypto.subtle.digest('SHA-256', data);
+  const hash = await crypto.subtle.digest("SHA-256", data);
   return bytesToHex(new Uint8Array(hash));
 }
 
-async function pbkdf2Hex(password: string, saltHex: string, iterations: number): Promise<string> {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveBits']);
+async function pbkdf2Hex(
+  password: string,
+  saltHex: string,
+  iterations: number,
+): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"],
+  );
   const bits = await crypto.subtle.deriveBits(
     {
-      name: 'PBKDF2',
-      hash: 'SHA-256',
+      name: "PBKDF2",
+      hash: "SHA-256",
       salt: asArrayBuffer(hexToBytes(saltHex)),
       iterations,
     },
@@ -194,30 +216,35 @@ async function hashPassword(password: string): Promise<string> {
       iterations: 3,
       memorySize: 65536,
       hashLength: 32,
-      outputType: 'hex',
+      outputType: "hex",
     });
-    const saltHex = Array.from(salt).map((b) => b.toString(16).padStart(2, '0')).join('');
+    const saltHex = Array.from(salt)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
     return `argon2id$v=19$m=65536,t=3,p=1$${saltHex}$${hash}`;
   } catch (err: any) {
-    console.error('[Security] Argon2id failure:', err.message || err);
-    console.error('[Security] Falling back to PBKDF2 for password update.');
+    console.error("[Security] Argon2id failure:", err.message || err);
+    console.error("[Security] Falling back to PBKDF2 for password update.");
     const legacySalt = createToken().slice(0, 16);
     const hash = await pbkdf2Hex(password, legacySalt, 100000);
     return `pbkdf2$100000$${legacySalt}$${hash}`;
   }
 }
 
-async function verifyPassword(password: string, storedHash: string): Promise<{ ok: boolean; shouldUpdate: boolean }> {
+async function verifyPassword(
+  password: string,
+  storedHash: string,
+): Promise<{ ok: boolean; shouldUpdate: boolean }> {
   // 1. Handle Argon2id
-  if (storedHash.startsWith('argon2id$')) {
+  if (storedHash.startsWith("argon2id$")) {
     try {
-      const parts = storedHash.split('$');
+      const parts = storedHash.split("$");
       if (parts.length !== 5) return { ok: false, shouldUpdate: false };
 
       const paramsPart = parts[2];
       const params: Record<string, number> = {};
-      paramsPart.split(',').forEach(p => {
-        const [k, v] = p.split('=');
+      paramsPart.split(",").forEach((p) => {
+        const [k, v] = p.split("=");
         if (k && v) params[k] = parseInt(v);
       });
 
@@ -229,12 +256,15 @@ async function verifyPassword(password: string, storedHash: string): Promise<{ o
         iterations: params.t || 3,
         memorySize: params.m || 65536,
         hashLength: 32,
-        outputType: 'hex',
+        outputType: "hex",
       });
 
       return { ok: secureCompare(computed, parts[4]), shouldUpdate: false };
     } catch (err) {
-      console.error('[Security] Argon2id verification failure, falling back to PBKDF2 check:', err);
+      console.error(
+        "[Security] Argon2id verification failure, falling back to PBKDF2 check:",
+        err,
+      );
       // If we are here, it means Argon2id failed (likely WASM load error).
       // We can't verify an Argon2id hash without WASM, but we can return false
       // instead of crashing with 500.
@@ -243,11 +273,12 @@ async function verifyPassword(password: string, storedHash: string): Promise<{ o
   }
 
   // 2. Handle PBKDF2 (Legacy - will be upgraded on login)
-  if (storedHash.startsWith('pbkdf2$')) {
-    const parts = storedHash.split('$');
+  if (storedHash.startsWith("pbkdf2$")) {
+    const parts = storedHash.split("$");
     if (parts.length !== 5) return { ok: false, shouldUpdate: false };
     const iterations = Number.parseInt(parts[2], 10);
-    if (!Number.isFinite(iterations) || iterations < 10000) return { ok: false, shouldUpdate: false };
+    if (!Number.isFinite(iterations) || iterations < 10000)
+      return { ok: false, shouldUpdate: false };
     const computed = await pbkdf2Hex(password, parts[3], iterations);
     const ok = secureCompare(computed, parts[4]);
     return { ok, shouldUpdate: ok }; // Success means we should upgrade to Argon2id
@@ -262,25 +293,27 @@ async function verifyPassword(password: string, storedHash: string): Promise<{ o
 function createToken(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function getBearerToken(request: Request): string | null {
-  const auth = request.headers.get('Authorization');
-  if (!auth || !auth.startsWith('Bearer ')) return null;
+  const auth = request.headers.get("Authorization");
+  if (!auth || !auth.startsWith("Bearer ")) return null;
   const bearer = auth.slice(7).trim();
   return bearer || null;
 }
 
 function getCookieValue(request: Request, cookieName: string): string | null {
-  const cookieHeader = request.headers.get('Cookie') || '';
+  const cookieHeader = request.headers.get("Cookie") || "";
   if (!cookieHeader) return null;
-  const cookies = cookieHeader.split(';');
+  const cookies = cookieHeader.split(";");
   for (const cookie of cookies) {
-    const [rawName, ...rawValueParts] = cookie.split('=');
+    const [rawName, ...rawValueParts] = cookie.split("=");
     if (!rawName) continue;
     if (rawName.trim() !== cookieName) continue;
-    const rawValue = rawValueParts.join('=').trim();
+    const rawValue = rawValueParts.join("=").trim();
     if (!rawValue) return null;
     try {
       return decodeURIComponent(rawValue);
@@ -303,40 +336,48 @@ function buildAuthCookieClear(): string {
   return `${AUTH_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0`;
 }
 
-function detectDeviceKind(userAgent: string): 'pc' | 'mobile' | 'tablet' | 'tv' | 'other' {
-  const ua = String(userAgent || '').toLowerCase();
-  if (!ua) return 'other';
+function detectDeviceKind(
+  userAgent: string,
+): "pc" | "mobile" | "tablet" | "tv" | "other" {
+  const ua = String(userAgent || "").toLowerCase();
+  if (!ua) return "other";
 
   // Smart TV / OTT
-  if (/(smart-tv|smarttv|hbbtv|appletv|tizen|web0s|webos|googletv|android tv|aft[bt]|roku|netcast|viera)/.test(ua)) {
-    return 'tv';
+  if (
+    /(smart-tv|smarttv|hbbtv|appletv|tizen|web0s|webos|googletv|android tv|aft[bt]|roku|netcast|viera)/.test(
+      ua,
+    )
+  ) {
+    return "tv";
   }
 
   // Tablet first to avoid matching "mobile" before "ipad"/tablet signatures.
-  if (/(ipad|tablet|nexus 7|nexus 9|sm-t|tab |kindle|silk\/|playbook)/.test(ua)) {
-    return 'tablet';
+  if (
+    /(ipad|tablet|nexus 7|nexus 9|sm-t|tab |kindle|silk\/|playbook)/.test(ua)
+  ) {
+    return "tablet";
   }
 
   if (/iphone|ipod|android.+mobile|mobile|mobi/.test(ua)) {
-    return 'mobile';
+    return "mobile";
   }
 
   if (/(windows nt|macintosh|x11|linux x86_64|cros)/.test(ua)) {
-    return 'pc';
+    return "pc";
   }
 
-  return 'other';
+  return "other";
 }
 
 function sanitizeIpCandidate(value?: string | null): string | null {
-  const raw = String(value || '').trim();
+  const raw = String(value || "").trim();
   if (!raw) return null;
-  if (raw.toLowerCase() === 'unknown') return null;
+  if (raw.toLowerCase() === "unknown") return null;
 
-  const first = raw.split(',')[0]?.trim() || '';
+  const first = raw.split(",")[0]?.trim() || "";
   if (!first) return null;
 
-  const normalized = first.startsWith('::ffff:') ? first.slice(7) : first;
+  const normalized = first.startsWith("::ffff:") ? first.slice(7) : first;
   const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
   const ipv6 = /^[0-9a-fA-F:]+$/;
 
@@ -347,10 +388,10 @@ function sanitizeIpCandidate(value?: string | null): string | null {
 
 function getClientIp(request: Request): string {
   const candidates = [
-    request.headers.get('CF-Connecting-IP'),
-    request.headers.get('X-NexVid-Client-IP'),
-    request.headers.get('X-Real-IP'),
-    request.headers.get('X-Forwarded-For'),
+    request.headers.get("CF-Connecting-IP"),
+    request.headers.get("X-NexVid-Client-IP"),
+    request.headers.get("X-Real-IP"),
+    request.headers.get("X-Forwarded-For"),
   ];
 
   for (const candidate of candidates) {
@@ -358,29 +399,36 @@ function getClientIp(request: Request): string {
     if (ip) return ip;
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
-async function verifyTurnstileToken(request: Request, env: Env, token: string): Promise<boolean> {
-  const secret = (env.TURNSTILE_SECRET_KEY || '').trim();
+async function verifyTurnstileToken(
+  request: Request,
+  env: Env,
+  token: string,
+): Promise<boolean> {
+  const secret = (env.TURNSTILE_SECRET_KEY || "").trim();
   if (!secret) return true;
   if (!token || token.trim().length === 0) return false;
 
   try {
     const formData = new URLSearchParams();
-    formData.set('secret', secret);
-    formData.set('response', token.trim());
+    formData.set("secret", secret);
+    formData.set("response", token.trim());
 
     const ip = getClientIp(request);
-    if (ip && ip !== 'unknown') {
-      formData.set('remoteip', ip);
+    if (ip && ip !== "unknown") {
+      formData.set("remoteip", ip);
     }
 
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formData.toString(),
-    });
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString(),
+      },
+    );
 
     if (!res.ok) return false;
     const data = await res.json<any>().catch(() => null);
@@ -405,7 +453,7 @@ async function ensureAiUsageTable(env: Env): Promise<void> {
            date TEXT NOT NULL,
            count INTEGER NOT NULL DEFAULT 0,
            PRIMARY KEY (user_id, date)
-         )`
+         )`,
       ).run();
     })();
   }
@@ -422,7 +470,7 @@ async function ensureBlockedMediaTable(env: Env): Promise<void> {
            reason TEXT,
            created_at TEXT NOT NULL DEFAULT (datetime('now')),
            PRIMARY KEY (tmdb_id, media_type)
-         )`
+         )`,
       ).run();
     })();
   }
@@ -444,9 +492,11 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              created_at TEXT NOT NULL,
              created_by_user_id TEXT,
              PRIMARY KEY (ban_type, ban_value)
-           )`
+           )`,
         ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_banned_entities_type_created ON banned_entities(ban_type, id_type, created_at DESC)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_banned_entities_type_created ON banned_entities(ban_type, id_type, created_at DESC)",
+        ),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS admin_audit_logs (
              id TEXT PRIMARY KEY,
@@ -456,9 +506,11 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              target_id TEXT,
              meta_json TEXT,
              created_at TEXT NOT NULL
-           )`
+           )`,
         ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC)",
+        ),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS survey_submissions (
              survey_id TEXT NOT NULL,
@@ -466,15 +518,23 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              ip_hash TEXT,
              created_at TEXT NOT NULL,
              PRIMARY KEY (survey_id, created_at)
-           )`
+           )`,
         ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_survey ON survey_submissions(survey_id, created_at DESC)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_user ON survey_submissions(user_id, survey_id)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_survey_submissions_ip ON survey_submissions(ip_hash, survey_id)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_survey_submissions_survey ON survey_submissions(survey_id, created_at DESC)",
+        ),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_survey_submissions_user ON survey_submissions(user_id, survey_id)",
+        ),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_survey_submissions_ip ON survey_submissions(ip_hash, survey_id)",
+        ),
       ]);
 
       try {
-        await env.DB.prepare('ALTER TABLE banned_entities ADD COLUMN target_user_id TEXT').run();
+        await env.DB.prepare(
+          "ALTER TABLE banned_entities ADD COLUMN target_user_id TEXT",
+        ).run();
       } catch {
         // already exists on upgraded schemas
       }
@@ -487,25 +547,45 @@ async function ensureSecurityTables(env: Env): Promise<void> {
            granted_by TEXT,
            expires_at TEXT,
            created_at TEXT NOT NULL DEFAULT (datetime('now'))
-         )`
+         )`,
       ).run();
 
       try {
-        await env.DB.prepare('ALTER TABLE admin_users ADD COLUMN role TEXT NOT NULL DEFAULT \'admin\'').run();
-      } catch { /* already exists */ }
+        await env.DB.prepare(
+          "ALTER TABLE admin_users ADD COLUMN role TEXT NOT NULL DEFAULT 'admin'",
+        ).run();
+      } catch {
+        /* already exists */
+      }
       try {
-        await env.DB.prepare('ALTER TABLE admin_users ADD COLUMN granted_by TEXT').run();
-      } catch { /* already exists */ }
+        await env.DB.prepare(
+          "ALTER TABLE admin_users ADD COLUMN granted_by TEXT",
+        ).run();
+      } catch {
+        /* already exists */
+      }
       try {
-        await env.DB.prepare('ALTER TABLE admin_users ADD COLUMN expires_at TEXT').run();
-      } catch { /* already exists */ }
+        await env.DB.prepare(
+          "ALTER TABLE admin_users ADD COLUMN expires_at TEXT",
+        ).run();
+      } catch {
+        /* already exists */
+      }
       try {
-        await env.DB.prepare('ALTER TABLE users ADD COLUMN requires_password_change INTEGER DEFAULT 0').run();
-      } catch { /* already exists */ }
+        await env.DB.prepare(
+          "ALTER TABLE users ADD COLUMN requires_password_change INTEGER DEFAULT 0",
+        ).run();
+      } catch {
+        /* already exists */
+      }
 
       try {
-        await env.DB.prepare('ALTER TABLE surveys ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0').run();
-      } catch { /* already exists */ }
+        await env.DB.prepare(
+          "ALTER TABLE surveys ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+        ).run();
+      } catch {
+        /* already exists */
+      }
 
       try {
         await env.DB.prepare(
@@ -518,9 +598,11 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              id_type = excluded.id_type,
              reason = excluded.reason,
              created_at = excluded.created_at,
-             created_by_user_id = excluded.created_by_user_id`
+             created_by_user_id = excluded.created_by_user_id`,
         ).run();
-      } catch { /* legacy table missing */ }
+      } catch {
+        /* legacy table missing */
+      }
 
       try {
         await env.DB.prepare(
@@ -533,9 +615,11 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              id_type = excluded.id_type,
              reason = excluded.reason,
              created_at = excluded.created_at,
-             created_by_user_id = excluded.created_by_user_id`
+             created_by_user_id = excluded.created_by_user_id`,
         ).run();
-      } catch { /* legacy table missing */ }
+      } catch {
+        /* legacy table missing */
+      }
 
       try {
         await env.DB.prepare(
@@ -547,26 +631,32 @@ async function ensureSecurityTables(env: Env): Promise<void> {
              id_type = COALESCE(excluded.id_type, banned_entities.id_type),
              reason = excluded.reason,
              created_at = excluded.created_at,
-             created_by_user_id = excluded.created_by_user_id`
+             created_by_user_id = excluded.created_by_user_id`,
         ).run();
-      } catch { /* legacy table missing */ }
+      } catch {
+        /* legacy table missing */
+      }
 
       // Keep only one bans table in the DB and drop obsolete tracking tables.
       await env.DB.batch([
-        env.DB.prepare('DROP TABLE IF EXISTS banned_usernames'),
-        env.DB.prepare('DROP TABLE IF EXISTS banned_ip_hashes'),
-        env.DB.prepare('DROP TABLE IF EXISTS banned_identifiers'),
-        env.DB.prepare('DROP TABLE IF EXISTS user_identifiers'),
-        env.DB.prepare('DROP TABLE IF EXISTS account_limit_overrides'),
+        env.DB.prepare("DROP TABLE IF EXISTS banned_usernames"),
+        env.DB.prepare("DROP TABLE IF EXISTS banned_ip_hashes"),
+        env.DB.prepare("DROP TABLE IF EXISTS banned_identifiers"),
+        env.DB.prepare("DROP TABLE IF EXISTS user_identifiers"),
+        env.DB.prepare("DROP TABLE IF EXISTS account_limit_overrides"),
       ]);
 
       // Remove obsolete announcements column.
       try {
-        const info = await env.DB.prepare("PRAGMA table_info('announcements')").all<{ name: string }>();
-        const hasImportant = (info.results || []).some((row) => row.name === 'is_important');
+        const info = await env.DB.prepare(
+          "PRAGMA table_info('announcements')",
+        ).all<{ name: string }>();
+        const hasImportant = (info.results || []).some(
+          (row) => row.name === "is_important",
+        );
         if (hasImportant) {
           await env.DB.batch([
-            env.DB.prepare('DROP TABLE IF EXISTS announcements_new'),
+            env.DB.prepare("DROP TABLE IF EXISTS announcements_new"),
             env.DB.prepare(
               `CREATE TABLE IF NOT EXISTS announcements_new (
                  id TEXT PRIMARY KEY,
@@ -578,16 +668,20 @@ async function ensureSecurityTables(env: Env): Promise<void> {
                  created_at TEXT NOT NULL,
                  updated_at TEXT NOT NULL,
                  created_by_user_id TEXT
-               )`
+               )`,
             ),
             env.DB.prepare(
               `INSERT INTO announcements_new (id, message, type, link_url, link_label, is_active, created_at, updated_at, created_by_user_id)
                SELECT id, message, type, link_url, link_label, is_active, created_at, updated_at, created_by_user_id
-               FROM announcements`
+               FROM announcements`,
             ),
-            env.DB.prepare('DROP TABLE announcements'),
-            env.DB.prepare('ALTER TABLE announcements_new RENAME TO announcements'),
-            env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_announcements_active_updated ON announcements(is_active, updated_at DESC)'),
+            env.DB.prepare("DROP TABLE announcements"),
+            env.DB.prepare(
+              "ALTER TABLE announcements_new RENAME TO announcements",
+            ),
+            env.DB.prepare(
+              "CREATE INDEX IF NOT EXISTS idx_announcements_active_updated ON announcements(is_active, updated_at DESC)",
+            ),
           ]);
         }
       } catch {
@@ -600,13 +694,17 @@ async function ensureSecurityTables(env: Env): Promise<void> {
           `UPDATE user_settings
            SET settings_json = json_remove(settings_json, '$.theme'),
                updated_at = ?
-           WHERE json_type(settings_json, '$.theme') IS NOT NULL`
-        ).bind(new Date().toISOString()).run();
+           WHERE json_type(settings_json, '$.theme') IS NOT NULL`,
+        )
+          .bind(new Date().toISOString())
+          .run();
       } catch {
         // best-effort cleanup
       }
 
-      await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_surveys_archived_active ON surveys(is_archived, is_active, created_at DESC)').run();
+      await env.DB.prepare(
+        "CREATE INDEX IF NOT EXISTS idx_surveys_archived_active ON surveys(is_archived, is_active, created_at DESC)",
+      ).run();
 
       // Table for tracking real-time active users
       // Note: We use a simple schema to minimize bloat.
@@ -615,25 +713,31 @@ async function ensureSecurityTables(env: Env): Promise<void> {
         `CREATE TABLE IF NOT EXISTS active_users (
            user_id TEXT PRIMARY KEY,
            last_seen_at TEXT NOT NULL
-         )`
+         )`,
       ).run();
 
       // OPTIONAL: Hard cleanup of legacy schema if detected (by checking columns)
       // This is a one-time migration to clear the 22k rows of junk
       try {
-        const tableInfo = await env.DB.prepare('PRAGMA table_info(active_users)').all<{ name: string }>();
-        const columns = tableInfo.results?.map(r => r.name) || [];
-        if (columns.includes('media_id') || columns.includes('media_title')) {
-           // Junk detected - recreate table
-           await env.DB.batch([
-             env.DB.prepare('DROP TABLE active_users'),
-             env.DB.prepare('CREATE TABLE active_users (user_id TEXT PRIMARY KEY, last_seen_at TEXT NOT NULL)')
-           ]);
+        const tableInfo = await env.DB.prepare(
+          "PRAGMA table_info(active_users)",
+        ).all<{ name: string }>();
+        const columns = tableInfo.results?.map((r) => r.name) || [];
+        if (columns.includes("media_id") || columns.includes("media_title")) {
+          // Junk detected - recreate table
+          await env.DB.batch([
+            env.DB.prepare("DROP TABLE active_users"),
+            env.DB.prepare(
+              "CREATE TABLE active_users (user_id TEXT PRIMARY KEY, last_seen_at TEXT NOT NULL)",
+            ),
+          ]);
         }
       } catch (e) {
-        console.warn('[DB Migration] active_users cleanup failed:', e);
+        console.warn("[DB Migration] active_users cleanup failed:", e);
       }
-      await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_active_users_last_seen ON active_users(last_seen_at)').run();
+      await env.DB.prepare(
+        "CREATE INDEX IF NOT EXISTS idx_active_users_last_seen ON active_users(last_seen_at)",
+      ).run();
     })();
   }
 
@@ -647,10 +751,14 @@ async function ensureSecurityTables(env: Env): Promise<void> {
 
 const lastSeenCache = new Map<string, number>();
 
-async function updateActiveUser(env: Env, request: Request, userId?: string): Promise<void> {
+async function updateActiveUser(
+  env: Env,
+  request: Request,
+  userId?: string,
+): Promise<void> {
   try {
     const nowMs = Date.now();
-    const clientId = request.headers.get('NexVid-Client-ID');
+    const clientId = request.headers.get("NexVid-Client-ID");
     const identifier = userId || (clientId ? `guest_${clientId}` : null);
 
     if (!identifier) return;
@@ -670,27 +778,33 @@ async function updateActiveUser(env: Env, request: Request, userId?: string): Pr
         `INSERT INTO active_users (user_id, last_seen_at)
          VALUES (?, ?)
          ON CONFLICT(user_id) DO UPDATE SET last_seen_at = excluded.last_seen_at
-         WHERE excluded.last_seen_at > datetime(last_seen_at, '+3 minutes')`
+         WHERE excluded.last_seen_at > datetime(last_seen_at, '+3 minutes')`,
       ).bind(identifier, now),
       // Progressive cleanup: delete records older than 1 hour
-      env.DB.prepare('DELETE FROM active_users WHERE last_seen_at < ?').bind(oneHourAgo)
+      env.DB.prepare("DELETE FROM active_users WHERE last_seen_at < ?").bind(
+        oneHourAgo,
+      ),
     ]);
   } catch {
     // ignore
   }
 }
 
-async function getActiveUsersCount(env: Env): Promise<{ users: number; guests: number }> {
+async function getActiveUsersCount(
+  env: Env,
+): Promise<{ users: number; guests: number }> {
   try {
     // Now looking at the last 5 minutes for a much more real-time feel
     const activeWindowAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const rows = await env.DB.prepare(
-      'SELECT user_id FROM active_users WHERE last_seen_at > ?'
-    ).bind(activeWindowAgo).all<{ user_id: string }>();
+      "SELECT user_id FROM active_users WHERE last_seen_at > ?",
+    )
+      .bind(activeWindowAgo)
+      .all<{ user_id: string }>();
 
     const results = rows.results || [];
-    const users = results.filter(r => !r.user_id.startsWith('guest_')).length;
-    const guests = results.filter(r => r.user_id.startsWith('guest_')).length;
+    const users = results.filter((r) => !r.user_id.startsWith("guest_")).length;
+    const guests = results.filter((r) => r.user_id.startsWith("guest_")).length;
 
     return { users, guests };
   } catch {
@@ -700,29 +814,42 @@ async function getActiveUsersCount(env: Env): Promise<{ users: number; guests: n
 
 async function getUserRole(env: Env, userId: string): Promise<string | null> {
   try {
-    const row = await env.DB.prepare('SELECT user_id, role, expires_at FROM admin_users WHERE user_id = ?').bind(userId).first<{ user_id: string; role: string; expires_at: string | null }>();
+    const row = await env.DB.prepare(
+      "SELECT user_id, role, expires_at FROM admin_users WHERE user_id = ?",
+    )
+      .bind(userId)
+      .first<{ user_id: string; role: string; expires_at: string | null }>();
     if (!row?.user_id) return null;
     if (row.expires_at && new Date(row.expires_at) < new Date()) {
       // Expired admin – remove entry
-      await env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(userId).run();
+      await env.DB.prepare("DELETE FROM admin_users WHERE user_id = ?")
+        .bind(userId)
+        .run();
       return null;
     }
-    return row.role || 'admin';
+    return row.role || "admin";
   } catch {
     return null;
   }
 }
 
 function isAdminRole(role: string | null): boolean {
-  return role === 'owner' || role === 'admin' || role === 'moderator';
+  return role === "owner" || role === "admin" || role === "moderator";
 }
 
-async function isUserProtectedFromBan(env: Env, userId: string): Promise<boolean> {
+async function isUserProtectedFromBan(
+  env: Env,
+  userId: string,
+): Promise<boolean> {
   const role = await getUserRole(env, userId);
   if (isAdminRole(role)) return true;
 
   try {
-    const createdBy = await env.DB.prepare('SELECT created_by_user_id FROM users WHERE id = ?').bind(userId).first<{ created_by_user_id: string | null }>();
+    const createdBy = await env.DB.prepare(
+      "SELECT created_by_user_id FROM users WHERE id = ?",
+    )
+      .bind(userId)
+      .first<{ created_by_user_id: string | null }>();
     if (createdBy && createdBy.created_by_user_id) {
       const creatorRole = await getUserRole(env, createdBy.created_by_user_id);
       if (isAdminRole(creatorRole)) return true;
@@ -750,10 +877,14 @@ async function ensureFeedbackTables(env: Env): Promise<void> {
              last_reply_at TEXT NOT NULL,
              admin_last_reply_at TEXT,
              user_last_reply_at TEXT
-           )`
+           )`,
         ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_feedback_threads_user ON feedback_threads(user_id, updated_at DESC)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_feedback_threads_status ON feedback_threads(status, updated_at DESC)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_feedback_threads_user ON feedback_threads(user_id, updated_at DESC)",
+        ),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_feedback_threads_status ON feedback_threads(status, updated_at DESC)",
+        ),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS feedback_messages (
              id TEXT PRIMARY KEY,
@@ -762,9 +893,11 @@ async function ensureFeedbackTables(env: Env): Promise<void> {
              sender_role TEXT NOT NULL,
              message TEXT NOT NULL,
              created_at TEXT NOT NULL
-           )`
+           )`,
         ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_feedback_messages_thread ON feedback_messages(thread_id, created_at ASC)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_feedback_messages_thread ON feedback_messages(thread_id, created_at ASC)",
+        ),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS user_notifications (
              id TEXT PRIMARY KEY,
@@ -775,9 +908,11 @@ async function ensureFeedbackTables(env: Env): Promise<void> {
              thread_id TEXT,
              is_read INTEGER NOT NULL,
              created_at TEXT NOT NULL
-           )`
+           )`,
         ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, is_read, created_at DESC)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id, is_read, created_at DESC)",
+        ),
       ]);
     })();
   }
@@ -785,7 +920,7 @@ async function ensureFeedbackTables(env: Env): Promise<void> {
   await feedbackTablesInit;
 }
 
-type SurveyQuestionType = 'rating' | 'single' | 'multiple' | 'text';
+type SurveyQuestionType = "rating" | "single" | "multiple" | "text";
 
 type SurveyQuestionDraft = {
   id: string;
@@ -795,28 +930,34 @@ type SurveyQuestionDraft = {
 };
 
 function normalizeSurveyText(value: unknown, maxLength: number): string {
-  return String(value || '').trim().slice(0, maxLength);
+  return String(value || "")
+    .trim()
+    .slice(0, maxLength);
 }
 
-function sanitizeSurveyQuestions(rawQuestions: unknown): { ok: true; questions: SurveyQuestionDraft[] } | { ok: false; error: string } {
+function sanitizeSurveyQuestions(
+  rawQuestions: unknown,
+):
+  | { ok: true; questions: SurveyQuestionDraft[] }
+  | { ok: false; error: string } {
   if (!Array.isArray(rawQuestions)) {
-    return { ok: false, error: 'Questions must be an array' };
+    return { ok: false, error: "Questions must be an array" };
   }
 
   if (rawQuestions.length < 1) {
-    return { ok: false, error: 'At least one question is required' };
+    return { ok: false, error: "At least one question is required" };
   }
 
   if (rawQuestions.length > 12) {
-    return { ok: false, error: 'Too many questions (max 12)' };
+    return { ok: false, error: "Too many questions (max 12)" };
   }
 
   const normalized: SurveyQuestionDraft[] = [];
   const seenIds = new Set<string>();
 
   for (const rawQuestion of rawQuestions) {
-    if (!rawQuestion || typeof rawQuestion !== 'object') {
-      return { ok: false, error: 'Invalid question entry' };
+    if (!rawQuestion || typeof rawQuestion !== "object") {
+      return { ok: false, error: "Invalid question entry" };
     }
 
     const question = rawQuestion as Record<string, unknown>;
@@ -824,29 +965,37 @@ function sanitizeSurveyQuestions(rawQuestions: unknown): { ok: true; questions: 
     const type = normalizeSurveyText(question.type, 16) as SurveyQuestionType;
     const text = normalizeSurveyText(question.text, 220);
 
-    if (!id) return { ok: false, error: 'Each question needs an id' };
-    if (seenIds.has(id)) return { ok: false, error: 'Question ids must be unique' };
-    if (!['rating', 'single', 'multiple', 'text'].includes(type)) {
-      return { ok: false, error: 'Invalid question type' };
+    if (!id) return { ok: false, error: "Each question needs an id" };
+    if (seenIds.has(id))
+      return { ok: false, error: "Question ids must be unique" };
+    if (!["rating", "single", "multiple", "text"].includes(type)) {
+      return { ok: false, error: "Invalid question type" };
     }
-    if (!text) return { ok: false, error: 'Question text is required' };
+    if (!text) return { ok: false, error: "Question text is required" };
 
     seenIds.add(id);
 
     const normalizedQuestion: SurveyQuestionDraft = { id, type, text };
 
-    if (type === 'single' || type === 'multiple') {
+    if (type === "single" || type === "multiple") {
       if (!Array.isArray(question.options)) {
-        return { ok: false, error: 'Choice questions require options' };
+        return { ok: false, error: "Choice questions require options" };
       }
 
       const options = question.options
         .map((option) => normalizeSurveyText(option, 80))
         .filter(Boolean);
 
-      const uniqueOptions = Array.from(new Set(options.map((option) => option.toLowerCase())));
-      if (options.length < 2) return { ok: false, error: 'Choice questions need at least two options' };
-      if (uniqueOptions.length !== options.length) return { ok: false, error: 'Choice options must be unique' };
+      const uniqueOptions = Array.from(
+        new Set(options.map((option) => option.toLowerCase())),
+      );
+      if (options.length < 2)
+        return {
+          ok: false,
+          error: "Choice questions need at least two options",
+        };
+      if (uniqueOptions.length !== options.length)
+        return { ok: false, error: "Choice options must be unique" };
 
       normalizedQuestion.options = options;
     }
@@ -857,9 +1006,14 @@ function sanitizeSurveyQuestions(rawQuestions: unknown): { ok: true; questions: 
   return { ok: true, questions: normalized };
 }
 
-function normalizeSurveyAnswers(question: SurveyQuestionDraft[], answers: unknown): { ok: true; answers: Record<string, unknown> } | { ok: false; error: string } {
-  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
-    return { ok: false, error: 'Answers must be an object' };
+function normalizeSurveyAnswers(
+  question: SurveyQuestionDraft[],
+  answers: unknown,
+):
+  | { ok: true; answers: Record<string, unknown> }
+  | { ok: false; error: string } {
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+    return { ok: false, error: "Answers must be an object" };
   }
 
   const input = answers as Record<string, unknown>;
@@ -868,39 +1022,45 @@ function normalizeSurveyAnswers(question: SurveyQuestionDraft[], answers: unknow
   for (const item of question) {
     const rawAnswer = input[item.id];
 
-    if (rawAnswer === undefined || rawAnswer === null || rawAnswer === '') {
+    if (rawAnswer === undefined || rawAnswer === null || rawAnswer === "") {
       continue;
     }
 
-    if (item.type === 'rating') {
+    if (item.type === "rating") {
       const rating = Number(rawAnswer);
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-        return { ok: false, error: 'Rating answers must be between 1 and 5' };
+        return { ok: false, error: "Rating answers must be between 1 and 5" };
       }
       normalized[item.id] = rating;
       continue;
     }
 
-    if (item.type === 'single') {
+    if (item.type === "single") {
       const value = normalizeSurveyText(rawAnswer, 80);
       if (!value || !item.options?.includes(value)) {
-        return { ok: false, error: 'Invalid single choice answer' };
+        return { ok: false, error: "Invalid single choice answer" };
       }
       normalized[item.id] = value;
       continue;
     }
 
-    if (item.type === 'multiple') {
+    if (item.type === "multiple") {
       if (!Array.isArray(rawAnswer)) {
-        return { ok: false, error: 'Multiple choice answers must be an array' };
+        return { ok: false, error: "Multiple choice answers must be an array" };
       }
 
-      const selected = Array.from(new Set(rawAnswer.map((option) => normalizeSurveyText(option, 80)).filter(Boolean)));
+      const selected = Array.from(
+        new Set(
+          rawAnswer
+            .map((option) => normalizeSurveyText(option, 80))
+            .filter(Boolean),
+        ),
+      );
       if (selected.length === 0) {
-        return { ok: false, error: 'Select at least one option' };
+        return { ok: false, error: "Select at least one option" };
       }
       if (!selected.every((option) => item.options?.includes(option))) {
-        return { ok: false, error: 'Invalid multiple choice answer' };
+        return { ok: false, error: "Invalid multiple choice answer" };
       }
       normalized[item.id] = selected;
       continue;
@@ -908,7 +1068,7 @@ function normalizeSurveyAnswers(question: SurveyQuestionDraft[], answers: unknow
 
     const text = normalizeSurveyText(rawAnswer, 4000);
     if (!text) {
-      return { ok: false, error: 'Text answers cannot be empty' };
+      return { ok: false, error: "Text answers cannot be empty" };
     }
     normalized[item.id] = text;
   }
@@ -916,8 +1076,29 @@ function normalizeSurveyAnswers(question: SurveyQuestionDraft[], answers: unknow
   return { ok: true, answers: normalized };
 }
 
-async function loadSurveyById(env: Env, surveyId: string): Promise<{ id: string; title: string; description: string | null; is_active: number; is_archived: number; questions: SurveyQuestionDraft[] } | null> {
-  const row = await env.DB.prepare('SELECT id, title, description, questions, is_active, COALESCE(is_archived, 0) as is_archived FROM surveys WHERE id = ? LIMIT 1').bind(surveyId).first<{ id: string; title: string; description: string | null; questions: string; is_active: number; is_archived: number }>();
+async function loadSurveyById(
+  env: Env,
+  surveyId: string,
+): Promise<{
+  id: string;
+  title: string;
+  description: string | null;
+  is_active: number;
+  is_archived: number;
+  questions: SurveyQuestionDraft[];
+} | null> {
+  const row = await env.DB.prepare(
+    "SELECT id, title, description, questions, is_active, COALESCE(is_archived, 0) as is_archived FROM surveys WHERE id = ? LIMIT 1",
+  )
+    .bind(surveyId)
+    .first<{
+      id: string;
+      title: string;
+      description: string | null;
+      questions: string;
+      is_active: number;
+      is_archived: number;
+    }>();
   if (!row?.id) return null;
 
   try {
@@ -959,10 +1140,12 @@ async function ensureWatchPartyTables(env: Env): Promise<void> {
              created_at TEXT NOT NULL,
              updated_at TEXT NOT NULL,
              expires_at TEXT NOT NULL
-           )`
-          ),
+           )`,
+        ),
 
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_watch_party_rooms_expires ON watch_party_rooms(expires_at)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_watch_party_rooms_expires ON watch_party_rooms(expires_at)",
+        ),
         env.DB.prepare(
           `CREATE TABLE IF NOT EXISTS watch_party_participants (
              room_id TEXT NOT NULL,
@@ -973,9 +1156,11 @@ async function ensureWatchPartyTables(env: Env): Promise<void> {
              created_at TEXT NOT NULL,
              last_seen_at TEXT NOT NULL,
              PRIMARY KEY (room_id, participant_id)
-           )`
+           )`,
         ),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_watch_party_participants_room ON watch_party_participants(room_id, last_seen_at DESC)'),
+        env.DB.prepare(
+          "CREATE INDEX IF NOT EXISTS idx_watch_party_participants_room ON watch_party_participants(room_id, last_seen_at DESC)",
+        ),
       ]);
     })();
   }
@@ -983,9 +1168,9 @@ async function ensureWatchPartyTables(env: Env): Promise<void> {
 }
 
 function generateWatchPartyCode(): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bytes = crypto.getRandomValues(new Uint8Array(6));
-  let code = '';
+  let code = "";
   for (let i = 0; i < bytes.length; i += 1) {
     code += alphabet[bytes[i] % alphabet.length];
   }
@@ -1007,25 +1192,38 @@ async function cleanupExpiredWatchParties(env: Env): Promise<void> {
        WHERE room_id IN (
          SELECT id FROM watch_party_rooms
          WHERE datetime(expires_at) <= datetime('now')
-       )`
+       )`,
     ),
-    env.DB.prepare(`DELETE FROM watch_party_rooms WHERE datetime(expires_at) <= datetime('now')`),
+    env.DB.prepare(
+      `DELETE FROM watch_party_rooms WHERE datetime(expires_at) <= datetime('now')`,
+    ),
   ]);
 }
 
 async function getRequestIdentifiers(
-  request: Request
+  request: Request,
 ): Promise<RequestIdentifiers> {
-  const userAgent = (request.headers.get('User-Agent') || 'unknown').slice(0, 500);
+  const userAgent = (request.headers.get("User-Agent") || "unknown").slice(
+    0,
+    500,
+  );
   const ip = getClientIp(request);
-  return { ip: ip || 'unknown', userAgent };
+  return { ip: ip || "unknown", userAgent };
 }
 
-async function linkUserIdentifiers(env: Env, userId: string, identifiers: RequestIdentifiers): Promise<void> {
+async function linkUserIdentifiers(
+  env: Env,
+  userId: string,
+  identifiers: RequestIdentifiers,
+): Promise<void> {
   // Identification tracking removed
 }
 
-async function checkLoginRateLimit(request: Request, env: Env, email: string): Promise<{ blocked: boolean; retryAfterSec?: number; key: string }> {
+async function checkLoginRateLimit(
+  request: Request,
+  env: Env,
+  email: string,
+): Promise<{ blocked: boolean; retryAfterSec?: number; key: string }> {
   const ip = getClientIp(request);
   const key = await sha256Hex(`${email}|${ip}`);
   try {
@@ -1034,26 +1232,42 @@ async function checkLoginRateLimit(request: Request, env: Env, email: string): P
       await env.DB.prepare(
         `DELETE FROM login_attempts
          WHERE (blocked_until IS NULL AND reset_at <= ?)
-            OR (blocked_until IS NOT NULL AND blocked_until <= ? AND reset_at <= ?)`
-      ).bind(new Date().toISOString(), new Date().toISOString(), new Date().toISOString()).run();
+            OR (blocked_until IS NOT NULL AND blocked_until <= ? AND reset_at <= ?)`,
+      )
+        .bind(
+          new Date().toISOString(),
+          new Date().toISOString(),
+          new Date().toISOString(),
+        )
+        .run();
     }
 
-    const row = await env.DB.prepare('SELECT failures, reset_at, blocked_until FROM login_attempts WHERE key = ?').bind(key).first<{
-      failures: number;
-      reset_at: string;
-      blocked_until: string | null;
-    }>();
+    const row = await env.DB.prepare(
+      "SELECT failures, reset_at, blocked_until FROM login_attempts WHERE key = ?",
+    )
+      .bind(key)
+      .first<{
+        failures: number;
+        reset_at: string;
+        blocked_until: string | null;
+      }>();
 
     if (!row) return { blocked: false, key };
     const now = Date.now();
     const blockedUntil = row.blocked_until ? Date.parse(row.blocked_until) : 0;
     if (blockedUntil > now) {
-      return { blocked: true, retryAfterSec: Math.ceil((blockedUntil - now) / 1000), key };
+      return {
+        blocked: true,
+        retryAfterSec: Math.ceil((blockedUntil - now) / 1000),
+        key,
+      };
     }
 
     const resetAt = Date.parse(row.reset_at);
     if (!Number.isFinite(resetAt) || resetAt <= now) {
-      await env.DB.prepare('DELETE FROM login_attempts WHERE key = ?').bind(key).run();
+      await env.DB.prepare("DELETE FROM login_attempts WHERE key = ?")
+        .bind(key)
+        .run();
     }
   } catch {
     return { blocked: false, key };
@@ -1066,7 +1280,11 @@ async function registerFailedLogin(env: Env, key: string) {
   try {
     const now = Date.now();
     const resetAt = new Date(now + LOGIN_WINDOW_MS).toISOString();
-    const row = await env.DB.prepare('SELECT failures, reset_at FROM login_attempts WHERE key = ?').bind(key).first<{ failures: number; reset_at: string }>();
+    const row = await env.DB.prepare(
+      "SELECT failures, reset_at FROM login_attempts WHERE key = ?",
+    )
+      .bind(key)
+      .first<{ failures: number; reset_at: string }>();
 
     let failures = 1;
     if (row) {
@@ -1074,7 +1292,10 @@ async function registerFailedLogin(env: Env, key: string) {
       failures = activeWindow ? row.failures + 1 : 1;
     }
 
-    const blockedUntil = failures >= LOGIN_MAX_FAILURES ? new Date(now + LOGIN_BLOCK_MS).toISOString() : null;
+    const blockedUntil =
+      failures >= LOGIN_MAX_FAILURES
+        ? new Date(now + LOGIN_BLOCK_MS).toISOString()
+        : null;
 
     // REHASH ON LOGIN: If user was using legacy hashing, upgrade them to Argon2id now.
     // (Note: This logic is typically called within the login handler flow)
@@ -1102,8 +1323,10 @@ async function registerFailedLogin(env: Env, key: string) {
     await env.DB.prepare(
       `INSERT INTO login_attempts (key, failures, reset_at, blocked_until)
        VALUES (?, ?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET failures = excluded.failures, reset_at = excluded.reset_at, blocked_until = excluded.blocked_until`
-    ).bind(key, failures, resetAt, blockedUntil).run();
+       ON CONFLICT(key) DO UPDATE SET failures = excluded.failures, reset_at = excluded.reset_at, blocked_until = excluded.blocked_until`,
+    )
+      .bind(key, failures, resetAt, blockedUntil)
+      .run();
   } catch {
     // do not fail auth flow on rate-limit storage issues
   }
@@ -1111,7 +1334,9 @@ async function registerFailedLogin(env: Env, key: string) {
 
 async function clearFailedLogin(env: Env, key: string) {
   try {
-    await env.DB.prepare('DELETE FROM login_attempts WHERE key = ?').bind(key).run();
+    await env.DB.prepare("DELETE FROM login_attempts WHERE key = ?")
+      .bind(key)
+      .run();
   } catch {
     // ignore cleanup failures
   }
@@ -1130,7 +1355,7 @@ type SessionUser = {
   };
 };
 
-type AnnouncementType = 'info' | 'warning' | 'update' | 'success';
+type AnnouncementType = "info" | "warning" | "update" | "success";
 
 function normalizeUsername(value: string): string {
   return value.trim().toLowerCase();
@@ -1146,48 +1371,60 @@ function isValidIp(value: string): boolean {
   if (!candidate) return false;
   const ipv4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
   const ipv6 = /^[0-9a-fA-F:]+$/;
-  return ipv4.test(candidate) || (candidate.includes(':') && ipv6.test(candidate));
+  return (
+    ipv4.test(candidate) || (candidate.includes(":") && ipv6.test(candidate))
+  );
 }
 
 function isValidUserId(value: string): boolean {
   const candidate = value.trim();
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    candidate,
+  );
 }
 
-type UserIdentifierMatchType = 'username' | 'id';
+type UserIdentifierMatchType = "username" | "id";
 
 async function findUserByIdentifier(
   env: Env,
   rawValue: string,
-): Promise<{ user: { id: string; username: string } | null; matchType: UserIdentifierMatchType | null; validIdentifier: boolean }> {
-  const value = String(rawValue || '').trim();
+): Promise<{
+  user: { id: string; username: string } | null;
+  matchType: UserIdentifierMatchType | null;
+  validIdentifier: boolean;
+}> {
+  const value = String(rawValue || "").trim();
   if (!value) {
     return { user: null, matchType: null, validIdentifier: false };
   }
 
   if (isValidUserId(value)) {
-    const byId = await env.DB
-      .prepare('SELECT id, username FROM users WHERE id = ? LIMIT 1')
+    const byId = await env.DB.prepare(
+      "SELECT id, username FROM users WHERE id = ? LIMIT 1",
+    )
       .bind(value)
       .first<{ id: string; username: string }>();
 
     return {
       user: byId?.id ? { id: byId.id, username: byId.username } : null,
-      matchType: 'id',
+      matchType: "id",
       validIdentifier: true,
     };
   }
 
   if (isValidUsername(value)) {
     const normalizedUsername = normalizeUsername(value);
-    const byUsername = await env.DB
-      .prepare('SELECT id, username FROM users WHERE LOWER(username) = ? LIMIT 1')
+    const byUsername = await env.DB.prepare(
+      "SELECT id, username FROM users WHERE LOWER(username) = ? LIMIT 1",
+    )
       .bind(normalizedUsername)
       .first<{ id: string; username: string }>();
 
     return {
-      user: byUsername?.id ? { id: byUsername.id, username: byUsername.username } : null,
-      matchType: 'username',
+      user: byUsername?.id
+        ? { id: byUsername.id, username: byUsername.username }
+        : null,
+      matchType: "username",
       validIdentifier: true,
     };
   }
@@ -1196,47 +1433,54 @@ async function findUserByIdentifier(
 }
 
 function sanitizeAnnouncementType(value: string | undefined): AnnouncementType {
-  const candidate = (value || 'info').toLowerCase();
-  if (candidate === 'warning' || candidate === 'update' || candidate === 'success') return candidate;
-  return 'info';
+  const candidate = (value || "info").toLowerCase();
+  if (
+    candidate === "warning" ||
+    candidate === "update" ||
+    candidate === "success"
+  )
+    return candidate;
+  return "info";
 }
 
 function sanitizeOptionalHttpUrl(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
   try {
     const parsed = new URL(trimmed);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    if (!["http:", "https:"].includes(parsed.protocol)) return null;
     return parsed.toString();
   } catch {
     return null;
   }
 }
 
-type FeedbackCategory = 'bug' | 'feedback' | 'contact' | 'feature';
-type FeedbackStatus = 'open' | 'answered' | 'closed';
+type FeedbackCategory = "bug" | "feedback" | "contact" | "feature";
+type FeedbackStatus = "open" | "answered" | "closed";
 const CLOSED_FEEDBACK_RETENTION_DAYS = 14;
-const CLOSED_FEEDBACK_RETENTION_MS = CLOSED_FEEDBACK_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const CLOSED_FEEDBACK_RETENTION_MS =
+  CLOSED_FEEDBACK_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 function sanitizeFeedbackCategory(value: string | undefined): FeedbackCategory {
-  const candidate = (value || '').trim().toLowerCase();
-  if (candidate === 'bug' || candidate === 'feature' || candidate === 'contact') return candidate;
-  return 'feedback';
+  const candidate = (value || "").trim().toLowerCase();
+  if (candidate === "bug" || candidate === "feature" || candidate === "contact")
+    return candidate;
+  return "feedback";
 }
 
 function sanitizeFeedbackStatus(value: string | undefined): FeedbackStatus {
-  const candidate = (value || '').trim().toLowerCase();
-  if (candidate === 'answered' || candidate === 'closed') return candidate;
-  return 'open';
+  const candidate = (value || "").trim().toLowerCase();
+  if (candidate === "answered" || candidate === "closed") return candidate;
+  return "open";
 }
 
 function sanitizeFeedbackSubject(value: string | undefined): string {
-  return (value || '').trim().slice(0, 120);
+  return (value || "").trim().slice(0, 120);
 }
 
 function sanitizeFeedbackMessage(value: string | undefined): string {
-  return (value || '').trim().slice(0, 4000);
+  return (value || "").trim().slice(0, 4000);
 }
 
 function getClosedFeedbackExpiresAt(updatedAt: string): string {
@@ -1259,17 +1503,25 @@ async function cleanupExpiredClosedFeedbackThreads(env: Env): Promise<number> {
      FROM feedback_threads
      WHERE status = 'closed'
        AND datetime(updated_at) <= datetime('now', '-${CLOSED_FEEDBACK_RETENTION_DAYS} days')
-     LIMIT 1000`
+     LIMIT 1000`,
   ).all<{ id: string }>();
 
-  const threadIds = (expired.results || []).map((row) => row.id).filter(Boolean);
+  const threadIds = (expired.results || [])
+    .map((row) => row.id)
+    .filter(Boolean);
   if (threadIds.length === 0) return 0;
 
-  const placeholders = threadIds.map(() => '?').join(', ');
+  const placeholders = threadIds.map(() => "?").join(", ");
   await env.DB.batch([
-    env.DB.prepare(`DELETE FROM feedback_messages WHERE thread_id IN (${placeholders})`).bind(...threadIds),
-    env.DB.prepare(`DELETE FROM user_notifications WHERE thread_id IN (${placeholders})`).bind(...threadIds),
-    env.DB.prepare(`DELETE FROM feedback_threads WHERE id IN (${placeholders})`).bind(...threadIds),
+    env.DB.prepare(
+      `DELETE FROM feedback_messages WHERE thread_id IN (${placeholders})`,
+    ).bind(...threadIds),
+    env.DB.prepare(
+      `DELETE FROM user_notifications WHERE thread_id IN (${placeholders})`,
+    ).bind(...threadIds),
+    env.DB.prepare(
+      `DELETE FROM feedback_threads WHERE id IN (${placeholders})`,
+    ).bind(...threadIds),
   ]);
 
   return threadIds.length;
@@ -1277,11 +1529,17 @@ async function cleanupExpiredClosedFeedbackThreads(env: Env): Promise<number> {
 
 async function isAdminUser(env: Env, userId: string): Promise<boolean> {
   try {
-    const row = await env.DB.prepare('SELECT user_id, expires_at FROM admin_users WHERE user_id = ?').bind(userId).first<{ user_id: string; expires_at: string | null }>();
+    const row = await env.DB.prepare(
+      "SELECT user_id, expires_at FROM admin_users WHERE user_id = ?",
+    )
+      .bind(userId)
+      .first<{ user_id: string; expires_at: string | null }>();
     if (!row?.user_id) return false;
     if (row.expires_at && new Date(row.expires_at) < new Date()) {
       // Expired admin – remove entry
-      await env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(userId).run();
+      await env.DB.prepare("DELETE FROM admin_users WHERE user_id = ?")
+        .bind(userId)
+        .run();
       return false;
     }
     return true;
@@ -1290,9 +1548,10 @@ async function isAdminUser(env: Env, userId: string): Promise<boolean> {
   }
 }
 
-
-
-async function getUsernameBanInfo(env: Env, username: string): Promise<{ banned: boolean; reason?: string }> {
+async function getUsernameBanInfo(
+  env: Env,
+  username: string,
+): Promise<{ banned: boolean; reason?: string }> {
   await ensureSecurityTables(env);
   try {
     const normalized = normalizeUsername(username);
@@ -1300,17 +1559,17 @@ async function getUsernameBanInfo(env: Env, username: string): Promise<{ banned:
       `SELECT reason
        FROM banned_entities
        WHERE ban_type = 'username' AND ban_value = ?
-       LIMIT 1`
-    ).bind(normalized).first<{ reason: string | null }>();
+       LIMIT 1`,
+    )
+      .bind(normalized)
+      .first<{ reason: string | null }>();
     if (!row) return { banned: false };
-    const reason = (row.reason || '').trim();
+    const reason = (row.reason || "").trim();
     return { banned: true, ...(reason ? { reason } : {}) };
   } catch {
     return { banned: false };
   }
 }
-
-
 
 async function writeAdminAuditLog(
   env: Env,
@@ -1323,53 +1582,80 @@ async function writeAdminAuditLog(
   try {
     await env.DB.prepare(
       `INSERT INTO admin_audit_logs (id, admin_user_id, action, target_type, target_id, meta_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(crypto.randomUUID(), adminUserId, action, targetType, targetId, meta ? JSON.stringify(meta) : null, new Date().toISOString())
+      .bind(
+        crypto.randomUUID(),
+        adminUserId,
+        action,
+        targetType,
+        targetId,
+        meta ? JSON.stringify(meta) : null,
+        new Date().toISOString(),
+      )
       .run();
   } catch {
     // audit must never break primary action
   }
 }
 
-async function getSessionUser(request: Request, env: Env): Promise<SessionUser | null> {
+async function getSessionUser(
+  request: Request,
+  env: Env,
+): Promise<SessionUser | null> {
   // Protection against CSRF attacks and simple curl/terminal scripts.
   // We ensure that modifying requests actually come from our domain.
-  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
-    const origin = request.headers.get('Origin');
-    const referer = request.headers.get('Referer');
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(request.method)) {
+    const origin = request.headers.get("Origin");
+    const referer = request.headers.get("Referer");
     // If both headers are missing, or neither is a valid host, it's most likely a terminal request.
     const allowed = getAllowedOrigin(request, env); // Contains e.g. https://nexvid.online
     const originValid = origin && allowed && origin.startsWith(allowed);
     const refererValid = referer && allowed && referer.startsWith(allowed);
 
     if (!originValid && !refererValid) {
-       console.log('[Auth] CSRF/Terminal protection: blocked missing or invalid Origin/Referer for mutating request', { origin, referer });
-       return null;
+      console.log(
+        "[Auth] CSRF/Terminal protection: blocked missing or invalid Origin/Referer for mutating request",
+        { origin, referer },
+      );
+      return null;
     }
   }
 
   const bearerToken = getBearerToken(request);
   const cookieToken = getCookieToken(request);
-  const tokenCandidates = [bearerToken, cookieToken].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
+  const tokenCandidates = [bearerToken, cookieToken].filter(
+    (value, index, arr): value is string =>
+      Boolean(value) && arr.indexOf(value) === index,
+  );
 
   if (tokenCandidates.length === 0) {
-    console.log('[Auth] No token found in request');
+    console.log("[Auth] No token found in request");
     return null;
   }
 
   let token: string | null = null;
-  let row: { id: string; username: string; created_at: string; requires_password_change: number } | null = null;
+  let row: {
+    id: string;
+    username: string;
+    created_at: string;
+    requires_password_change: number;
+  } | null = null;
 
   for (const candidate of tokenCandidates) {
     const resolved = await env.DB.prepare(
       `SELECT u.id, u.username, u.created_at, u.requires_password_change
        FROM sessions s
        JOIN users u ON u.id = s.user_id
-       WHERE s.token = ? AND s.expires_at > ?`
+       WHERE s.token = ? AND s.expires_at > ?`,
     )
       .bind(candidate, new Date().toISOString())
-      .first<{ id: string; username: string; created_at: string; requires_password_change: number }>();
+      .first<{
+        id: string;
+        username: string;
+        created_at: string;
+        requires_password_change: number;
+      }>();
 
     if (resolved) {
       token = candidate;
@@ -1379,15 +1665,17 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
   }
 
   if (!row || !token) {
-    console.log('[Auth] Invalid or expired token');
+    console.log("[Auth] Invalid or expired token");
     return null;
   }
 
   const identifiers = await getRequestIdentifiers(request);
   const usernameBan = await getUsernameBanInfo(env, row.username);
   if (usernameBan.banned) {
-    console.log('[Auth] Banned username:', row.username);
-    await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+    console.log("[Auth] Banned username:", row.username);
+    await env.DB.prepare("DELETE FROM sessions WHERE token = ?")
+      .bind(token)
+      .run();
     return null;
   }
 
@@ -1410,47 +1698,74 @@ async function getSessionUser(request: Request, env: Env): Promise<SessionUser |
 }
 
 async function handleRegister(request: Request, env: Env): Promise<Response> {
-  const body = await readJson<{ username?: string; password?: string; turnstileToken?: string }>(request);
-  const username = (body.username || '').trim();
+  const body = await readJson<{
+    username?: string;
+    password?: string;
+    turnstileToken?: string;
+  }>(request);
+  const username = (body.username || "").trim();
   const normalizedUsername = normalizeUsername(username);
-  const password = body.password || '';
-  const turnstileToken = (body.turnstileToken || '').trim();
+  const password = body.password || "";
+  const turnstileToken = (body.turnstileToken || "").trim();
 
-  if ((env.TURNSTILE_SECRET_KEY || '').trim()) {
+  if ((env.TURNSTILE_SECRET_KEY || "").trim()) {
     const verified = await verifyTurnstileToken(request, env, turnstileToken);
-    if (!verified) return json(request, env, { error: 'Captcha verification failed' }, 403);
+    if (!verified)
+      return json(request, env, { error: "Captcha verification failed" }, 403);
   }
 
   if (!isValidUsername(username) || password.length < MIN_PASSWORD_LENGTH) {
-    return json(request, env, { error: 'Invalid username or password (nickname: 2-24 chars, letters/numbers/._-)' }, 400);
+    return json(
+      request,
+      env,
+      {
+        error:
+          "Invalid username or password (nickname: 2-24 chars, letters/numbers/._-)",
+      },
+      400,
+    );
   }
 
   const usernameBan = await getUsernameBanInfo(env, normalizedUsername);
   if (usernameBan.banned) {
-    const message = usernameBan.reason ? `Registration blocked: ${usernameBan.reason}` : 'Registration blocked: this nickname is banned';
+    const message = usernameBan.reason
+      ? `Registration blocked: ${usernameBan.reason}`
+      : "Registration blocked: this nickname is banned";
     return json(request, env, { error: message }, 403);
   }
 
   const identifiers = await getRequestIdentifiers(request);
 
-  const existing = await env.DB
-    .prepare('SELECT id FROM users WHERE LOWER(username) = ?')
+  const existing = await env.DB.prepare(
+    "SELECT id FROM users WHERE LOWER(username) = ?",
+  )
     .bind(normalizedUsername)
     .first<{ id: string }>();
-  if (existing?.id) return json(request, env, { error: 'Nickname already in use' }, 409);
+  if (existing?.id)
+    return json(request, env, { error: "Nickname already in use" }, 409);
 
   const userId = crypto.randomUUID();
   const passwordHash = await hashPassword(password);
   const now = new Date().toISOString();
   const token = createToken();
-  const ttlDays = Number(env.SESSION_TTL_DAYS || '30');
-  const expires = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
+  const ttlDays = Number(env.SESSION_TTL_DAYS || "30");
+  const expires = new Date(
+    Date.now() + ttlDays * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
   await env.DB.batch([
-    env.DB.prepare('INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)').bind(userId, username, passwordHash, now),
-    env.DB.prepare('INSERT INTO user_settings (user_id, settings_json, updated_at) VALUES (?, ?, ?)').bind(userId, '{}', now),
-    env.DB.prepare('INSERT INTO watchlist (user_id, items_json, updated_at) VALUES (?, ?, ?)').bind(userId, '[]', now),
-    env.DB.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(token, userId, now, expires),
+    env.DB.prepare(
+      "INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+    ).bind(userId, username, passwordHash, now),
+    env.DB.prepare(
+      "INSERT INTO user_settings (user_id, settings_json, updated_at) VALUES (?, ?, ?)",
+    ).bind(userId, "{}", now),
+    env.DB.prepare(
+      "INSERT INTO watchlist (user_id, items_json, updated_at) VALUES (?, ?, ?)",
+    ).bind(userId, "[]", now),
+    env.DB.prepare(
+      "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+    ).bind(token, userId, now, expires),
   ]);
 
   const response = json(request, env, {
@@ -1464,89 +1779,137 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     token,
   });
 
-  response.headers.append('Set-Cookie', buildAuthCookie(token, ttlDays * 24 * 60 * 60));
+  response.headers.append(
+    "Set-Cookie",
+    buildAuthCookie(token, ttlDays * 24 * 60 * 60),
+  );
   return response;
 }
 
-async function handlePasswordChange(request: Request, env: Env): Promise<Response> {
+async function handlePasswordChange(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
 
-  const body = await readJson<{ currentPassword?: string; newPassword?: string }>(request);
+  const body = await readJson<{
+    currentPassword?: string;
+    newPassword?: string;
+  }>(request);
   const { currentPassword, newPassword } = body;
 
-  if (!currentPassword || !newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
-    return json(request, env, { error: 'Invalid password data' }, 400);
+  if (
+    !currentPassword ||
+    !newPassword ||
+    newPassword.length < MIN_PASSWORD_LENGTH
+  ) {
+    return json(request, env, { error: "Invalid password data" }, 400);
   }
 
-  const row = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(session.user.id).first<{ password_hash: string }>();
-  if (!row) return json(request, env, { error: 'User not found' }, 404);
+  const row = await env.DB.prepare(
+    "SELECT password_hash FROM users WHERE id = ?",
+  )
+    .bind(session.user.id)
+    .first<{ password_hash: string }>();
+  if (!row) return json(request, env, { error: "User not found" }, 404);
 
   const verification = await verifyPassword(currentPassword, row.password_hash);
-  if (!verification.ok) return json(request, env, { error: 'Current password incorrect' }, 401);
+  if (!verification.ok)
+    return json(request, env, { error: "Current password incorrect" }, 401);
 
   const newHash = await hashPassword(newPassword);
   const now = new Date().toISOString();
-  const ttlDays = Number(env.SESSION_TTL_DAYS || '30');
-  const expires = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
+  const ttlDays = Number(env.SESSION_TTL_DAYS || "30");
+  const expires = new Date(
+    Date.now() + ttlDays * 24 * 60 * 60 * 1000,
+  ).toISOString();
   const rotatedToken = createToken();
 
   await env.DB.batch([
-    env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 0 WHERE id = ?').bind(newHash, session.user.id),
-    env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(session.user.id),
-    env.DB.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(rotatedToken, session.user.id, now, expires),
+    env.DB.prepare(
+      "UPDATE users SET password_hash = ?, requires_password_change = 0 WHERE id = ?",
+    ).bind(newHash, session.user.id),
+    env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(
+      session.user.id,
+    ),
+    env.DB.prepare(
+      "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+    ).bind(rotatedToken, session.user.id, now, expires),
   ]);
 
   const response = json(request, env, { ok: true, token: rotatedToken });
-  response.headers.append('Set-Cookie', buildAuthCookie(rotatedToken, ttlDays * 24 * 60 * 60));
+  response.headers.append(
+    "Set-Cookie",
+    buildAuthCookie(rotatedToken, ttlDays * 24 * 60 * 60),
+  );
   return response;
 }
 
 async function handleLogin(request: Request, env: Env): Promise<Response> {
-  const body = await readJson<{ username?: string; password?: string; turnstileToken?: string }>(request);
-  const username = (body.username || '').trim();
+  const body = await readJson<{
+    username?: string;
+    password?: string;
+    turnstileToken?: string;
+  }>(request);
+  const username = (body.username || "").trim();
   const normalizedUsername = normalizeUsername(username);
-  const password = body.password || '';
-  const turnstileToken = (body.turnstileToken || '').trim();
+  const password = body.password || "";
+  const turnstileToken = (body.turnstileToken || "").trim();
 
-  if ((env.TURNSTILE_SECRET_KEY || '').trim()) {
+  if ((env.TURNSTILE_SECRET_KEY || "").trim()) {
     const verified = await verifyTurnstileToken(request, env, turnstileToken);
-    if (!verified) return json(request, env, { error: 'Captcha verification failed' }, 403);
+    if (!verified)
+      return json(request, env, { error: "Captcha verification failed" }, 403);
   }
 
   if (!username || !password) {
-    return json(request, env, { error: 'Missing nickname or password' }, 400);
+    return json(request, env, { error: "Missing nickname or password" }, 400);
   }
 
   if (!isValidUsername(username)) {
-    return json(request, env, { error: 'Invalid nickname format' }, 400);
+    return json(request, env, { error: "Invalid nickname format" }, 400);
   }
 
   const limit = await checkLoginRateLimit(request, env, normalizedUsername);
   if (limit.blocked) {
-    return json(request, env, { error: 'Too many failed attempts. Try again later.' }, 429);
+    return json(
+      request,
+      env,
+      { error: "Too many failed attempts. Try again later." },
+      429,
+    );
   }
 
   const identifiers = await getRequestIdentifiers(request);
   const usernameBan = await getUsernameBanInfo(env, normalizedUsername);
   if (usernameBan.banned) {
-    const message = usernameBan.reason ? `Login blocked: ${usernameBan.reason}` : 'Login blocked: this nickname is banned';
+    const message = usernameBan.reason
+      ? `Login blocked: ${usernameBan.reason}`
+      : "Login blocked: this nickname is banned";
     return json(request, env, { error: message }, 403);
   }
 
-  const row = await env.DB.prepare('SELECT id, username, password_hash, created_at FROM users WHERE LOWER(username) = ?')
+  const row = await env.DB.prepare(
+    "SELECT id, username, password_hash, created_at FROM users WHERE LOWER(username) = ?",
+  )
     .bind(normalizedUsername)
-    .first<{ id: string; username: string; password_hash: string; created_at: string }>();
+    .first<{
+      id: string;
+      username: string;
+      password_hash: string;
+      created_at: string;
+    }>();
 
   if (!row) {
     await registerFailedLogin(env, limit.key);
-    return json(request, env, { error: 'Invalid credentials' }, 401);
+    return json(request, env, { error: "Invalid credentials" }, 401);
   }
 
   const verification = await verifyPassword(password, row.password_hash);
   if (!verification.ok) {
     await registerFailedLogin(env, limit.key);
-    return json(request, env, { error: 'Invalid credentials' }, 401);
+    return json(request, env, { error: "Invalid credentials" }, 401);
   }
 
   await clearFailedLogin(env, limit.key);
@@ -1555,22 +1918,33 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
   if (verification.shouldUpdate) {
     try {
       const upgradedHash = await hashPassword(password);
-      await env.DB.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
+      await env.DB.prepare(
+        "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+      )
         .bind(upgradedHash, new Date().toISOString(), row.id)
         .run();
-      console.log(`[Security] User ${username} password rehashed to Argon2id successfully.`);
+      console.log(
+        `[Security] User ${username} password rehashed to Argon2id successfully.`,
+      );
     } catch (e) {
-      console.error(`[Security] Failed to rehash password for user ${username}:`, e);
+      console.error(
+        `[Security] Failed to rehash password for user ${username}:`,
+        e,
+      );
       // We don't block login if rehash fails, just log it.
     }
   }
 
   const now = new Date().toISOString();
   const token = createToken();
-  const ttlDays = Number(env.SESSION_TTL_DAYS || '30');
-  const expires = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000).toISOString();
+  const ttlDays = Number(env.SESSION_TTL_DAYS || "30");
+  const expires = new Date(
+    Date.now() + ttlDays * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
-  await env.DB.prepare('INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
+  await env.DB.prepare(
+    "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+  )
     .bind(token, row.id, now, expires)
     .run();
 
@@ -1590,38 +1964,63 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     token,
   });
 
-  response.headers.append('Set-Cookie', buildAuthCookie(token, ttlDays * 24 * 60 * 60));
+  response.headers.append(
+    "Set-Cookie",
+    buildAuthCookie(token, ttlDays * 24 * 60 * 60),
+  );
   return response;
 }
 
 async function handleLogout(request: Request, env: Env): Promise<Response> {
-  const tokens = [getBearerToken(request), getCookieToken(request)].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
+  const tokens = [getBearerToken(request), getCookieToken(request)].filter(
+    (value, index, arr): value is string =>
+      Boolean(value) && arr.indexOf(value) === index,
+  );
   if (tokens.length === 1) {
-    await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(tokens[0]).run();
+    await env.DB.prepare("DELETE FROM sessions WHERE token = ?")
+      .bind(tokens[0])
+      .run();
   } else if (tokens.length > 1) {
-    const placeholders = tokens.map(() => '?').join(', ');
-    await env.DB.prepare(`DELETE FROM sessions WHERE token IN (${placeholders})`).bind(...tokens).run();
+    const placeholders = tokens.map(() => "?").join(", ");
+    await env.DB.prepare(
+      `DELETE FROM sessions WHERE token IN (${placeholders})`,
+    )
+      .bind(...tokens)
+      .run();
   }
   const response = json(request, env, { ok: true });
-  response.headers.append('Set-Cookie', buildAuthCookieClear());
+  response.headers.append("Set-Cookie", buildAuthCookieClear());
   return response;
 }
 
-async function handleLogoutOthers(request: Request, env: Env): Promise<Response> {
+async function handleLogoutOthers(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
 
-  const currentTokens = [getBearerToken(request), getCookieToken(request)].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
+  const currentTokens = [
+    getBearerToken(request),
+    getCookieToken(request),
+  ].filter(
+    (value, index, arr): value is string =>
+      Boolean(value) && arr.indexOf(value) === index,
+  );
 
   if (currentTokens.length > 0) {
-    const placeholders = currentTokens.map(() => '?').join(', ');
-    await env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND token NOT IN (${placeholders})`)
+    const placeholders = currentTokens.map(() => "?").join(", ");
+    await env.DB.prepare(
+      `DELETE FROM sessions WHERE user_id = ? AND token NOT IN (${placeholders})`,
+    )
       .bind(session.user.id, ...currentTokens)
       .run();
   } else {
     // If somehow session was validated but no tokens found in headers (unlikely), clear all but current session record?
     // Actually getSessionUser uses getBearerToken or getCookieToken, so one MUST exist.
-    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?')
+    await env.DB.prepare(
+      "DELETE FROM sessions WHERE user_id = ? AND token != ?",
+    )
       .bind(session.user.id, session.token)
       .run();
   }
@@ -1631,7 +2030,7 @@ async function handleLogoutOthers(request: Request, env: Env): Promise<Response>
 
 async function handleMe(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
   const response = json(request, env, { user: session.user });
   const identifiers = await getRequestIdentifiers(request);
   await linkUserIdentifiers(env, session.user.id, identifiers);
@@ -1640,32 +2039,56 @@ async function handleMe(request: Request, env: Env): Promise<Response> {
 
 async function handleProfile(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
-  if (request.method !== 'PUT') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
+  if (request.method !== "PUT")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
   const body = await readJson<{ username?: string }>(request);
-  const username = (body.username || '').trim();
+  const username = (body.username || "").trim();
   const normalized = normalizeUsername(username);
 
   if (!isValidUsername(username)) {
-    return json(request, env, { error: 'Invalid nickname (2-24 chars, letters/numbers/._-)' }, 400);
+    return json(
+      request,
+      env,
+      { error: "Invalid nickname (2-24 chars, letters/numbers/._-)" },
+      400,
+    );
   }
 
   if (normalized === normalizeUsername(session.user.username)) {
-    return json(request, env, { ok: true, user: { ...session.user, username } });
+    return json(request, env, {
+      ok: true,
+      user: { ...session.user, username },
+    });
   }
 
   const banned = await getUsernameBanInfo(env, normalized);
   if (banned.banned) {
-    return json(request, env, { error: banned.reason ? `Nickname blocked: ${banned.reason}` : 'Nickname is banned' }, 403);
+    return json(
+      request,
+      env,
+      {
+        error: banned.reason
+          ? `Nickname blocked: ${banned.reason}`
+          : "Nickname is banned",
+      },
+      403,
+    );
   }
 
-  const existing = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ? AND id != ?').bind(normalized, session.user.id).first<{ id: string }>();
+  const existing = await env.DB.prepare(
+    "SELECT id FROM users WHERE LOWER(username) = ? AND id != ?",
+  )
+    .bind(normalized, session.user.id)
+    .first<{ id: string }>();
   if (existing?.id) {
-    return json(request, env, { error: 'Nickname already in use' }, 409);
+    return json(request, env, { error: "Nickname already in use" }, 409);
   }
 
-  await env.DB.prepare('UPDATE users SET username = ? WHERE id = ?').bind(username, session.user.id).run();
+  await env.DB.prepare("UPDATE users SET username = ? WHERE id = ?")
+    .bind(username, session.user.id)
+    .run();
   const role = await getUserRole(env, session.user.id);
   return json(request, env, {
     ok: true,
@@ -1681,34 +2104,38 @@ async function handleProfile(request: Request, env: Env): Promise<Response> {
 
 async function handleSettings(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
 
   const allowedSettingsKeys = new Set([
-    'theme',
-    'accentColor',
-    'customAccentHex',
-    'subtitleLanguage',
-    'autoPlay',
-    'autoNext',
-    'defaultQuality',
-    'defaultSource',
-    'playerVolume',
-    'skipIntro',
-    'skipOutro',
-    'autoSkipSegments',
-    'autoSwitchSource',
-    'idlePauseOverlay',
-    'febboxApiKey',
-    'disableEmbeds',
-    'introDbApiKey',
-    'groqApiKey',
-    'omdbApiKey',
+    "theme",
+    "accentColor",
+    "customAccentHex",
+    "subtitleLanguage",
+    "autoPlay",
+    "autoNext",
+    "defaultQuality",
+    "defaultSource",
+    "playerVolume",
+    "skipIntro",
+    "skipOutro",
+    "autoSkipSegments",
+    "autoSwitchSource",
+    "idlePauseOverlay",
+    "febboxApiKey",
+    "disableEmbeds",
+    "introDbApiKey",
+    "groqApiKey",
+    "omdbApiKey",
   ]);
 
-  const sanitizeSettingsForStorage = (input: unknown): Record<string, unknown> => {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
+  const sanitizeSettingsForStorage = (
+    input: unknown,
+  ): Record<string, unknown> => {
+    if (!input || typeof input !== "object" || Array.isArray(input)) return {};
     const next: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(
+      input as Record<string, unknown>,
+    )) {
       if (allowedSettingsKeys.has(key)) {
         next[key] = value;
       }
@@ -1716,9 +2143,15 @@ async function handleSettings(request: Request, env: Env): Promise<Response> {
     return next;
   };
 
-  if (request.method === 'GET') {
-    const row = await env.DB.prepare('SELECT settings_json FROM user_settings WHERE user_id = ?').bind(session.user.id).first<{ settings_json: string }>();
-    return json(request, env, { settings: row?.settings_json ? JSON.parse(row.settings_json) : {} });
+  if (request.method === "GET") {
+    const row = await env.DB.prepare(
+      "SELECT settings_json FROM user_settings WHERE user_id = ?",
+    )
+      .bind(session.user.id)
+      .first<{ settings_json: string }>();
+    return json(request, env, {
+      settings: row?.settings_json ? JSON.parse(row.settings_json) : {},
+    });
   }
 
   const body = await readJson<{ settings?: Record<string, unknown> }>(request);
@@ -1728,7 +2161,7 @@ async function handleSettings(request: Request, env: Env): Promise<Response> {
   await env.DB.prepare(
     `INSERT INTO user_settings (user_id, settings_json, updated_at)
      VALUES (?, ?, ?)
-     ON CONFLICT(user_id) DO UPDATE SET settings_json = excluded.settings_json, updated_at = excluded.updated_at`
+     ON CONFLICT(user_id) DO UPDATE SET settings_json = excluded.settings_json, updated_at = excluded.updated_at`,
   )
     .bind(session.user.id, payload, now)
     .run();
@@ -1738,11 +2171,17 @@ async function handleSettings(request: Request, env: Env): Promise<Response> {
 
 async function handleWatchlist(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
 
-  if (request.method === 'GET') {
-    const row = await env.DB.prepare('SELECT items_json FROM watchlist WHERE user_id = ?').bind(session.user.id).first<{ items_json: string }>();
-    return json(request, env, { items: row?.items_json ? JSON.parse(row.items_json) : [] });
+  if (request.method === "GET") {
+    const row = await env.DB.prepare(
+      "SELECT items_json FROM watchlist WHERE user_id = ?",
+    )
+      .bind(session.user.id)
+      .first<{ items_json: string }>();
+    return json(request, env, {
+      items: row?.items_json ? JSON.parse(row.items_json) : [],
+    });
   }
 
   const body = await readJson<{ items?: unknown[] }>(request);
@@ -1752,7 +2191,7 @@ async function handleWatchlist(request: Request, env: Env): Promise<Response> {
   await env.DB.prepare(
     `INSERT INTO watchlist (user_id, items_json, updated_at)
      VALUES (?, ?, ?)
-     ON CONFLICT(user_id) DO UPDATE SET items_json = excluded.items_json, updated_at = excluded.updated_at`
+     ON CONFLICT(user_id) DO UPDATE SET items_json = excluded.items_json, updated_at = excluded.updated_at`,
   )
     .bind(session.user.id, payload, now)
     .run();
@@ -1760,7 +2199,10 @@ async function handleWatchlist(request: Request, env: Env): Promise<Response> {
   return json(request, env, { ok: true });
 }
 
-async function handleWatchPartyCreate(request: Request, env: Env): Promise<Response> {
+async function handleWatchPartyCreate(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   await cleanupExpiredWatchParties(env);
 
   const session = await getSessionUser(request, env);
@@ -1777,12 +2219,16 @@ async function handleWatchPartyCreate(request: Request, env: Env): Promise<Respo
     playbackRate?: number;
   }>(request);
 
-  const mediaKey = String(body.mediaKey || '').trim();
-  if (!mediaKey) return json(request, env, { error: 'mediaKey is required' }, 400);
+  const mediaKey = String(body.mediaKey || "").trim();
+  if (!mediaKey)
+    return json(request, env, { error: "mediaKey is required" }, 400);
 
   const hostToken = createToken();
   const participantId = createToken().slice(0, 16);
-  const hostName = String(body.name || session?.user.username || 'Host').trim().slice(0, 24) || 'Host';
+  const hostName =
+    String(body.name || session?.user.username || "Host")
+      .trim()
+      .slice(0, 24) || "Host";
   const now = new Date().toISOString();
   const expiresAt = getWatchPartyExpiryIso(8);
 
@@ -1794,23 +2240,28 @@ async function handleWatchPartyCreate(request: Request, env: Env): Promise<Respo
     updatedAt: now,
   };
 
-  let roomId = '';
+  let roomId = "";
   for (let i = 0; i < 8; i += 1) {
     const candidate = generateWatchPartyCode();
-    const exists = await env.DB.prepare('SELECT id FROM watch_party_rooms WHERE id = ?').bind(candidate).first<{ id: string }>();
+    const exists = await env.DB.prepare(
+      "SELECT id FROM watch_party_rooms WHERE id = ?",
+    )
+      .bind(candidate)
+      .first<{ id: string }>();
     if (!exists?.id) {
       roomId = candidate;
       break;
     }
   }
 
-  if (!roomId) return json(request, env, { error: 'Could not allocate room code' }, 500);
+  if (!roomId)
+    return json(request, env, { error: "Could not allocate room code" }, 500);
 
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO watch_party_rooms
        (id, host_token, host_user_id, host_name, media_key, media_type, media_id, season, episode, title, state_json, participant_count, created_at, updated_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       roomId,
       hostToken,
@@ -1831,7 +2282,7 @@ async function handleWatchPartyCreate(request: Request, env: Env): Promise<Respo
     env.DB.prepare(
       `INSERT INTO watch_party_participants
        (room_id, participant_id, user_id, name, is_host, created_at, last_seen_at)
-       VALUES (?, ?, ?, ?, 1, ?, ?)`
+       VALUES (?, ?, ?, ?, 1, ?, ?)`,
     ).bind(roomId, participantId, session?.user.id || null, hostName, now, now),
   ]);
 
@@ -1840,68 +2291,97 @@ async function handleWatchPartyCreate(request: Request, env: Env): Promise<Respo
     roomId,
     hostToken,
     participantId,
-    role: 'host',
+    role: "host",
     state,
     recommendedHostPushMs: 4000,
     recommendedGuestPollMs: 10000,
   });
 }
 
-async function handleWatchPartyJoin(request: Request, env: Env): Promise<Response> {
+async function handleWatchPartyJoin(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   await cleanupExpiredWatchParties(env);
 
   const session = await getSessionUser(request, env);
-  const body = await readJson<{ roomId?: string; name?: string; participantId?: string; mediaKey?: string }>(request);
-  const roomId = String(body.roomId || '').trim().toUpperCase();
-  if (!roomId) return json(request, env, { error: 'roomId is required' }, 400);
+  const body = await readJson<{
+    roomId?: string;
+    name?: string;
+    participantId?: string;
+    mediaKey?: string;
+  }>(request);
+  const roomId = String(body.roomId || "")
+    .trim()
+    .toUpperCase();
+  if (!roomId) return json(request, env, { error: "roomId is required" }, 400);
 
   const room = await env.DB.prepare(
     `SELECT id, host_name, media_key, media_type, media_id, season, episode, title, state_json, updated_at
      FROM watch_party_rooms
-     WHERE id = ? AND datetime(expires_at) > datetime('now')`
-  ).bind(roomId).first<{
-    id: string;
-    host_name: string;
-    media_key: string;
-    media_type: string | null;
-    media_id: string | null;
-    season: number | null;
-    episode: number | null;
-    title: string | null;
-    state_json: string;
-    updated_at: string;
-  }>();
+     WHERE id = ? AND datetime(expires_at) > datetime('now')`,
+  )
+    .bind(roomId)
+    .first<{
+      id: string;
+      host_name: string;
+      media_key: string;
+      media_type: string | null;
+      media_id: string | null;
+      season: number | null;
+      episode: number | null;
+      title: string | null;
+      state_json: string;
+      updated_at: string;
+    }>();
 
-  if (!room?.id) return json(request, env, { error: 'Room not found or expired' }, 404);
+  if (!room?.id)
+    return json(request, env, { error: "Room not found or expired" }, 404);
 
   if (body.mediaKey && String(body.mediaKey) !== room.media_key) {
-    return json(request, env, { error: 'This room is for a different title' }, 409);
+    return json(
+      request,
+      env,
+      { error: "This room is for a different title" },
+      409,
+    );
   }
 
   const now = new Date().toISOString();
-  const participantId = String(body.participantId || createToken().slice(0, 16)).slice(0, 32);
-  const name = String(body.name || session?.user.username || 'Guest').trim().slice(0, 24) || 'Guest';
+  const participantId = String(
+    body.participantId || createToken().slice(0, 16),
+  ).slice(0, 32);
+  const name =
+    String(body.name || session?.user.username || "Guest")
+      .trim()
+      .slice(0, 24) || "Guest";
 
   await env.DB.prepare(
     `INSERT INTO watch_party_participants (room_id, participant_id, user_id, name, is_host, created_at, last_seen_at)
      VALUES (?, ?, ?, ?, 0, ?, ?)
      ON CONFLICT(room_id, participant_id)
-     DO UPDATE SET name = excluded.name, user_id = excluded.user_id, last_seen_at = excluded.last_seen_at`
-  ).bind(roomId, participantId, session?.user.id || null, name, now, now).run();
+     DO UPDATE SET name = excluded.name, user_id = excluded.user_id, last_seen_at = excluded.last_seen_at`,
+  )
+    .bind(roomId, participantId, session?.user.id || null, name, now, now)
+    .run();
 
   const countRow = await env.DB.prepare(
-    'SELECT COUNT(*) AS count FROM watch_party_participants WHERE room_id = ?'
-  ).bind(roomId).first<{ count: number }>();
+    "SELECT COUNT(*) AS count FROM watch_party_participants WHERE room_id = ?",
+  )
+    .bind(roomId)
+    .first<{ count: number }>();
 
   await env.DB.prepare(
-    'UPDATE watch_party_rooms SET participant_count = ?, updated_at = ?, expires_at = ? WHERE id = ?'
-  ).bind(Number(countRow?.count || 1), now, getWatchPartyExpiryIso(8), roomId).run();
+    "UPDATE watch_party_rooms SET participant_count = ?, updated_at = ?, expires_at = ? WHERE id = ?",
+  )
+    .bind(Number(countRow?.count || 1), now, getWatchPartyExpiryIso(8), roomId)
+    .run();
 
   return json(request, env, {
     ok: true,
     roomId,
     participantId,
-    role: 'guest',
+    role: "guest",
     hostName: room.host_name,
     mediaKey: room.media_key,
     mediaType: room.media_type,
@@ -1909,41 +2389,47 @@ async function handleWatchPartyJoin(request: Request, env: Env): Promise<Respons
     season: room.season,
     episode: room.episode,
     title: room.title,
-    state: JSON.parse(room.state_json || '{}'),
+    state: JSON.parse(room.state_json || "{}"),
     updatedAt: room.updated_at,
     recommendedGuestPollMs: 10000,
   });
 }
 
-async function handleWatchPartyState(request: Request, env: Env): Promise<Response> {
+async function handleWatchPartyState(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   await cleanupExpiredWatchParties(env);
   const url = new URL(request.url);
-  const roomId = (url.searchParams.get('roomId') || '').trim().toUpperCase();
-  const since = (url.searchParams.get('since') || '').trim();
-  if (!roomId) return json(request, env, { error: 'roomId is required' }, 400);
+  const roomId = (url.searchParams.get("roomId") || "").trim().toUpperCase();
+  const since = (url.searchParams.get("since") || "").trim();
+  if (!roomId) return json(request, env, { error: "roomId is required" }, 400);
 
   const room = await env.DB.prepare(
     `SELECT id, host_name, media_key, media_type, media_id, season, episode, title, state_json, participant_count, updated_at
      FROM watch_party_rooms
-     WHERE id = ? AND datetime(expires_at) > datetime('now')`
-  ).bind(roomId).first<{
-    id: string;
-    host_name: string;
-    media_key: string;
-    media_type: string | null;
-    media_id: string | null;
-    season: number | null;
-    episode: number | null;
-    title: string | null;
-    state_json: string;
-    participant_count: number;
-    updated_at: string;
-  }>();
+     WHERE id = ? AND datetime(expires_at) > datetime('now')`,
+  )
+    .bind(roomId)
+    .first<{
+      id: string;
+      host_name: string;
+      media_key: string;
+      media_type: string | null;
+      media_id: string | null;
+      season: number | null;
+      episode: number | null;
+      title: string | null;
+      state_json: string;
+      participant_count: number;
+      updated_at: string;
+    }>();
 
-  if (!room?.id) return json(request, env, { error: 'Room not found or expired' }, 404);
+  if (!room?.id)
+    return json(request, env, { error: "Room not found or expired" }, 404);
 
   const now = new Date().toISOString();
-  const state = JSON.parse(room.state_json || '{}');
+  const state = JSON.parse(room.state_json || "{}");
   const isPaused = Boolean(state.paused ?? true);
 
   return json(request, env, {
@@ -1965,7 +2451,10 @@ async function handleWatchPartyState(request: Request, env: Env): Promise<Respon
   });
 }
 
-async function handleWatchPartyUpdate(request: Request, env: Env): Promise<Response> {
+async function handleWatchPartyUpdate(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   await cleanupExpiredWatchParties(env);
   const body = await readJson<{
     roomId?: string;
@@ -1976,18 +2465,35 @@ async function handleWatchPartyUpdate(request: Request, env: Env): Promise<Respo
     mediaKey?: string;
   }>(request);
 
-  const roomId = String(body.roomId || '').trim().toUpperCase();
-  const hostToken = String(body.hostToken || '').trim();
-  if (!roomId || !hostToken) return json(request, env, { error: 'roomId and hostToken are required' }, 400);
+  const roomId = String(body.roomId || "")
+    .trim()
+    .toUpperCase();
+  const hostToken = String(body.hostToken || "").trim();
+  if (!roomId || !hostToken)
+    return json(
+      request,
+      env,
+      { error: "roomId and hostToken are required" },
+      400,
+    );
 
   const room = await env.DB.prepare(
     `SELECT id, host_token, media_key, state_json
      FROM watch_party_rooms
-     WHERE id = ? AND datetime(expires_at) > datetime('now')`
-  ).bind(roomId).first<{ id: string; host_token: string; media_key: string; state_json: string }>();
+     WHERE id = ? AND datetime(expires_at) > datetime('now')`,
+  )
+    .bind(roomId)
+    .first<{
+      id: string;
+      host_token: string;
+      media_key: string;
+      state_json: string;
+    }>();
 
-  if (!room?.id) return json(request, env, { error: 'Room not found or expired' }, 404);
-  if (hostToken !== room.host_token) return json(request, env, { error: 'Invalid host token' }, 403);
+  if (!room?.id)
+    return json(request, env, { error: "Room not found or expired" }, 404);
+  if (hostToken !== room.host_token)
+    return json(request, env, { error: "Invalid host token" }, 403);
 
   const now = new Date().toISOString();
   const newState = {
@@ -1999,7 +2505,7 @@ async function handleWatchPartyUpdate(request: Request, env: Env): Promise<Respo
   };
 
   // Optimization: Only update DB if state actually changed significantly
-  const currentState = JSON.parse(room.state_json || '{}');
+  const currentState = JSON.parse(room.state_json || "{}");
   const hasSignificantChange =
     newState.paused !== currentState.paused ||
     newState.mediaKey !== currentState.mediaKey ||
@@ -2007,85 +2513,124 @@ async function handleWatchPartyUpdate(request: Request, env: Env): Promise<Respo
     Math.abs(newState.time - (currentState.time || 0)) > 5; // only update if time drifted by > 5s
 
   if (!hasSignificantChange) {
-    return json(request, env, { ok: true, updatedAt: currentState.updatedAt || now });
+    return json(request, env, {
+      ok: true,
+      updatedAt: currentState.updatedAt || now,
+    });
   }
 
   await env.DB.prepare(
     `UPDATE watch_party_rooms
      SET state_json = ?, updated_at = ?, expires_at = ?
-     WHERE id = ?`
-  ).bind(JSON.stringify(newState), now, getWatchPartyExpiryIso(8), roomId).run();
+     WHERE id = ?`,
+  )
+    .bind(JSON.stringify(newState), now, getWatchPartyExpiryIso(8), roomId)
+    .run();
 
   return json(request, env, { ok: true, updatedAt: now });
 }
 
-async function handleWatchPartyLeave(request: Request, env: Env): Promise<Response> {
+async function handleWatchPartyLeave(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   await cleanupExpiredWatchParties(env);
-  const body = await readJson<{ roomId?: string; participantId?: string }>(request);
-  const roomId = String(body.roomId || '').trim().toUpperCase();
-  const participantId = String(body.participantId || '').trim();
-  if (!roomId || !participantId) return json(request, env, { error: 'roomId and participantId are required' }, 400);
+  const body = await readJson<{ roomId?: string; participantId?: string }>(
+    request,
+  );
+  const roomId = String(body.roomId || "")
+    .trim()
+    .toUpperCase();
+  const participantId = String(body.participantId || "").trim();
+  if (!roomId || !participantId)
+    return json(
+      request,
+      env,
+      { error: "roomId and participantId are required" },
+      400,
+    );
 
   const participant = await env.DB.prepare(
-    'SELECT is_host FROM watch_party_participants WHERE room_id = ? AND participant_id = ?'
-  ).bind(roomId, participantId).first<{ is_host: number }>();
+    "SELECT is_host FROM watch_party_participants WHERE room_id = ? AND participant_id = ?",
+  )
+    .bind(roomId, participantId)
+    .first<{ is_host: number }>();
 
   if (!participant) return json(request, env, { ok: true, roomClosed: false });
 
   if (participant.is_host === 1) {
     await env.DB.batch([
-      env.DB.prepare('DELETE FROM watch_party_participants WHERE room_id = ?').bind(roomId),
-      env.DB.prepare('DELETE FROM watch_party_rooms WHERE id = ?').bind(roomId),
+      env.DB.prepare(
+        "DELETE FROM watch_party_participants WHERE room_id = ?",
+      ).bind(roomId),
+      env.DB.prepare("DELETE FROM watch_party_rooms WHERE id = ?").bind(roomId),
     ]);
     return json(request, env, { ok: true, roomClosed: true });
   }
 
   await env.DB.prepare(
-    'DELETE FROM watch_party_participants WHERE room_id = ? AND participant_id = ?'
-  ).bind(roomId, participantId).run();
+    "DELETE FROM watch_party_participants WHERE room_id = ? AND participant_id = ?",
+  )
+    .bind(roomId, participantId)
+    .run();
 
   const countRow = await env.DB.prepare(
-    'SELECT COUNT(*) AS count FROM watch_party_participants WHERE room_id = ?'
-  ).bind(roomId).first<{ count: number }>();
+    "SELECT COUNT(*) AS count FROM watch_party_participants WHERE room_id = ?",
+  )
+    .bind(roomId)
+    .first<{ count: number }>();
 
   const count = Number(countRow?.count || 0);
   if (count <= 0) {
-    await env.DB.prepare('DELETE FROM watch_party_rooms WHERE id = ?').bind(roomId).run();
+    await env.DB.prepare("DELETE FROM watch_party_rooms WHERE id = ?")
+      .bind(roomId)
+      .run();
     return json(request, env, { ok: true, roomClosed: true });
   }
 
   await env.DB.prepare(
-    'UPDATE watch_party_rooms SET participant_count = ?, updated_at = ? WHERE id = ?'
-  ).bind(count, new Date().toISOString(), roomId).run();
+    "UPDATE watch_party_rooms SET participant_count = ?, updated_at = ? WHERE id = ?",
+  )
+    .bind(count, new Date().toISOString(), roomId)
+    .run();
 
-  return json(request, env, { ok: true, roomClosed: false, participantCount: count });
+  return json(request, env, {
+    ok: true,
+    roomClosed: false,
+    participantCount: count,
+  });
 }
 
-async function handleUserFeedback(request: Request, env: Env): Promise<Response> {
+async function handleUserFeedback(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
   await ensureFeedbackTables(env);
   // Automatic cleanup disabled - threads persist for admins
   // await cleanupExpiredClosedFeedbackThreads(env);
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     const threads = await env.DB.prepare(
       `SELECT id, category, subject, status, created_at, updated_at, last_reply_at, admin_last_reply_at, user_last_reply_at
        FROM feedback_threads
        WHERE user_id = ?
        ORDER BY datetime(updated_at) DESC
-       LIMIT 200`
-    ).bind(session.user.id).all<{
-      id: string;
-      category: string;
-      subject: string;
-      status: string;
-      created_at: string;
-      updated_at: string;
-      last_reply_at: string;
-      admin_last_reply_at: string | null;
-      user_last_reply_at: string | null;
-    }>();
+       LIMIT 200`,
+    )
+      .bind(session.user.id)
+      .all<{
+        id: string;
+        category: string;
+        subject: string;
+        status: string;
+        created_at: string;
+        updated_at: string;
+        last_reply_at: string;
+        admin_last_reply_at: string | null;
+        user_last_reply_at: string | null;
+      }>();
 
     return json(request, env, {
       items: (threads.results || []).map((thread) => ({
@@ -2097,25 +2642,44 @@ async function handleUserFeedback(request: Request, env: Env): Promise<Response>
         updatedAt: thread.updated_at,
         lastReplyAt: thread.last_reply_at,
         hasAdminReply: Boolean(thread.admin_last_reply_at),
-        closedExpiresAt: sanitizeFeedbackStatus(thread.status) === 'closed' ? getClosedFeedbackExpiresAt(thread.updated_at) : undefined,
-        closedRemainingMs: sanitizeFeedbackStatus(thread.status) === 'closed' ? getClosedFeedbackRemainingMs(thread.updated_at) : undefined,
+        closedExpiresAt:
+          sanitizeFeedbackStatus(thread.status) === "closed"
+            ? getClosedFeedbackExpiresAt(thread.updated_at)
+            : undefined,
+        closedRemainingMs:
+          sanitizeFeedbackStatus(thread.status) === "closed"
+            ? getClosedFeedbackRemainingMs(thread.updated_at)
+            : undefined,
       })),
     });
   }
 
-  if (request.method === 'POST') {
-    const body = await readJson<{ category?: string; subject?: string; message?: string; turnstileToken?: string }>(request);
-    const turnstileToken = (body.turnstileToken || '').trim();
-    if ((env.TURNSTILE_SECRET_KEY || '').trim()) {
+  if (request.method === "POST") {
+    const body = await readJson<{
+      category?: string;
+      subject?: string;
+      message?: string;
+      turnstileToken?: string;
+    }>(request);
+    const turnstileToken = (body.turnstileToken || "").trim();
+    if ((env.TURNSTILE_SECRET_KEY || "").trim()) {
       const verified = await verifyTurnstileToken(request, env, turnstileToken);
-      if (!verified) return json(request, env, { error: 'Captcha verification failed' }, 403);
+      if (!verified)
+        return json(
+          request,
+          env,
+          { error: "Captcha verification failed" },
+          403,
+        );
     }
     const category = sanitizeFeedbackCategory(body.category);
     const subject = sanitizeFeedbackSubject(body.subject);
     const message = sanitizeFeedbackMessage(body.message);
 
-    if (!subject) return json(request, env, { error: 'Subject is required' }, 400);
-    if (!message) return json(request, env, { error: 'Message is required' }, 400);
+    if (!subject)
+      return json(request, env, { error: "Subject is required" }, 400);
+    if (!message)
+      return json(request, env, { error: "Message is required" }, 400);
 
     const now = new Date().toISOString();
     const threadId = crypto.randomUUID();
@@ -2124,48 +2688,81 @@ async function handleUserFeedback(request: Request, env: Env): Promise<Response>
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO feedback_threads (id, user_id, category, subject, status, created_at, updated_at, last_reply_at, admin_last_reply_at, user_last_reply_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(threadId, session.user.id, category, subject, 'open', now, now, now, null, now),
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        threadId,
+        session.user.id,
+        category,
+        subject,
+        "open",
+        now,
+        now,
+        now,
+        null,
+        now,
+      ),
       env.DB.prepare(
         `INSERT INTO feedback_messages (id, thread_id, sender_user_id, sender_role, message, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(messageId, threadId, session.user.id, 'user', message, now),
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      ).bind(messageId, threadId, session.user.id, "user", message, now),
     ]);
 
     return json(request, env, { ok: true, id: threadId });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-async function handleUserFeedbackMessages(request: Request, env: Env): Promise<Response> {
+async function handleUserFeedbackMessages(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
   await ensureFeedbackTables(env);
   // Automatic cleanup disabled - threads persist for admins
   // await cleanupExpiredClosedFeedbackThreads(env);
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     const url = new URL(request.url);
-    const threadId = (url.searchParams.get('threadId') || '').trim();
-    if (!threadId) return json(request, env, { error: 'threadId is required' }, 400);
+    const threadId = (url.searchParams.get("threadId") || "").trim();
+    if (!threadId)
+      return json(request, env, { error: "threadId is required" }, 400);
 
-    const owned = await env.DB.prepare('SELECT id, status, updated_at FROM feedback_threads WHERE id = ? AND user_id = ?').bind(threadId, session.user.id).first<{ id: string; status: string; updated_at: string }>();
-    if (!owned?.id) return json(request, env, { error: 'Thread not found' }, 404);
+    const owned = await env.DB.prepare(
+      "SELECT id, status, updated_at FROM feedback_threads WHERE id = ? AND user_id = ?",
+    )
+      .bind(threadId, session.user.id)
+      .first<{ id: string; status: string; updated_at: string }>();
+    if (!owned?.id)
+      return json(request, env, { error: "Thread not found" }, 404);
 
     const rows = await env.DB.prepare(
       `SELECT id, sender_role, message, created_at
        FROM feedback_messages
        WHERE thread_id = ?
-       ORDER BY datetime(created_at) ASC`
-    ).bind(threadId).all<{ id: string; sender_role: string; message: string; created_at: string }>();
+       ORDER BY datetime(created_at) ASC`,
+    )
+      .bind(threadId)
+      .all<{
+        id: string;
+        sender_role: string;
+        message: string;
+        created_at: string;
+      }>();
 
     return json(request, env, {
       thread: {
         id: owned.id,
         status: sanitizeFeedbackStatus(owned.status),
-        closedExpiresAt: sanitizeFeedbackStatus(owned.status) === 'closed' ? getClosedFeedbackExpiresAt(owned.updated_at) : undefined,
-        closedRemainingMs: sanitizeFeedbackStatus(owned.status) === 'closed' ? getClosedFeedbackRemainingMs(owned.updated_at) : undefined,
+        closedExpiresAt:
+          sanitizeFeedbackStatus(owned.status) === "closed"
+            ? getClosedFeedbackExpiresAt(owned.updated_at)
+            : undefined,
+        closedRemainingMs:
+          sanitizeFeedbackStatus(owned.status) === "closed"
+            ? getClosedFeedbackRemainingMs(owned.updated_at)
+            : undefined,
       },
       items: (rows.results || []).map((row) => ({
         id: row.id,
@@ -2176,70 +2773,99 @@ async function handleUserFeedbackMessages(request: Request, env: Env): Promise<R
     });
   }
 
-  if (request.method === 'POST') {
-    const body = await readJson<{ threadId?: string; message?: string }>(request);
-    const threadId = (body.threadId || '').trim();
+  if (request.method === "POST") {
+    const body = await readJson<{ threadId?: string; message?: string }>(
+      request,
+    );
+    const threadId = (body.threadId || "").trim();
     const message = sanitizeFeedbackMessage(body.message);
-    if (!threadId) return json(request, env, { error: 'threadId is required' }, 400);
-    if (!message) return json(request, env, { error: 'Message is required' }, 400);
+    if (!threadId)
+      return json(request, env, { error: "threadId is required" }, 400);
+    if (!message)
+      return json(request, env, { error: "Message is required" }, 400);
 
-    const owned = await env.DB.prepare('SELECT id, status, updated_at FROM feedback_threads WHERE id = ? AND user_id = ?').bind(threadId, session.user.id).first<{ id: string; status: string; updated_at: string }>();
-    if (!owned?.id) return json(request, env, { error: 'Thread not found' }, 404);
+    const owned = await env.DB.prepare(
+      "SELECT id, status, updated_at FROM feedback_threads WHERE id = ? AND user_id = ?",
+    )
+      .bind(threadId, session.user.id)
+      .first<{ id: string; status: string; updated_at: string }>();
+    if (!owned?.id)
+      return json(request, env, { error: "Thread not found" }, 404);
 
-    if (sanitizeFeedbackStatus(owned.status) === 'closed') {
-      return json(request, env, {
-        error: 'This thread is closed. It is archived for 14 days and cannot receive new user messages.',
-        closedExpiresAt: getClosedFeedbackExpiresAt(owned.updated_at),
-        closedRemainingMs: getClosedFeedbackRemainingMs(owned.updated_at),
-      }, 409);
+    if (sanitizeFeedbackStatus(owned.status) === "closed") {
+      return json(
+        request,
+        env,
+        {
+          error:
+            "This thread is closed. It is archived for 14 days and cannot receive new user messages.",
+          closedExpiresAt: getClosedFeedbackExpiresAt(owned.updated_at),
+          closedRemainingMs: getClosedFeedbackRemainingMs(owned.updated_at),
+        },
+        409,
+      );
     }
 
     const now = new Date().toISOString();
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO feedback_messages (id, thread_id, sender_user_id, sender_role, message, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).bind(crypto.randomUUID(), threadId, session.user.id, 'user', message, now),
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        crypto.randomUUID(),
+        threadId,
+        session.user.id,
+        "user",
+        message,
+        now,
+      ),
       env.DB.prepare(
         `UPDATE feedback_threads
          SET status = ?, updated_at = ?, last_reply_at = ?, user_last_reply_at = ?
-         WHERE id = ? AND user_id = ?`
-      ).bind('open', now, now, now, threadId, session.user.id),
+         WHERE id = ? AND user_id = ?`,
+      ).bind("open", now, now, now, threadId, session.user.id),
     ]);
 
     return json(request, env, { ok: true });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-async function handleUserNotifications(request: Request, env: Env): Promise<Response> {
+async function handleUserNotifications(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
   await ensureFeedbackTables(env);
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     // Keep notifications table small: read notifications are ephemeral.
     await env.DB.prepare(
       `DELETE FROM user_notifications
-       WHERE user_id = ? AND is_read = 1`
-    ).bind(session.user.id).run();
+       WHERE user_id = ? AND is_read = 1`,
+    )
+      .bind(session.user.id)
+      .run();
 
     const rows = await env.DB.prepare(
       `SELECT id, type, title, message, thread_id, is_read, created_at
        FROM user_notifications
        WHERE user_id = ?
        ORDER BY datetime(created_at) DESC
-       LIMIT 100`
-    ).bind(session.user.id).all<{
-      id: string;
-      type: string;
-      title: string;
-      message: string;
-      thread_id: string | null;
-      is_read: number;
-      created_at: string;
-    }>();
+       LIMIT 100`,
+    )
+      .bind(session.user.id)
+      .all<{
+        id: string;
+        type: string;
+        title: string;
+        message: string;
+        thread_id: string | null;
+        is_read: number;
+        created_at: string;
+      }>();
 
     const items = (rows.results || []).map((row) => ({
       id: row.id,
@@ -2254,47 +2880,78 @@ async function handleUserNotifications(request: Request, env: Env): Promise<Resp
     return json(request, env, { items });
   }
 
-  if (request.method === 'PUT') {
+  if (request.method === "PUT") {
     const body = await readJson<{ ids?: string[] }>(request);
     const now = new Date().toISOString();
 
-    const ids = Array.isArray(body.ids) ? body.ids.map((item) => String(item).trim()).filter(Boolean) : [];
-    if (ids.length === 0) return json(request, env, { error: 'No notification ids provided' }, 400);
-    const placeholders = ids.map(() => '?').join(', ');
+    const ids = Array.isArray(body.ids)
+      ? body.ids.map((item) => String(item).trim()).filter(Boolean)
+      : [];
+    if (ids.length === 0)
+      return json(request, env, { error: "No notification ids provided" }, 400);
+    const placeholders = ids.map(() => "?").join(", ");
     await env.DB.prepare(
       `DELETE FROM user_notifications
-       WHERE user_id = ? AND id IN (${placeholders})`
-    ).bind(session.user.id, ...ids).run();
+       WHERE user_id = ? AND id IN (${placeholders})`,
+    )
+      .bind(session.user.id, ...ids)
+      .run();
 
     return json(request, env, { ok: true, updatedAt: now });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-async function handleClearEverything(request: Request, env: Env): Promise<Response> {
+async function handleClearEverything(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
-  if (request.method !== 'DELETE') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
+  if (request.method !== "DELETE")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
   await ensureFeedbackTables(env);
 
-  const feedbackIds = await env.DB.prepare('SELECT id FROM feedback_threads WHERE user_id = ?').bind(session.user.id).all<{ id: string }>();
+  const feedbackIds = await env.DB.prepare(
+    "SELECT id FROM feedback_threads WHERE user_id = ?",
+  )
+    .bind(session.user.id)
+    .all<{ id: string }>();
   const threadIds = (feedbackIds.results || []).map((row) => row.id);
 
   const statements = [
-    env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(session.user.id),
-    env.DB.prepare('DELETE FROM user_settings WHERE user_id = ?').bind(session.user.id),
-    env.DB.prepare('DELETE FROM watchlist WHERE user_id = ?').bind(session.user.id),
-    env.DB.prepare('DELETE FROM user_notifications WHERE user_id = ?').bind(session.user.id),
-    env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(session.user.id),
-    env.DB.prepare('DELETE FROM users WHERE id = ?').bind(session.user.id),
+    env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(
+      session.user.id,
+    ),
+    env.DB.prepare("DELETE FROM user_settings WHERE user_id = ?").bind(
+      session.user.id,
+    ),
+    env.DB.prepare("DELETE FROM watchlist WHERE user_id = ?").bind(
+      session.user.id,
+    ),
+    env.DB.prepare("DELETE FROM user_notifications WHERE user_id = ?").bind(
+      session.user.id,
+    ),
+    env.DB.prepare("DELETE FROM admin_users WHERE user_id = ?").bind(
+      session.user.id,
+    ),
+    env.DB.prepare("DELETE FROM users WHERE id = ?").bind(session.user.id),
   ];
 
   for (const threadId of threadIds) {
-    statements.push(env.DB.prepare('DELETE FROM feedback_messages WHERE thread_id = ?').bind(threadId));
+    statements.push(
+      env.DB.prepare("DELETE FROM feedback_messages WHERE thread_id = ?").bind(
+        threadId,
+      ),
+    );
   }
-  statements.push(env.DB.prepare('DELETE FROM feedback_threads WHERE user_id = ?').bind(session.user.id));
+  statements.push(
+    env.DB.prepare("DELETE FROM feedback_threads WHERE user_id = ?").bind(
+      session.user.id,
+    ),
+  );
 
   await env.DB.batch(statements);
 
@@ -2309,29 +2966,45 @@ async function handleClearEverything(request: Request, env: Env): Promise<Respon
   });
 }
 
-async function requireAdmin(request: Request, env: Env): Promise<SessionUser | Response> {
+async function requireAdmin(
+  request: Request,
+  env: Env,
+): Promise<SessionUser | Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
-  if (!session.user.isAdmin) return json(request, env, { error: 'Forbidden' }, 403);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
+  if (!session.user.isAdmin)
+    return json(request, env, { error: "Forbidden" }, 403);
   return session;
 }
 
-async function requireRole(request: Request, env: Env, allowedRoles: string[]): Promise<SessionUser | Response> {
+async function requireRole(
+  request: Request,
+  env: Env,
+  allowedRoles: string[],
+): Promise<SessionUser | Response> {
   const session = await getSessionUser(request, env);
-  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!session) return json(request, env, { error: "Unauthorized" }, 401);
   if (!session.user.role || !allowedRoles.includes(session.user.role)) {
-    return json(request, env, { error: 'Forbidden: Insufficient permissions' }, 403);
+    return json(
+      request,
+      env,
+      { error: "Forbidden: Insufficient permissions" },
+      403,
+    );
   }
   return session;
 }
 
-async function handlePublicAnnouncements(request: Request, env: Env): Promise<Response> {
+async function handlePublicAnnouncements(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const rows = await env.DB.prepare(
     `SELECT id, message, type, link_url, link_label, updated_at
      FROM announcements
      WHERE is_active = 1
      ORDER BY updated_at DESC
-     LIMIT 10`
+     LIMIT 10`,
   ).all<{
     id: string;
     message: string;
@@ -2346,22 +3019,32 @@ async function handlePublicAnnouncements(request: Request, env: Env): Promise<Re
       id: row.id,
       message: row.message,
       type: sanitizeAnnouncementType(row.type),
-      link: row.link_url ? { url: row.link_url, label: row.link_label || 'Learn more' } : undefined,
+      link: row.link_url
+        ? { url: row.link_url, label: row.link_label || "Learn more" }
+        : undefined,
       updatedAt: row.updated_at,
     })),
   });
 }
 
-async function handleAdminBlockedMedia(request: Request, env: Env): Promise<Response> {
+async function handleAdminBlockedMedia(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await requireAdmin(request, env);
   if (session instanceof Response) return session;
 
   await ensureBlockedMediaTable(env);
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     const rows = await env.DB.prepare(
-      'SELECT tmdb_id, media_type, reason, created_at FROM blocked_media ORDER BY created_at DESC'
-    ).all<{ tmdb_id: string; media_type: string; reason: string | null; created_at: string }>();
+      "SELECT tmdb_id, media_type, reason, created_at FROM blocked_media ORDER BY created_at DESC",
+    ).all<{
+      tmdb_id: string;
+      media_type: string;
+      reason: string | null;
+      created_at: string;
+    }>();
 
     return json(request, env, {
       items: (rows.results || []).map((row) => ({
@@ -2373,44 +3056,77 @@ async function handleAdminBlockedMedia(request: Request, env: Env): Promise<Resp
     });
   }
 
-  if (request.method === 'POST') {
-    const body = await readJson<{ tmdbId?: string; mediaType?: string; reason?: string }>(request);
-    const tmdbId = String(body.tmdbId || '').trim();
-    const mediaType = (body.mediaType || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
-    const reason = (body.reason || '').trim().slice(0, 300);
+  if (request.method === "POST") {
+    const body = await readJson<{
+      tmdbId?: string;
+      mediaType?: string;
+      reason?: string;
+    }>(request);
+    const tmdbId = String(body.tmdbId || "").trim();
+    const mediaType =
+      (body.mediaType || "movie").toLowerCase() === "tv" ? "tv" : "movie";
+    const reason = (body.reason || "").trim().slice(0, 300);
 
-    if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
+    if (!tmdbId)
+      return json(request, env, { error: "tmdbId is required" }, 400);
 
     await env.DB.prepare(
       `INSERT INTO blocked_media (tmdb_id, media_type, reason, created_at)
        VALUES (?, ?, ?, ?)
-       ON CONFLICT(tmdb_id, media_type) DO UPDATE SET reason = excluded.reason`
+       ON CONFLICT(tmdb_id, media_type) DO UPDATE SET reason = excluded.reason`,
     )
       .bind(tmdbId, mediaType, reason || null, new Date().toISOString())
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'block_media', 'media', tmdbId, { mediaType, reason });
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "block_media",
+      "media",
+      tmdbId,
+      { mediaType, reason },
+    );
     return json(request, env, { ok: true });
   }
 
-  if (request.method === 'DELETE') {
+  if (request.method === "DELETE") {
     const url = new URL(request.url);
-    const tmdbId = (url.searchParams.get('tmdbId') || '').trim();
-    const mediaType = (url.searchParams.get('mediaType') || 'movie').toLowerCase() === 'tv' ? 'tv' : 'movie';
+    const tmdbId = (url.searchParams.get("tmdbId") || "").trim();
+    const mediaType =
+      (url.searchParams.get("mediaType") || "movie").toLowerCase() === "tv"
+        ? "tv"
+        : "movie";
 
-    if (!tmdbId) return json(request, env, { error: 'tmdbId is required' }, 400);
+    if (!tmdbId)
+      return json(request, env, { error: "tmdbId is required" }, 400);
 
-    await env.DB.prepare('DELETE FROM blocked_media WHERE tmdb_id = ? AND media_type = ?').bind(tmdbId, mediaType).run();
-    await writeAdminAuditLog(env, session.user.id, 'unblock_media', 'media', tmdbId, { mediaType });
+    await env.DB.prepare(
+      "DELETE FROM blocked_media WHERE tmdb_id = ? AND media_type = ?",
+    )
+      .bind(tmdbId, mediaType)
+      .run();
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "unblock_media",
+      "media",
+      tmdbId,
+      { mediaType },
+    );
     return json(request, env, { ok: true });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-async function handlePublicBlockedMedia(request: Request, env: Env): Promise<Response> {
+async function handlePublicBlockedMedia(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   await ensureBlockedMediaTable(env);
-  const rows = await env.DB.prepare('SELECT tmdb_id, media_type FROM blocked_media').all<{ tmdb_id: string; media_type: string }>();
+  const rows = await env.DB.prepare(
+    "SELECT tmdb_id, media_type FROM blocked_media",
+  ).all<{ tmdb_id: string; media_type: string }>();
   return json(request, env, {
     items: (rows.results || []).map((row) => ({
       tmdbId: row.tmdb_id,
@@ -2419,8 +3135,15 @@ async function handlePublicBlockedMedia(request: Request, env: Env): Promise<Res
   });
 }
 
-async function handleAdminOverview(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
+async function handleAdminOverview(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, [
+    "owner",
+    "admin",
+    "moderator",
+  ]);
   if (session instanceof Response) return session;
 
   await ensureSecurityTables(env);
@@ -2429,13 +3152,34 @@ async function handleAdminOverview(request: Request, env: Env): Promise<Response
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [users, activeSessions, activeAnnouncements, activeCounts, activeWatchPartyRooms, newUsersToday] = await Promise.all([
-    env.DB.prepare('SELECT COUNT(*) as count FROM users').first<{ count: number }>(),
-    env.DB.prepare('SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?').bind(new Date().toISOString()).first<{ count: number }>(),
-    env.DB.prepare('SELECT COUNT(*) as count FROM announcements WHERE is_active = 1').first<{ count: number }>(),
+  const [
+    users,
+    activeSessions,
+    activeAnnouncements,
+    activeCounts,
+    activeWatchPartyRooms,
+    newUsersToday,
+  ] = await Promise.all([
+    env.DB.prepare("SELECT COUNT(*) as count FROM users").first<{
+      count: number;
+    }>(),
+    env.DB.prepare(
+      "SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?",
+    )
+      .bind(new Date().toISOString())
+      .first<{ count: number }>(),
+    env.DB.prepare(
+      "SELECT COUNT(*) as count FROM announcements WHERE is_active = 1",
+    ).first<{ count: number }>(),
     getActiveUsersCount(env),
-    env.DB.prepare('SELECT COUNT(*) as count FROM watch_party_rooms WHERE expires_at > ?').bind(new Date().toISOString()).first<{ count: number }>(),
-    env.DB.prepare('SELECT COUNT(*) as count FROM users WHERE created_at > ?').bind(todayStart.toISOString()).first<{ count: number }>(),
+    env.DB.prepare(
+      "SELECT COUNT(*) as count FROM watch_party_rooms WHERE expires_at > ?",
+    )
+      .bind(new Date().toISOString())
+      .first<{ count: number }>(),
+    env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE created_at > ?")
+      .bind(todayStart.toISOString())
+      .first<{ count: number }>(),
   ]);
 
   return json(request, env, {
@@ -2458,18 +3202,24 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
 
   await ensureSecurityTables(env);
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     const usernameRows = await env.DB.prepare(
       `SELECT ban_value, reason, created_at, created_by_user_id, target_user_id
        FROM banned_entities
        WHERE ban_type = 'username'
        ORDER BY created_at DESC
-       LIMIT 200`
-    ).all<{ ban_value: string; reason: string | null; created_at: string; created_by_user_id: string | null; target_user_id: string | null }>();
+       LIMIT 200`,
+    ).all<{
+      ban_value: string;
+      reason: string | null;
+      created_at: string;
+      created_by_user_id: string | null;
+      target_user_id: string | null;
+    }>();
 
     const items = [
       ...(usernameRows.results || []).map((row) => ({
-        type: 'username' as const,
+        type: "username" as const,
         value: row.ban_value,
         reason: row.reason || undefined,
         created_at: row.created_at,
@@ -2480,39 +3230,68 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
     return json(request, env, { items });
   }
 
-  if (request.method === 'POST') {
-    const body = await readJson<{ type?: 'username' | 'ip'; value?: string; reason?: string }>(request);
-    const type = body.type || 'username';
-    const value = (body.value || '').trim();
-    const reason = (body.reason || '').trim().slice(0, 300);
+  if (request.method === "POST") {
+    const body = await readJson<{
+      type?: "username" | "ip";
+      value?: string;
+      reason?: string;
+    }>(request);
+    const type = body.type || "username";
+    const value = (body.value || "").trim();
+    const reason = (body.reason || "").trim().slice(0, 300);
     const now = new Date().toISOString();
 
-    if (type === 'username') {
+    if (type === "username") {
       const resolved = await findUserByIdentifier(env, value);
       if (!resolved.validIdentifier) {
-        return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+        return json(
+          request,
+          env,
+          { error: "Invalid nickname or user ID format" },
+          400,
+        );
       }
 
-      if (resolved.matchType === 'id' && !resolved.user) {
-        return json(request, env, { error: 'User not found for this ID' }, 404);
+      if (resolved.matchType === "id" && !resolved.user) {
+        return json(request, env, { error: "User not found for this ID" }, 404);
       }
 
-      const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(value);
+      const username = resolved.user
+        ? normalizeUsername(resolved.user.username)
+        : normalizeUsername(value);
       const targetUserId = resolved.user?.id || null;
 
       if (targetUserId) {
         if (targetUserId === session.user.id) {
-          return json(request, env, { error: 'You cannot ban your own account' }, 403);
+          return json(
+            request,
+            env,
+            { error: "You cannot ban your own account" },
+            403,
+          );
         }
 
         const targetRole = await getUserRole(env, targetUserId);
         if (isAdminRole(targetRole)) {
-          return json(request, env, { error: 'Cannot ban Owner/Admin/Moderator accounts' }, 403);
+          return json(
+            request,
+            env,
+            { error: "Cannot ban Owner/Admin/Moderator accounts" },
+            403,
+          );
         }
 
         const protectedTarget = await isUserProtectedFromBan(env, targetUserId);
         if (protectedTarget) {
-          return json(request, env, { error: 'Cannot ban administrators or accounts created by administrators' }, 403);
+          return json(
+            request,
+            env,
+            {
+              error:
+                "Cannot ban administrators or accounts created by administrators",
+            },
+            403,
+          );
         }
       }
 
@@ -2526,82 +3305,130 @@ async function handleAdminBans(request: Request, env: Env): Promise<Response> {
            target_user_id = excluded.target_user_id,
            reason = excluded.reason,
            created_at = excluded.created_at,
-           created_by_user_id = excluded.created_by_user_id`
-      ).bind(username, username, targetUserId, reason || null, now, session.user.id).run();
+           created_by_user_id = excluded.created_by_user_id`,
+      )
+        .bind(
+          username,
+          username,
+          targetUserId,
+          reason || null,
+          now,
+          session.user.id,
+        )
+        .run();
 
       if (targetUserId) {
-        await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUserId).run();
+        await env.DB.prepare("DELETE FROM sessions WHERE user_id = ?")
+          .bind(targetUserId)
+          .run();
       }
 
-      await writeAdminAuditLog(env, session.user.id, 'ban_username', 'username', username, {
-        reason: reason || null,
-        inputValue: value,
-        matchedBy: resolved.matchType,
-        targetUserId: targetUserId || null,
-      });
+      await writeAdminAuditLog(
+        env,
+        session.user.id,
+        "ban_username",
+        "username",
+        username,
+        {
+          reason: reason || null,
+          inputValue: value,
+          matchedBy: resolved.matchType,
+          targetUserId: targetUserId || null,
+        },
+      );
       return json(request, env, { ok: true });
     }
 
-    return json(request, env, { error: 'Unsupported ban type' }, 400);
+    return json(request, env, { error: "Unsupported ban type" }, 400);
   }
 
-  if (request.method === 'DELETE') {
+  if (request.method === "DELETE") {
     const url = new URL(request.url);
-    const type = (url.searchParams.get('type') || 'username').trim();
-    const value = (url.searchParams.get('value') || '').trim();
-    if (!value) return json(request, env, { error: 'Missing value' }, 400);
+    const type = (url.searchParams.get("type") || "username").trim();
+    const value = (url.searchParams.get("value") || "").trim();
+    if (!value) return json(request, env, { error: "Missing value" }, 400);
 
-    if (type === 'username') {
+    if (type === "username") {
       const resolved = await findUserByIdentifier(env, value);
       if (!resolved.validIdentifier) {
-        return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
+        return json(
+          request,
+          env,
+          { error: "Invalid nickname or user ID format" },
+          400,
+        );
       }
 
-      if (resolved.matchType === 'id' && !resolved.user) {
-        return json(request, env, { error: 'User not found for this ID' }, 404);
+      if (resolved.matchType === "id" && !resolved.user) {
+        return json(request, env, { error: "User not found for this ID" }, 404);
       }
 
-      const username = resolved.user ? normalizeUsername(resolved.user.username) : normalizeUsername(value);
+      const username = resolved.user
+        ? normalizeUsername(resolved.user.username)
+        : normalizeUsername(value);
 
-      await env.DB.prepare(`DELETE FROM banned_entities WHERE ban_type = 'username' AND ban_value = ?`).bind(username).run();
+      await env.DB.prepare(
+        `DELETE FROM banned_entities WHERE ban_type = 'username' AND ban_value = ?`,
+      )
+        .bind(username)
+        .run();
 
-      await writeAdminAuditLog(env, session.user.id, 'unban_username', 'username', username, {
-        inputValue: value,
-        matchedBy: resolved.matchType,
-      });
+      await writeAdminAuditLog(
+        env,
+        session.user.id,
+        "unban_username",
+        "username",
+        username,
+        {
+          inputValue: value,
+          matchedBy: resolved.matchType,
+        },
+      );
       return json(request, env, { ok: true });
     }
 
-    if (type === 'ip') {
-      if (!isValidIp(value)) return json(request, env, { error: 'Invalid IP format' }, 400);
+    if (type === "ip") {
+      if (!isValidIp(value))
+        return json(request, env, { error: "Invalid IP format" }, 400);
       const ipHashScoped = await sha256Hex(`ip:${value}`);
       const ipHashLegacy = await sha256Hex(value);
       await env.DB.prepare(
         `DELETE FROM banned_entities
          WHERE ban_type = 'identifier'
-           AND ban_value IN (?, ?)`
-      ).bind(ipHashScoped, ipHashLegacy).run();
-      await writeAdminAuditLog(env, session.user.id, 'unban_ip', 'ip', value, null);
+           AND ban_value IN (?, ?)`,
+      )
+        .bind(ipHashScoped, ipHashLegacy)
+        .run();
+      await writeAdminAuditLog(
+        env,
+        session.user.id,
+        "unban_ip",
+        "ip",
+        value,
+        null,
+      );
       return json(request, env, { ok: true });
     }
 
-    return json(request, env, { error: 'Unsupported ban type' }, 400);
+    return json(request, env, { error: "Unsupported ban type" }, 400);
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-
-async function handleAdminAnnouncements(request: Request, env: Env): Promise<Response> {
+async function handleAdminAnnouncements(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await requireAdmin(request, env);
   if (session instanceof Response) return session;
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     const rows = await env.DB.prepare(
       `SELECT id, message, type, link_url, link_label, is_active, created_at, updated_at
        FROM announcements
        ORDER BY updated_at DESC
-       LIMIT 200`
+       LIMIT 200`,
     ).all<{
       id: string;
       message: string;
@@ -2627,98 +3454,185 @@ async function handleAdminAnnouncements(request: Request, env: Env): Promise<Res
     });
   }
 
-  if (request.method === 'POST') {
-    const body = await readJson<{ message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean }>(request);
-    const message = (body.message || '').trim().slice(0, 500);
+  if (request.method === "POST") {
+    const body = await readJson<{
+      message?: string;
+      type?: string;
+      linkUrl?: string;
+      linkLabel?: string;
+      isActive?: boolean;
+    }>(request);
+    const message = (body.message || "").trim().slice(0, 500);
     const type = sanitizeAnnouncementType(body.type);
     const linkUrl = sanitizeOptionalHttpUrl(body.linkUrl);
-    const linkLabel = (body.linkLabel || '').trim().slice(0, 60);
+    const linkLabel = (body.linkLabel || "").trim().slice(0, 60);
     const isActive = body.isActive !== false;
     const now = new Date().toISOString();
 
-    if (!message) return json(request, env, { error: 'Message is required' }, 400);
-    if (body.linkUrl && !linkUrl) return json(request, env, { error: 'Invalid link URL' }, 400);
+    if (!message)
+      return json(request, env, { error: "Message is required" }, 400);
+    if (body.linkUrl && !linkUrl)
+      return json(request, env, { error: "Invalid link URL" }, 400);
 
     const id = crypto.randomUUID();
     await env.DB.prepare(
       `INSERT INTO announcements (id, message, type, link_url, link_label, is_active, created_at, updated_at, created_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(id, message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, now, now, session.user.id)
+      .bind(
+        id,
+        message,
+        type,
+        linkUrl,
+        linkLabel || null,
+        isActive ? 1 : 0,
+        now,
+        now,
+        session.user.id,
+      )
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'create_announcement', 'announcement', id, { isActive, type });
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "create_announcement",
+      "announcement",
+      id,
+      { isActive, type },
+    );
     return json(request, env, { ok: true, id });
   }
 
-  if (request.method === 'PUT') {
-    const body = await readJson<{ id?: string; message?: string; type?: string; linkUrl?: string; linkLabel?: string; isActive?: boolean }>(request);
-    const id = (body.id || '').trim();
-    const message = (body.message || '').trim().slice(0, 500);
+  if (request.method === "PUT") {
+    const body = await readJson<{
+      id?: string;
+      message?: string;
+      type?: string;
+      linkUrl?: string;
+      linkLabel?: string;
+      isActive?: boolean;
+    }>(request);
+    const id = (body.id || "").trim();
+    const message = (body.message || "").trim().slice(0, 500);
     const type = sanitizeAnnouncementType(body.type);
     const linkUrl = sanitizeOptionalHttpUrl(body.linkUrl);
-    const linkLabel = (body.linkLabel || '').trim().slice(0, 60);
+    const linkLabel = (body.linkLabel || "").trim().slice(0, 60);
     const isActive = body.isActive !== false;
 
-    if (!id) return json(request, env, { error: 'Announcement id is required' }, 400);
-    if (!message) return json(request, env, { error: 'Message is required' }, 400);
-    if (body.linkUrl && !linkUrl) return json(request, env, { error: 'Invalid link URL' }, 400);
+    if (!id)
+      return json(request, env, { error: "Announcement id is required" }, 400);
+    if (!message)
+      return json(request, env, { error: "Message is required" }, 400);
+    if (body.linkUrl && !linkUrl)
+      return json(request, env, { error: "Invalid link URL" }, 400);
 
     await env.DB.prepare(
       `UPDATE announcements
        SET message = ?, type = ?, link_url = ?, link_label = ?, is_active = ?, updated_at = ?
-       WHERE id = ?`
+       WHERE id = ?`,
     )
-      .bind(message, type, linkUrl, linkLabel || null, isActive ? 1 : 0, new Date().toISOString(), id)
+      .bind(
+        message,
+        type,
+        linkUrl,
+        linkLabel || null,
+        isActive ? 1 : 0,
+        new Date().toISOString(),
+        id,
+      )
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'update_announcement', 'announcement', id, { isActive, type });
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "update_announcement",
+      "announcement",
+      id,
+      { isActive, type },
+    );
     return json(request, env, { ok: true });
   }
 
-  if (request.method === 'DELETE') {
+  if (request.method === "DELETE") {
     const url = new URL(request.url);
-    const id = (url.searchParams.get('id') || '').trim();
-    if (!id) return json(request, env, { error: 'Announcement id is required' }, 400);
+    const id = (url.searchParams.get("id") || "").trim();
+    if (!id)
+      return json(request, env, { error: "Announcement id is required" }, 400);
 
-    await env.DB.prepare('DELETE FROM announcements WHERE id = ?').bind(id).run();
-    await writeAdminAuditLog(env, session.user.id, 'delete_announcement', 'announcement', id, null);
+    await env.DB.prepare("DELETE FROM announcements WHERE id = ?")
+      .bind(id)
+      .run();
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "delete_announcement",
+      "announcement",
+      id,
+      null,
+    );
     return json(request, env, { ok: true });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-async function handleAdminResetPassword(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner']);
+async function handleAdminResetPassword(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, ["owner"]);
   if (session instanceof Response) return session;
 
-  const body = await readJson<{ identifier?: string; username?: string }>(request);
-  const rawIdentifier = (body.identifier || body.username || '').trim();
+  const body = await readJson<{ identifier?: string; username?: string }>(
+    request,
+  );
+  const rawIdentifier = (body.identifier || body.username || "").trim();
   const resolved = await findUserByIdentifier(env, rawIdentifier);
 
-  if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
-  if (!resolved.user) return json(request, env, { error: 'User not found' }, 404);
+  if (!resolved.validIdentifier)
+    return json(
+      request,
+      env,
+      { error: "Invalid nickname or user ID format" },
+      400,
+    );
+  if (!resolved.user)
+    return json(request, env, { error: "User not found" }, 404);
 
   // Generate 8-char temp password
   const tempPassword = crypto.randomUUID().slice(0, 8);
   const hash = await hashPassword(tempPassword);
 
-  await env.DB.prepare('UPDATE users SET password_hash = ?, requires_password_change = 1 WHERE id = ?').bind(hash, resolved.user.id).run();
-  await writeAdminAuditLog(env, session.user.id, 'reset_password', 'user', resolved.user.id, {
-    username: resolved.user.username,
-    inputValue: rawIdentifier,
-    matchedBy: resolved.matchType,
-  });
+  await env.DB.prepare(
+    "UPDATE users SET password_hash = ?, requires_password_change = 1 WHERE id = ?",
+  )
+    .bind(hash, resolved.user.id)
+    .run();
+  await writeAdminAuditLog(
+    env,
+    session.user.id,
+    "reset_password",
+    "user",
+    resolved.user.id,
+    {
+      username: resolved.user.username,
+      inputValue: rawIdentifier,
+      matchedBy: resolved.matchType,
+    },
+  );
 
   return json(request, env, { ok: true, temporaryPassword: tempPassword });
 }
 
 async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
+  const session = await requireRole(request, env, [
+    "owner",
+    "admin",
+    "moderator",
+  ]);
   if (session instanceof Response) return session;
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     const rows = await env.DB.prepare(
       `SELECT
          u.id,
@@ -2731,8 +3645,13 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
          ) AS last_active_at
        FROM users u
        ORDER BY datetime(last_active_at) DESC
-       LIMIT 500`
-    ).all<{ id: string; username: string; created_at: string; last_active_at: string | null }>();
+       LIMIT 500`,
+    ).all<{
+      id: string;
+      username: string;
+      created_at: string;
+      last_active_at: string | null;
+    }>();
 
     return json(request, env, {
       items: (rows.results || []).map((row) => ({
@@ -2744,71 +3663,119 @@ async function handleAdminUsers(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  if (request.method === 'DELETE') {
-    if (session.user.role !== 'owner' && session.user.role !== 'admin') {
-      return json(request, env, { error: 'Forbidden: Insufficient permissions' }, 403);
+  if (request.method === "DELETE") {
+    if (session.user.role !== "owner" && session.user.role !== "admin") {
+      return json(
+        request,
+        env,
+        { error: "Forbidden: Insufficient permissions" },
+        403,
+      );
     }
 
     const url = new URL(request.url);
-    const rawIdentifier = (url.searchParams.get('identifier') || url.searchParams.get('username') || '').trim();
+    const rawIdentifier = (
+      url.searchParams.get("identifier") ||
+      url.searchParams.get("username") ||
+      ""
+    ).trim();
     const resolved = await findUserByIdentifier(env, rawIdentifier);
-    if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
-    if (!resolved.user) return json(request, env, { error: 'User not found' }, 404);
+    if (!resolved.validIdentifier)
+      return json(
+        request,
+        env,
+        { error: "Invalid nickname or user ID format" },
+        400,
+      );
+    if (!resolved.user)
+      return json(request, env, { error: "User not found" }, 404);
 
     const targetUserId = resolved.user.id;
     const targetUsername = resolved.user.username;
 
     if (targetUserId === session.user.id) {
-      return json(request, env, { error: 'You cannot delete your own account from admin panel' }, 400);
+      return json(
+        request,
+        env,
+        { error: "You cannot delete your own account from admin panel" },
+        400,
+      );
     }
 
     // Hierarchy protection: Admins cannot delete other Admins or Owners
     const targetRole = await getUserRole(env, targetUserId);
-    if (session.user.role === 'admin') {
-      if (targetRole === 'admin' || targetRole === 'owner') {
-        return json(request, env, { error: 'Admins cannot delete other Admins or Owners' }, 403);
+    if (session.user.role === "admin") {
+      if (targetRole === "admin" || targetRole === "owner") {
+        return json(
+          request,
+          env,
+          { error: "Admins cannot delete other Admins or Owners" },
+          403,
+        );
       }
     }
 
     await env.DB.batch([
-      env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUserId),
-      env.DB.prepare('DELETE FROM user_settings WHERE user_id = ?').bind(targetUserId),
-      env.DB.prepare('DELETE FROM watchlist WHERE user_id = ?').bind(targetUserId),
-      env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(targetUserId),
-      env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetUserId),
+      env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(
+        targetUserId,
+      ),
+      env.DB.prepare("DELETE FROM user_settings WHERE user_id = ?").bind(
+        targetUserId,
+      ),
+      env.DB.prepare("DELETE FROM watchlist WHERE user_id = ?").bind(
+        targetUserId,
+      ),
+      env.DB.prepare("DELETE FROM admin_users WHERE user_id = ?").bind(
+        targetUserId,
+      ),
+      env.DB.prepare("DELETE FROM users WHERE id = ?").bind(targetUserId),
     ]);
 
-    await writeAdminAuditLog(env, session.user.id, 'delete_user', 'user', targetUserId, {
-      username: targetUsername,
-      inputValue: rawIdentifier,
-      matchedBy: resolved.matchType,
-    });
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "delete_user",
+      "user",
+      targetUserId,
+      {
+        username: targetUsername,
+        inputValue: rawIdentifier,
+        matchedBy: resolved.matchType,
+      },
+    );
     return json(request, env, { ok: true });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
 async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin']);
+  const session = await requireRole(request, env, ["owner", "admin"]);
   if (session instanceof Response) return session;
 
   await ensureSecurityTables(env);
 
-  if (request.method === 'GET') {
+  if (request.method === "GET") {
     const rows = await env.DB.prepare(
       `SELECT a.user_id, u.username, a.role, a.granted_by, a.expires_at, a.created_at
        FROM admin_users a
        LEFT JOIN users u ON u.id = a.user_id
        ORDER BY a.created_at DESC
-       LIMIT 100`
-    ).all<{ user_id: string; username: string | null; role: string; granted_by: string | null; expires_at: string | null; created_at: string }>();
+       LIMIT 100`,
+    ).all<{
+      user_id: string;
+      username: string | null;
+      role: string;
+      granted_by: string | null;
+      expires_at: string | null;
+      created_at: string;
+    }>();
 
     return json(request, env, {
       items: (rows.results || []).map((row) => ({
         userId: row.user_id,
-        username: row.username || 'unknown',
-        role: row.role || 'admin',
+        username: row.username || "unknown",
+        role: row.role || "admin",
         grantedBy: row.granted_by || null,
         expiresAt: row.expires_at || null,
         createdAt: row.created_at,
@@ -2816,29 +3783,53 @@ async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  if (request.method === 'POST') {
-    const body = await readJson<{ username?: string; role?: string; expiresInDays?: number }>(request);
-    const username = normalizeUsername(body.username || '');
-    const requestedRole = (body.role || 'moderator').toLowerCase();
+  if (request.method === "POST") {
+    const body = await readJson<{
+      username?: string;
+      role?: string;
+      expiresInDays?: number;
+    }>(request);
+    const username = normalizeUsername(body.username || "");
+    const requestedRole = (body.role || "moderator").toLowerCase();
 
-    if (!['owner', 'admin', 'moderator'].includes(requestedRole)) {
-      return json(request, env, { error: 'Invalid role' }, 400);
+    if (!["owner", "admin", "moderator"].includes(requestedRole)) {
+      return json(request, env, { error: "Invalid role" }, 400);
     }
 
     // Role hierarchy check
-    if (session.user.role === 'admin' && requestedRole !== 'moderator') {
-      return json(request, env, { error: 'Admins can only grant Moderator role' }, 403);
+    if (session.user.role === "admin" && requestedRole !== "moderator") {
+      return json(
+        request,
+        env,
+        { error: "Admins can only grant Moderator role" },
+        403,
+      );
     }
 
-    if (!isValidUsername(username)) return json(request, env, { error: 'Invalid nickname format' }, 400);
+    if (!isValidUsername(username))
+      return json(request, env, { error: "Invalid nickname format" }, 400);
 
-    const targetUser = await env.DB.prepare('SELECT id FROM users WHERE LOWER(username) = ?').bind(username).first<{ id: string }>();
-    if (!targetUser?.id) return json(request, env, { error: 'User not found' }, 404);
+    const targetUser = await env.DB.prepare(
+      "SELECT id FROM users WHERE LOWER(username) = ?",
+    )
+      .bind(username)
+      .first<{ id: string }>();
+    if (!targetUser?.id)
+      return json(request, env, { error: "User not found" }, 404);
 
-    const existingAdmin = await env.DB.prepare('SELECT user_id, role FROM admin_users WHERE user_id = ?').bind(targetUser.id).first<{ user_id: string; role: string }>();
+    const existingAdmin = await env.DB.prepare(
+      "SELECT user_id, role FROM admin_users WHERE user_id = ?",
+    )
+      .bind(targetUser.id)
+      .first<{ user_id: string; role: string }>();
     if (existingAdmin) {
-      if (session.user.role === 'admin') {
-        return json(request, env, { error: 'User already has administrative privileges' }, 409);
+      if (session.user.role === "admin") {
+        return json(
+          request,
+          env,
+          { error: "User already has administrative privileges" },
+          409,
+        );
       }
       // Owners can upgrade/downgrade existing admins
     }
@@ -2854,53 +3845,103 @@ async function handleAdminGrant(request: Request, env: Env): Promise<Response> {
     await env.DB.prepare(
       `INSERT INTO admin_users (user_id, role, granted_by, expires_at, created_at)
        VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET role = excluded.role, granted_by = excluded.granted_by, expires_at = excluded.expires_at`
-    ).bind(targetUser.id, requestedRole, session.user.id, expiresAt, now).run();
+       ON CONFLICT(user_id) DO UPDATE SET role = excluded.role, granted_by = excluded.granted_by, expires_at = excluded.expires_at`,
+    )
+      .bind(targetUser.id, requestedRole, session.user.id, expiresAt, now)
+      .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'grant_admin', 'user', targetUser.id, { username, role: requestedRole, expiresAt });
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "grant_admin",
+      "user",
+      targetUser.id,
+      { username, role: requestedRole, expiresAt },
+    );
     return json(request, env, { ok: true });
   }
 
-  if (request.method === 'DELETE') {
+  if (request.method === "DELETE") {
     const url = new URL(request.url);
-    const userId = (url.searchParams.get('userId') || '').trim();
-    if (!userId) return json(request, env, { error: 'Missing userId' }, 400);
+    const userId = (url.searchParams.get("userId") || "").trim();
+    if (!userId) return json(request, env, { error: "Missing userId" }, 400);
 
     if (userId === session.user.id) {
-      return json(request, env, { error: 'You cannot revoke your own admin access' }, 400);
+      return json(
+        request,
+        env,
+        { error: "You cannot revoke your own admin access" },
+        400,
+      );
     }
 
-    const target = await env.DB.prepare('SELECT role FROM admin_users WHERE user_id = ?').bind(userId).first<{ role: string }>();
-    if (!target) return json(request, env, { error: 'User not found in admin list' }, 404);
+    const target = await env.DB.prepare(
+      "SELECT role FROM admin_users WHERE user_id = ?",
+    )
+      .bind(userId)
+      .first<{ role: string }>();
+    if (!target)
+      return json(request, env, { error: "User not found in admin list" }, 404);
 
     // Permission check for revoking
-    if (session.user.role === 'admin') {
-      if (target.role !== 'moderator') {
-        return json(request, env, { error: 'Admins can only revoke Moderator access' }, 403);
+    if (session.user.role === "admin") {
+      if (target.role !== "moderator") {
+        return json(
+          request,
+          env,
+          { error: "Admins can only revoke Moderator access" },
+          403,
+        );
       }
-    } else if (session.user.role !== 'owner') {
-      return json(request, env, { error: 'Forbidden' }, 403);
+    } else if (session.user.role !== "owner") {
+      return json(request, env, { error: "Forbidden" }, 403);
     }
 
-    await env.DB.prepare('DELETE FROM admin_users WHERE user_id = ?').bind(userId).run();
-    await writeAdminAuditLog(env, session.user.id, 'revoke_admin', 'user', userId, null);
+    await env.DB.prepare("DELETE FROM admin_users WHERE user_id = ?")
+      .bind(userId)
+      .run();
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "revoke_admin",
+      "user",
+      userId,
+      null,
+    );
     return json(request, env, { ok: true });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-async function handleAdminSessions(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner']);
+async function handleAdminSessions(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, ["owner"]);
   if (session instanceof Response) return session;
 
-  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (request.method !== "POST")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
   const now = new Date().toISOString();
-  const activeCount = await env.DB.prepare('SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?').bind(now).first<{ count: number }>();
+  const activeCount = await env.DB.prepare(
+    "SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?",
+  )
+    .bind(now)
+    .first<{ count: number }>();
 
-  await env.DB.prepare('DELETE FROM sessions WHERE expires_at > ?').bind(now).run();
-  await writeAdminAuditLog(env, session.user.id, 'force_clear_sessions', 'session', '*', { clearedCount: activeCount?.count || 0 });
+  await env.DB.prepare("DELETE FROM sessions WHERE expires_at > ?")
+    .bind(now)
+    .run();
+  await writeAdminAuditLog(
+    env,
+    session.user.id,
+    "force_clear_sessions",
+    "session",
+    "*",
+    { clearedCount: activeCount?.count || 0 },
+  );
 
   return json(request, env, {
     ok: true,
@@ -2908,36 +3949,68 @@ async function handleAdminSessions(request: Request, env: Env): Promise<Response
   });
 }
 
-async function handleAdminUserSessions(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner']);
+async function handleAdminUserSessions(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, ["owner"]);
   if (session instanceof Response) return session;
 
-  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (request.method !== "POST")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
-  const body = await readJson<{ identifier?: string; userId?: string; username?: string }>(request);
-  const rawIdentifier = (body.identifier || body.userId || body.username || '').trim();
+  const body = await readJson<{
+    identifier?: string;
+    userId?: string;
+    username?: string;
+  }>(request);
+  const rawIdentifier = (
+    body.identifier ||
+    body.userId ||
+    body.username ||
+    ""
+  ).trim();
   const resolved = await findUserByIdentifier(env, rawIdentifier);
 
-  if (!resolved.validIdentifier) return json(request, env, { error: 'Invalid nickname or user ID format' }, 400);
-  if (!resolved.user) return json(request, env, { error: 'User not found' }, 404);
+  if (!resolved.validIdentifier)
+    return json(
+      request,
+      env,
+      { error: "Invalid nickname or user ID format" },
+      400,
+    );
+  if (!resolved.user)
+    return json(request, env, { error: "User not found" }, 404);
 
   const now = new Date().toISOString();
   const targetUserId = resolved.user.id;
   const targetUsername = resolved.user.username;
 
-  const activeCount = await env.DB
-    .prepare('SELECT COUNT(*) as count FROM sessions WHERE user_id = ? AND expires_at > ?')
+  const activeCount = await env.DB.prepare(
+    "SELECT COUNT(*) as count FROM sessions WHERE user_id = ? AND expires_at > ?",
+  )
     .bind(targetUserId, now)
     .first<{ count: number }>();
 
-  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND expires_at > ?').bind(targetUserId, now).run();
+  await env.DB.prepare(
+    "DELETE FROM sessions WHERE user_id = ? AND expires_at > ?",
+  )
+    .bind(targetUserId, now)
+    .run();
 
-  await writeAdminAuditLog(env, session.user.id, 'force_clear_user_sessions', 'user', targetUserId, {
-    username: targetUsername,
-    inputValue: rawIdentifier,
-    matchedBy: resolved.matchType,
-    clearedCount: activeCount?.count || 0,
-  });
+  await writeAdminAuditLog(
+    env,
+    session.user.id,
+    "force_clear_user_sessions",
+    "user",
+    targetUserId,
+    {
+      username: targetUsername,
+      inputValue: rawIdentifier,
+      matchedBy: resolved.matchType,
+      clearedCount: activeCount?.count || 0,
+    },
+  );
 
   return json(request, env, {
     ok: true,
@@ -2949,52 +4022,67 @@ async function handleAdminUserSessions(request: Request, env: Env): Promise<Resp
   });
 }
 
-async function handleAdminAuditLogs(request: Request, env: Env): Promise<Response> {
+async function handleAdminAuditLogs(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await requireAdmin(request, env);
   if (session instanceof Response) return session;
 
   await ensureSecurityTables(env);
 
-  if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (request.method !== "GET")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
   const url = new URL(request.url);
-  const rawLimit = Number(url.searchParams.get('limit') || '10');
-  const rawOffset = Number(url.searchParams.get('offset') || '0');
-  const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.floor(rawLimit))) : 10;
-  const offset = Number.isFinite(rawOffset) ? Math.max(0, Math.floor(rawOffset)) : 0;
+  const rawLimit = Number(url.searchParams.get("limit") || "10");
+  const rawOffset = Number(url.searchParams.get("offset") || "0");
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(100, Math.max(1, Math.floor(rawLimit)))
+    : 10;
+  const offset = Number.isFinite(rawOffset)
+    ? Math.max(0, Math.floor(rawOffset))
+    : 0;
 
   const rows = await env.DB.prepare(
     `SELECT id, admin_user_id, action, target_type, target_id, meta_json, created_at
      FROM admin_audit_logs
      ORDER BY datetime(created_at) DESC
-     LIMIT ? OFFSET ?`
-  ).bind(limit + 1, offset
-  ).all<{
-    id: string;
-    admin_user_id: string;
-    action: string;
-    target_type: string;
-    target_id: string | null;
-    meta_json: string | null;
-    created_at: string;
-  }>();
+     LIMIT ? OFFSET ?`,
+  )
+    .bind(limit + 1, offset)
+    .all<{
+      id: string;
+      admin_user_id: string;
+      action: string;
+      target_type: string;
+      target_id: string | null;
+      meta_json: string | null;
+      created_at: string;
+    }>();
 
   const fetchedRows = rows.results || [];
   const hasMore = fetchedRows.length > limit;
   const pageRows = hasMore ? fetchedRows.slice(0, limit) : fetchedRows;
 
-  const adminIds = Array.from(new Set(pageRows.map((row) => row.admin_user_id))).filter(Boolean);
+  const adminIds = Array.from(
+    new Set(pageRows.map((row) => row.admin_user_id)),
+  ).filter(Boolean);
   let usernamesById = new Map<string, string>();
 
   if (adminIds.length > 0) {
-    const placeholders = adminIds.map(() => '?').join(', ');
+    const placeholders = adminIds.map(() => "?").join(", ");
     const users = await env.DB.prepare(
       `SELECT id, username
        FROM users
-       WHERE id IN (${placeholders})`
-    ).bind(...adminIds).all<{ id: string; username: string }>();
+       WHERE id IN (${placeholders})`,
+    )
+      .bind(...adminIds)
+      .all<{ id: string; username: string }>();
 
-    usernamesById = new Map((users.results || []).map((item) => [item.id, item.username]));
+    usernamesById = new Map(
+      (users.results || []).map((item) => [item.id, item.username]),
+    );
   }
 
   return json(request, env, {
@@ -3024,14 +4112,22 @@ async function handleAdminAuditLogs(request: Request, env: Env): Promise<Respons
   });
 }
 
-async function handleAdminFeedback(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
+async function handleAdminFeedback(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, [
+    "owner",
+    "admin",
+    "moderator",
+  ]);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
   // Automatic cleanup disabled - threads persist for admins
   // await cleanupExpiredClosedFeedbackThreads(env);
 
-  if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (request.method !== "GET")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
   const rows = await env.DB.prepare(
     `SELECT
@@ -3049,7 +4145,7 @@ async function handleAdminFeedback(request: Request, env: Env): Promise<Response
      FROM feedback_threads t
      JOIN users u ON u.id = t.user_id
      ORDER BY datetime(t.updated_at) DESC
-     LIMIT 500`
+     LIMIT 500`,
   ).all<{
     id: string;
     user_id: string;
@@ -3075,44 +4171,91 @@ async function handleAdminFeedback(request: Request, env: Env): Promise<Response
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       lastReplyAt: row.last_reply_at,
-      closedExpiresAt: sanitizeFeedbackStatus(row.status) === 'closed' ? getClosedFeedbackExpiresAt(row.updated_at) : undefined,
-      closedRemainingMs: sanitizeFeedbackStatus(row.status) === 'closed' ? getClosedFeedbackRemainingMs(row.updated_at) : undefined,
-      hasUnreadFromUser: Boolean(row.user_last_reply_at) && (!row.admin_last_reply_at || Date.parse(row.user_last_reply_at || '') > Date.parse(row.admin_last_reply_at || '1970-01-01T00:00:00.000Z')),
+      closedExpiresAt:
+        sanitizeFeedbackStatus(row.status) === "closed"
+          ? getClosedFeedbackExpiresAt(row.updated_at)
+          : undefined,
+      closedRemainingMs:
+        sanitizeFeedbackStatus(row.status) === "closed"
+          ? getClosedFeedbackRemainingMs(row.updated_at)
+          : undefined,
+      hasUnreadFromUser:
+        Boolean(row.user_last_reply_at) &&
+        (!row.admin_last_reply_at ||
+          Date.parse(row.user_last_reply_at || "") >
+            Date.parse(row.admin_last_reply_at || "1970-01-01T00:00:00.000Z")),
     })),
   });
 }
 
-async function handleAdminFeedbackMessages(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
+async function handleAdminFeedbackMessages(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, [
+    "owner",
+    "admin",
+    "moderator",
+  ]);
   if (session instanceof Response) return session;
 
   await ensureFeedbackTables(env);
   // Automatic cleanup disabled - threads persist for admins
   // await cleanupExpiredClosedFeedbackThreads(env);
 
-  if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (request.method !== "GET")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
   const url = new URL(request.url);
-  const threadId = (url.searchParams.get('threadId') || '').trim();
-  if (!threadId) return json(request, env, { error: 'threadId is required' }, 400);
+  const threadId = (url.searchParams.get("threadId") || "").trim();
+  if (!threadId)
+    return json(request, env, { error: "threadId is required" }, 400);
 
-  const thread = await env.DB.prepare('SELECT id, user_id, status, updated_at FROM feedback_threads WHERE id = ?').bind(threadId).first<{ id: string; user_id: string; status: string; updated_at: string }>();
-  if (!thread?.id) return json(request, env, { error: 'Thread not found' }, 404);
+  const thread = await env.DB.prepare(
+    "SELECT id, user_id, status, updated_at FROM feedback_threads WHERE id = ?",
+  )
+    .bind(threadId)
+    .first<{
+      id: string;
+      user_id: string;
+      status: string;
+      updated_at: string;
+    }>();
+  if (!thread?.id)
+    return json(request, env, { error: "Thread not found" }, 404);
 
   const rows = await env.DB.prepare(
     `SELECT id, sender_user_id, sender_role, message, created_at
      FROM feedback_messages
      WHERE thread_id = ?
-     ORDER BY datetime(created_at) ASC`
-  ).bind(threadId).all<{ id: string; sender_user_id: string | null; sender_role: string; message: string; created_at: string }>();
+     ORDER BY datetime(created_at) ASC`,
+  )
+    .bind(threadId)
+    .all<{
+      id: string;
+      sender_user_id: string | null;
+      sender_role: string;
+      message: string;
+      created_at: string;
+    }>();
 
   return json(request, env, {
     thread: {
       id: thread.id,
       userId: thread.user_id,
       status: sanitizeFeedbackStatus(thread.status),
-      closedExpiresAt: sanitizeFeedbackStatus(thread.status) === 'closed' ? getClosedFeedbackExpiresAt(thread.updated_at || new Date().toISOString()) : undefined,
-      closedRemainingMs: sanitizeFeedbackStatus(thread.status) === 'closed' ? getClosedFeedbackRemainingMs(thread.updated_at || new Date().toISOString()) : undefined,
+      closedExpiresAt:
+        sanitizeFeedbackStatus(thread.status) === "closed"
+          ? getClosedFeedbackExpiresAt(
+              thread.updated_at || new Date().toISOString(),
+            )
+          : undefined,
+      closedRemainingMs:
+        sanitizeFeedbackStatus(thread.status) === "closed"
+          ? getClosedFeedbackRemainingMs(
+              thread.updated_at || new Date().toISOString(),
+            )
+          : undefined,
     },
     items: (rows.results || []).map((row) => ({
       id: row.id,
@@ -3124,70 +4267,133 @@ async function handleAdminFeedbackMessages(request: Request, env: Env): Promise<
   });
 }
 
-async function handleAdminFeedbackReply(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
+async function handleAdminFeedbackReply(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, [
+    "owner",
+    "admin",
+    "moderator",
+  ]);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
   // Automatic cleanup disabled - threads persist for admins
   // await cleanupExpiredClosedFeedbackThreads(env);
 
-  if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (request.method !== "POST")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
-  const body = await readJson<{ threadId?: string; message?: string; status?: string }>(request);
-  const threadId = (body.threadId || '').trim();
+  const body = await readJson<{
+    threadId?: string;
+    message?: string;
+    status?: string;
+  }>(request);
+  const threadId = (body.threadId || "").trim();
   const message = sanitizeFeedbackMessage(body.message);
   const status = sanitizeFeedbackStatus(body.status);
-  if (!threadId) return json(request, env, { error: 'threadId is required' }, 400);
-  if (!message) return json(request, env, { error: 'Message is required' }, 400);
+  if (!threadId)
+    return json(request, env, { error: "threadId is required" }, 400);
+  if (!message)
+    return json(request, env, { error: "Message is required" }, 400);
 
-  const thread = await env.DB.prepare('SELECT id, user_id, subject FROM feedback_threads WHERE id = ?').bind(threadId).first<{ id: string; user_id: string; subject: string }>();
-  if (!thread?.id) return json(request, env, { error: 'Thread not found' }, 404);
+  const thread = await env.DB.prepare(
+    "SELECT id, user_id, subject FROM feedback_threads WHERE id = ?",
+  )
+    .bind(threadId)
+    .first<{ id: string; user_id: string; subject: string }>();
+  if (!thread?.id)
+    return json(request, env, { error: "Thread not found" }, 404);
 
   const now = new Date().toISOString();
-  const notificationTitle = 'New admin reply';
+  const notificationTitle = "New admin reply";
   const notificationMessage = `Reply to: ${thread.subject}`.slice(0, 220);
 
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO feedback_messages (id, thread_id, sender_user_id, sender_role, message, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), threadId, session.user.id, 'admin', message, now),
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(),
+      threadId,
+      session.user.id,
+      "admin",
+      message,
+      now,
+    ),
     env.DB.prepare(
       `UPDATE feedback_threads
        SET status = ?, updated_at = ?, last_reply_at = ?, admin_last_reply_at = ?
-       WHERE id = ?`
+       WHERE id = ?`,
     ).bind(status, now, now, now, threadId),
     env.DB.prepare(
       `INSERT INTO user_notifications (id, user_id, type, title, message, thread_id, is_read, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), thread.user_id, 'feedback_reply', notificationTitle, notificationMessage, threadId, 0, now),
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(),
+      thread.user_id,
+      "feedback_reply",
+      notificationTitle,
+      notificationMessage,
+      threadId,
+      0,
+      now,
+    ),
   ]);
 
-  await writeAdminAuditLog(env, session.user.id, 'reply_feedback_thread', 'feedback_thread', threadId, { status });
+  await writeAdminAuditLog(
+    env,
+    session.user.id,
+    "reply_feedback_thread",
+    "feedback_thread",
+    threadId,
+    { status },
+  );
   return json(request, env, { ok: true });
 }
 
-async function handleAdminFeedbackDelete(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner']);
+async function handleAdminFeedbackDelete(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, ["owner"]);
   if (session instanceof Response) return session;
   await ensureFeedbackTables(env);
 
-  if (request.method !== 'DELETE') return json(request, env, { error: 'Method not allowed' }, 405);
+  if (request.method !== "DELETE")
+    return json(request, env, { error: "Method not allowed" }, 405);
 
   const url = new URL(request.url);
-  const threadId = (url.searchParams.get('threadId') || '').trim();
-  if (!threadId) return json(request, env, { error: 'threadId is required' }, 400);
+  const threadId = (url.searchParams.get("threadId") || "").trim();
+  if (!threadId)
+    return json(request, env, { error: "threadId is required" }, 400);
 
-  const thread = await env.DB.prepare('SELECT id FROM feedback_threads WHERE id = ?').bind(threadId).first<{ id: string }>();
-  if (!thread?.id) return json(request, env, { error: 'Thread not found' }, 404);
+  const thread = await env.DB.prepare(
+    "SELECT id FROM feedback_threads WHERE id = ?",
+  )
+    .bind(threadId)
+    .first<{ id: string }>();
+  if (!thread?.id)
+    return json(request, env, { error: "Thread not found" }, 404);
 
   await env.DB.batch([
-    env.DB.prepare('DELETE FROM feedback_messages WHERE thread_id = ?').bind(threadId),
-    env.DB.prepare('DELETE FROM user_notifications WHERE thread_id = ?').bind(threadId),
-    env.DB.prepare('DELETE FROM feedback_threads WHERE id = ?').bind(threadId),
+    env.DB.prepare("DELETE FROM feedback_messages WHERE thread_id = ?").bind(
+      threadId,
+    ),
+    env.DB.prepare("DELETE FROM user_notifications WHERE thread_id = ?").bind(
+      threadId,
+    ),
+    env.DB.prepare("DELETE FROM feedback_threads WHERE id = ?").bind(threadId),
   ]);
 
-  await writeAdminAuditLog(env, session.user.id, 'force_delete_feedback_thread', 'feedback_thread', threadId, {});
+  await writeAdminAuditLog(
+    env,
+    session.user.id,
+    "force_delete_feedback_thread",
+    "feedback_thread",
+    threadId,
+    {},
+  );
   return json(request, env, { ok: true, deletedThreadId: threadId });
 }
 
@@ -3197,38 +4403,49 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
   // Target URL from query param
-  const targetUrl = url.searchParams.get('url');
-  const sig = url.searchParams.get('sig');
-  const exp = url.searchParams.get('exp');
+  const targetUrl = url.searchParams.get("url");
+  const sig = url.searchParams.get("sig");
+  const exp = url.searchParams.get("exp");
 
   if (!targetUrl) {
-    return new Response(JSON.stringify({ error: 'Missing ?url= parameter' }), {
+    return new Response(JSON.stringify({ error: "Missing ?url= parameter" }), {
       status: 400,
-      headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
+      headers: {
+        ...corsHeaders(request, env),
+        "Content-Type": "application/json",
+      },
     });
   }
 
   // Session check is still mandatory for proxy tracing and security
   const session = await getSessionUser(request, env);
   if (!session) {
-    return json(request, env, { error: 'Unauthorized: Session required' }, 401);
+    return json(request, env, { error: "Unauthorized: Session required" }, 401);
   }
 
   try {
     const parsedTarget = new URL(targetUrl);
-    if (!['http:', 'https:'].includes(parsedTarget.protocol)) {
-      return json(request, env, { error: 'Invalid target protocol' }, 400);
+    if (!["http:", "https:"].includes(parsedTarget.protocol)) {
+      return json(request, env, { error: "Invalid target protocol" }, 400);
     }
 
-    const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
+    const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "::1"];
     const hostname = parsedTarget.hostname.toLowerCase();
-    if (blockedHosts.includes(hostname) || hostname.endsWith('.internal')) {
-      return json(request, env, { error: 'Target host is not allowed' }, 403);
+    if (blockedHosts.includes(hostname) || hostname.endsWith(".internal")) {
+      return json(request, env, { error: "Target host is not allowed" }, 403);
     }
 
     const allowedHosts = parseCsvSet(env.ALLOWED_HOSTS);
-    if (allowedHosts.length === 0 || !allowedHosts.some((pattern) => matchHostname(hostname, pattern))) {
-      return json(request, env, { error: 'Target host is not in allowlist' }, 403);
+    if (
+      allowedHosts.length === 0 ||
+      !allowedHosts.some((pattern) => matchHostname(hostname, pattern))
+    ) {
+      return json(
+        request,
+        env,
+        { error: "Target host is not in allowlist" },
+        403,
+      );
     }
 
     // Build headers for target request
@@ -3236,10 +4453,10 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
 
     // Forward special proxy headers
     const headerMappings: Record<string, string> = {
-      'X-Cookie': 'Cookie',
-      'X-Referer': 'Referer',
-      'X-Origin': 'Origin',
-      'X-User-Agent': 'User-Agent',
+      "X-Cookie": "Cookie",
+      "X-Referer": "Referer",
+      "X-Origin": "Origin",
+      "X-User-Agent": "User-Agent",
     };
 
     for (const [proxyHeader, targetHeader] of Object.entries(headerMappings)) {
@@ -3248,50 +4465,51 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
     }
 
     // Default User-Agent if not set
-    if (!requestHeaders.has('User-Agent')) {
+    if (!requestHeaders.has("User-Agent")) {
       requestHeaders.set(
-        'User-Agent',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       );
     }
 
     // Default Referer and Origin if not set to help with some providers
-    if (!requestHeaders.has('Referer')) {
-      requestHeaders.set('Referer', parsedTarget.origin + '/');
+    if (!requestHeaders.has("Referer")) {
+      requestHeaders.set("Referer", parsedTarget.origin + "/");
     }
-    if (!requestHeaders.has('Origin')) {
-      requestHeaders.set('Origin', parsedTarget.origin);
+    if (!requestHeaders.has("Origin")) {
+      requestHeaders.set("Origin", parsedTarget.origin);
     }
 
     // Forward body for POST requests
     let body: BodyInit | null = null;
-    if (request.method === 'POST') {
+    if (request.method === "POST") {
       body = await request.text();
-      const contentType = request.headers.get('Content-Type');
-      if (contentType) requestHeaders.set('Content-Type', contentType);
+      const contentType = request.headers.get("Content-Type");
+      if (contentType) requestHeaders.set("Content-Type", contentType);
     }
 
     // Make the request to target
     let response = await fetch(targetUrl, {
-      method: request.method === 'OPTIONS' ? 'GET' : request.method,
+      method: request.method === "OPTIONS" ? "GET" : request.method,
       headers: requestHeaders,
       body,
-      redirect: 'follow',
+      redirect: "follow",
     });
 
     // Special handling for subtitle providers that are slow/flaky (like sub.wyzie.ru / .io)
-    const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
-                       parsedTarget.hostname.includes('wyzie.ru') ||
-                       parsedTarget.hostname.includes('wyzie.io');
+    const isSubtitle =
+      /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
+      parsedTarget.hostname.includes("wyzie.ru") ||
+      parsedTarget.hostname.includes("wyzie.io");
 
     if (isSubtitle && (!response.ok || response.status === 204)) {
       // Automatic retry for subtitles to handle "sometimes missing" issues
       // as reported by users (requires refresh to work)
       response = await fetch(targetUrl, {
-        method: request.method === 'OPTIONS' ? 'GET' : request.method,
+        method: request.method === "OPTIONS" ? "GET" : request.method,
         headers: requestHeaders,
         body,
-        redirect: 'follow',
+        redirect: "follow",
       });
     }
 
@@ -3300,15 +4518,15 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
 
     // Forward important response headers
     const forwardHeaders = [
-      'Content-Type',
-      'Content-Length',
-      'Content-Disposition',
-      'Content-Encoding',
-      'Content-Range',
-      'Accept-Ranges',
-      'Cache-Control',
-      'ETag',
-      'Last-Modified',
+      "Content-Type",
+      "Content-Length",
+      "Content-Disposition",
+      "Content-Encoding",
+      "Content-Range",
+      "Accept-Ranges",
+      "Cache-Control",
+      "ETag",
+      "Last-Modified",
     ];
 
     for (const header of forwardHeaders) {
@@ -3324,148 +4542,184 @@ async function handleProxy(request: Request, env: Env): Promise<Response> {
       headers: responseHeaders,
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'Proxy request failed' }), {
-      status: 502,
-      headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: err.message || "Proxy request failed" }),
+      {
+        status: 502,
+        headers: {
+          ...corsHeaders(request, env),
+          "Content-Type": "application/json",
+        },
+      },
+    );
   }
 }
 
 async function handleHealth(request: Request, env: Env): Promise<Response> {
   return new Response(
     JSON.stringify({
-      status: 'ok',
-      version: '1.0.0',
+      status: "ok",
+      version: "1.0.0",
       timestamp: new Date().toISOString(),
     }),
     {
-      headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
-    }
+      headers: {
+        ...corsHeaders(request, env),
+        "Content-Type": "application/json",
+      },
+    },
   );
 }
 
 /* ──── Direct Stream Resolver (VidLink) ──── */
 
 const DIRECT_RESOLVER_ALLOWED_HOSTS = [
-  '*.vodvidl.site',
-  '*.b-cdn.net',
-  '*.vidlink.pro',
-  '*.workers.dev',
-  'videostr.net',
-  'vidlink.pro',
-  '*.shegu.net',
-  '*.febbox.com',
-  '*.febbox.org',
+  "*.vodvidl.site",
+  "*.b-cdn.net",
+  "*.vidlink.pro",
+  "*.workers.dev",
+  "videostr.net",
+  "vidlink.pro",
+  "*.shegu.net",
+  "*.febbox.com",
+  "*.febbox.org",
 ];
 
 function isDirectResolverHostAllowed(hostname: string): boolean {
-  return DIRECT_RESOLVER_ALLOWED_HOSTS.some((pattern) => matchHostname(hostname, pattern));
+  return DIRECT_RESOLVER_ALLOWED_HOSTS.some((pattern) =>
+    matchHostname(hostname, pattern),
+  );
 }
 
 function parseDirectResolverHeaders(url: URL): Record<string, string> {
-  const allowedKeys = new Set(['user-agent', 'referer', 'origin', 'accept', 'accept-language', 'range', 'connection']);
+  const allowedKeys = new Set([
+    "user-agent",
+    "referer",
+    "origin",
+    "accept",
+    "accept-language",
+    "range",
+    "connection",
+  ]);
   const result: Record<string, string> = {};
 
-  for (const raw of url.searchParams.getAll('headers')) {
+  for (const raw of url.searchParams.getAll("headers")) {
     if (!raw) continue;
     try {
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
-      for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+        continue;
+      for (const [key, value] of Object.entries(
+        parsed as Record<string, unknown>,
+      )) {
         const normalizedKey = key.toLowerCase();
         if (!allowedKeys.has(normalizedKey)) continue;
-        if (typeof value !== 'string') continue;
+        if (typeof value !== "string") continue;
         const trimmed = value.trim();
         if (!trimmed) continue;
         result[normalizedKey] = trimmed;
       }
-    } catch {
-    }
+    } catch {}
   }
 
-  const hostHint = String(url.searchParams.get('host') || '').trim();
+  const hostHint = String(url.searchParams.get("host") || "").trim();
   if (hostHint) {
     try {
       const parsedHost = new URL(hostHint);
       if (!result.origin) result.origin = parsedHost.origin;
       if (!result.referer) result.referer = `${parsedHost.origin}/`;
-    } catch {
-    }
+    } catch {}
   }
 
   return result;
 }
 
-async function handleDirectResolver(request: Request, env: Env): Promise<Response> {
+async function handleDirectResolver(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const url = new URL(request.url);
-  const target = String(url.searchParams.get('url') || '').trim();
+  const target = String(url.searchParams.get("url") || "").trim();
 
   if (!target) {
-    return json(request, env, { error: 'Missing ?url= parameter' }, 400);
+    return json(request, env, { error: "Missing ?url= parameter" }, 400);
   }
 
   let parsedTarget: URL;
   try {
     parsedTarget = new URL(target);
   } catch {
-    return json(request, env, { error: 'Invalid target URL' }, 400);
+    return json(request, env, { error: "Invalid target URL" }, 400);
   }
 
   if (!/^https?:$/i.test(parsedTarget.protocol)) {
-    return json(request, env, { error: 'Unsupported target protocol' }, 400);
+    return json(request, env, { error: "Unsupported target protocol" }, 400);
   }
 
   if (!isDirectResolverHostAllowed(parsedTarget.hostname)) {
-    return json(request, env, { error: 'Target host is not allowed' }, 403);
+    return json(request, env, { error: "Target host is not allowed" }, 403);
   }
 
   try {
     const targetHost = parsedTarget.hostname.toLowerCase();
-    const defaultOrigin = targetHost.includes('vodvidl') || targetHost.includes('videostr')
-        ? 'https://videostr.net'
-        : 'https://vidlink.pro';
+    const defaultOrigin =
+      targetHost.includes("vodvidl") || targetHost.includes("videostr")
+        ? "https://videostr.net"
+        : "https://vidlink.pro";
 
     const extraHeaders = parseDirectResolverHeaders(url);
-    const referer = extraHeaders.referer || `${(extraHeaders.origin || defaultOrigin)}/`;
+    const referer =
+      extraHeaders.referer || `${extraHeaders.origin || defaultOrigin}/`;
 
     const upstreamHeaders = new Headers({
-      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0',
+      "User-Agent":
+        "Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0",
       Referer: referer,
       Origin: extraHeaders.origin || defaultOrigin,
-      Accept: extraHeaders.accept || '*/*',
+      Accept: extraHeaders.accept || "*/*",
     });
 
     for (const [key, value] of Object.entries(extraHeaders)) {
       if (!value) continue;
-      if (key === 'accept') continue;
+      if (key === "accept") continue;
       upstreamHeaders.set(key, value);
     }
 
-    let upstreamResponse = await fetch(new Request(target, {
-      method: 'GET',
-      headers: upstreamHeaders,
-      redirect: 'follow',
-    }));
-
+    let upstreamResponse = await fetch(
+      new Request(target, {
+        method: "GET",
+        headers: upstreamHeaders,
+        redirect: "follow",
+      }),
+    );
 
     // Special handling for subtitles - automatic retry if failed or empty
-    const isSubtitle = /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
-                       parsedTarget.hostname.includes('wyzie.ru') ||
-                       parsedTarget.hostname.includes('wyzie.io');
-    if (isSubtitle && (!upstreamResponse.ok || upstreamResponse.status === 204)) {
-      upstreamResponse = await fetch(new Request(target, {
-        method: 'GET',
-        headers: upstreamHeaders,
-        redirect: 'follow',
-      }));
+    const isSubtitle =
+      /\.(vtt|srt|webvtt|ass|ssa)(\?.*)?$/i.test(parsedTarget.pathname) ||
+      parsedTarget.hostname.includes("wyzie.ru") ||
+      parsedTarget.hostname.includes("wyzie.io");
+    if (
+      isSubtitle &&
+      (!upstreamResponse.ok || upstreamResponse.status === 204)
+    ) {
+      upstreamResponse = await fetch(
+        new Request(target, {
+          method: "GET",
+          headers: upstreamHeaders,
+          redirect: "follow",
+        }),
+      );
     }
 
     const headers = new Headers(upstreamResponse.headers);
     const allowedOrigin = getAllowedOrigin(request, env);
-    headers.set('Access-Control-Allow-Origin', allowedOrigin || '*');
-    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Range, Accept, Origin, Referer, User-Agent');
-    headers.set('Vary', 'Origin');
+    headers.set("Access-Control-Allow-Origin", allowedOrigin || "*");
+    headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+    headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, Range, Accept, Origin, Referer, User-Agent",
+    );
+    headers.set("Vary", "Origin");
 
     return new Response(upstreamResponse.body, {
       status: upstreamResponse.status,
@@ -3473,7 +4727,12 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
       headers,
     });
   } catch (error: any) {
-    return json(request, env, { error: error?.message || 'Direct resolver failed' }, 502);
+    return json(
+      request,
+      env,
+      { error: error?.message || "Direct resolver failed" },
+      502,
+    );
   }
 }
 
@@ -3481,21 +4740,24 @@ async function handleDirectResolver(request: Request, env: Env): Promise<Respons
 
 async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const targetUrl = url.searchParams.get('url');
-  const sig = url.searchParams.get('sig');
-  const exp = url.searchParams.get('exp');
+  const targetUrl = url.searchParams.get("url");
+  const sig = url.searchParams.get("sig");
+  const exp = url.searchParams.get("exp");
 
   if (!targetUrl) {
-    return new Response(JSON.stringify({ error: 'Missing ?url= parameter' }), {
+    return new Response(JSON.stringify({ error: "Missing ?url= parameter" }), {
       status: 400,
-      headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
+      headers: {
+        ...corsHeaders(request, env),
+        "Content-Type": "application/json",
+      },
     });
   }
 
   // Session check is still mandatory for HLS rewriting
   const session = await getSessionUser(request, env);
   if (!session) {
-    return json(request, env, { error: 'Unauthorized: Session required' }, 401);
+    return json(request, env, { error: "Unauthorized: Session required" }, 401);
   }
 
   const proxyBase = `${url.origin}/proxy?url=`;
@@ -3503,32 +4765,45 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
   try {
     const parsedTarget = new URL(targetUrl);
     const allowedHosts = parseCsvSet(env.ALLOWED_HOSTS);
-    if (allowedHosts.length === 0 || !allowedHosts.some((pattern) => matchHostname(parsedTarget.hostname, pattern))) {
-      return json(request, env, { error: 'Target host is not in allowlist' }, 403);
+    if (
+      allowedHosts.length === 0 ||
+      !allowedHosts.some((pattern) =>
+        matchHostname(parsedTarget.hostname, pattern),
+      )
+    ) {
+      return json(
+        request,
+        env,
+        { error: "Target host is not in allowlist" },
+        403,
+      );
     }
 
     const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        Referer: new URL(targetUrl).origin + '/',
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Referer: new URL(targetUrl).origin + "/",
       },
     });
 
     let body = await response.text();
-    const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+    const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
 
     // Rewrite relative URLs in HLS manifests to go through proxy
-    body = body.replace(/^(?!#)(.+\.(?:m3u8|ts|key|mp4|aac|vtt|srt|webvtt))(\?.*)?$/gm, (match) => {
-      if (match.startsWith('http://') || match.startsWith('https://')) {
-        return `${proxyBase}${encodeURIComponent(match)}`;
-      }
-      return `${proxyBase}${encodeURIComponent(baseUrl + match)}`;
-    });
+    body = body.replace(
+      /^(?!#)(.+\.(?:m3u8|ts|key|mp4|aac|vtt|srt|webvtt))(\?.*)?$/gm,
+      (match) => {
+        if (match.startsWith("http://") || match.startsWith("https://")) {
+          return `${proxyBase}${encodeURIComponent(match)}`;
+        }
+        return `${proxyBase}${encodeURIComponent(baseUrl + match)}`;
+      },
+    );
 
     // Rewrite URI= in EXT-X-KEY tags
     body = body.replace(/URI="([^"]+)"/g, (_, uri) => {
-      if (uri.startsWith('http://') || uri.startsWith('https://')) {
+      if (uri.startsWith("http://") || uri.startsWith("https://")) {
         return `URI="${proxyBase}${encodeURIComponent(uri)}"`;
       }
       return `URI="${proxyBase}${encodeURIComponent(baseUrl + uri)}"`;
@@ -3537,15 +4812,21 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
     return new Response(body, {
       headers: {
         ...corsHeaders(request, env),
-        'Content-Type': 'application/vnd.apple.mpegurl',
-        'Cache-Control': 'no-cache',
+        "Content-Type": "application/vnd.apple.mpegurl",
+        "Cache-Control": "no-cache",
       },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'HLS proxy failed' }), {
-      status: 502,
-      headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: err.message || "HLS proxy failed" }),
+      {
+        status: 502,
+        headers: {
+          ...corsHeaders(request, env),
+          "Content-Type": "application/json",
+        },
+      },
+    );
   }
 }
 
@@ -3555,127 +4836,218 @@ async function handleHlsProxy(request: Request, env: Env): Promise<Response> {
 
 /* ──── Surveys & Feedback ──── */
 
-async function handleAdminSurveys(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin']);
+async function handleAdminSurveys(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, ["owner", "admin"]);
   if (session instanceof Response) return session;
 
-  if (request.method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT *, COALESCE(is_archived, 0) as is_archived FROM surveys ORDER BY created_at DESC').all();
+  if (request.method === "GET") {
+    const { results } = await env.DB.prepare(
+      "SELECT *, COALESCE(is_archived, 0) as is_archived FROM surveys ORDER BY created_at DESC",
+    ).all();
     const mapped = results.map((s: any) => ({
       ...s,
-      questions: typeof s.questions === 'string' ? JSON.parse(s.questions) : s.questions
+      questions:
+        typeof s.questions === "string" ? JSON.parse(s.questions) : s.questions,
     }));
     return json(request, env, { surveys: mapped });
   }
 
-  if (request.method === 'POST') {
-    const body = await readJson<{ title: string; description?: string; questions: any[] }>(request);
+  if (request.method === "POST") {
+    const body = await readJson<{
+      title: string;
+      description?: string;
+      questions: any[];
+    }>(request);
     const title = normalizeSurveyText(body.title, 120);
     const description = normalizeSurveyText(body.description, 300);
     const sanitizedQuestions = sanitizeSurveyQuestions(body.questions);
 
-    if (!title) return json(request, env, { error: 'Title is required' }, 400);
-    if (!sanitizedQuestions.ok) return json(request, env, { error: sanitizedQuestions.error }, 400);
+    if (!title) return json(request, env, { error: "Title is required" }, 400);
+    if (!sanitizedQuestions.ok)
+      return json(request, env, { error: sanitizedQuestions.error }, 400);
 
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    await env.DB.prepare('INSERT INTO surveys (id, title, description, questions, is_active, is_archived, created_at, updated_at) VALUES (?, ?, ?, ?, 0, 0, ?, ?)')
-      .bind(id, title, description || '', JSON.stringify(sanitizedQuestions.questions), now, now)
+    await env.DB.prepare(
+      "INSERT INTO surveys (id, title, description, questions, is_active, is_archived, created_at, updated_at) VALUES (?, ?, ?, ?, 0, 0, ?, ?)",
+    )
+      .bind(
+        id,
+        title,
+        description || "",
+        JSON.stringify(sanitizedQuestions.questions),
+        now,
+        now,
+      )
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, 'create_survey', 'survey', id, { title });
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "create_survey",
+      "survey",
+      id,
+      { title },
+    );
 
     return json(request, env, { ok: true, id });
   }
 
-  if (request.method === 'PATCH') {
-    const body = await readJson<{ id: string; isActive?: boolean; isArchived?: boolean }>(request);
+  if (request.method === "PATCH") {
+    const body = await readJson<{
+      id: string;
+      isActive?: boolean;
+      isArchived?: boolean;
+    }>(request);
     const id = normalizeSurveyText(body.id, 64);
-    if (!id) return json(request, env, { error: 'id is required' }, 400);
+    if (!id) return json(request, env, { error: "id is required" }, 400);
 
-    const row = await env.DB.prepare('SELECT id, is_active, COALESCE(is_archived, 0) as is_archived FROM surveys WHERE id = ? LIMIT 1').bind(id).first<{ id: string; is_active: number; is_archived: number }>();
-    if (!row?.id) return json(request, env, { error: 'Survey not found' }, 404);
+    const row = await env.DB.prepare(
+      "SELECT id, is_active, COALESCE(is_archived, 0) as is_archived FROM surveys WHERE id = ? LIMIT 1",
+    )
+      .bind(id)
+      .first<{ id: string; is_active: number; is_archived: number }>();
+    if (!row?.id) return json(request, env, { error: "Survey not found" }, 404);
 
-    const shouldToggleArchive = typeof body.isArchived === 'boolean';
-    const shouldToggleActive = typeof body.isActive === 'boolean';
+    const shouldToggleArchive = typeof body.isArchived === "boolean";
+    const shouldToggleActive = typeof body.isActive === "boolean";
 
     if (!shouldToggleArchive && !shouldToggleActive) {
-      return json(request, env, { error: 'No changes requested' }, 400);
+      return json(request, env, { error: "No changes requested" }, 400);
     }
 
     if (shouldToggleArchive) {
       const archivedValue = body.isArchived ? 1 : 0;
       const activeValue = archivedValue === 1 ? 0 : row.is_active;
 
-      await env.DB.prepare('UPDATE surveys SET is_archived = ?, is_active = ?, updated_at = ? WHERE id = ?')
+      await env.DB.prepare(
+        "UPDATE surveys SET is_archived = ?, is_active = ?, updated_at = ? WHERE id = ?",
+      )
         .bind(archivedValue, activeValue, new Date().toISOString(), id)
         .run();
 
-      await writeAdminAuditLog(env, session.user.id, archivedValue === 1 ? 'archive_survey' : 'unarchive_survey', 'survey', id, null);
+      await writeAdminAuditLog(
+        env,
+        session.user.id,
+        archivedValue === 1 ? "archive_survey" : "unarchive_survey",
+        "survey",
+        id,
+        null,
+      );
       return json(request, env, { ok: true });
     }
 
     if (body.isActive) {
-      await env.DB.prepare('UPDATE surveys SET is_active = 0').run();
+      await env.DB.prepare("UPDATE surveys SET is_active = 0").run();
     }
 
-    await env.DB.prepare('UPDATE surveys SET is_active = ?, is_archived = 0, updated_at = ? WHERE id = ?')
+    await env.DB.prepare(
+      "UPDATE surveys SET is_active = ?, is_archived = 0, updated_at = ? WHERE id = ?",
+    )
       .bind(body.isActive ? 1 : 0, new Date().toISOString(), id)
       .run();
 
-    await writeAdminAuditLog(env, session.user.id, body.isActive ? 'activate_survey' : 'deactivate_survey', 'survey', id, null);
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      body.isActive ? "activate_survey" : "deactivate_survey",
+      "survey",
+      id,
+      null,
+    );
 
     return json(request, env, { ok: true });
   }
 
-  if (request.method === 'DELETE') {
-    if (session.user.role !== 'owner') {
-      return json(request, env, { error: 'Forbidden: Only owner can delete surveys' }, 403);
+  if (request.method === "DELETE") {
+    if (session.user.role !== "owner") {
+      return json(
+        request,
+        env,
+        { error: "Forbidden: Only owner can delete surveys" },
+        403,
+      );
     }
 
     const url = new URL(request.url);
-    const id = url.searchParams.get('id');
-    if (!id) return json(request, env, { error: 'Missing id' }, 400);
-    await env.DB.prepare('DELETE FROM surveys WHERE id = ?').bind(id).run();
+    const id = url.searchParams.get("id");
+    if (!id) return json(request, env, { error: "Missing id" }, 400);
+    await env.DB.prepare("DELETE FROM surveys WHERE id = ?").bind(id).run();
 
-    await writeAdminAuditLog(env, session.user.id, 'delete_survey', 'survey', id, null);
+    await writeAdminAuditLog(
+      env,
+      session.user.id,
+      "delete_survey",
+      "survey",
+      id,
+      null,
+    );
 
     return json(request, env, { ok: true });
   }
 
-  return json(request, env, { error: 'Method not allowed' }, 405);
+  return json(request, env, { error: "Method not allowed" }, 405);
 }
 
-async function handleAdminSurveyResults(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin']);
+async function handleAdminSurveyResults(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, ["owner", "admin"]);
   if (session instanceof Response) return session;
 
   const url = new URL(request.url);
-  const id = url.searchParams.get('id');
-  if (!id) return json(request, env, { error: 'Missing id' }, 400);
+  const id = url.searchParams.get("id");
+  if (!id) return json(request, env, { error: "Missing id" }, 400);
 
-  const { results } = await env.DB.prepare('SELECT * FROM survey_responses WHERE survey_id = ? ORDER BY created_at DESC').bind(id).all();
+  const { results } = await env.DB.prepare(
+    "SELECT * FROM survey_responses WHERE survey_id = ? ORDER BY created_at DESC",
+  )
+    .bind(id)
+    .all();
   return json(request, env, { responses: results });
 }
 
-async function handlePublicSurvey(request: Request, env: Env): Promise<Response> {
-  const row = await env.DB.prepare('SELECT id, title, description, questions FROM surveys WHERE is_active = 1 AND COALESCE(is_archived, 0) = 0 LIMIT 1').first<{ id: string; title: string; description: string; questions: string }>();
+async function handlePublicSurvey(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const row = await env.DB.prepare(
+    "SELECT id, title, description, questions FROM surveys WHERE is_active = 1 AND COALESCE(is_archived, 0) = 0 LIMIT 1",
+  ).first<{
+    id: string;
+    title: string;
+    description: string;
+    questions: string;
+  }>();
   if (!row) return json(request, env, { survey: null });
-  return json(request, env, { survey: { ...row, questions: JSON.parse(row.questions) } });
+  return json(request, env, {
+    survey: { ...row, questions: JSON.parse(row.questions) },
+  });
 }
 
-async function handleSurveyRespond(request: Request, env: Env): Promise<Response> {
+async function handleSurveyRespond(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   const session = await getSessionUser(request, env);
   const body = await readJson<{ surveyId: string; answers: any }>(request);
   const surveyId = normalizeSurveyText(body.surveyId, 64);
-  if (!surveyId) return json(request, env, { error: 'surveyId is required' }, 400);
+  if (!surveyId)
+    return json(request, env, { error: "surveyId is required" }, 400);
 
   const survey = await loadSurveyById(env, surveyId);
   if (!survey || survey.is_active !== 1 || survey.is_archived === 1) {
-    return json(request, env, { error: 'Survey not found' }, 404);
+    return json(request, env, { error: "Survey not found" }, 404);
   }
 
-  const normalizedAnswers = normalizeSurveyAnswers(survey.questions, body.answers);
+  const normalizedAnswers = normalizeSurveyAnswers(
+    survey.questions,
+    body.answers,
+  );
   if (!normalizedAnswers.ok) {
     return json(request, env, { error: normalizedAnswers.error }, 400);
   }
@@ -3683,53 +5055,93 @@ async function handleSurveyRespond(request: Request, env: Env): Promise<Response
   const identifiers = await getRequestIdentifiers(request);
   const ipHash = await sha256Hex(`ip:${identifiers.ip}`);
   const duplicateSubmission = await env.DB.prepare(
-    'SELECT 1 FROM survey_submissions WHERE survey_id = ? AND (user_id = ? OR ip_hash = ?) LIMIT 1'
+    "SELECT 1 FROM survey_submissions WHERE survey_id = ? AND (user_id = ? OR ip_hash = ?) LIMIT 1",
   )
     .bind(surveyId, session?.user.id || null, ipHash)
-    .first<{ '1': number }>();
+    .first<{ "1": number }>();
 
   if (duplicateSubmission) {
-    return json(request, env, { error: 'You already submitted this survey' }, 409);
+    return json(
+      request,
+      env,
+      { error: "You already submitted this survey" },
+      409,
+    );
   }
 
   const now = new Date().toISOString();
 
   await env.DB.prepare(
-    'INSERT INTO survey_submissions (survey_id, user_id, ip_hash, created_at) VALUES (?, ?, ?, ?)'
+    "INSERT INTO survey_submissions (survey_id, user_id, ip_hash, created_at) VALUES (?, ?, ?, ?)",
   )
     .bind(surveyId, session?.user.id || null, ipHash, now)
     .run();
 
-  await env.DB.prepare('INSERT INTO survey_responses (survey_id, user_id, answers, created_at) VALUES (?, ?, ?, ?)')
-    .bind(surveyId, session?.user.id || null, JSON.stringify(normalizedAnswers.answers), now)
+  await env.DB.prepare(
+    "INSERT INTO survey_responses (survey_id, user_id, answers, created_at) VALUES (?, ?, ?, ?)",
+  )
+    .bind(
+      surveyId,
+      session?.user.id || null,
+      JSON.stringify(normalizedAnswers.answers),
+      now,
+    )
     .run();
 
   return json(request, env, { ok: true });
 }
 
-async function handleAdminCreateChat(request: Request, env: Env): Promise<Response> {
-  const session = await requireRole(request, env, ['owner', 'admin', 'moderator']);
+async function handleAdminCreateChat(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const session = await requireRole(request, env, [
+    "owner",
+    "admin",
+    "moderator",
+  ]);
   if (session instanceof Response) return session;
 
-  const body = await readJson<{ targetUserId: string; subject: string; message: string }>(request);
+  const body = await readJson<{
+    targetUserId: string;
+    subject: string;
+    message: string;
+  }>(request);
   const { targetUserId, subject, message } = body;
 
   const threadId = crypto.randomUUID();
   const now = new Date().toISOString();
 
   await env.DB.prepare(
-    'INSERT INTO feedback_threads (id, user_id, subject, category, status, created_at, updated_at, last_reply_at, admin_last_reply_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    "INSERT INTO feedback_threads (id, user_id, subject, category, status, created_at, updated_at, last_reply_at, admin_last_reply_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   )
-    .bind(threadId, targetUserId, subject, 'contact', 'answered', now, now, now, now)
+    .bind(
+      threadId,
+      targetUserId,
+      subject,
+      "contact",
+      "answered",
+      now,
+      now,
+      now,
+      now,
+    )
     .run();
 
   await env.DB.prepare(
-    'INSERT INTO feedback_messages (id, thread_id, sender_user_id, sender_role, message, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    "INSERT INTO feedback_messages (id, thread_id, sender_user_id, sender_role, message, created_at) VALUES (?, ?, ?, ?, ?, ?)",
   )
-    .bind(crypto.randomUUID(), threadId, session.user.id, 'admin', message, now)
+    .bind(crypto.randomUUID(), threadId, session.user.id, "admin", message, now)
     .run();
 
-  await writeAdminAuditLog(env, session.user.id, 'create_chat_thread', 'feedback_thread', threadId, { targetUserId, subject });
+  await writeAdminAuditLog(
+    env,
+    session.user.id,
+    "create_chat_thread",
+    "feedback_thread",
+    threadId,
+    { targetUserId, subject },
+  );
 
   return json(request, env, { ok: true, threadId });
 }
@@ -3738,11 +5150,14 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
       // CORS preflight
-      if (request.method === 'OPTIONS') {
-        if (request.headers.get('Origin') && !getAllowedOrigin(request, env)) {
-          return new Response('CORS origin denied', {
+      if (request.method === "OPTIONS") {
+        if (request.headers.get("Origin") && !getAllowedOrigin(request, env)) {
+          return new Response("CORS origin denied", {
             status: 403,
-            headers: { ...corsHeaders(request, env), 'Content-Type': 'text/plain; charset=utf-8' },
+            headers: {
+              ...corsHeaders(request, env),
+              "Content-Type": "text/plain; charset=utf-8",
+            },
           });
         }
         return new Response(null, {
@@ -3754,150 +5169,197 @@ export default {
       const pathname = url.pathname;
 
       // Track activity for all requests except health checks and preflights
-      if (!['/', '/health'].includes(pathname)) {
+      if (!["/", "/health"].includes(pathname)) {
         await ensureSecurityTables(env);
 
-        if (!request.headers.get('Authorization')) {
+        if (!request.headers.get("Authorization")) {
           await updateActiveUser(env, request);
         }
       }
 
       switch (pathname) {
-        case '/':
-        case '/health':
+        case "/":
+        case "/health":
           return await handleHealth(request, env);
-        case '/auth/register':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/auth/register":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleRegister(request, env);
-        case '/auth/login':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/auth/login":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleLogin(request, env);
-        case '/auth/change-password':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/auth/change-password":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handlePasswordChange(request, env);
-        case '/auth/logout':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/auth/logout":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleLogout(request, env);
-        case '/auth/logout-others':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/auth/logout-others":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleLogoutOthers(request, env);
-        case '/auth/me':
-          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/auth/me":
+          if (request.method !== "GET")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleMe(request, env);
-        case '/user/settings':
-          if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/user/settings":
+          if (!["GET", "PUT"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleSettings(request, env);
-        case '/user/watchlist':
-          if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/user/watchlist":
+          if (!["GET", "PUT"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleWatchlist(request, env);
-        case '/user/profile':
-          if (!['PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/user/profile":
+          if (!["PUT"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleProfile(request, env);
-        case '/user/clear-everything':
-          if (!['DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/user/clear-everything":
+          if (!["DELETE"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleClearEverything(request, env);
-        case '/user/feedback':
-          if (!['GET', 'POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/user/feedback":
+          if (!["GET", "POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleUserFeedback(request, env);
-        case '/user/feedback/messages':
-          if (!['GET', 'POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/user/feedback/messages":
+          if (!["GET", "POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleUserFeedbackMessages(request, env);
-        case '/user/notifications':
-          if (!['GET', 'PUT'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/user/notifications":
+          if (!["GET", "PUT"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleUserNotifications(request, env);
-        case '/watch-party/create':
-          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/watch-party/create":
+          if (!["POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleWatchPartyCreate(request, env);
-        case '/watch-party/join':
-          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/watch-party/join":
+          if (!["POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleWatchPartyJoin(request, env);
-        case '/watch-party/state':
-          if (!['GET'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/watch-party/state":
+          if (!["GET"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleWatchPartyState(request, env);
-        case '/watch-party/update':
-          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/watch-party/update":
+          if (!["POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleWatchPartyUpdate(request, env);
-        case '/watch-party/leave':
-          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/watch-party/leave":
+          if (!["POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleWatchPartyLeave(request, env);
-        case '/public/announcements':
-          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/public/announcements":
+          if (request.method !== "GET")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handlePublicAnnouncements(request, env);
-        case '/admin/overview':
-          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/overview":
+          if (request.method !== "GET")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminOverview(request, env);
-        case '/admin/blocked-media':
-          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/blocked-media":
+          if (!["GET", "POST", "DELETE"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminBlockedMedia(request, env);
-        case '/public/blocked-media':
-          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/public/blocked-media":
+          if (request.method !== "GET")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handlePublicBlockedMedia(request, env);
-        case '/api/report-error':
-        case '/api/report-success':
+        case "/api/report-error":
+        case "/api/report-success":
           return json(request, env, { ok: true });
-        case '/admin/bans':          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/bans":
+          if (!["GET", "POST", "DELETE"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminBans(request, env);
-        case '/admin/announcements':
-          if (!['GET', 'POST', 'PUT', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/announcements":
+          if (!["GET", "POST", "PUT", "DELETE"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminAnnouncements(request, env);
-        case '/admin/sessions/clear':
-          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/sessions/clear":
+          if (!["POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminSessions(request, env);
-        case '/admin/sessions/clear-user':
-          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/sessions/clear-user":
+          if (!["POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminUserSessions(request, env);
-        case '/admin/audit-logs':
-          if (!['GET'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/audit-logs":
+          if (!["GET"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminAuditLogs(request, env);
-        case '/admin/users':
-          if (!['GET', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/users":
+          if (!["GET", "DELETE"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminUsers(request, env);
-        case '/admin/users/reset-password':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/users/reset-password":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminResetPassword(request, env);
-        case '/admin/grant':
-          if (!['GET', 'POST', 'DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/grant":
+          if (!["GET", "POST", "DELETE"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminGrant(request, env);
-        case '/admin/feedback':
-          if (!['GET'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/feedback":
+          if (!["GET"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminFeedback(request, env);
-        case '/admin/feedback/messages':
-          if (!['GET'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/feedback/messages":
+          if (!["GET"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminFeedbackMessages(request, env);
-        case '/admin/feedback/reply':
-          if (!['POST'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/feedback/reply":
+          if (!["POST"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminFeedbackReply(request, env);
-        case '/admin/feedback/thread':
-          if (!['DELETE'].includes(request.method)) return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/feedback/thread":
+          if (!["DELETE"].includes(request.method))
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminFeedbackDelete(request, env);
-        case '/admin/feedback/create-chat':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/feedback/create-chat":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminCreateChat(request, env);
-        case '/admin/surveys':
+        case "/admin/surveys":
           return await handleAdminSurveys(request, env);
-        case '/admin/surveys/results':
-          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/admin/surveys/results":
+          if (request.method !== "GET")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleAdminSurveyResults(request, env);
-        case '/public/survey':
-          if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/public/survey":
+          if (request.method !== "GET")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handlePublicSurvey(request, env);
-        case '/public/survey/respond':
-          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+        case "/public/survey/respond":
+          if (request.method !== "POST")
+            return json(request, env, { error: "Method not allowed" }, 405);
           return await handleSurveyRespond(request, env);
-        case '/proxy':
+        case "/proxy":
           return await handleProxy(request, env);
-        case '/hls':
+        case "/hls":
           return await handleHlsProxy(request, env);
-        case '/direct-resolver':
+        case "/direct-resolver":
           return await handleDirectResolver(request, env);
         default:
-          return new Response(JSON.stringify({ error: 'Not found' }), {
+          return new Response(JSON.stringify({ error: "Not found" }), {
             status: 404,
-            headers: { ...corsHeaders(request, env), 'Content-Type': 'application/json' },
+            headers: {
+              ...corsHeaders(request, env),
+              "Content-Type": "application/json",
+            },
           });
       }
     } catch (error: any) {
-      return json(request, env, { error: error?.message || 'Internal server error' }, 500);
+      return json(
+        request,
+        env,
+        { error: error?.message || "Internal server error" },
+        500,
+      );
     }
   },
 };
