@@ -503,32 +503,30 @@ export async function scrapeAllSources(
 ): Promise<SourceResult[]> {
   const results: SourceResult[] = [];
 
-  const sourcesToScrape = SOURCES.filter(
-    (source) => !(source.id === "febbox" && !options.febboxCookie),
-  );
+  for (const source of SOURCES) {
+    if (source.id === "febbox" && !options.febboxCookie) {
+      continue;
+    }
 
-  await Promise.all(
-    sourcesToScrape.map(async (source) => {
-      const result = await scrapeSource(options, source.id);
-      if (result) {
-        results.push(result);
-        options.onSourceFound?.(result);
-      } else if (source.id === "febbox") {
-        const placeholder: SourceResult = {
-          sourceId: source.id,
-          stream: {
-            type: "file",
-            id: `${source.id}-placeholder`,
-            flags: [],
-            qualities: {},
-            captions: [],
-          },
-        };
-        results.push(placeholder);
-        options.onSourceFound?.(placeholder);
-      }
-    }),
-  );
+    const result = await scrapeSource(options, source.id);
+    if (result) {
+      results.push(result);
+      options.onSourceFound?.(result);
+    } else if (source.id === "febbox") {
+      const placeholder: SourceResult = {
+        sourceId: source.id,
+        stream: {
+          type: "file",
+          id: `${source.id}-placeholder`,
+          flags: [],
+          qualities: {},
+          captions: [],
+        },
+      };
+      results.push(placeholder);
+      options.onSourceFound?.(placeholder);
+    }
+  }
 
   return results;
 }
