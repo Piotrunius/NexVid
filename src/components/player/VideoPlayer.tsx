@@ -65,6 +65,7 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  X,
   XCircle,
   Zap,
 } from "lucide-react";

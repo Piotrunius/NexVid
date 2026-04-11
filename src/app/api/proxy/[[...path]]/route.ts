@@ -45,11 +45,12 @@ function getClientIpFromRequest(req: NextRequest): string | null {
 
 export async function ANY(
   req: NextRequest,
-  { params }: { params?: { path?: string[] } } = {},
+  { params }: { params: Promise<{ path?: string[] }> },
 ) {
   try {
+    const { path: pathSegments } = await params;
     const path =
-      params?.path && params.path.length > 0 ? params.path.join("/") : "proxy";
+      pathSegments && pathSegments.length > 0 ? pathSegments.join("/") : "proxy";
     const searchParams = req.nextUrl.search;
     const targetUrl = `${WORKER_URL}/${path}${searchParams}`;
 
