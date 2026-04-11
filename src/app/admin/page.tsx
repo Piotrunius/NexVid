@@ -547,7 +547,7 @@ export default function AdminPage() {
   const handleResetPassword = async () => {
     const identifier = deleteUsername.trim();
     if (!identifier) {
-      toast("Enter nickname or full user ID first", "error");
+      toast("Enter nickname or full user ID", "error");
       return;
     }
     if (
