@@ -368,7 +368,7 @@ export default function ShowPage({
                 href={`https://www.themoviedb.org/tv/${show.tmdbId || show.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-[16px] bg-teal-500/10 px-5 py-3 text-[13px] font-semibold text-teal-300 hover:bg-teal-500/20 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
+                className="btn-glass btn-glass-teal !py-3"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 TMDB
@@ -379,7 +379,7 @@ export default function ShowPage({
                 href={`https://seriesgraph.com/show/${show.tmdbId || show.id}-${show.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-[16px] bg-violet-500/10 px-5 py-3 text-[13px] font-semibold text-violet-300 hover:bg-violet-500/20 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
+                className="btn-glass btn-glass-violet !py-3"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3"/></svg>
                 SeriesGraph

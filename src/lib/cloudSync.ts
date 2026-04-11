@@ -146,6 +146,10 @@ export async function logoutCloudSession() {
   }
 }
 
+export async function logoutOtherCloudSessions() {
+  return cloudFetch<{ ok: boolean }>('/auth/logout-others', { method: 'POST' });
+}
+
 export async function loadCloudMe() {
   return cloudFetch<{ user: any }>('/auth/me', { method: 'GET' });
 }

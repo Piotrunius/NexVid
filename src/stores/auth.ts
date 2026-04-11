@@ -26,6 +26,7 @@ interface AuthStore {
   hydrateBackendSession: () => Promise<void>;
   updateNicknameWithBackend: (username: string) => Promise<void>;
   changePasswordWithBackend: (currentPassword?: string, newPassword?: string) => Promise<void>;
+  logoutOthersWithBackend: () => Promise<void>;
 
   updateProfile: (partial: Partial<User>) => void;
 }
@@ -285,6 +286,17 @@ export const useAuthStore = create<AuthStore>()(
             authToken: result?.token || state.authToken,
             isLoading: false,
           }));
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+      logoutOthersWithBackend: async () => {
+        set({ isLoading: true });
+        try {
+          const { logoutOtherCloudSessions } = await import('@/lib/cloudSync');
+          await logoutOtherCloudSessions();
+          set({ isLoading: false });
         } catch (error) {
           set({ isLoading: false });
           throw error;

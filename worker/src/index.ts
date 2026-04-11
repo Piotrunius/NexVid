@@ -1607,6 +1607,28 @@ async function handleLogout(request: Request, env: Env): Promise<Response> {
   return response;
 }
 
+async function handleLogoutOthers(request: Request, env: Env): Promise<Response> {
+  const session = await getSessionUser(request, env);
+  if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
+
+  const currentTokens = [getBearerToken(request), getCookieToken(request)].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
+
+  if (currentTokens.length > 0) {
+    const placeholders = currentTokens.map(() => '?').join(', ');
+    await env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND token NOT IN (${placeholders})`)
+      .bind(session.user.id, ...currentTokens)
+      .run();
+  } else {
+    // If somehow session was validated but no tokens found in headers (unlikely), clear all but current session record?
+    // Actually getSessionUser uses getBearerToken or getCookieToken, so one MUST exist.
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?')
+      .bind(session.user.id, session.token)
+      .run();
+  }
+
+  return json(request, env, { ok: true });
+}
+
 async function handleMe(request: Request, env: Env): Promise<Response> {
   const session = await getSessionUser(request, env);
   if (!session) return json(request, env, { error: 'Unauthorized' }, 401);
@@ -3756,6 +3778,9 @@ export default {
         case '/auth/logout':
           if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleLogout(request, env);
+        case '/auth/logout-others':
+          if (request.method !== 'POST') return json(request, env, { error: 'Method not allowed' }, 405);
+          return await handleLogoutOthers(request, env);
         case '/auth/me':
           if (request.method !== 'GET') return json(request, env, { error: 'Method not allowed' }, 405);
           return await handleMe(request, env);
