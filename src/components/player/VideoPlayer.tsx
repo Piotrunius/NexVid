@@ -1808,11 +1808,13 @@ export function VideoPlayer({
       togglePlay();
     }
 
-    // Toggle controls visibility
-    if (!controlsVisible) {
-      showControls();
-    } else {
-      hideControls();
+    // Toggle controls visibility - ONLY on touch devices where there's no mouse-move wake
+    if (isTouchDevice) {
+      if (!controlsVisible) {
+        showControls();
+      } else {
+        hideControls();
+      }
     }
   }, [controlsVisible, showControls, hideControls, togglePlay, settingsPanel, isTouchDevice]);
 
