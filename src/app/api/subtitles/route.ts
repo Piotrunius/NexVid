@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
     try {
       results = await searchSubtitles(params);
     } catch (e) {
+      // Retry with broader source if initial query fails
       params.source = "all";
       results = await searchSubtitles(params);
     }
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest) {
 
     const items = Array.isArray(results) ? results : [];
 
+    // Map results into normalized subtitle objects
     const mapped = items
       .map((item: any) => {
         const url = String(item?.url || "").trim();
@@ -123,51 +125,103 @@ export async function GET(request: NextRequest) {
         const label = String(
           item?.display ||
             item?.fileName ||
+            (Array.isArray(item?.releases) && item.releases[0]) ||
             item?.release ||
             lang.toUpperCase(),
         );
+
+        const type =
+          url.toLowerCase().includes("format=vtt") ||
+          url.toLowerCase().includes(".vtt")
+            ? "vtt"
+            : "srt";
 
         return {
           id: `wyzie-${lang}-${hashSuffix(url)}`,
           url,
           language: lang,
-          type:
-            url.toLowerCase().includes("format=vtt") ||
-            url.toLowerCase().includes(".vtt")
-              ? "vtt"
-              : "srt",
-          label: label,
+          type,
+          label,
           flagUrl: item?.flagUrl || null,
           isHearingImpaired: Boolean(item?.isHearingImpaired),
+          source: item?.source || null,
+          release: item?.release || null,
+          releases: Array.isArray(item?.releases) ? item.releases : null,
+          origin: item?.origin || null,
+          fileName: item?.fileName || null,
+          downloadCount: Number(item?.downloadCount || 0),
+          raw: item || null,
         };
       })
-      .filter(Boolean);
+      .filter(Boolean) as Array<any>;
 
-    const best = new Map();
+    // Deduplicate by URL (choose best candidate per URL)
+    const byUrl = new Map<string, any>();
     for (const s of mapped) {
-      if (!s) continue;
-      const existing = best.get(s.language);
-      if (!existing || (existing.isHearingImpaired && !s.isHearingImpaired)) {
-        best.set(s.language, s);
+      if (!s || !s.url) continue;
+      const key = s.url.trim();
+      const existing = byUrl.get(key);
+      if (!existing) {
+        byUrl.set(key, s);
+        continue;
       }
+
+      // Prefer non-hearing-impaired over hearing-impaired when same URL
+      if (existing.isHearingImpaired && !s.isHearingImpaired) {
+        byUrl.set(key, s);
+        continue;
+      }
+      if (!existing.isHearingImpaired && s.isHearingImpaired) {
+        continue;
+      }
+
+      // Otherwise prefer higher download count
+      if ((s.downloadCount || 0) > (existing.downloadCount || 0)) {
+        byUrl.set(key, s);
+        continue;
+      }
+
+      // If still tied, keep existing (stable)
     }
 
-    const preferred = ["en", "de", "es", "fr", "pl", "pt", "it", "ja"];
-    const sorted = Array.from(best.values())
-      .sort((a, b) => {
-        const pa = preferred.indexOf(a.language);
-        const pb = preferred.indexOf(b.language);
-        if (pa !== -1 || pb !== -1) {
-          if (pa === -1) return 1;
-          if (pb === -1) return -1;
-          return pa - pb;
-        }
-        return (a.label || "").localeCompare(b.label || "");
-      })
-      .slice(0, 50);
+    const unique = Array.from(byUrl.values());
 
+    // Sort results: preferred languages first, then language, then non-hearing-impaired,
+    // then by downloadCount desc, then by label
+    const preferred = ["en", "de", "es", "fr", "pl", "pt", "it", "ja"];
+    unique.sort((a: any, b: any) => {
+      const pa = preferred.indexOf(a.language);
+      const pb = preferred.indexOf(b.language);
+      if (pa !== pb) {
+        if (pa === -1) return 1;
+        if (pb === -1) return -1;
+        return pa - pb;
+      }
+
+      if (a.language !== b.language) {
+        return (a.language || "").localeCompare(b.language || "");
+      }
+
+      // Prefer non-hearing-impaired first
+      if (a.isHearingImpaired !== b.isHearingImpaired) {
+        return a.isHearingImpaired ? 1 : -1;
+      }
+
+      // Then by download count (desc)
+      const da = Number(a.downloadCount || 0);
+      const db = Number(b.downloadCount || 0);
+      if (da !== db) return db - da;
+
+      // Finally by label
+      return String(a.label || "").localeCompare(String(b.label || ""));
+    });
+
+    // Limit to a reasonable number
+    const sliced = unique.slice(0, 100);
+
+    // Return all matching subtitles (deduped by URL), include isHearingImpaired so UI can show icon
     return NextResponse.json(
-      { subtitles: sorted },
+      { subtitles: sliced },
       {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",

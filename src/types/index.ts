@@ -133,6 +133,7 @@ export interface Caption {
   hasCorsRestrictions?: boolean;
   label?: string;
   flagUrl?: string;
+  isHearingImpaired?: boolean;
 }
 
 export interface AudioTrack {

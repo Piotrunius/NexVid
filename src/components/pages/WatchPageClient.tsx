@@ -128,6 +128,7 @@ async function loadExternalCaptions(params: {
           type,
           label: subtitle?.label || subtitle?.display,
           flagUrl: subtitle?.flagUrl,
+          isHearingImpaired: Boolean(subtitle?.isHearingImpaired),
         } as Caption;
       })
       .filter((caption: Caption | null): caption is Caption =>
@@ -953,41 +954,6 @@ export default function WatchPageClient({
           onScrapeErrorAction={
             shouldShowMissingFebboxTokenPrompt
               ? () => router.push("/settings")
-              : undefined
-          }
-          showTokenNotice={shouldShowPersistentTokenNotice}
-          tokenNoticeText={
-            shouldShowPersistentTokenNotice
-              ? "No personal FebBox token is set in settings. Add your own FebBox token in settings."
-              : undefined
-          }
-          tokenNoticeActionLabel={
-            shouldShowPersistentTokenNotice ? "Open settings" : undefined
-          }
-          onTokenNoticeAction={
-            shouldShowPersistentTokenNotice
-              ? () => router.push("/settings")
-              : undefined
-          }
-          tokenNoticeDismissLabel={
-            shouldShowPersistentTokenNotice
-              ? "Dismiss for this title"
-              : undefined
-          }
-          onTokenNoticeDismiss={
-            shouldShowPersistentTokenNotice
-              ? dismissTokenNoticeForCurrentMedia
-              : undefined
-          }
-          tokenNoticePermanentDismissLabel={
-            shouldShowPersistentTokenNotice ? "Dismiss sitewide" : undefined
-          }
-          tokenNoticePermanentDismissHint={
-            shouldShowPersistentTokenNotice ? "Not recommended" : undefined
-          }
-          onTokenNoticePermanentDismiss={
-            shouldShowPersistentTokenNotice
-              ? dismissTokenNoticeSitewide
               : undefined
           }
           initialSeekTime={appliedSeekTime}
