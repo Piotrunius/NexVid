@@ -3078,14 +3078,14 @@ export function VideoPlayer({
 
       {/* Skip Intro */}
       <AnimatePresence mode="wait">
-        {stream?.type !== "embed" && showSkipIntro && skipIntro && (
+        {stream?.type !== "embed" && showSkipIntro && skipIntro && !showNextPrompt && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipIntro}
             className={cn(
-              "absolute right-6 bottom-24 z-20 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
@@ -3099,14 +3099,14 @@ export function VideoPlayer({
 
       {/* Skip Outro */}
       <AnimatePresence mode="wait">
-        {stream?.type !== "embed" && showSkipOutro && skipOutro && (
+        {stream?.type !== "embed" && showSkipOutro && skipOutro && !showNextPrompt && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipOutro}
             className={cn(
-              "absolute right-6 bottom-24 z-20 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
@@ -3237,7 +3237,7 @@ export function VideoPlayer({
           {/* Bottom Controls */}
           <div
             className={cn(
-              "player-controls z-[60]",
+              "player-controls",
               "transition-opacity duration-300",
               controlsVisible || settingsPanel !== null
                 ? "opacity-100"
@@ -3438,7 +3438,7 @@ export function VideoPlayer({
                           "mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto",
                           isTouchDevice
                             ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
-                            : "absolute bottom-full right-0 z-[30] mb-2 max-h-[60vh]",
+                            : "absolute bottom-full right-0 z-[50] mb-2 max-h-[60vh]",
                         )}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -3578,7 +3578,7 @@ export function VideoPlayer({
                           "mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto",
                           isTouchDevice
                             ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
-                            : "absolute bottom-full right-0 z-[30] mb-2 max-h-[65vh]",
+                            : "absolute bottom-full right-0 z-[50] mb-2 max-h-[65vh]",
                         )}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -5083,7 +5083,7 @@ export function VideoPlayer({
                 exit={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                  "absolute bottom-24 left-1/2 z-20 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
+                  "absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
                   glassEffect
                     ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                     : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
