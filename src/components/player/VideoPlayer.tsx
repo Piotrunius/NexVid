@@ -669,6 +669,7 @@ export function VideoPlayer({
   const [dragStartTime, setDragStartTime] = useState(0);
   const [dragCurrentTime, setDragCurrentTime] = useState(0);
   const [showSkipIndicator, setShowSkipIndicator] = useState<"left" | "right" | null>(null);
+  const [playbackIndicator, setPlaybackIndicator] = useState<"play" | "pause" | null>(null);
   const lastTapRef = useRef<{ time: number; side: "left" | "right" } | null>(null);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
@@ -1671,8 +1672,14 @@ export function VideoPlayer({
   // ---- Controls ----
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
-    if (videoRef.current.paused) videoRef.current.play().catch(() => {});
-    else videoRef.current.pause();
+    if (videoRef.current.paused) {
+      videoRef.current.play().catch(() => {});
+      setPlaybackIndicator("play");
+    } else {
+      videoRef.current.pause();
+      setPlaybackIndicator("pause");
+    }
+    setTimeout(() => setPlaybackIndicator(null), 800);
   }, []);
 
   const seek = useCallback(
@@ -2921,6 +2928,25 @@ export function VideoPlayer({
             onClick={handleInteractionAreaClick}
             onTouchEnd={handleInteractionAreaTouch}
           >
+            {/* Playback Indicators */}
+            <AnimatePresence>
+              {playbackIndicator && (
+                <motion.div
+                  key="playback-indicator"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/40 backdrop-blur-md p-6 border border-white/10"
+                >
+                  {playbackIndicator === "play" ? (
+                    <Play className="h-10 w-10 fill-white text-white" />
+                  ) : (
+                    <Pause className="h-10 w-10 fill-white text-white" />
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Skip Indicators for mobile */}
             <AnimatePresence>
               {showSkipIndicator === "left" && (
@@ -5471,11 +5497,11 @@ export function VideoPlayer({
       {/* Global Modals */}
       {settingsPanel === "info" && media && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-[4px] px-4"
           onClick={() => setSettingsPanel(null)}
         >
           <div
-            className="w-full max-w-2xl overflow-hidden animate-scale-in max-h-[80vh] overflow-y-auto rounded-[20px] bg-black/85 backdrop-blur-[24px] backdrop-saturate-[180%] shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)]"
+            className="w-full max-w-2xl overflow-hidden animate-scale-in max-h-[80vh] overflow-y-auto rounded-[20px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-r from-accent/15 via-white/5 to-transparent px-5 py-4">
