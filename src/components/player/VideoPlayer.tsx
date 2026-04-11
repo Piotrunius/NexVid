@@ -5049,88 +5049,64 @@ export function VideoPlayer({
           </div>
 
           {showNextPrompt && isShowWithEpisodes && (
-            <div className="absolute right-6 bottom-24 z-30 w-[340px] overflow-hidden rounded-[24px] bg-[#0A0A0B]/80 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_24px_80px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.08)] p-5 animate-slide-up group/prompt">
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                      <FastForward className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-[14px] font-black tracking-tight text-white uppercase italic">
-                        Up Next
-                      </p>
-                      <p className="text-[11px] font-bold text-white/40 uppercase tracking-widest mt-0.5">
-                        {isEpisodeNavigating
-                          ? "Loading next…"
-                          : autoNext
-                            ? `Starting in ${nextCountdown}s`
-                            : "Ready to play"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {autoNext && (
-                    <button
-                      onClick={() => {
-                        nextPromptDismissedForRef.current = promptKey;
-                        setShowNextPrompt(false);
-                        setNextCountdown(8);
-                      }}
-                      className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+            <div 
+              className={cn(
+                "absolute bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] animate-slide-up border border-white/10",
+                glassEffect
+                  ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+                  : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                  <FastForward className="h-4 w-4" />
                 </div>
-
-                <div className="space-y-4">
-                   <div className="flex items-center gap-3">
-                      {media?.posterPath && (
-                         <div className="relative h-14 w-10 rounded-lg overflow-hidden shrink-0 shadow-lg shadow-black/40">
-                            <Image 
-                              src={`https://image.tmdb.org/t/p/w200${media.posterPath}`}
-                              alt="Next"
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
-                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-white truncate pr-2">
-                           {getNextEpisodeTarget() ? (
-                              season?.episodes?.find(e => e.episodeNumber === getNextEpisodeTarget()?.episode)?.title || "Next Episode"
-                           ) : "Next Episode"}
-                        </p>
-                        <p className="text-[11px] font-semibold text-white/50 mt-0.5">
-                           S{getNextEpisodeTarget()?.season} : E{getNextEpisodeTarget()?.episode}
-                        </p>
-                      </div>
-                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        nextPromptHandledForRef.current = promptKey;
-                        navigateNextEpisode();
-                      }}
-                      disabled={isEpisodeNavigating}
-                      className="flex-1 rounded-[14px] bg-accent px-4 py-3 text-[12px] font-black uppercase tracking-wider text-white shadow-lg shadow-accent/20 transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
-                    >
-                      {isEpisodeNavigating ? "Loading…" : "Play Now"}
-                    </button>
-                  </div>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-bold text-white truncate">
+                    Next: S{getNextEpisodeTarget()?.season} E{getNextEpisodeTarget()?.episode}
+                  </p>
+                  <p className="text-[10px] font-medium text-white/50">
+                    {isEpisodeNavigating 
+                      ? "Loading..." 
+                      : autoNext 
+                        ? `Auto-play in ${nextCountdown}s` 
+                        : "Ready to play"}
+                  </p>
                 </div>
               </div>
 
-              {/* Progress Bar Background */}
+              <div className="flex items-center gap-2 ml-auto shrink-0">
+                <button
+                  onClick={() => {
+                    nextPromptHandledForRef.current = promptKey;
+                    navigateNextEpisode();
+                  }}
+                  disabled={isEpisodeNavigating}
+                  className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                >
+                  {isEpisodeNavigating ? "..." : "Play Now"}
+                </button>
+                {autoNext && (
+                  <button
+                    onClick={() => {
+                      nextPromptDismissedForRef.current = promptKey;
+                      setShowNextPrompt(false);
+                      setNextCountdown(8);
+                    }}
+                    className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Minimal Progress Bar */}
               {autoNext && !isEpisodeNavigating && (
-                <div className="absolute bottom-0 left-0 h-1 w-full bg-white/5">
+                <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/5">
                   <motion.div
                     initial={{ width: "0%" }}
                     animate={{ width: `${((8 - nextCountdown) / 8) * 100}%` }}
-                    className="h-full bg-accent"
+                    className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
                     transition={{ duration: 1, ease: "linear" }}
                   />
                 </div>
