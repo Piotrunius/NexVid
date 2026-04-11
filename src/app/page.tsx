@@ -2,18 +2,18 @@
    Homepage – Apple Sequoia Pitch Black
    ============================================ */
 
-import { MediaRow } from '@/components/media/MediaCard';
-import { HomePageClient } from '@/components/pages/HomePageClient';
-import { loadPublicBlockedMedia } from '@/lib/cloudSync';
-import { normalizeMediaType, toTmdbMediaType } from '@/lib/mediaType';
-import { getPopular, getTopRated, getTrending } from '@/lib/tmdb';
-import { tmdbImage } from '@/lib/utils';
-import type { MediaItem } from '@/types';
-import { Play } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { MediaRow } from "@/components/media/MediaCard";
+import { HomePageClient } from "@/components/pages/HomePageClient";
+import { loadPublicBlockedMedia } from "@/lib/cloudSync";
+import { normalizeMediaType, toTmdbMediaType } from "@/lib/mediaType";
+import { getPopular, getTopRated, getTrending } from "@/lib/tmdb";
+import { tmdbImage } from "@/lib/utils";
+import type { MediaItem } from "@/types";
+import { Play } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function HomePage() {
@@ -25,18 +25,22 @@ export default async function HomePage() {
 
   try {
     const [t, p, m, s, blockedRes] = await Promise.all([
-      getTrending('all', 'week'),
-      getPopular('movie'),
-      getTopRated('movie'),
-      getTopRated('tv'),
+      getTrending("all", "week"),
+      getPopular("movie"),
+      getTopRated("movie"),
+      getTopRated("tv"),
       loadPublicBlockedMedia().catch(() => ({ items: [] })),
     ]);
 
     const blocked = blockedRes.items || [];
     const filterBlocked = (items: MediaItem[]) =>
-      items.filter(item => {
+      items.filter((item) => {
         const normalizedType = toTmdbMediaType(item.mediaType);
-        return !blocked.some((b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === normalizedType);
+        return !blocked.some(
+          (b: any) =>
+            String(b.tmdbId) === String(item.tmdbId) &&
+            b.mediaType === normalizedType,
+        );
       });
 
     trending = filterBlocked(t);
@@ -45,10 +49,11 @@ export default async function HomePage() {
     topShows = filterBlocked(s);
 
     if (trending.length > 0) {
-      featured = trending[Math.floor(Math.random() * Math.min(5, trending.length))];
+      featured =
+        trending[Math.floor(Math.random() * Math.min(5, trending.length))];
     }
   } catch (err) {
-    console.error('Failed to load homepage data:', err);
+    console.error("Failed to load homepage data:", err);
   }
 
   const featuredType = normalizeMediaType(featured?.mediaType);
@@ -61,7 +66,7 @@ export default async function HomePage() {
           {/* Background image */}
           <div className="absolute inset-0">
             <Image
-              src={tmdbImage(featured.backdropPath, 'original')}
+              src={tmdbImage(featured.backdropPath, "original")}
               alt={featured.title}
               fill
               priority
@@ -79,10 +84,10 @@ export default async function HomePage() {
               <div className="max-w-[40rem] space-y-6">
                 <div className="flex flex-wrap items-center gap-3 animate-fade-in opacity-90">
                   <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
-                    {featured.mediaType === 'movie' ? 'Movie' : 'TV'}
+                    {featured.mediaType === "movie" ? "Movie" : "TV"}
                   </span>
                   <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
-                    {featured.releaseYear || 'N/A'}
+                    {featured.releaseYear || "N/A"}
                   </span>
                   {featured.voteAverage > 0 && (
                     <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-emerald-200 backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
@@ -127,10 +132,35 @@ export default async function HomePage() {
       <div className="relative z-10 -mt-32 space-y-4 pb-24 sm:-mt-36">
         <HomePageClient />
 
-        <MediaRow title="Trending This Week" items={trending} showType href="/browse?tab=trending" enableControls seeAllAsButton />
-        <MediaRow title="Popular Movies" items={popular} href="/browse?tab=movies" enableControls seeAllAsButton />
-        <MediaRow title="Top Rated Movies" items={topMovies} href="/browse?tab=movies" enableControls seeAllAsButton />
-        <MediaRow title="Top Rated TV Shows" items={topShows} href="/browse?tab=shows" enableControls seeAllAsButton />
+        <MediaRow
+          title="Trending This Week"
+          items={trending}
+          showType
+          href="/browse?tab=trending"
+          enableControls
+          seeAllAsButton
+        />
+        <MediaRow
+          title="Popular Movies"
+          items={popular}
+          href="/browse?tab=movies"
+          enableControls
+          seeAllAsButton
+        />
+        <MediaRow
+          title="Top Rated Movies"
+          items={topMovies}
+          href="/browse?tab=movies"
+          enableControls
+          seeAllAsButton
+        />
+        <MediaRow
+          title="Top Rated TV Shows"
+          items={topShows}
+          href="/browse?tab=shows"
+          enableControls
+          seeAllAsButton
+        />
       </div>
     </div>
   );

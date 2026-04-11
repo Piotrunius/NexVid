@@ -1,4 +1,4 @@
-import { MediaRowSkeleton } from '@/components/media/MediaCard';
+import { MediaRowSkeleton } from "@/components/media/MediaCard";
 
 export default function Loading() {
   return (
@@ -51,7 +51,10 @@ export default function Loading() {
         <div className="skeleton h-8 w-32 rounded-lg mb-6" />
         <div className="flex gap-2 mb-8 overflow-hidden">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="skeleton h-10 w-28 rounded-full flex-shrink-0" />
+            <div
+              key={i}
+              className="skeleton h-10 w-28 rounded-full flex-shrink-0"
+            />
           ))}
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

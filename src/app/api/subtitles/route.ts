@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { configure, searchSubtitles } from 'wyzie-lib';
+import { NextRequest, NextResponse } from "next/server";
+import { configure, searchSubtitles } from "wyzie-lib";
 
 // Edge Runtime is required for Cloudflare Pages
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
 // Use the latest stable domain
-configure({ baseUrl: 'https://sub.wyzie.io' });
+configure({ baseUrl: "https://sub.wyzie.io" });
 
 function hashSuffix(value: string): string {
   let hash = 0;
@@ -18,54 +18,79 @@ function hashSuffix(value: string): string {
 }
 
 function normalizeLanguage(input: string) {
-  const value = String(input || '').trim().toLowerCase();
-  if (!value) return 'en';
-  const base = value.includes('-') ? value.split('-')[0] : value.includes('_') ? value.split('_')[0] : value;
-  const compact = base.replace(/[^a-z]/g, '');
+  const value = String(input || "")
+    .trim()
+    .toLowerCase();
+  if (!value) return "en";
+  const base = value.includes("-")
+    ? value.split("-")[0]
+    : value.includes("_")
+      ? value.split("_")[0]
+      : value;
+  const compact = base.replace(/[^a-z]/g, "");
   const aliases: Record<string, string> = {
-    pb: 'pt', br: 'pt', ptbr: 'pt', por: 'pt',
-    eng: 'en', gb: 'en', us: 'en',
-    ell: 'el', gre: 'el',
-    per: 'fa', farsi: 'fa',
-    iw: 'he', heb: 'he',
-    jp: 'ja', jpn: 'ja',
-    kr: 'ko', kor: 'ko',
-    ua: 'uk', ukr: 'uk',
+    pb: "pt",
+    br: "pt",
+    ptbr: "pt",
+    por: "pt",
+    eng: "en",
+    gb: "en",
+    us: "en",
+    ell: "el",
+    gre: "el",
+    per: "fa",
+    farsi: "fa",
+    iw: "he",
+    heb: "he",
+    jp: "ja",
+    jpn: "ja",
+    kr: "ko",
+    kor: "ko",
+    ua: "uk",
+    ukr: "uk",
   };
   return aliases[compact] || aliases[base] || base;
 }
 
 export async function GET(request: NextRequest) {
-  const imdbId = request.nextUrl.searchParams.get('imdbId');
-  const tmdbId = request.nextUrl.searchParams.get('tmdbId');
-  const type = request.nextUrl.searchParams.get('type');
-  const season = request.nextUrl.searchParams.get('season');
-  const episode = request.nextUrl.searchParams.get('episode');
+  const imdbId = request.nextUrl.searchParams.get("imdbId");
+  const tmdbId = request.nextUrl.searchParams.get("tmdbId");
+  const type = request.nextUrl.searchParams.get("type");
+  const season = request.nextUrl.searchParams.get("season");
+  const episode = request.nextUrl.searchParams.get("episode");
 
   if (!imdbId && !tmdbId) {
-    return NextResponse.json({ subtitles: [], error: 'Missing ID' }, { status: 200 });
+    return NextResponse.json(
+      { subtitles: [], error: "Missing ID" },
+      { status: 200 },
+    );
   }
 
   try {
     const params: any = {
-      source: 'opensubtitles',
+      source: "opensubtitles",
       key: process.env.NEXT_PUBLIC_WYZIE_KEY || process.env.WYZIE_KEY,
     };
 
-    if (imdbId && imdbId !== 'undefined' && imdbId !== 'null' && imdbId.startsWith('tt')) {
+    if (
+      imdbId &&
+      imdbId !== "undefined" &&
+      imdbId !== "null" &&
+      imdbId.startsWith("tt")
+    ) {
       params.imdb_id = imdbId;
     } else {
       const tmdbIdNum = tmdbId ? parseInt(tmdbId, 10) : NaN;
       if (!isNaN(tmdbIdNum)) {
         params.tmdb_id = tmdbIdNum;
-      } else if (imdbId && imdbId !== 'undefined' && imdbId !== 'null') {
+      } else if (imdbId && imdbId !== "undefined" && imdbId !== "null") {
         params.imdb_id = imdbId;
       } else {
-        return NextResponse.json({ subtitles: [], error: 'Invalid ID format' });
+        return NextResponse.json({ subtitles: [], error: "Invalid ID format" });
       }
     }
 
-    if (type === 'show' && season && episode) {
+    if (type === "show" && season && episode) {
       params.season = parseInt(season, 10);
       params.episode = parseInt(episode, 10);
     }
@@ -74,13 +99,13 @@ export async function GET(request: NextRequest) {
     try {
       results = await searchSubtitles(params);
     } catch (e) {
-      params.source = 'all';
+      params.source = "all";
       results = await searchSubtitles(params);
     }
 
     if (!Array.isArray(results) || results.length === 0) {
-      if (params.source !== 'all') {
-        params.source = 'all';
+      if (params.source !== "all") {
+        params.source = "all";
         results = await searchSubtitles(params);
       }
     }
@@ -89,20 +114,31 @@ export async function GET(request: NextRequest) {
 
     const mapped = items
       .map((item: any) => {
-        const url = String(item?.url || '').trim();
+        const url = String(item?.url || "").trim();
         if (!url) return null;
 
-        const lang = normalizeLanguage(String(item?.language || item?.display || 'en'));
-        const label = String(item?.display || item?.fileName || item?.release || lang.toUpperCase());
+        const lang = normalizeLanguage(
+          String(item?.language || item?.display || "en"),
+        );
+        const label = String(
+          item?.display ||
+            item?.fileName ||
+            item?.release ||
+            lang.toUpperCase(),
+        );
 
         return {
           id: `wyzie-${lang}-${hashSuffix(url)}`,
           url,
           language: lang,
-          type: (url.toLowerCase().includes('format=vtt') || url.toLowerCase().includes('.vtt')) ? 'vtt' : 'srt',
+          type:
+            url.toLowerCase().includes("format=vtt") ||
+            url.toLowerCase().includes(".vtt")
+              ? "vtt"
+              : "srt",
           label: label,
           flagUrl: item?.flagUrl || null,
-          isHearingImpaired: Boolean(item?.isHearingImpaired)
+          isHearingImpaired: Boolean(item?.isHearingImpaired),
         };
       })
       .filter(Boolean);
@@ -116,7 +152,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const preferred = ['en', 'de', 'es', 'fr', 'pl', 'pt', 'it', 'ja'];
+    const preferred = ["en", "de", "es", "fr", "pl", "pt", "it", "ja"];
     const sorted = Array.from(best.values())
       .sort((a, b) => {
         const pa = preferred.indexOf(a.language);
@@ -126,7 +162,7 @@ export async function GET(request: NextRequest) {
           if (pb === -1) return -1;
           return pa - pb;
         }
-        return (a.label || '').localeCompare(b.label || '');
+        return (a.label || "").localeCompare(b.label || "");
       })
       .slice(0, 50);
 
@@ -134,12 +170,14 @@ export async function GET(request: NextRequest) {
       { subtitles: sorted },
       {
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          "Cache-Control": "no-cache, no-store, must-revalidate",
         },
-      }
+      },
     );
-
   } catch (error: any) {
-    return NextResponse.json({ subtitles: [], error: error?.message || 'Subtitle search failed' }, { status: 200 });
+    return NextResponse.json(
+      { subtitles: [], error: error?.message || "Subtitle search failed" },
+      { status: 200 },
+    );
   }
 }

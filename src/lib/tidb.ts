@@ -17,18 +17,26 @@ export interface MediaSegments {
   preview: Segment[];
 }
 
-const TIDB_V2_BASE = 'https://api.theintrodb.org/v2';
+const TIDB_V2_BASE = "https://api.theintrodb.org/v2";
 const SEGMENTS_CACHE_TTL_MS = 30 * 60 * 1000;
-const segmentsCache = new Map<string, { value: MediaSegments | null; expiresAt: number }>();
+const segmentsCache = new Map<
+  string,
+  { value: MediaSegments | null; expiresAt: number }
+>();
 const inflightSegments = new Map<string, Promise<MediaSegments | null>>();
 
-function toCacheKey(params: { tmdbId: string; type: 'movie' | 'show'; season?: number; episode?: number }) {
+function toCacheKey(params: {
+  tmdbId: string;
+  type: "movie" | "show";
+  season?: number;
+  episode?: number;
+}) {
   return `${params.type}:${params.tmdbId}:${params.season ?? 0}:${params.episode ?? 0}`;
 }
 
 export async function getMediaSegments(params: {
   tmdbId: string;
-  type: 'movie' | 'show';
+  type: "movie" | "show";
   season?: number;
   episode?: number;
 }): Promise<MediaSegments | null> {
@@ -44,23 +52,23 @@ export async function getMediaSegments(params: {
   const request = (async () => {
     try {
       const url = new URL(`${TIDB_V2_BASE}/media`);
-      url.searchParams.set('tmdb_id', params.tmdbId);
-      url.searchParams.set('type', params.type === 'show' ? 'tv' : 'movie');
-      if (params.type === 'show' && params.season != null) {
-        url.searchParams.set('season', String(params.season));
+      url.searchParams.set("tmdb_id", params.tmdbId);
+      url.searchParams.set("type", params.type === "show" ? "tv" : "movie");
+      if (params.type === "show" && params.season != null) {
+        url.searchParams.set("season", String(params.season));
       }
-      if (params.type === 'show' && params.episode != null) {
-        url.searchParams.set('episode', String(params.episode));
+      if (params.type === "show" && params.episode != null) {
+        url.searchParams.set("episode", String(params.episode));
       }
 
       const res = await fetch(url.toString(), {
         signal: AbortSignal.timeout(7000),
-        cache: 'no-store',
+        cache: "no-store",
       });
       if (!res.ok) return null;
 
       const data = await res.json();
-      if (!data || typeof data !== 'object') return null;
+      if (!data || typeof data !== "object") return null;
 
       const value: MediaSegments = {
         intro: normalizeSegments((data as any).intro),
@@ -79,7 +87,10 @@ export async function getMediaSegments(params: {
 
   inflightSegments.set(cacheKey, request);
   const result = await request;
-  segmentsCache.set(cacheKey, { value: result, expiresAt: Date.now() + SEGMENTS_CACHE_TTL_MS });
+  segmentsCache.set(cacheKey, {
+    value: result,
+    expiresAt: Date.now() + SEGMENTS_CACHE_TTL_MS,
+  });
   return result;
 }
 
@@ -100,8 +111,8 @@ function normalizeSegments(raw: any): Segment[] {
 export interface SubmitSegmentParams {
   apiKey: string;
   tmdbId: string;
-  type: 'movie' | 'show';
-  segment: 'intro' | 'recap' | 'credits' | 'preview';
+  type: "movie" | "show";
+  segment: "intro" | "recap" | "credits" | "preview";
   startSec: number;
   endSec: number;
   season?: number;
@@ -120,36 +131,42 @@ export interface SubmitSegmentResult {
   error?: string;
 }
 
-export const PUBLIC_TIDB_API_KEY_PLACEHOLDER = '__PUBLIC_TIDB_KEY__';
+export const PUBLIC_TIDB_API_KEY_PLACEHOLDER = "__PUBLIC_TIDB_KEY__";
 
 export function isPublicTidbKey(rawValue?: string | null): boolean {
-  return String(rawValue || '').trim() === PUBLIC_TIDB_API_KEY_PLACEHOLDER;
+  return String(rawValue || "").trim() === PUBLIC_TIDB_API_KEY_PLACEHOLDER;
 }
 
-export async function submitSegment(params: SubmitSegmentParams): Promise<SubmitSegmentResult> {
+export async function submitSegment(
+  params: SubmitSegmentParams,
+): Promise<SubmitSegmentResult> {
   try {
     const isPublic = isPublicTidbKey(params.apiKey);
-    
+
     // If it's a public key, we use our own API proxy to hide the secret
     // If it's a custom key, we can still use the proxy or go direct.
     // Let's use the proxy for both to keep it consistent and handle the secret on the server.
     const body: Record<string, any> = {
       tmdb_id: Number(params.tmdbId),
-      type: params.type === 'movie' ? 'movie' : 'tv',
+      type: params.type === "movie" ? "movie" : "tv",
       segment: params.segment,
       start_sec: params.startSec,
       end_sec: params.endSec,
       apiKey: params.apiKey, // Pass the key (could be the placeholder)
     };
-    if (params.type === 'show' && params.season != null) body.season = params.season;
-    if (params.type === 'show' && params.episode != null) body.episode = params.episode;
+    if (params.type === "show" && params.season != null)
+      body.season = params.season;
+    if (params.type === "show" && params.episode != null)
+      body.episode = params.episode;
     if (params.imdbId) body.imdb_id = params.imdbId;
 
-    const res = await fetch('/api/segments/submit', {
-      method: 'POST',
+    const res = await fetch("/api/segments/submit", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        ...(params.sessionToken ? { Authorization: `Bearer ${params.sessionToken}` } : {}),
+        "Content-Type": "application/json",
+        ...(params.sessionToken
+          ? { Authorization: `Bearer ${params.sessionToken}` }
+          : {}),
       },
       body: JSON.stringify(body),
     });
@@ -158,7 +175,10 @@ export async function submitSegment(params: SubmitSegmentParams): Promise<Submit
     if (res.ok && data?.ok) {
       return { ok: true, submission: data.submission };
     }
-    return { ok: false, error: data?.message || data?.error || 'Unknown error' };
+    return {
+      ok: false,
+      error: data?.message || data?.error || "Unknown error",
+    };
   } catch (err: any) {
     return { ok: false, error: err.message };
   }
@@ -170,20 +190,37 @@ export async function getIntroOutro(params: {
   tmdbId?: string;
   season?: number;
   episode?: number;
-}): Promise<{ introStart?: number; introEnd?: number; outroStart?: number; outroEnd?: number } | null> {
+}): Promise<{
+  introStart?: number;
+  introEnd?: number;
+  outroStart?: number;
+  outroEnd?: number;
+} | null> {
   if (!params.tmdbId) return null;
   const segments = await getMediaSegments({
     tmdbId: params.tmdbId,
-    type: params.season != null ? 'show' : 'movie',
+    type: params.season != null ? "show" : "movie",
     season: params.season,
     episode: params.episode,
   });
   if (!segments) return null;
 
   return {
-    introStart: segments.intro[0]?.startMs != null ? segments.intro[0].startMs / 1000 : undefined,
-    introEnd: segments.intro[0]?.endMs != null ? segments.intro[0].endMs / 1000 : undefined,
-    outroStart: segments.credits[0]?.startMs != null ? segments.credits[0].startMs / 1000 : undefined,
-    outroEnd: segments.credits[0]?.endMs != null ? segments.credits[0].endMs / 1000 : undefined,
+    introStart:
+      segments.intro[0]?.startMs != null
+        ? segments.intro[0].startMs / 1000
+        : undefined,
+    introEnd:
+      segments.intro[0]?.endMs != null
+        ? segments.intro[0].endMs / 1000
+        : undefined,
+    outroStart:
+      segments.credits[0]?.startMs != null
+        ? segments.credits[0].startMs / 1000
+        : undefined,
+    outroEnd:
+      segments.credits[0]?.endMs != null
+        ? segments.credits[0].endMs / 1000
+        : undefined,
   };
 }

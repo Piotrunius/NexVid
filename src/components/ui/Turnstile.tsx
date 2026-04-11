@@ -3,9 +3,9 @@
    Anti-bot challenge for auth protection
    ============================================ */
 
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 interface TurnstileProps {
   onVerify: (token: string) => void;
@@ -16,32 +16,39 @@ interface TurnstileProps {
 declare global {
   interface Window {
     turnstile?: {
-      render: (container: HTMLElement, options: Record<string, unknown>) => string;
+      render: (
+        container: HTMLElement,
+        options: Record<string, unknown>,
+      ) => string;
       reset: (widgetId: string) => void;
     };
     onTurnstileLoad?: () => void;
   }
 }
 
-export function Turnstile({ onVerify, onError, onAvailabilityChange }: TurnstileProps) {
+export function Turnstile({
+  onVerify,
+  onError,
+  onAvailabilityChange,
+}: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [siteKey, setSiteKey] = useState('');
+  const [siteKey, setSiteKey] = useState("");
 
   useEffect(() => {
     let active = true;
-    fetch('/api/public-config', { cache: 'no-store' })
+    fetch("/api/public-config", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!active) return;
-        const key = String(data?.turnstileSiteKey || '').trim();
+        const key = String(data?.turnstileSiteKey || "").trim();
         setSiteKey(key);
         onAvailabilityChange?.(Boolean(key));
       })
       .catch(() => {
         if (!active) return;
-        setSiteKey('');
+        setSiteKey("");
         onAvailabilityChange?.(false);
       });
 
@@ -62,9 +69,9 @@ export function Turnstile({ onVerify, onError, onAvailabilityChange }: Turnstile
       widgetId.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         callback: onVerify,
-        'error-callback': onError,
-        theme: 'dark',
-        size: 'flexible',
+        "error-callback": onError,
+        theme: "dark",
+        size: "flexible",
       });
     };
 
@@ -84,8 +91,9 @@ export function Turnstile({ onVerify, onError, onAvailabilityChange }: Turnstile
 
     // Load the script
     window.onTurnstileLoad = renderWidget;
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+    const script = document.createElement("script");
+    script.src =
+      "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad";
     script.async = true;
     script.onerror = markUnavailable;
     document.head.appendChild(script);
