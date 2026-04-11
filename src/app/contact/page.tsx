@@ -42,7 +42,7 @@ const CATEGORY_OPTIONS = [
   { value: "contact", label: "Contact" },
 ] as const;
 
-const DISCORD_INVITE_URL = "https://cloud.umami.is/q/vCu19Bcub";
+const DISCORD_INVITE_URL = "process.env.DISCORD_URL";
 
 export default function ContactPage() {
   const { isLoggedIn } = useAuthStore();
