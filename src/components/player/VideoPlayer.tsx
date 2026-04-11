@@ -1794,14 +1794,25 @@ export function VideoPlayer({
     [duration],
   );
 
-  const handleInteractionAreaClick = useCallback((e: React.MouseEvent) => {
-    // Single tap toggles controls
+  const handleInteractionAreaClick = useCallback((e: React.MouseEvent, shouldTogglePlayback = true) => {
+    // If a settings panel is open, clicking the area should close it
+    if (settingsPanel) {
+      setSettingsPanel(null);
+      return;
+    }
+
+    // Standard playback toggle if requested (standard for desktop, optional for mobile)
+    if (shouldTogglePlayback) {
+      togglePlay();
+    }
+    
+    // Toggle controls visibility
     if (!controlsVisible) {
       showControls();
     } else {
       hideControls();
     }
-  }, [controlsVisible, showControls, hideControls]);
+  }, [controlsVisible, showControls, hideControls, togglePlay, settingsPanel]);
 
   const handleInteractionAreaTouch = useCallback((e: React.TouchEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1821,8 +1832,9 @@ export function VideoPlayer({
       e.stopPropagation();
     } else {
       lastTapRef.current = { time: now, side };
-      // Single tap should still toggle controls on mobile
-      handleInteractionAreaClick(e as any);
+      // Single tap on mobile should ONLY toggle controls, not toggle playback
+      // This allows users to "wake up" the UI to see the progress bar/time
+      handleInteractionAreaClick(e as any, false);
     }
   }, [currentTime, seek, handleInteractionAreaClick, hideControls]);
 
@@ -2896,8 +2908,11 @@ export function VideoPlayer({
           <audio ref={externalAudioRef} className="hidden" preload="auto" />
 
           {/* Combined Interaction & Mobile Gesture Layer */}
-          <div
-            className="absolute inset-x-0 top-16 bottom-24 z-[20] touch-none select-none"
+          <div 
+            className={cn(
+              "absolute inset-x-0 top-16 bottom-24 z-[20] select-none",
+              isDraggingProgress ? "cursor-grabbing" : "cursor-pointer"
+            )}
             onClick={handleInteractionAreaClick}
             onTouchEnd={handleInteractionAreaTouch}
           >
@@ -2905,12 +2920,13 @@ export function VideoPlayer({
             <AnimatePresence>
               {showSkipIndicator === "left" && (
                 <motion.div
+                  key="skip-left"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="absolute left-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
+                  className="absolute left-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-none"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <Rewind className="h-8 w-8 fill-white text-white" />
                   </div>
                   <span className="text-[14px] font-bold text-white shadow-lg">-10s</span>
@@ -2918,52 +2934,16 @@ export function VideoPlayer({
               )}
               {showSkipIndicator === "right" && (
                 <motion.div
+                  key="skip-right"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="absolute right-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
+                  className="absolute right-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-none"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <FastForward className="h-8 w-8 fill-white text-white" />
                   </div>
                   <span className="text-[14px] font-bold text-white shadow-lg">+10s</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Centered Scrubbing Overlay (Cross-platform) */}
-            <AnimatePresence>
-              {isDraggingProgress && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3 z-50 pt-[5vh]"
-                >
-                  <div className="flex flex-col items-center gap-2 px-8 py-5 rounded-[28px] bg-black/50 backdrop-blur-[60px] backdrop-saturate-[200%] border border-white/5 shadow-[0_32px_128px_rgba(0,0,0,0.9)] min-w-[200px]">
-                    <div className="flex items-center gap-2.5 text-accent/80 mb-0.5">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Seeking</span>
-                    </div>
-                    <div className="flex items-baseline gap-4">
-                      <span className="text-4xl font-black tracking-tighter text-white tabular-nums drop-shadow-2xl">
-                        {formatTime(dragCurrentTime)}
-                      </span>
-                      <div className={cn(
-                        "text-[16px] font-black tabular-nums px-2 py-0.5 rounded-lg",
-                        dragCurrentTime >= dragStartTime ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-                      )}>
-                        {dragCurrentTime >= dragStartTime ? "+" : ""}
-                        {formatTime(Math.abs(dragCurrentTime - dragStartTime))}
-                      </div>
-                    </div>
-                    <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-accent transition-all duration-75"
-                        style={{ width: `${(dragCurrentTime / (duration || 1)) * 100}%` }}
-                      />
-                    </div>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -3625,7 +3605,7 @@ export function VideoPlayer({
                     {settingsPanel === "episodes" && (
                       <div
                         className={cn(
-                          "mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto",
+                          "mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/85 backdrop-blur-[24px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
                           isTouchDevice
                             ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
                             : "absolute bottom-full right-0 z-[50] mb-2 max-h-[60vh]",
@@ -3763,7 +3743,7 @@ export function VideoPlayer({
                     !["info", "episodes"].includes(settingsPanel) && (
                       <div
                         className={cn(
-                          "mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto",
+                          "mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/85 backdrop-blur-[24px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
                           isTouchDevice
                             ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
                             : "absolute bottom-full right-0 z-[50] mb-2 max-h-[65vh]",
@@ -5489,7 +5469,7 @@ export function VideoPlayer({
           onClick={() => setSettingsPanel(null)}
         >
           <div
-            className="w-full max-w-2xl overflow-hidden animate-scale-in max-h-[80vh] overflow-y-auto rounded-[20px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)]"
+            className="w-full max-w-2xl overflow-hidden animate-scale-in max-h-[80vh] overflow-y-auto rounded-[20px] bg-black/85 backdrop-blur-[24px] backdrop-saturate-[180%] shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-r from-accent/15 via-white/5 to-transparent px-5 py-4">
