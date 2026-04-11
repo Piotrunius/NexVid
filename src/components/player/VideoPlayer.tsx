@@ -40,6 +40,7 @@ import type {
   StreamQuality,
   WatchlistStatus,
 } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Award,
   CheckCircle2,
@@ -69,9 +70,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { FaEarDeaf } from "react-icons/fa6";
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
@@ -1821,9 +1820,10 @@ export function VideoPlayer({
     }
 
     const remaining = Math.max(0, effectiveVideoEndTime - currentTime);
-    
+
     // If we're within 12s of the effective end (e.g. credits start), show the prompt.
-    const shouldPrompt = remaining <= 12;
+    // The user requested to hide this toast entirely if autoNext is disabled.
+    const shouldPrompt = autoNext && remaining <= 12;
 
     if (shouldPrompt) {
       if (!showNextPrompt) setShowNextPrompt(true);
@@ -3078,16 +3078,32 @@ export function VideoPlayer({
 
       {/* Skip Intro */}
       {stream?.type !== "embed" && showSkipIntro && skipIntro && (
-        <button onClick={handleSkipIntro} className="skip-btn animate-fade-in">
-          <FastForward className="mr-1.5 inline h-4 w-4 stroke-[1.85]" />
+        <button
+          onClick={handleSkipIntro}
+          className={cn(
+            "absolute right-6 bottom-[100px] z-40 flex items-center gap-2 px-6 py-3 rounded-full animate-fade-in border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+            glassEffect
+              ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+              : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
+          )}
+        >
+          <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
           Skip Intro
         </button>
       )}
 
       {/* Skip Outro */}
       {stream?.type !== "embed" && showSkipOutro && skipOutro && (
-        <button onClick={handleSkipOutro} className="skip-btn animate-fade-in">
-          <FastForward className="mr-1.5 inline h-4 w-4 stroke-[1.85]" />
+        <button
+          onClick={handleSkipOutro}
+          className={cn(
+            "absolute right-6 bottom-[100px] z-40 flex items-center gap-2 px-6 py-3 rounded-full animate-fade-in border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+            glassEffect
+              ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+              : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
+          )}
+        >
+          <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
           Skip Outro
         </button>
       )}
@@ -5051,7 +5067,7 @@ export function VideoPlayer({
 
           <AnimatePresence>
             {showNextPrompt && isShowWithEpisodes && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
                 animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
                 exit={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
@@ -5072,10 +5088,10 @@ export function VideoPlayer({
                       Next: S{getNextEpisodeTarget()?.season} E{getNextEpisodeTarget()?.episode}
                     </p>
                     <p className="text-[10px] font-medium text-white/50">
-                      {isEpisodeNavigating 
-                        ? "Loading..." 
-                        : autoNext 
-                          ? `Auto-play in ${nextCountdown}s` 
+                      {isEpisodeNavigating
+                        ? "Loading..."
+                        : autoNext
+                          ? `Auto-Next in ${nextCountdown}s`
                           : "Ready to play"}
                     </p>
                   </div>
