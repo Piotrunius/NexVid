@@ -4,12 +4,13 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 const CANONICAL_HOST = (
-  process.env.NEXT_PUBLIC_CANONICAL_HOST || "nexvid.online"
+  process.env.CANONICAL_HOST || "nexvid.online"
 ).toLowerCase();
 const REDIRECT_HOSTS = new Set([
   "nexvid.pl",
   "www.nexvid.pl",
   "www.nexvid.online",
+  "nexvid.nexvid.pages.dev",
 ]);
 
 function applySecurityHeaders(response: NextResponse) {

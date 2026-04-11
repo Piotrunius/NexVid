@@ -129,6 +129,9 @@ async function loadExternalCaptions(params: {
           label: subtitle?.label || subtitle?.display,
           flagUrl: subtitle?.flagUrl,
           isHearingImpaired: Boolean(subtitle?.isHearingImpaired),
+          release: subtitle?.release || null,
+          fileName: subtitle?.fileName || null,
+          downloadCount: Number(subtitle?.downloadCount || 0),
         } as Caption;
       })
       .filter((caption: Caption | null): caption is Caption =>
