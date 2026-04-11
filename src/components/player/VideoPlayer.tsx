@@ -5049,71 +5049,77 @@ export function VideoPlayer({
             </div>
           </div>
 
-          {showNextPrompt && isShowWithEpisodes && (
-            <div 
-              className={cn(
-                "absolute bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] animate-slide-up border border-white/10",
-                glassEffect
-                  ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-                  : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
-              )}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
-                  <FastForward className="h-4 w-4" />
+          <AnimatePresence>
+            {showNextPrompt && isShowWithEpisodes && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
+                animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                exit={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className={cn(
+                  "absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
+                  glassEffect
+                    ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+                    : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
+                )}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                    <FastForward className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-bold text-white truncate">
+                      Next: S{getNextEpisodeTarget()?.season} E{getNextEpisodeTarget()?.episode}
+                    </p>
+                    <p className="text-[10px] font-medium text-white/50">
+                      {isEpisodeNavigating 
+                        ? "Loading..." 
+                        : autoNext 
+                          ? `Auto-play in ${nextCountdown}s` 
+                          : "Ready to play"}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-bold text-white truncate">
-                    Next: S{getNextEpisodeTarget()?.season} E{getNextEpisodeTarget()?.episode}
-                  </p>
-                  <p className="text-[10px] font-medium text-white/50">
-                    {isEpisodeNavigating 
-                      ? "Loading..." 
-                      : autoNext 
-                        ? `Auto-play in ${nextCountdown}s` 
-                        : "Ready to play"}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2 ml-auto shrink-0">
-                <button
-                  onClick={() => {
-                    nextPromptHandledForRef.current = promptKey;
-                    navigateNextEpisode();
-                  }}
-                  disabled={isEpisodeNavigating}
-                  className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
-                >
-                  {isEpisodeNavigating ? "..." : "Play Now"}
-                </button>
-                {autoNext && (
+                <div className="flex items-center gap-2 ml-auto shrink-0">
                   <button
                     onClick={() => {
-                      nextPromptDismissedForRef.current = promptKey;
-                      setShowNextPrompt(false);
-                      setNextCountdown(8);
+                      nextPromptHandledForRef.current = promptKey;
+                      navigateNextEpisode();
                     }}
-                    className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                    disabled={isEpisodeNavigating}
+                    className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    {isEpisodeNavigating ? "..." : "Play Now"}
                   </button>
-                )}
-              </div>
-
-              {/* Minimal Progress Bar */}
-              {autoNext && !isEpisodeNavigating && (
-                <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/5">
-                  <motion.div
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${((8 - nextCountdown) / 8) * 100}%` }}
-                    className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
-                    transition={{ duration: 1, ease: "linear" }}
-                  />
+                  {autoNext && (
+                    <button
+                      onClick={() => {
+                        nextPromptDismissedForRef.current = promptKey;
+                        setShowNextPrompt(false);
+                        setNextCountdown(8);
+                      }}
+                      className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Minimal Progress Bar */}
+                {autoNext && !isEpisodeNavigating && (
+                  <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/5">
+                    <motion.div
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${((8 - nextCountdown) / 8) * 100}%` }}
+                      className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
+                      transition={{ duration: 1, ease: "linear" }}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* End Screen / Finished Overlay */}
           {isFinished && (
