@@ -997,13 +997,13 @@ export default function WatchPageClient({
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleResumeChoice("watch")}
-                        className="btn-accent !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full"
+                        className="btn-accent justify-center w-full"
                       >
                         Watch ({Math.round(resumeData?.percentage || 0)}%)
                       </button>
                       <button
                         onClick={() => handleResumeChoice("rewatch")}
-                        className="btn-glass !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full"
+                        className="btn-glass justify-center w-full"
                       >
                         Rewatch
                       </button>
@@ -1012,7 +1012,7 @@ export default function WatchPageClient({
                     {type === "show" && (
                       <button
                         onClick={() => handleResumeChoice("next")}
-                        className="btn-glass !bg-accent/10 !border-accent/20 !text-accent !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full hover:!bg-accent/20"
+                        className="btn-glass !bg-accent/10 !border-accent/20 !text-accent justify-center w-full hover:!bg-accent/20"
                       >
                         Next Episode
                       </button>
@@ -1047,13 +1047,13 @@ export default function WatchPageClient({
                   <div className="mx-auto grid w-full max-w-[360px] grid-cols-2 gap-2">
                     <button
                       onClick={() => handleResumeChoice("watch")}
-                      className="btn-accent !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full"
+                      className="btn-accent justify-center w-full"
                     >
                       Resume ({formatTime(resumeData?.timestamp || 0)})
                     </button>
                     <button
                       onClick={() => handleResumeChoice("rewatch")}
-                      className="btn-glass !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest w-full"
+                      className="btn-glass justify-center w-full"
                     >
                       Start Over
                     </button>

@@ -2945,7 +2945,7 @@ export function VideoPlayer({
           >
             {/* Playback Indicators */}
             <AnimatePresence>
-              {playbackIndicator && (
+              {isTouchDevice && playbackIndicator && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <motion.div
                     key="playback-indicator"
@@ -5392,7 +5392,7 @@ export function VideoPlayer({
                     : "Movie finished"}
                 </p>
 
-                <div className="flex justify-center items-center gap-2 w-full mb-2">
+                <div className="flex justify-center items-center gap-3 w-full mb-2">
                   {mediaType === "show" && Boolean(getNextEpisodeTarget()) && (
                     <button
                       onClick={() => {
@@ -5401,7 +5401,7 @@ export function VideoPlayer({
                         navigateNextEpisode();
                       }}
                       disabled={isEpisodeNavigating}
-                      className="btn-accent min-w-[120px] !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest"
+                      className="btn-accent min-w-[140px] justify-center"
                     >
                       {isEpisodeNavigating ? "Loading…" : "Next Episode"}
                     </button>
@@ -5414,11 +5414,10 @@ export function VideoPlayer({
                       seek(0);
                       videoRef.current?.play().catch(() => {});
                     }}
-                    className={
-                      mediaType === "show"
-                        ? "btn-glass min-w-[120px] !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest"
-                        : "btn-accent min-w-[120px] !py-2.5 !rounded-xl justify-center text-[10px] font-black uppercase tracking-widest"
-                    }
+                    className={cn(
+                      "min-w-[140px] justify-center",
+                      mediaType === "show" ? "btn-glass" : "btn-accent"
+                    )}
                   >
                     Rewatch
                   </button>
