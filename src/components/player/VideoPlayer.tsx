@@ -59,6 +59,7 @@ import {
   PauseCircle,
   Play,
   PlayCircle,
+  Rewind,
   Rocket,
   Server,
   Settings2,
@@ -664,6 +665,11 @@ export function VideoPlayer({
   const [isFinished, setIsFinished] = useState(false);
   const [autoNextLocked, setAutoNextLocked] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [isDraggingProgress, setIsDraggingProgress] = useState(false);
+  const [dragStartTime, setDragStartTime] = useState(0);
+  const [dragCurrentTime, setDragCurrentTime] = useState(0);
+  const [showSkipIndicator, setShowSkipIndicator] = useState<"left" | "right" | null>(null);
+  const lastTapRef = useRef<{ time: number; side: "left" | "right" } | null>(null);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
   const nextEpisodeAutoNavRef = useRef(false);
@@ -1705,8 +1711,78 @@ export function VideoPlayer({
       const pos = (e.clientX - rect.left) / rect.width;
       seek(pos * duration);
     },
-    [duration],
+    [duration, seek],
   );
+
+  const startDragging = useCallback((time: number) => {
+    setIsDraggingProgress(true);
+    setDragStartTime(currentTime);
+    setDragCurrentTime(time);
+  }, [currentTime]);
+
+  const updateDragging = useCallback((time: number) => {
+    const clamped = Math.max(0, Math.min(time, duration || 0));
+    setDragCurrentTime(clamped);
+    // Optional: Real-time seeking for file-based streams
+    if (stream?.type === "file") {
+      seek(clamped);
+    }
+  }, [duration, stream?.type, seek]);
+
+  const stopDragging = useCallback(() => {
+    if (isDraggingProgress) {
+      seek(dragCurrentTime);
+      setIsDraggingProgress(false);
+    }
+  }, [isDraggingProgress, dragCurrentTime, seek]);
+
+  const handleProgressMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!progressRef.current || !duration) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    startDragging(pos * duration);
+  }, [duration, startDragging]);
+
+  const handleProgressTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!progressRef.current || !duration) return;
+    const touch = e.touches[0];
+    const rect = progressRef.current.getBoundingClientRect();
+    const pos = (touch.clientX - rect.left) / rect.width;
+    startDragging(pos * duration);
+  }, [duration, startDragging]);
+
+  useEffect(() => {
+    if (!isDraggingProgress) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!progressRef.current || !duration) return;
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      updateDragging(pos * duration);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!progressRef.current || !duration) return;
+      const touch = e.touches[0];
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = (touch.clientX - rect.left) / rect.width;
+      updateDragging(pos * duration);
+    };
+
+    const handleUp = () => stopDragging();
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleUp);
+    };
+  }, [isDraggingProgress, duration, updateDragging, stopDragging]);
 
   const handleProgressHover = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1717,6 +1793,38 @@ export function VideoPlayer({
     },
     [duration],
   );
+
+  const handleInteractionAreaClick = useCallback((e: React.MouseEvent) => {
+    // Single tap toggles controls
+    if (!controlsVisible) {
+      showControls();
+    } else {
+      hideControls();
+    }
+  }, [controlsVisible, showControls, hideControls]);
+
+  const handleInteractionAreaTouch = useCallback((e: React.TouchEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const touchX = e.changedTouches[0].clientX - rect.left;
+    const side = touchX < rect.width / 2 ? "left" : "right";
+    const now = Date.now();
+
+    if (lastTapRef.current && lastTapRef.current.side === side && now - lastTapRef.current.time < 350) {
+      // Double tap detected
+      const skipAmount = side === "left" ? -10 : 10;
+      seek(currentTime + skipAmount);
+      setShowSkipIndicator(side);
+      setTimeout(() => setShowSkipIndicator(null), 800);
+      lastTapRef.current = null;
+      // Hide controls on double tap skip for a cleaner feel
+      hideControls();
+      e.stopPropagation();
+    } else {
+      lastTapRef.current = { time: now, side };
+      // Single tap should still toggle controls on mobile
+      handleInteractionAreaClick(e as any);
+    }
+  }, [currentTime, seek, handleInteractionAreaClick, hideControls]);
 
   const changeVolume = useCallback(
     (newVol: number) => {
@@ -2766,8 +2874,14 @@ export function VideoPlayer({
             onCanPlay={handleCanPlay}
             onEnded={handleEnded}
             onError={handleError}
-            onClick={togglePlay}
-            onDoubleClick={toggleFullscreen}
+            onClick={(e) => {
+              if (isTouchDevice) return;
+              togglePlay();
+            }}
+            onDoubleClick={(e) => {
+              if (isTouchDevice) return;
+              toggleFullscreen();
+            }}
             onLoadedMetadata={(e) => {
               const video = e.currentTarget;
               if (video.videoWidth && video.videoHeight) {
@@ -2780,6 +2894,80 @@ export function VideoPlayer({
             autoPlay={autoPlay}
           ></video>
           <audio ref={externalAudioRef} className="hidden" preload="auto" />
+
+          {/* Combined Interaction & Mobile Gesture Layer */}
+          <div 
+            className="absolute inset-x-0 top-16 bottom-24 z-[20] touch-none select-none"
+            onClick={handleInteractionAreaClick}
+            onTouchEnd={handleInteractionAreaTouch}
+          >
+            {/* Skip Indicators for mobile */}
+            <AnimatePresence>
+              {showSkipIndicator === "left" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="absolute left-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+                    <Rewind className="h-8 w-8 fill-white text-white" />
+                  </div>
+                  <span className="text-[14px] font-bold text-white shadow-lg">-10s</span>
+                </motion.div>
+              )}
+              {showSkipIndicator === "right" && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="absolute right-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2"
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/10">
+                    <FastForward className="h-8 w-8 fill-white text-white" />
+                  </div>
+                  <span className="text-[14px] font-bold text-white shadow-lg">+10s</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Centered Scrubbing Overlay (Cross-platform) */}
+            <AnimatePresence>
+              {isDraggingProgress && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3 z-50 pt-[5vh]"
+                >
+                  <div className="flex flex-col items-center gap-2 px-8 py-5 rounded-[28px] bg-black/50 backdrop-blur-[60px] backdrop-saturate-[200%] border border-white/5 shadow-[0_32px_128px_rgba(0,0,0,0.9)] min-w-[200px]">
+                    <div className="flex items-center gap-2.5 text-accent/80 mb-0.5">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Seeking</span>
+                    </div>
+                    <div className="flex items-baseline gap-4">
+                      <span className="text-4xl font-black tracking-tighter text-white tabular-nums drop-shadow-2xl">
+                        {formatTime(dragCurrentTime)}
+                      </span>
+                      <div className={cn(
+                        "text-[16px] font-black tabular-nums px-2 py-0.5 rounded-lg",
+                        dragCurrentTime >= dragStartTime ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
+                      )}>
+                        {dragCurrentTime >= dragStartTime ? "+" : ""}
+                        {formatTime(Math.abs(dragCurrentTime - dragStartTime))}
+                      </div>
+                    </div>
+                    <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-accent transition-all duration-75"
+                        style={{ width: `${(dragCurrentTime / (duration || 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </>
       )}
 
@@ -3237,7 +3425,7 @@ export function VideoPlayer({
           {/* Bottom Controls */}
           <div
             className={cn(
-              "player-controls",
+              "player-controls z-[40]",
               "transition-opacity duration-300",
               controlsVisible || settingsPanel !== null
                 ? "opacity-100"
@@ -3247,8 +3435,10 @@ export function VideoPlayer({
             {/* Progress Bar */}
             <div
               ref={progressRef}
-              className="player-progress"
+              className="player-progress group"
               onClick={handleProgressClick}
+              onMouseDown={handleProgressMouseDown}
+              onTouchStart={handleProgressTouchStart}
               onMouseMove={handleProgressHover}
               onMouseLeave={() => setHoverProgress(null)}
             >
