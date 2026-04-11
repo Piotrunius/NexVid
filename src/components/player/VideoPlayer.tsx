@@ -1826,29 +1826,44 @@ export function VideoPlayer({
   }, [controlsVisible, showControls, hideControls, togglePlay, settingsPanel, isTouchDevice]);
 
   const handleInteractionAreaTouch = useCallback((e: React.TouchEvent) => {
+    // Prevent simulated mouse events (clicks) after touch
+    e.preventDefault();
+    e.stopPropagation();
+
     const rect = e.currentTarget.getBoundingClientRect();
     const touchX = e.changedTouches[0].clientX - rect.left;
-    const side = touchX < rect.width / 2 ? "left" : "right";
+    const width = rect.width;
+    
+    // 3-Sector Model: Left 30%, Right 30%, Center 40%
+    const isLeft = touchX < width * 0.3;
+    const isRight = touchX > width * 0.7;
+    const side = isLeft ? "left" : isRight ? "right" : "center";
+    
     const now = Date.now();
 
-    if (lastTapRef.current && lastTapRef.current.side === side && now - lastTapRef.current.time < 350) {
-      // Double tap detected
-      const skipAmount = side === "left" ? -10 : 10;
-      seek(currentTime + skipAmount);
-      setShowSkipIndicator(side);
-      setTimeout(() => setShowSkipIndicator(null), 800);
-      lastTapRef.current = null;
-
-      // Keep UI alive during multiple skips
-      showControls();
-
-      e.stopPropagation();
+    if (side !== "center") {
+      // HANDLE SKIP SECTORS
+      if (lastTapRef.current && lastTapRef.current.side === side && now - lastTapRef.current.time < 350) {
+        // Double tap detected
+        const skipAmount = side === "left" ? -10 : 10;
+        seek(currentTime + skipAmount);
+        setShowSkipIndicator(side as "left" | "right");
+        setTimeout(() => setShowSkipIndicator(null), 800);
+        lastTapRef.current = null;
+        showControls();
+      } else {
+        lastTapRef.current = { time: now, side: side as "left" | "right" };
+        // Single tap on sides only wakes UI
+        if (!controlsVisible) showControls();
+        else hideControls();
+      }
     } else {
-      lastTapRef.current = { time: now, side };
-      // Single tap on mobile should ONLY toggle controls, not toggle playback
-      handleInteractionAreaClick(e as any, false);
+      // HANDLE CENTER SECTOR (Play/Pause)
+      togglePlay();
+      showControls();
+      lastTapRef.current = null; // Reset skip chain if tapping center
     }
-  }, [currentTime, seek, handleInteractionAreaClick, showControls, controlsVisible]);
+  }, [currentTime, seek, togglePlay, showControls, hideControls, controlsVisible]);
 
   const changeVolume = useCallback(
     (newVol: number) => {
@@ -2931,19 +2946,21 @@ export function VideoPlayer({
             {/* Playback Indicators */}
             <AnimatePresence>
               {playbackIndicator && (
-                <motion.div
-                  key="playback-indicator"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/40 backdrop-blur-md p-6 border border-white/10"
-                >
-                  {playbackIndicator === "play" ? (
-                    <Play className="h-10 w-10 fill-white text-white" />
-                  ) : (
-                    <Pause className="h-10 w-10 fill-white text-white" />
-                  )}
-                </motion.div>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <motion.div
+                    key="playback-indicator"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10"
+                  >
+                    {playbackIndicator === "play" ? (
+                      <Play className="h-8 w-8 fill-white text-white" />
+                    ) : (
+                      <Pause className="h-8 w-8 fill-white text-white" />
+                    )}
+                  </motion.div>
+                </div>
               )}
             </AnimatePresence>
 
