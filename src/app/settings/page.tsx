@@ -204,6 +204,17 @@ export default function SettingsPage() {
     } catch (error: any) { toast(error?.message || 'Failed to clear all data', 'error'); }
   };
 
+  const handleLogoutOthers = async () => {
+    if (!confirm('Are you sure? This will log you out from all other devices.')) return;
+    try {
+      const { logoutOthersWithBackend } = useAuthStore.getState();
+      await logoutOthersWithBackend();
+      toast('Logged out from all other sessions', 'success');
+    } catch (error: any) {
+      toast(error?.message || 'Failed to logout from other sessions', 'error');
+    }
+  };
+
   const getSourceIcon = (sourceId?: string) => {
     switch (sourceId) {
       case 'febbox': return <Crown className="w-3.5 h-3.5" />;
@@ -555,11 +566,18 @@ export default function SettingsPage() {
                 Reset Settings
               </button>
               <button
+                onClick={handleLogoutOthers}
+                className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Logout Other Devices
+              </button>
+              <button
                 onClick={handleClearEverything}
-                className="flex items-center justify-center gap-1.5 rounded-[10px] bg-red-500/10 px-3.5 py-2.5 text-[13px] font-medium text-red-400 hover:bg-red-500/18 active:scale-[0.98] transition-all duration-200"
+                className="btn-danger flex items-center justify-center gap-1.5 text-[13px] py-2.5"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                Clear Everything
+                Delete All Data
               </button>
             </div>
           </div>
@@ -569,8 +587,8 @@ export default function SettingsPage() {
         <SettingsCard title="FAQ" className="xl:col-span-7" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}>
           <div className="space-y-3 text-[12px] leading-relaxed">
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-              <p className="text-text-primary font-medium">Why should I use my own FebBox UI Cookie?</p>
-              <p className="mt-1 text-text-muted">A personal cookie bypasses the slow and unstable public proxy, providing instant loading, better quality, and a much smoother experience.</p>
+              <p className="text-text-primary font-medium">How can i get my own tokens? Are they paid?</p>
+              <p className="mt-1 text-text-muted">You can get your own tokens by following the instructions in the settings menu. They are all free to use.</p>
             </div>
             <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
               <p className="text-text-primary font-medium">Is my data synced?</p>
