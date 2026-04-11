@@ -1804,7 +1804,7 @@ export function VideoPlayer({
     }
 
     // If controls are hidden, the first click only wakes them up
-    if (!controlsVisible && isTouchDevice) {
+    if (!controlsVisible) {
       showControls();
       return;
     }
@@ -3186,7 +3186,7 @@ export function VideoPlayer({
 
       {effectiveShowTokenNotice && (
         <div className="absolute left-1/2 top-16 z-30 w-[min(92%,740px)] -translate-x-1/2 px-2 pointer-events-none">
-          <div className="pointer-events-auto p-3 sm:p-4 rounded-[16px] bg-black/80 backdrop-blur-[24px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)]">
+          <div className="pointer-events-auto p-3 sm:p-4 rounded-[16px] bg-black/80 backdrop-blur-[40px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)]">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-accent/20 text-accent">
                 <svg
@@ -3421,7 +3421,8 @@ export function VideoPlayer({
           {/* Bottom Controls */}
           <div
             className={cn(
-              "player-controls z-[40]",
+              "player-controls",
+              settingsPanel !== null ? "z-[100]" : "z-[40]",
               "transition-opacity duration-300",
               controlsVisible || settingsPanel !== null
                 ? "opacity-100"
@@ -3621,7 +3622,7 @@ export function VideoPlayer({
                     {settingsPanel === "episodes" && (
                       <div
                         className={cn(
-                          "mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/85 backdrop-blur-[24px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
+                          "mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
                           isTouchDevice
                             ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
                             : "absolute bottom-full right-0 z-[50] mb-2 max-h-[60vh]",
@@ -3759,7 +3760,7 @@ export function VideoPlayer({
                     !["info", "episodes"].includes(settingsPanel) && (
                       <div
                         className={cn(
-                          "mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/85 backdrop-blur-[24px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
+                          "mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
                           isTouchDevice
                             ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
                             : "absolute bottom-full right-0 z-[50] mb-2 max-h-[65vh]",
