@@ -566,6 +566,7 @@ export function VideoPlayer({
     enableUnsafeEmbeds,
     customAccentHex,
     accentColor,
+    glassEffect,
     playerViewMode = "original",
     playerFillWidth = false,
     playerFillHeight = false,
