@@ -1759,14 +1759,16 @@ export function VideoPlayer({
       const rect = progressRef.current.getBoundingClientRect();
       const pos = (e.clientX - rect.left) / rect.width;
       updateDragging(pos * duration);
+      showControls();
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (!progressRef.current || !duration) return;
       const touch = e.touches[0];
       const rect = progressRef.current.getBoundingClientRect();
-      const pos = (touch.clientX - rect.left) / rect.width;
+      const pos = (touch.clientX - rect.left) / touch.width;
       updateDragging(pos * duration);
+      showControls();
     };
 
     const handleUp = () => stopDragging();
@@ -1801,24 +1803,37 @@ export function VideoPlayer({
       return;
     }
 
+    // If controls are hidden, the first click only wakes them up
+    if (!controlsVisible && isTouchDevice) {
+      showControls();
+      return;
+    }
+
     // Standard playback toggle if requested (standard for desktop, optional for mobile)
     if (shouldTogglePlayback) {
       togglePlay();
     }
-    
+
     // Toggle controls visibility
     if (!controlsVisible) {
       showControls();
     } else {
       hideControls();
     }
-  }, [controlsVisible, showControls, hideControls, togglePlay, settingsPanel]);
+  }, [controlsVisible, showControls, hideControls, togglePlay, settingsPanel, isTouchDevice]);
 
   const handleInteractionAreaTouch = useCallback((e: React.TouchEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const touchX = e.changedTouches[0].clientX - rect.left;
     const side = touchX < rect.width / 2 ? "left" : "right";
     const now = Date.now();
+
+    // If controls are hidden, first touch only shows them
+    if (!controlsVisible) {
+      showControls();
+      lastTapRef.current = null; // Reset double-tap on wake
+      return;
+    }
 
     if (lastTapRef.current && lastTapRef.current.side === side && now - lastTapRef.current.time < 350) {
       // Double tap detected
@@ -1827,16 +1842,17 @@ export function VideoPlayer({
       setShowSkipIndicator(side);
       setTimeout(() => setShowSkipIndicator(null), 800);
       lastTapRef.current = null;
-      // Hide controls on double tap skip for a cleaner feel
-      hideControls();
+
+      // Keep UI alive during multiple skips
+      showControls();
+
       e.stopPropagation();
     } else {
       lastTapRef.current = { time: now, side };
       // Single tap on mobile should ONLY toggle controls, not toggle playback
-      // This allows users to "wake up" the UI to see the progress bar/time
       handleInteractionAreaClick(e as any, false);
     }
-  }, [currentTime, seek, handleInteractionAreaClick, hideControls]);
+  }, [currentTime, seek, handleInteractionAreaClick, showControls, controlsVisible]);
 
   const changeVolume = useCallback(
     (newVol: number) => {
@@ -2908,7 +2924,7 @@ export function VideoPlayer({
           <audio ref={externalAudioRef} className="hidden" preload="auto" />
 
           {/* Combined Interaction & Mobile Gesture Layer */}
-          <div 
+          <div
             className={cn(
               "absolute inset-x-0 top-16 bottom-24 z-[20] select-none",
               isDraggingProgress ? "cursor-grabbing" : "cursor-pointer"
@@ -3170,7 +3186,7 @@ export function VideoPlayer({
 
       {effectiveShowTokenNotice && (
         <div className="absolute left-1/2 top-16 z-30 w-[min(92%,740px)] -translate-x-1/2 px-2 pointer-events-none">
-          <div className="pointer-events-auto p-3 sm:p-4 rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)]">
+          <div className="pointer-events-auto p-3 sm:p-4 rounded-[16px] bg-black/80 backdrop-blur-[24px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)]">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-accent/20 text-accent">
                 <svg
@@ -5724,7 +5740,7 @@ export function VideoPlayer({
           onClick={() => setSettingsPanel(null)}
         >
           <div
-            className="w-[min(90vw,18rem)] overflow-hidden animate-scale-in max-h-[100%] overflow-y-auto rounded-[16px] bg-black/80 backdrop-blur-[60px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 custom-scrollbar"
+            className="w-[min(90vw,18rem)] overflow-hidden animate-scale-in max-h-[100%] overflow-y-auto rounded-[16px] bg-black/80 backdrop-blur-[24px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             <div
