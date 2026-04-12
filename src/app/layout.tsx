@@ -5,6 +5,7 @@
 import ChunkLoadErrorHandler from "@/components/ChunkLoadErrorHandler";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
+import { DevToolGuard } from "@/components/providers/DevToolGuard";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AnnouncementModal } from "@/components/ui/AnnouncementModal";
 import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
@@ -128,6 +129,7 @@ export default function RootLayout({
           }}
         />
         <ThemeProvider>
+          <DevToolGuard />
           <div className="flex min-h-screen flex-col bg-black">
             <Navbar />
             <main className="flex-1">{children}</main>
