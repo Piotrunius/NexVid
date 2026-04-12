@@ -142,6 +142,23 @@ export default async function MoviePage({ params }: PageProps) {
       getSimilar("movie", id),
     ]);
 
+    const { detectAnime } = await import("@/lib/animeDetect");
+    const { searchAnime } = await import("@/lib/anilist");
+    const isAnime = await detectAnime(id, movie.title, movie.releaseYear, movie.originCountry);
+
+    if (isAnime) {
+      const searchRes = await searchAnime(movie.title, 1);
+      const movieTitleNorm = movie.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const exactMatch = searchRes.results.find(
+        (res) => res.title.toLowerCase().replace(/[^a-z0-9]/g, "") === movieTitleNorm
+      ) || searchRes.results[0];
+
+      if (exactMatch && exactMatch.tmdbId && String(exactMatch.tmdbId).startsWith("al-")) {
+        const { redirect } = await import("next/navigation");
+        return redirect(`/anime/${exactMatch.tmdbId.toString().replace("al-", "")}`);
+      }
+    }
+
     return (
       <MoviePageClient
         initialMovie={movie}

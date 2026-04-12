@@ -9,7 +9,8 @@ import {
   loadPublicAnnouncements,
   loadUserNotifications,
 } from "@/lib/cloudSync";
-import { normalizeMediaType } from "@/lib/mediaType";
+import { normalizeMediaType, isAnimeMedia } from "@/lib/mediaType";
+import { searchAnime } from "@/lib/anilist";
 import { searchMedia } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
@@ -116,7 +117,7 @@ export function Navbar() {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchType, setSearchType] = useState<"all" | "movie" | "tv">("all");
+  const [searchType, setSearchType] = useState<"all" | "movie" | "tv" | "anime">("all");
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -244,7 +245,52 @@ export function Navbar() {
       setIsSearching(true);
       setHasSearched(true);
       try {
-        const { results } = await searchMedia(query, 1, searchType);
+        let results: MediaItem[] = [];
+
+        if (searchType === "anime") {
+          const { results: animeResults } = await searchAnime(query, 1);
+          if (!cancelled) results = animeResults;
+        } else {
+          // Fetch TMDB & AniList in parallel for 'all' and 'tv'
+          const promises: Promise<MediaItem[]>[] = [
+            searchMedia(query, 1, searchType === "all" ? "all" : searchType)
+              .then((r) => r.results)
+              .catch(() => []),
+          ];
+
+          if (searchType === "all" || searchType === "tv") {
+            promises.push(
+              searchAnime(query, 1)
+                .then((r) => r.results)
+                .catch(() => [])
+            );
+          }
+
+          const [tmdbResults, anilistResults = []] = await Promise.all(promises);
+          if (cancelled) return;
+
+          // Only inject AniList results that START WITH the query — prevents junk like
+          // "The girl's anus breaking" appearing for a search of "breaking"
+          const queryLower = query.toLowerCase();
+          
+          const exactMatchingAnime = anilistResults.filter((animeItem) => {
+            const titleLower = animeItem.title.toLowerCase();
+            // Must start with query, OR query must start with the title (user typed partial title)
+            return titleLower.startsWith(queryLower) || queryLower.startsWith(titleLower);
+          });
+
+          // Deduplicate: if TMDB already has the same title, prefer AniList entry
+          const nonDupTmdb = tmdbResults.filter((tmdbItem) => {
+            const tmdbNorm = tmdbItem.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+            return !exactMatchingAnime.some((a) => a.title.toLowerCase().replace(/[^a-z0-9]/g, "") === tmdbNorm);
+          });
+
+          // Sort TMDB results by popularity (voteCount descending), then put exact anime first
+          const sortedTmdb = [...nonDupTmdb].sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
+
+          results = [...exactMatchingAnime, ...sortedTmdb];
+        }
+
         if (cancelled) return;
 
         const filtered = results.filter(
@@ -252,13 +298,11 @@ export function Navbar() {
         );
         const scored = filtered.sort((a, b) => {
           const scoreA =
-            (a.rating || 0) * 0.5 +
-            Math.min((a.voteCount || 0) / 1000, 5) * 0.3 +
-            (a.popularity || 0) * 0.2;
+            (a.rating || 0) * 0.6 +
+            Math.min((a.voteCount || 0) / 5000, 4) * 0.4;
           const scoreB =
-            (b.rating || 0) * 0.5 +
-            Math.min((b.voteCount || 0) / 1000, 5) * 0.3 +
-            (b.popularity || 0) * 0.2;
+            (b.rating || 0) * 0.6 +
+            Math.min((b.voteCount || 0) / 5000, 4) * 0.4;
           return scoreB - scoreA;
         });
 
@@ -513,6 +557,7 @@ export function Navbar() {
                           { key: "all", label: "All" },
                           { key: "movie", label: "Movies" },
                           { key: "tv", label: "TV Shows" },
+                          { key: "anime", label: "Anime" },
                         ] as const
                       ).map((item) => (
                         <button
@@ -532,8 +577,12 @@ export function Navbar() {
                       <div className="grid gap-3 sm:gap-4">
                         {searchResults.map((item) => {
                           const itemType = normalizeMediaType(item.mediaType);
-                          const href =
-                            itemType === "movie"
+                          const isAniListResult = item.tmdbId?.startsWith("al-");
+                          // For AniList items, link directly to /anime/[id]
+                          // For TMDB shows, link to /show/ (MediaCard will resolve anime on click)
+                          const href = isAniListResult
+                            ? `/anime/${item.tmdbId.replace("al-", "")}`
+                            : itemType === "movie"
                               ? `/movie/${item.tmdbId}`
                               : `/show/${item.tmdbId}`;
                           return (
@@ -549,7 +598,11 @@ export function Navbar() {
                                 <div className="relative mx-auto aspect-[2/3] w-full max-w-[120px] shrink-0 overflow-hidden rounded-xl bg-black/40 shadow-2xl sm:mx-0 sm:w-24 sm:max-w-[160px]">
                                   {item.posterPath ? (
                                     <img
-                                      src={`https://image.tmdb.org/t/p/w200${item.posterPath}`}
+                                      src={
+                                        item.posterPath.startsWith("http")
+                                          ? item.posterPath
+                                          : `https://image.tmdb.org/t/p/w200${item.posterPath}`
+                                      }
                                       alt={item.title}
                                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                       loading="lazy"
@@ -573,9 +626,11 @@ export function Navbar() {
                                       </span>
                                       <div className="h-0.5 w-0.5 rounded-full bg-white/10" />
                                       <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
-                                        {itemType === "movie"
-                                          ? "Movie"
-                                          : "TV Show"}
+                                        {isAnimeMedia(item)
+                                          ? "Anime"
+                                          : itemType === "movie"
+                                            ? "Movie"
+                                            : "TV Show"}
                                       </span>
                                     </div>
                                     <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-white/50 sm:mt-2">

@@ -63,8 +63,22 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "image.tmdb.org" },
       { protocol: "https", hostname: "i.imgur.com" },
+      // AniList CDN — for anime poster/banner images
+      { protocol: "https", hostname: "s4.anilist.co" },
+      { protocol: "https", hostname: "s1.anilist.co" },
+      { protocol: "https", hostname: "media.anilist.co" },
+      // Crunchyroll — episode thumbnails from AniList streamingEpisodes
+      { protocol: "https", hostname: "img1.ak.crunchyroll.com" },
+      { protocol: "https", hostname: "imgsrv.crunchyroll.com" },
+      { protocol: "https", hostname: "**.crunchyroll.com" },
+      // Funimation / HiDive thumbnails
+      { protocol: "https", hostname: "**.funimation.com" },
+      { protocol: "https", hostname: "**.hidive.com" },
+      // General CDN fallbacks used by AniList streamingEpisodes
+      { protocol: "https", hostname: "**.anidb.net" },
     ],
   },
+
   async headers() {
     return [
       {

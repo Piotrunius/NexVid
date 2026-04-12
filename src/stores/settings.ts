@@ -38,6 +38,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   playerViewMode: "original",
   playerFillWidth: false,
   playerFillHeight: false,
+  animeAudioMode: "sub",
 };
 
 const CLOUD_PERSISTED_KEYS = [
@@ -63,6 +64,7 @@ const CLOUD_PERSISTED_KEYS = [
   "playerViewMode",
   "playerFillWidth",
   "playerFillHeight",
+  "animeAudioMode",
 ] as const;
 
 function toCloudPersistedSettings(

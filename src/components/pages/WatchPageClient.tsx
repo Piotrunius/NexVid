@@ -16,12 +16,14 @@ import {
   getShowDetails,
 } from "@/lib/tmdb";
 import { formatTime, getAccentHex } from "@/lib/utils";
+import { detectAnime } from "@/lib/animeDetect";
 import { useAuthStore } from "@/stores/auth";
 import { useBlockedContentStore } from "@/stores/blockedContent";
 import { usePlayerStore } from "@/stores/player";
 import { useSettingsStore } from "@/stores/settings";
 import { useWatchlistStore } from "@/stores/watchlist";
 import type {
+  AnimeAudioMode,
   Caption,
   Episode,
   Movie,
@@ -80,9 +82,10 @@ async function loadExternalCaptions(params: {
   mediaType: "movie" | "show";
   season?: number;
   episode?: number;
+  title?: string;
 }): Promise<Caption[]> {
-  const { imdbId, tmdbId, mediaType, season, episode } = params;
-  if (!imdbId && !tmdbId) return [];
+  const { imdbId, tmdbId, mediaType, season, episode, title } = params;
+  if (!imdbId && !tmdbId && !title) return [];
 
   const query = new URLSearchParams({
     type: mediaType,
@@ -90,6 +93,7 @@ async function loadExternalCaptions(params: {
   });
   if (imdbId) query.set("imdbId", imdbId);
   if (tmdbId) query.set("tmdbId", tmdbId);
+  if (title) query.set("title", title);
 
   if (mediaType === "show") {
     if (season) query.set("season", String(season));
@@ -176,14 +180,18 @@ export default function WatchPageClient({
   const { isBlocked, isLoaded } = useBlockedContentStore();
 
   const routeType = String(params?.type || "").toLowerCase();
-  const type: "movie" | "show" =
+  const type =
     routeType === "show" || routeType === "tv" || routeType === "series"
       ? "show"
-      : "movie";
-  const id = params?.id as string;
+      : routeType === "anime"
+        ? "anime"
+        : "movie";
+  const id = type === "anime" && !String(params?.id).startsWith("al-") 
+    ? `al-${params?.id}` 
+    : (params?.id as string);
 
   useEffect(() => {
-    if (isLoaded && isBlocked(id, type)) {
+    if (isLoaded && isBlocked(id, (type === "anime" ? "show" : type) as any)) {
       router.replace("/");
       toast("This content is no longer available", "error");
     }
@@ -230,6 +238,14 @@ export default function WatchPageClient({
     [externalCaptions],
   );
 
+  // ── Anime state ──────────────────────────────────────────────────────────
+  const [isAnime, setIsAnime] = useState(false);
+  const [animeAudioMode, setAnimeAudioMode] = useState<AnimeAudioMode>(
+    (useSettingsStore.getState().settings.animeAudioMode as AnimeAudioMode) ?? "sub",
+  );
+  const animeLoadingRef = useRef(false);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [resumeData, setResumeData] = useState<{
     percentage: number;
@@ -259,10 +275,16 @@ export default function WatchPageClient({
     skipIntro,
     skipOutro,
     autoSkipSegments,
+    animeAudioMode: settingsAnimeAudioMode,
   } = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
   const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
+
+  // Sync anime audio mode from settings on mount
+  useEffect(() => {
+    setAnimeAudioMode(settingsAnimeAudioMode ?? "sub");
+  }, [settingsAnimeAudioMode]);
 
   const currentMediaKey = `${type}-${id}`;
 
@@ -333,6 +355,55 @@ export default function WatchPageClient({
         let mediaData: Movie | Show | null = media;
         let extImdbId: string | undefined = imdbId;
 
+        // ── AniList anime fast-path (al-XXXX IDs or /anime/ type) ─────────
+        // These don't exist in TMDB — skip directly to AnimeKAI scraping.
+        if (id.startsWith("al-") || type === "anime") {
+          setIsAnime(true);
+          const animeTitle = media?.title ?? "";
+          if (!animeTitle) {
+            setScrapeStatus("error");
+            return;
+          }
+          
+          // Use real season data from initialMedia if available (AniList streamingEpisodes mapped episodes)
+          const realSeasonData = media && "seasons" in media && (media as any).seasons?.[0];
+          if (realSeasonData && realSeasonData.episodes?.length > 0) {
+            setSeason(realSeasonData);
+            // Also set the current episode so infoSummaryText has the right description
+            const currentEp = realSeasonData.episodes.find(
+              (ep: any) => ep.episodeNumber === episodeNum
+            );
+            if (currentEp) setCurrentEpisode(currentEp);
+          } else {
+            // Fallback: generate generic episode stubs
+            const maxEps = media && "totalEpisodes" in media && typeof (media as any).totalEpisodes === "number" && (media as any).totalEpisodes > 0
+              ? (media as any).totalEpisodes
+              : 24;
+            setSeason({
+              id: 1,
+              seasonNumber: 1,
+              name: "Episodes",
+              overview: "",
+              posterPath: media?.posterPath || null,
+              episodes: Array.from({ length: maxEps }).map((_, i) => ({
+                id: i + 1,
+                episodeNumber: i + 1,
+                name: `Episode ${i + 1}`,
+                overview: "",
+                stillPath: media?.backdropPath || media?.posterPath || null,
+                airDate: media?.releaseYear ? String(media.releaseYear) : "",
+                runtime: 24,
+                voteAverage: 0,
+              })),
+            });
+          }
+
+          await scrapeAnimeSource(animeTitle, episodeNum, animeAudioMode);
+          return;
+
+        }
+        // ──────────────────────────────────────────────────────────────────
+
         if (!mediaData || mediaData.tmdbId !== id) {
           if (type === "movie") {
             const movie = await getMovieDetails(id);
@@ -360,6 +431,45 @@ export default function WatchPageClient({
             }
           }
         }
+
+        // ── Anime detection (only for shows) ──────────────────────────────
+        if (type === "show" && mediaData) {
+          const show = mediaData as Show;
+          const detected = await detectAnime(
+            id,
+            show.title,
+            show.releaseYear,
+            show.originCountry,
+          );
+          setIsAnime(detected);
+
+          if (detected) {
+            // Mock season to enable VideoPlayer episode selector for TMDB animes
+            const maxEps = show.totalEpisodes && show.totalEpisodes > 0 ? show.totalEpisodes : 24;
+            setSeason({
+              id: 1,
+              seasonNumber: 1,
+              name: "AnimeEpisodes",
+              overview: "",
+              posterPath: null,
+              episodes: Array.from({ length: maxEps }).map((_, i) => ({
+                id: i + 1,
+                episodeNumber: i + 1,
+                name: `Episode ${i + 1}`,
+                overview: "",
+                stillPath: null,
+                airDate: "",
+                runtime: 24,
+                voteAverage: 0,
+              })),
+            });
+
+            // Use AnimeKAI pipeline instead of standard scraping
+            await scrapeAnimeSource(show.title, episodeNum, animeAudioMode);
+            return;
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────
 
         if (type === "movie") {
           const seg = await fetchSegments({ tmdbId: id, mediaType: "movie" });
@@ -521,7 +631,182 @@ export default function WatchPageClient({
       skipOutro,
       autoSkipSegments,
       setIntroOutro,
+      animeAudioMode,
     ],
+  );
+
+  /**
+   * AnimeKAI scraping pipeline:
+   * search(title) → info(slug) → episodes(aniId) → servers(epToken) → source(linkId) → m3u8
+   */
+  const scrapeAnimeSource = useCallback(
+    async (title: string, epNum: number, mode: AnimeAudioMode) => {
+      if (animeLoadingRef.current) return;
+      animeLoadingRef.current = true;
+      setScrapeStatus("loading");
+
+      try {
+        // 1. Search anime by title
+        const searchRes = await fetch(
+          `/api/animekai/search?keyword=${encodeURIComponent(title)}`,
+        );
+        if (!searchRes.ok) throw new Error("AnimeKAI search failed");
+        const searchData = await searchRes.json();
+        const results: any[] = searchData.results ?? [];
+        if (results.length === 0) throw new Error("Anime not found on AnimeKAI");
+
+        const slug = results[0].slug;
+
+        // 2. Get ani_id from slug
+        const infoRes = await fetch(
+          `/api/animekai/info?slug=${encodeURIComponent(slug)}`,
+        );
+        if (!infoRes.ok) throw new Error("AnimeKAI info failed");
+        const infoData = await infoRes.json();
+        const aniId: string = infoData.aniId;
+        if (!aniId) throw new Error("No ani_id found");
+
+        // 3. Get episode list
+        const epsRes = await fetch(
+          `/api/animekai/episodes?aniId=${encodeURIComponent(aniId)}`,
+        );
+        if (!epsRes.ok) throw new Error("AnimeKAI episodes failed");
+        const epsData = await epsRes.json();
+        const episodes: any[] = epsData.episodes ?? [];
+
+        // Find target episode (1-indexed)
+        const targetEp =
+          episodes.find(
+            (ep: any) => String(ep.number) === String(epNum),
+          ) ?? episodes[epNum - 1];
+
+        if (!targetEp) throw new Error(`Episode ${epNum} not found`);
+
+        // Check sub/dub availability
+        if (mode === "dub" && !targetEp.hasDub) {
+          toast("Dub not available, falling back to sub", "info");
+          mode = "sub";
+        }
+
+        const epToken: string = targetEp.token;
+
+        // 4. Get servers
+        const srvRes = await fetch(
+          `/api/animekai/servers?epToken=${encodeURIComponent(epToken)}`,
+        );
+        if (!srvRes.ok) throw new Error("AnimeKAI servers failed");
+        const srvData = await srvRes.json();
+        // Map AnimeAudioMode to AnimeKAI server keys
+        const langKey = mode === "dub" ? "dub" : "sub";
+        const serverGroup: any[] =
+          srvData.servers?.[langKey] ??
+          srvData.servers?.["sub"] ??
+          Object.values(srvData.servers ?? {})[0] ??
+          [];
+
+        if (serverGroup.length === 0) throw new Error("No servers available");
+
+        // 5. Resolve source (try each server until success)
+        let playlist = "";
+        let tracks: any[] = [];
+        let skip: any = {};
+        let headers: Record<string, string> | undefined = undefined;
+
+        for (const server of serverGroup) {
+          try {
+            const srcRes = await fetch(
+              `/api/animekai/source?linkId=${encodeURIComponent(server.linkId)}`,
+            );
+            if (!srcRes.ok) continue;
+            const srcData = await srcRes.json();
+            if (srcData.playlist) {
+              playlist = srcData.playlist;
+              tracks = srcData.tracks ?? [];
+              skip = srcData.skip ?? {};
+              headers = srcData.headers;
+              break;
+            }
+          } catch {
+            continue;
+          }
+        }
+
+        if (!playlist) throw new Error("No playable source found");
+
+        // Map subtitle tracks to Caption objects
+        const sourceCaptions: Caption[] = tracks
+          .filter((t: any) => t.kind === "subtitles" || t.kind === "captions")
+          .map((t: any, i: number) => ({
+            id: `anime-track-${i}`,
+            url: t.file,
+            language: t.label?.toLowerCase().slice(0, 2) ?? "en",
+            label: t.label ?? "Subtitle",
+            type: "vtt" as const,
+          }));
+
+        let exSubs: Caption[] = [];
+        try {
+          exSubs = await fetchSubtitles({
+            mediaType: type as "movie" | "show",
+            tmdbId: id,
+            season: seasonNum,
+            episode: episodeNum,
+            title: title || media?.title,
+          });
+        } catch (e) {
+          console.error("Failed to fetch wyzie subtitles for anime:", e);
+        }
+
+        const captions = [...exSubs, ...sourceCaptions];
+
+        const animeStream: import("@/types").HlsBasedStream = {
+          type: "hls",
+          id: "animekai-stream",
+          flags: [],
+          captions,
+          playlist,
+          headers,
+        };
+
+        const mergedStream = withMergedCaptions(animeStream, externalCaptions);
+        setStream(mergedStream);
+        // Store as single source result for compatibility
+        setSourceResults([{ sourceId: "animekai", stream: mergedStream }]);
+        setSourceIndex(0);
+        setScrapeStatus("success");
+
+        // Set intro/outro skip times if available
+        if (skip?.intro || skip?.outro) {
+          setIntroOutro({
+            introStart: skip?.intro?.start,
+            introEnd: skip?.intro?.end,
+            outroStart: skip?.outro?.start,
+            outroEnd: skip?.outro?.end,
+          });
+        }
+      } catch (err: any) {
+        console.error("[AnimeKAI] scrape error:", err);
+        setScrapeStatus("error");
+      } finally {
+        animeLoadingRef.current = false;
+      }
+    },
+    [setIntroOutro],
+  );
+
+  /** Called from VideoPlayer when user changes Sub/Dub/Soft-sub */
+  const handleAnimeAudioModeChange = useCallback(
+    (mode: AnimeAudioMode) => {
+      setAnimeAudioMode(mode);
+      updateSettings({ animeAudioMode: mode });
+      if (media && isAnime) {
+        reset();
+        setStream(null);
+        setScrapeStatus("idle");
+        void scrapeAnimeSource(media.title, episodeNum, mode);
+      }
+    },
+    [media, isAnime, episodeNum, scrapeAnimeSource, updateSettings, reset],
   );
 
   const loadMedia = useCallback(async () => {
@@ -541,7 +826,7 @@ export default function WatchPageClient({
 
     // Fallback to stored progress if URL doesn't have a timestamp
     let initialSeek = resumeTimeFromUrl;
-    const item = getByTmdbId(id);
+    const item = getByTmdbId(id) || getByTmdbId(media?.tmdbId || `al-${id}`);
     const prog = item?.progress;
 
     const isSameType = item?.mediaType === type;
@@ -648,14 +933,14 @@ export default function WatchPageClient({
       updateProgress(
         item?.id || "",
         {
-          season: type === "show" ? seasonNum : undefined,
-          episode: type === "show" ? episodeNum : undefined,
+          season: type === "show" || type === "anime" ? seasonNum : undefined,
+          episode: type === "show" || type === "anime" ? episodeNum : undefined,
           timestamp: Math.floor(time),
           percentage: percent,
         },
         {
           tmdbId: id,
-          mediaType: type as "movie" | "show",
+          mediaType: (type === "anime" ? "show" : type) as "movie" | "show",
           title: media.title,
           posterPath: media.posterPath,
         },
@@ -757,7 +1042,7 @@ export default function WatchPageClient({
 
     // ── Prefetch next episode when ~2 minutes from end ──────────────────
     if (
-      type === "show" &&
+      (type === "show" || type === "anime") &&
       duration > 120 &&
       currentTime > 0 &&
       duration - currentTime <= 120 &&
@@ -826,7 +1111,12 @@ export default function WatchPageClient({
     }
 
     lastNavigateRef.current = { ts: now, season: s, episode: e };
-    router.push(`/watch/show/${id}?s=${s}&e=${e}`);
+    
+    if (type === "anime") {
+        router.push(`/watch/anime/${id.replace("al-", "")}?s=${s}&e=${e}`);
+    } else {
+        router.push(`/watch/show/${id}?s=${s}&e=${e}`);
+    }
   };
 
   const tryNextSource = useCallback(() => {
@@ -868,7 +1158,11 @@ export default function WatchPageClient({
     setShowResumeOverlay(false);
     if (choice === "next") {
       const nextEpNum = episodeNum + 1;
-      router.push(`/watch/show/${id}?s=${seasonNum}&e=${nextEpNum}`);
+      if (type === "anime") {
+        router.push(`/watch/anime/${id.replace("al-", "")}?s=${seasonNum}&e=${nextEpNum}`);
+      } else {
+        router.push(`/watch/show/${id}?s=${seasonNum}&e=${nextEpNum}`);
+      }
       return;
     }
     const seekTime = choice === "rewatch" ? 0.1 : resumeData?.timestamp || 0;
@@ -883,7 +1177,7 @@ export default function WatchPageClient({
     dismissedTokenNoticeMediaKey !== currentMediaKey;
 
   const currentEpisodeComputed = useMemo(() => {
-    if (type !== "show") return null;
+    if (type !== "show" && type !== "anime") return null;
     if (currentEpisode?.episodeNumber === episodeNum) return currentEpisode;
     return (
       season?.episodes?.find((ep) => ep.episodeNumber === episodeNum) || null
@@ -895,6 +1189,13 @@ export default function WatchPageClient({
   };
 
   const getSubtitle = () => {
+    if (type === "anime") {
+      const epInfo = currentEpisodeComputed;
+      const epName = epInfo?.name && epInfo.name !== `Episode ${episodeNum}` && epInfo.name !== `Episode ${episodeNum}:`
+        ? epInfo.name
+        : null;
+      return epName ? `Episode ${episodeNum} - ${epName}` : `Episode ${episodeNum}`;
+    }
     if (type === "show") {
       const episodeName = currentEpisodeComputed?.name || "";
       return `S${seasonNum}:E${episodeNum}${episodeName ? ` - ${episodeName}` : ""}`;
@@ -917,6 +1218,10 @@ export default function WatchPageClient({
               router.push(`/show/${id}`);
               return;
             }
+            if (type === "anime") {
+              router.push(`/anime/${id.replace(/^al-/, "")}`);
+              return;
+            }
             router.push(`/movie/${id}`);
           }}
           title={getTitle()}
@@ -925,21 +1230,24 @@ export default function WatchPageClient({
           season={season}
           seasonNum={seasonNum}
           episodeNum={episodeNum}
-          mediaType={type as "movie" | "show"}
+          mediaType={type === "movie" ? "movie" : "show"}
           onNavigateEpisode={navigateEpisode}
           scrapeStatus={scrapeStatus}
           segments={segments}
           tmdbId={id}
+          externalTmdbId={(initialMedia as any)?.externalTmdbId}
           sourceLabel={
-            sourceResults.length > 0
-              ? sourceResults[sourceIndex]?.sourceId
-              : undefined
+            isAnime
+              ? "AnimeKAI"
+              : sourceResults.length > 0
+                ? sourceResults[sourceIndex]?.sourceId
+                : undefined
           }
-          canTryNextSource={sourceResults.length > 1}
-          onTryNextSource={tryNextSource}
-          allSourceResults={sourceResults}
-          currentSourceIndex={sourceIndex}
-          onSelectSource={selectSource}
+          canTryNextSource={!isAnime && sourceResults.length > 1}
+          onTryNextSource={isAnime ? undefined : tryNextSource}
+          allSourceResults={isAnime ? [] : sourceResults}
+          currentSourceIndex={isAnime ? 0 : sourceIndex}
+          onSelectSource={isAnime ? undefined : selectSource}
           externalCaptions={memoizedExternalCaptions}
           scrapeErrorTitle={
             shouldShowMissingFebboxTokenPrompt
@@ -960,6 +1268,9 @@ export default function WatchPageClient({
               : undefined
           }
           initialSeekTime={appliedSeekTime}
+          isAnime={isAnime}
+          animeAudioMode={animeAudioMode}
+          onAnimeAudioModeChange={handleAnimeAudioModeChange}
         />
 
         {showResumeOverlay && (
@@ -1009,7 +1320,7 @@ export default function WatchPageClient({
                       </button>
                     </div>
 
-                    {type === "show" && (
+                    {(type === "show" || type === "anime") && (
                       <button
                         onClick={() => handleResumeChoice("next")}
                         className="btn-glass !bg-accent/10 !border-accent/20 !text-accent justify-center w-full hover:!bg-accent/20"

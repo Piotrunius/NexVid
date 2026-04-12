@@ -6,6 +6,8 @@
 
 export type MediaType = "movie" | "show";
 
+export type AnimeAudioMode = "sub" | "dub";
+
 export interface MediaBase {
   id: number;
   tmdbId: string;
@@ -21,6 +23,7 @@ export interface MediaBase {
   mediaType: MediaType;
   popularity?: number;
   voteCount?: number;
+  isAnime?: boolean;
 }
 
 export interface Movie extends MediaBase {
@@ -239,6 +242,7 @@ export interface UserSettings {
   playerViewMode: PlayerViewMode;
   playerFillWidth: boolean;
   playerFillHeight: boolean;
+  animeAudioMode: AnimeAudioMode;
 }
 
 export type AccentColor =

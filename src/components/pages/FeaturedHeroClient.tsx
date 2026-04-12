@@ -4,8 +4,9 @@ import { normalizeMediaType } from "@/lib/mediaType";
 import { tmdbImage } from "@/lib/utils";
 import type { MediaItem } from "@/types";
 import { Info, Play } from "lucide-react";
+import { isAnimeMedia } from "@/lib/mediaType";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 interface FeaturedHeroClientProps {
@@ -14,6 +15,33 @@ interface FeaturedHeroClientProps {
 
 const INTERVAL = 5000;
 
+/** Resolve a TMDB show to its AniList route, or return the original TMDB route. */
+async function resolveShowHref(item: MediaItem, type: "watch" | "about"): Promise<string> {
+  const normalizedType = normalizeMediaType(item.mediaType);
+  // AniList items already have al- prefix
+  if (item.tmdbId?.startsWith("al-")) {
+    const aniId = item.tmdbId.replace("al-", "");
+    return type === "watch" ? `/watch/anime/${aniId}?s=1&e=1` : `/anime/${aniId}`;
+  }
+  // Movies never need AniList resolution
+  if (normalizedType === "movie") {
+    return type === "watch" ? `/watch/movie/${item.tmdbId}` : `/movie/${item.tmdbId}`;
+  }
+  // For TV shows: query AniList
+  try {
+    const params = new URLSearchParams({ title: item.title });
+    if (item.releaseYear) params.set("year", String(item.releaseYear));
+    const res = await fetch(`/api/anime-resolve?${params}`);
+    const data = await res.json();
+    if (data.anilistId) {
+      return type === "watch"
+        ? `/watch/anime/${data.anilistId}?s=1&e=1`
+        : `/anime/${data.anilistId}`;
+    }
+  } catch { /* ignore */ }
+  return type === "watch" ? `/watch/show/${item.tmdbId}` : `/show/${item.tmdbId}`;
+}
+
 export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
   const [featuredItems, setFeaturedItems] = useState<MediaItem[]>(() =>
     items.slice(0, 5),
@@ -21,6 +49,8 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const lengthRef = useRef(items.slice(0, 5).length);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const router = useRouter();
+  const [navigating, setNavigating] = useState<string | null>(null); // itemId being resolved
 
   const startInterval = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -115,7 +145,7 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px]">
-                      {item.mediaType === "movie" ? "Movie" : "TV"}
+                      {isAnimeMedia(item) ? "Anime" : item.mediaType === "movie" ? "Movie" : "TV"}
                     </span>
                     <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px]">
                       {item.releaseYear || "N/A"}
@@ -136,20 +166,34 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <Link
-                      href={`/watch/${featuredType}/${item.tmdbId}`}
-                      className="btn-accent group relative overflow-hidden !px-7 !py-3 text-[14px] font-bold"
+                    <button
+                      onClick={async () => {
+                        if (navigating) return;
+                        setNavigating(`watch-${item.tmdbId}`);
+                        const href = await resolveShowHref(item, "watch");
+                        router.push(href);
+                        setNavigating(null);
+                      }}
+                      disabled={!!navigating}
+                      className="btn-accent group relative overflow-hidden !px-7 !py-3 text-[14px] font-bold disabled:opacity-60"
                     >
                       <Play className="h-4 w-4 fill-current stroke-[1.85] transition-transform group-hover:scale-110" />
-                      Watch Now
-                    </Link>
-                    <Link
-                      href={`/${featuredType}/${item.tmdbId}`}
-                      className="btn-glass flex items-center gap-2 !px-5 !py-3 text-[14px] font-bold"
+                      {navigating === `watch-${item.tmdbId}` ? "Loading..." : "Watch Now"}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (navigating) return;
+                        setNavigating(`about-${item.tmdbId}`);
+                        const href = await resolveShowHref(item, "about");
+                        router.push(href);
+                        setNavigating(null);
+                      }}
+                      disabled={!!navigating}
+                      className="btn-glass flex items-center gap-2 !px-5 !py-3 text-[14px] font-bold disabled:opacity-60"
                     >
                       <Info className="h-4 w-4" />
-                      More Info
-                    </Link>
+                      {navigating === `about-${item.tmdbId}` ? "Loading..." : "More Info"}
+                    </button>
                   </div>
                 </div>
               );

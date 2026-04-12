@@ -770,3 +770,82 @@ export async function getTitleLogoSvgPath(
 
   return ranked[0]?.file_path || null;
 }
+
+/**
+ * Robustly matches TMDB episodes for an AniList Anime by mapping the AniList start date
+ * to the TMDB `air_date` across all flattened seasons of the TMDB show.
+ */
+export async function getTmdbEpisodesForAnime(
+  tmdbId: string,
+  startDateStr: string | null,
+  epCount: number
+): Promise<{ episodes: { name: string; overview: string; still_path: string | null; episode_number: number }[], imdbId?: string }> {
+  const tmdbKey = process.env.TMDB_API_KEY || "76508fc7baf10d9483564c0f7acbbc21";
+  
+  try {
+    const showRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}`);
+    if (!showRes.ok) return { episodes: [] };
+    const showData = await showRes.json();
+    
+    const seasonNumbers = (showData.seasons || [])
+      .map((s: any) => s.season_number)
+      .filter((n: number) => n > 0);
+      
+    if (seasonNumbers.length === 0) return { episodes: [] };
+    
+    // Append external_ids to fetch imdbId
+    const appendStr = ["external_ids", ...seasonNumbers.map((n: number) => `season/${n}`)].join(",");
+    const fullRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${tmdbKey}&append_to_response=${appendStr}`);
+    if (!fullRes.ok) return { episodes: [] };
+    const fullShow = await fullRes.json();
+    
+    let allEps: any[] = [];
+    for (const n of seasonNumbers) {
+      const sData = fullShow[`season/${n}`];
+      if (sData && sData.episodes) {
+        allEps.push(...sData.episodes);
+      }
+    }
+    
+    if (allEps.length === 0) return { episodes: [], imdbId: fullShow.external_ids?.imdb_id };
+    
+    let startIndex = 0;
+    
+    if (startDateStr) {
+      const targetDate = new Date(startDateStr);
+      if (!isNaN(targetDate.getTime())) {
+        let bestIdx = -1;
+        let minDiff = Infinity;
+        for (let i = 0; i < allEps.length; i++) {
+          const ep = allEps[i];
+          if (!ep.air_date) continue;
+          const epDate = new Date(ep.air_date);
+          const diff = Math.abs(epDate.getTime() - targetDate.getTime());
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestIdx = i;
+          }
+        }
+        if (bestIdx !== -1) {
+          startIndex = bestIdx;
+        }
+      }
+    }
+    
+    const count = epCount > 0 ? epCount : 12;
+    const mapped = allEps.slice(startIndex, startIndex + count).map(ep => ({
+      name: ep.name,
+      overview: ep.overview,
+      still_path: ep.still_path,
+      episode_number: ep.episode_number
+    }));
+    
+    return {
+      episodes: mapped,
+      imdbId: fullShow.external_ids?.imdb_id
+    };
+  } catch (err) {
+    console.error("Failed to map TMDB episodes for anime:", err);
+    return { episodes: [] };
+  }
+}

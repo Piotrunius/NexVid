@@ -1,5 +1,6 @@
 "use client";
 
+import { searchAnime } from "@/lib/anilist";
 import { searchMedia } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
@@ -41,10 +42,9 @@ const GENRES = [
   "Sci-Fi",
   "Thriller",
   "War",
-  "Western",
 ];
 
-const ERAS = ["All Time", "2020s", "2010s", "2000s", "90s", "80s", "Classics"];
+const ERAS = ["All Time", "2020s", "2010s", "2000s", "90s", "80s"];
 
 export function AiAssistantModal({
   isOpen,
@@ -56,7 +56,7 @@ export function AiAssistantModal({
   const [step, setStep] = useState<"input" | "loading" | "results">("input");
   const [mood, setMood] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [type, setType] = useState<"movie" | "show">("movie");
+  const [type, setType] = useState<"movie" | "show" | "anime">("movie");
   const [era, setEra] = useState("All Time");
   const [recommendations, setRecommendations] = useState<AiRecommendation[]>(
     [],
@@ -137,18 +137,31 @@ export function AiAssistantModal({
         await Promise.all(
           rawRecs.map(async (rec) => {
             try {
-              const searchRes = await searchMedia(rec.title);
-              const match = searchRes.results.find(
-                (r) =>
-                  (type === "movie"
-                    ? r.mediaType === "movie"
-                    : r.mediaType === "show") &&
-                  (rec.year
-                    ? Math.abs((r.releaseYear || 0) - rec.year) <= 1
-                    : true),
-              );
-              if (!match) return null;
-              return { ...rec, mediaItem: match };
+              if (type === "anime") {
+                // search AniList for anime
+                const { results } = await searchAnime(rec.title, 1);
+                const match = results.find(
+                  (r) =>
+                    rec.year
+                      ? Math.abs((r.releaseYear || 0) - rec.year) <= 1
+                      : true,
+                );
+                if (!match) return null;
+                return { ...rec, mediaItem: match };
+              } else {
+                const searchRes = await searchMedia(rec.title);
+                const match = searchRes.results.find(
+                  (r) =>
+                    (type === "movie"
+                      ? r.mediaType === "movie"
+                      : r.mediaType === "show") &&
+                    (rec.year
+                      ? Math.abs((r.releaseYear || 0) - rec.year) <= 1
+                      : true),
+                );
+                if (!match) return null;
+                return { ...rec, mediaItem: match };
+              }
             } catch {
               return null;
             }
@@ -247,6 +260,12 @@ export function AiAssistantModal({
                               className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === "show" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                             >
                               TV Shows
+                            </button>
+                            <button
+                              onClick={() => setType("anime")}
+                              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === "anime" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                            >
+                              Anime
                             </button>
                           </div>
 
@@ -415,9 +434,11 @@ export function AiAssistantModal({
                                   {rec.mediaItem && (
                                     <Link
                                       href={
-                                        rec.mediaItem.mediaType === "movie"
-                                          ? `/movie/${rec.mediaItem.id}`
-                                          : `/show/${rec.mediaItem.id}`
+                                        rec.mediaItem.tmdbId?.startsWith("al-")
+                                          ? `/anime/${rec.mediaItem.tmdbId.replace("al-", "")}`
+                                          : rec.mediaItem.mediaType === "movie"
+                                            ? `/movie/${rec.mediaItem.id}`
+                                            : `/show/${rec.mediaItem.id}`
                                       }
                                       onClick={onClose}
                                       className="w-full rounded-xl bg-accent px-6 py-2.5 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-accent/20 transition-all hover:brightness-110 sm:w-auto sm:py-2"

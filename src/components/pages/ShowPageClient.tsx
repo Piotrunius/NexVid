@@ -71,8 +71,8 @@ export default function ShowPage({
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const castRowRef = useRef<HTMLDivElement>(null);
 
-  const { addItem, getByTmdbId, setStatus } = useWatchlistStore();
-  const watchlistItem = getByTmdbId(id);
+  const { addItem, getByTmdbId, setStatus, removeItem } = useWatchlistStore();
+  const watchlistItem = getByTmdbId(show?.tmdbId || `al-${id}`) || getByTmdbId(id);
   const { febboxApiKey } = useSettingsStore((s) => s.settings);
 
   const loadShow = useCallback(async () => {
@@ -98,6 +98,11 @@ export default function ShowPage({
 
   const loadSeason = useCallback(
     async (num: number) => {
+      if (show?.tmdbId?.startsWith("al-")) {
+        const localSeason = show.seasons?.find((s) => s.seasonNumber === num);
+        if (localSeason) setSeasonData(localSeason);
+        return;
+      }
       try {
         const data = await getSeasonDetails(id, num);
         setSeasonData(data);
@@ -105,11 +110,13 @@ export default function ShowPage({
         console.error("Failed to load season:", err);
       }
     },
-    [id],
+    [id, show],
   );
 
   useEffect(() => {
-    if (show && show.tmdbId === id) return;
+    // Skip TMDB fetch for anime — data already provided via initialShow
+    if (show?.tmdbId?.startsWith("al-")) return;
+    if (show && (String(show.tmdbId) === String(id) || String(show.tmdbId) === `al-${id}`)) return;
     loadShow();
   }, [id, show, loadShow]);
 
@@ -117,13 +124,21 @@ export default function ShowPage({
     if (show) loadSeason(selectedSeason);
   }, [selectedSeason, show, loadSeason]);
 
+  // For anime: initialize seasonData from the show's built-in episodes immediately
+  useEffect(() => {
+    if (show?.tmdbId?.startsWith("al-") && show.seasons?.length) {
+      const animeSeasonData = show.seasons.find((s) => s.seasonNumber === selectedSeason) || show.seasons[0];
+      if (animeSeasonData) setSeasonData(animeSeasonData);
+    }
+  }, [show, selectedSeason]);
+
   const handleWatchlistAction = (status: WatchlistStatus) => {
     if (watchlistItem) {
       setStatus(watchlistItem.id, status);
     } else if (show) {
       addItem({
         mediaType: "show",
-        tmdbId: id,
+        tmdbId: show.tmdbId || id,
         title: show.title,
         posterPath: show.posterPath,
         status,
@@ -376,8 +391,8 @@ export default function ShowPage({
               <Link
                 href={
                   watchlistItem?.progress
-                    ? `/watch/show/${id}?s=${watchlistItem.progress.season || 1}&e=${watchlistItem.progress.episode || 1}${watchlistItem.progress.timestamp ? `&t=${Math.floor(watchlistItem.progress.timestamp)}` : ""}`
-                    : `/watch/show/${id}?s=${selectedSeason}&e=1`
+                    ? `/watch/${show.tmdbId?.startsWith("al-") ? "anime" : "show"}/${id}?s=${watchlistItem.progress.season || 1}&e=${watchlistItem.progress.episode || 1}${watchlistItem.progress.timestamp ? `&t=${Math.floor(watchlistItem.progress.timestamp)}` : ""}`
+                    : `/watch/${show.tmdbId?.startsWith("al-") ? "anime" : "show"}/${id}?s=${selectedSeason}&e=1`
                 }
                 className="btn-accent !px-8 !py-3 text-[14px]"
               >
@@ -479,50 +494,71 @@ export default function ShowPage({
                 )}
               </div>
 
-              {/* TMDB Link */}
-              <a
-                href={`https://www.themoviedb.org/tv/${show.tmdbId || show.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-glass btn-glass-teal !py-3"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
+              {/* External Link for Anime */}
+              {show.tmdbId?.startsWith("al-") && (
+                <a
+                  href={`https://anilist.co/anime/${id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-glass btn-glass-violet !py-3"
                 >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-                TMDB
-              </a>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  AniList
+                </a>
+              )}
 
-              {/* SeriesGraph Link */}
-              <a
-                href={`https://seriesgraph.com/show/${show.tmdbId || show.id}-${show.title
-                  .toLowerCase()
-                  .replace(/[^a-z0-9]+/g, "-")
-                  .replace(/^-|-$/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-glass btn-glass-violet !py-3"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M3 3v18h18" />
-                  <path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3" />
-                </svg>
-                SeriesGraph
-              </a>
+              {/* External Links for Normal Shows */}
+              {!show.tmdbId?.startsWith("al-") && (
+                <>
+                  <a
+                    href={`https://www.themoviedb.org/tv/${show.tmdbId || show.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-glass btn-glass-teal !py-3"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    TMDB
+                  </a>
+
+                  <a
+                    href={`https://seriesgraph.com/show/${show.tmdbId || show.id}-${show.title
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/^-|-$/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-glass btn-glass-violet !py-3"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M3 3v18h18" />
+                      <path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3" />
+                    </svg>
+                    SeriesGraph
+                  </a>
+                </>
+              )}
+
             </div>
           </div>
         </div>
@@ -609,7 +645,7 @@ export default function ShowPage({
             ref={castRowRef}
             className="flex gap-3 overflow-x-auto pb-3 scroll-row"
           >
-            {show.cast.slice(0, 15).map((person, index) => (
+            {show.cast.slice(0, 20).map((person, index) => (
               <div
                 key={`${person.id}-${index}`}
                 className="flex-shrink-0 w-[100px] text-center"
@@ -657,91 +693,93 @@ export default function ShowPage({
         <h2 className="text-[15px] font-semibold text-text-primary mb-4">
           Episodes
         </h2>
-        {useSeasonDropdown ? (
-          <div className="mb-5 w-full">
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <button
-                onClick={() => stepSeason("prev")}
-                disabled={selectedSeasonIndex <= 0}
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="Previous season"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
+        {availableSeasons.length > 1 && (
+          useSeasonDropdown ? (
+            <div className="mb-5 w-full">
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <button
+                  onClick={() => stepSeason("prev")}
+                  disabled={selectedSeasonIndex <= 0}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Previous season"
                 >
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-              </button>
-
-              <div className="relative min-w-0 flex-1 sm:min-w-[220px] sm:max-w-full">
-                <select
-                  value={selectedSeason}
-                  onChange={(e) => setSelectedSeason(Number(e.target.value))}
-                  className="w-full appearance-none rounded-[14px] bg-white/[0.06] px-4 py-2.5 pr-10 text-[13px] font-medium text-white outline-none backdrop-blur-2xl"
-                >
-                  {availableSeasons.map((s) => (
-                    <option
-                      key={s.id}
-                      value={s.seasonNumber}
-                      className="bg-[#0a0a0a]"
-                    >
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/60">
                   <svg
-                    width="12"
-                    height="12"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="2.2"
                   >
-                    <path d="m6 9 6 6 6-6" />
+                    <path d="m15 18-6-6 6-6" />
                   </svg>
-                </div>
-              </div>
+                </button>
 
-              <button
-                onClick={() => stepSeason("next")}
-                disabled={
-                  selectedSeasonIndex < 0 ||
-                  selectedSeasonIndex >= availableSeasons.length - 1
-                }
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                aria-label="Next season"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
+                <div className="relative min-w-0 flex-1 sm:min-w-[220px] sm:max-w-full">
+                  <select
+                    value={selectedSeason}
+                    onChange={(e) => setSelectedSeason(Number(e.target.value))}
+                    className="w-full appearance-none rounded-[14px] bg-white/[0.06] px-4 py-2.5 pr-10 text-[13px] font-medium text-white outline-none backdrop-blur-2xl"
+                  >
+                    {availableSeasons.map((s) => (
+                      <option
+                        key={s.id}
+                        value={s.seasonNumber}
+                        className="bg-[#0a0a0a]"
+                      >
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/60">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => stepSeason("next")}
+                  disabled={
+                    selectedSeasonIndex < 0 ||
+                    selectedSeasonIndex >= availableSeasons.length - 1
+                  }
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/70 transition-all duration-300 hover:bg-white/[0.12] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Next season"
                 >
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </button>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="mb-5 inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-full bg-white/5 p-1 backdrop-blur-2xl custom-scrollbar">
-            {availableSeasons.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedSeason(s.seasonNumber)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${selectedSeason === s.seasonNumber ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
+          ) : (
+            <div className="mb-5 inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-full bg-white/5 p-1 backdrop-blur-2xl custom-scrollbar">
+              {availableSeasons.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedSeason(s.seasonNumber)}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${selectedSeason === s.seasonNumber ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )
         )}
 
         {/* Episode Grid */}
@@ -757,7 +795,7 @@ export default function ShowPage({
             return (
               <Link
                 key={`${ep.id}-${ep.episodeNumber}-${index}`}
-                href={`/watch/show/${id}?s=${selectedSeason}&e=${ep.episodeNumber}${resumeTime ? `&t=${Math.floor(resumeTime)}` : ""}`}
+                href={`/watch/${show.tmdbId?.startsWith("al-") ? "anime" : "show"}/${id}?s=${selectedSeason}&e=${ep.episodeNumber}${resumeTime ? `&t=${Math.floor(resumeTime)}` : ""}`}
                 className="glass-card glass-liquid flex gap-3 p-3 group hover:border-accent/30 transition-all"
               >
                 <div className="relative h-20 w-36 flex-shrink-0 overflow-hidden rounded-[10px] bg-[var(--bg-tertiary)]">
@@ -786,7 +824,7 @@ export default function ShowPage({
                     {ep.name}
                   </p>
                   <p className="mt-1 text-[11px] text-text-secondary line-clamp-2">
-                    {ep.overview}
+                    {ep.overview || show.overview}
                   </p>
                 </div>
               </Link>

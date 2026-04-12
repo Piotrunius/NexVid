@@ -22,6 +22,10 @@ export function formatTime(seconds: number): string {
 
 export function tmdbImage(path: string | null, size: string = "w500"): string {
   if (!path) return "/placeholder.svg";
+  // If the path is already an absolute URL (like AniList CDN), return it directly
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
   return `https://image.tmdb.org/t/p/${size}${path}`;
 }
 

@@ -5,12 +5,13 @@
 import { MediaRow } from "@/components/media/MediaCard";
 import { FeaturedHeroClient } from "@/components/pages/FeaturedHeroClient";
 import { HomePageClient } from "@/components/pages/HomePageClient";
+import { getAniListPopular } from "@/lib/anilist";
 import { loadPublicBlockedMedia } from "@/lib/cloudSync";
 import { toTmdbMediaType } from "@/lib/mediaType";
-import { getPopular, getTopRated, getTrending, getTitleLogoSvgPath } from "@/lib/tmdb";
+import { getPopular, getTopRated, getTrending } from "@/lib/tmdb";
 import type { MediaItem } from "@/types";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function HomePage() {
@@ -18,13 +19,15 @@ export default async function HomePage() {
   let popular: MediaItem[] = [];
   let topMovies: MediaItem[] = [];
   let topShows: MediaItem[] = [];
+  let popularAnime: MediaItem[] = [];
 
   try {
-    const [t, p, m, s, blockedRes] = await Promise.all([
+    const [t, p, m, s, animeRes, blockedRes] = await Promise.all([
       getTrending("all", "week"),
       getPopular("movie"),
       getTopRated("movie"),
       getTopRated("tv"),
+      getAniListPopular(1).catch(() => []),
       loadPublicBlockedMedia().catch(() => ({ items: [] })),
     ]);
 
@@ -43,6 +46,7 @@ export default async function HomePage() {
     popular = filterBlocked(p);
     topMovies = filterBlocked(m);
     topShows = filterBlocked(s);
+    popularAnime = animeRes; // AniList items don't need blocked filter
   } catch (err) {
     console.error("Failed to load homepage data:", err);
   }
@@ -86,6 +90,15 @@ export default async function HomePage() {
           enableControls
           seeAllAsButton
         />
+        {popularAnime.length > 0 && (
+          <MediaRow
+            title="Popular Anime"
+            items={popularAnime}
+            href="/browse?tab=anime"
+            enableControls
+            seeAllAsButton
+          />
+        )}
       </div>
     </div>
   );

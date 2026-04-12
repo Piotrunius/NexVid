@@ -95,12 +95,14 @@ export async function GET(request: NextRequest) {
   const season = request.nextUrl.searchParams.get("season");
   const episode = request.nextUrl.searchParams.get("episode");
 
-  if (!imdbId && !tmdbId) {
-    return NextResponse.json(
-      { subtitles: [], error: "Missing ID" },
-      { status: 200 },
-    );
-  }
+    const title = request.nextUrl.searchParams.get("title");
+
+    if (!imdbId && !tmdbId && !title) {
+      return NextResponse.json(
+        { subtitles: [], error: "Missing ID or title" },
+        { status: 200 },
+      );
+    }
 
   try {
     const params: any = {
@@ -115,12 +117,16 @@ export async function GET(request: NextRequest) {
       imdbId.startsWith("tt")
     ) {
       params.imdb_id = imdbId;
+    } else if (tmdbId && tmdbId.startsWith("al-") && title) {
+      params.query = title;
     } else {
       const tmdbIdNum = tmdbId ? parseInt(tmdbId, 10) : NaN;
       if (!isNaN(tmdbIdNum)) {
         params.tmdb_id = tmdbIdNum;
       } else if (imdbId && imdbId !== "undefined" && imdbId !== "null") {
         params.imdb_id = imdbId;
+      } else if (title) {
+        params.query = title;
       } else {
         return NextResponse.json({ subtitles: [], error: "Invalid ID format" });
       }

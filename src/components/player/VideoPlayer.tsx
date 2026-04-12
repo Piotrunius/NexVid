@@ -23,12 +23,13 @@ import { resolveFebboxToken } from "@/lib/febbox";
 import type { MediaSegments } from "@/lib/tidb";
 import { submitSegment } from "@/lib/tidb";
 import { getSeasonDetails } from "@/lib/tmdb";
-import { cn, formatTime, getAccentHex, getQualityLabel } from "@/lib/utils";
+import { cn, formatTime, getAccentHex, getQualityLabel, tmdbImage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { usePlayerStore } from "@/stores/player";
 import { useSettingsStore } from "@/stores/settings";
 import { useWatchlistStore } from "@/stores/watchlist";
 import type {
+  AnimeAudioMode,
   AudioTrack,
   Caption,
   Episode,
@@ -103,6 +104,7 @@ interface PlayerProps {
   scrapeStatus?: "idle" | "loading" | "success" | "error";
   segments?: MediaSegments | null;
   tmdbId?: string;
+  externalTmdbId?: string;
   sourceLabel?: string;
   canTryNextSource?: boolean;
   onTryNextSource?: () => void;
@@ -127,6 +129,10 @@ interface PlayerProps {
   fullViewport?: boolean;
   initialSeekTime?: number;
   externalCaptions?: Caption[];
+  // Anime-specific props
+  isAnime?: boolean;
+  animeAudioMode?: AnimeAudioMode;
+  onAnimeAudioModeChange?: (mode: AnimeAudioMode) => void;
 }
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -350,6 +356,7 @@ export function VideoPlayer({
   scrapeStatus,
   segments,
   tmdbId,
+  externalTmdbId,
   sourceLabel,
   canTryNextSource,
   onTryNextSource,
@@ -374,6 +381,9 @@ export function VideoPlayer({
   fullViewport = false,
   initialSeekTime = 0,
   externalCaptions = [],
+  isAnime = false,
+  animeAudioMode = "sub",
+  onAnimeAudioModeChange,
 }: PlayerProps) {
   const WATCH_PARTY_CODE_KEY = "nexvid-watch-party-code";
 
@@ -1561,6 +1571,14 @@ export function VideoPlayer({
   const getNextEpisodeTarget = useCallback(() => {
     if (!onNavigateEpisode || mediaType !== "show") return null;
 
+    if (isAnime) {
+      const animeTotal = media && "totalEpisodes" in media ? (media.totalEpisodes as number) : 999;
+      if (episodeNum < animeTotal) {
+         return { season: 1, episode: episodeNum + 1 };
+      }
+      return null;
+    }
+
     const nextEpisodeInSeason = season?.episodes?.find(
       (ep) => ep.episodeNumber === episodeNum + 1,
     );
@@ -1595,13 +1613,15 @@ export function VideoPlayer({
     if (
       !onNavigateEpisode ||
       mediaType !== "show" ||
-      !season?.episodes?.length ||
       episodeNum <= 1
     )
       return;
+
+    if (!isAnime && !season?.episodes?.length) return;
+
     setIsEpisodeNavigating(true);
-    onNavigateEpisode(seasonNum, episodeNum - 1);
-  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum]);
+    onNavigateEpisode(isAnime ? 1 : seasonNum, episodeNum - 1);
+  }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum, isAnime]);
 
   const handleEnded = useCallback(() => {
     setPlaying(false);
@@ -1833,12 +1853,12 @@ export function VideoPlayer({
     const rect = e.currentTarget.getBoundingClientRect();
     const touchX = e.changedTouches[0].clientX - rect.left;
     const width = rect.width;
-    
+
     // 3-Sector Model: Left 30%, Right 30%, Center 40%
     const isLeft = touchX < width * 0.3;
     const isRight = touchX > width * 0.7;
     const side = isLeft ? "left" : isRight ? "right" : "center";
-    
+
     const now = Date.now();
 
     if (side !== "center") {
@@ -3715,7 +3735,7 @@ export function VideoPlayer({
                                   <div className="relative h-[56px] w-[100px] flex-shrink-0 overflow-hidden rounded-[10px] bg-white/5">
                                     {ep.stillPath ? (
                                       <img
-                                        src={`https://image.tmdb.org/t/p/w300${ep.stillPath}`}
+                                        src={tmdbImage(ep.stillPath, "w300")}
                                         alt={
                                           ep.name ||
                                           `Episode ${ep.episodeNumber}`
@@ -3745,13 +3765,13 @@ export function VideoPlayer({
                                     </div>
 
                                     <p className="mt-0.5 text-[10px] font-medium text-white/55">
-                                      S{episodePanelSeason}:E{ep.episodeNumber}
+                                      {isAnime ? `Episode ${ep.episodeNumber}` : `S${episodePanelSeason}:E${ep.episodeNumber}`}
                                       {ep.runtime ? ` • ${ep.runtime} min` : ""}
                                     </p>
 
-                                    {ep.overview ? (
+                                    {ep.overview || media?.overview ? (
                                       <p className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-white/45">
-                                        {ep.overview}
+                                        {ep.overview || media?.overview}
                                       </p>
                                     ) : (
                                       <p className="mt-1 text-[10px] italic text-white/35">
@@ -3828,46 +3848,57 @@ export function VideoPlayer({
                                 </span>
                               </button>
 
-                              {/* Sources Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("sources")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-white/80"
+                              {/* Sources Tile — hidden for anime; anime shows Audio tile instead */}
+                              {isAnime ? (
+                                  <button
+                                    onClick={() => setSettingsPanel("audio")}
+                                    className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                                  >
+                                    <svg
+                                      width="20"
+                                      height="20"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      className="text-white/80"
+                                    >
+                                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                      <line x1="12" y1="19" x2="12" y2="22"/>
+                                    </svg>
+                                    <span className="text-[10px] text-white/60">Audio</span>
+                                    <span className="text-[10px] font-semibold text-accent">
+                                      {animeAudioMode === "sub" ? "Subbed" : "Dubbed"}
+                                    </span>
+                                  </button>
+                              ) : (
+                                <button
+                                  onClick={() => setSettingsPanel("sources")}
+                                  className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
                                 >
-                                  <rect
-                                    x="2"
-                                    y="2"
+                                  <svg
                                     width="20"
-                                    height="8"
-                                    rx="2"
-                                  />
-                                  <rect
-                                    x="2"
-                                    y="14"
-                                    width="20"
-                                    height="8"
-                                    rx="2"
-                                  />
-                                  <line x1="6" y1="6" x2="6" y2="6" />
-                                  <line x1="6" y1="18" x2="6" y2="18" />
-                                </svg>
-                                <span className="text-[10px] text-white/60">
-                                  Sources
-                                </span>
-                                <span className="text-[10px] font-semibold text-accent truncate max-w-full">
-                                  {formatSourceName(
-                                    sourceResults[currentSourceIndex]?.sourceId,
-                                  )}
-                                </span>
-                              </button>
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    className="text-white/80"
+                                  >
+                                    <rect x="2" y="2" width="20" height="8" rx="2" />
+                                    <rect x="2" y="14" width="20" height="8" rx="2" />
+                                    <line x1="6" y1="6" x2="6" y2="6" />
+                                    <line x1="6" y1="18" x2="6" y2="18" />
+                                  </svg>
+                                  <span className="text-[10px] text-white/60">Sources</span>
+                                  <span className="text-[10px] font-semibold text-accent truncate max-w-full">
+                                    {formatSourceName(
+                                      sourceResults[currentSourceIndex]?.sourceId,
+                                    )}
+                                  </span>
+                                </button>
+                              )}
                               {/* Subtitles Tile */}
                               <button
                                 onClick={() => setSettingsPanel("subtitles")}
@@ -4224,6 +4255,67 @@ export function VideoPlayer({
                             </div>
                           </div>
                         )}
+                        {/* Audio Mode Sub-panel */}
+                        {settingsPanel === "audio" && (
+                          <div>
+                            <button
+                              onClick={() => setSettingsPanel("main")}
+                              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="m15 18-6-6 6-6" />
+                              </svg>
+                              Back
+                            </button>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <button
+                                onClick={() => {
+                                  onAnimeAudioModeChange?.("sub");
+                                  setSettingsPanel("main");
+                                }}
+                                className={`flex flex-col items-center justify-center gap-2 py-6 px-4 rounded-[12px] text-[13px] transition-all border ${
+                                  animeAudioMode === "sub"
+                                    ? "bg-accent/10 border-accent text-accent font-medium shadow-[0_0_15px_rgba(var(--color-accent),0.1)]"
+                                    : "bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                                }`}
+                              >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={animeAudioMode === "sub" ? "text-accent" : "text-white/50"}>
+                                  <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                                  <line x1="6" y1="10" x2="10" y2="10"></line>
+                                  <line x1="14" y1="10" x2="18" y2="10"></line>
+                                  <line x1="6" y1="14" x2="18" y2="14"></line>
+                                </svg>
+                                <span>Subbed</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  onAnimeAudioModeChange?.("dub");
+                                  setSettingsPanel("main");
+                                }}
+                                className={`flex flex-col items-center justify-center gap-2 py-6 px-4 rounded-[12px] text-[13px] transition-all border ${
+                                  animeAudioMode === "dub"
+                                    ? "bg-accent/10 border-accent text-accent font-medium shadow-[0_0_15px_rgba(var(--color-accent),0.1)]"
+                                    : "bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                                }`}
+                              >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={animeAudioMode === "dub" ? "text-accent" : "text-white/50"}>
+                                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                                </svg>
+                                <span>Dubbed</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Quality Sub-panel */}
                         {settingsPanel === "quality" && (
                           <div>
@@ -5388,7 +5480,7 @@ export function VideoPlayer({
                 </h2>
                 <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
                   {mediaType === "show"
-                    ? `Completed S${seasonNum}:E${episodeNum}`
+                    ? isAnime ? `Completed Episode ${episodeNum}` : `Completed S${seasonNum}:E${episodeNum}`
                     : "Movie finished"}
                 </p>
 
@@ -5472,11 +5564,15 @@ export function VideoPlayer({
 
                 {mediaType === "show" && (
                   <div className="mt-2 flex items-center gap-4">
-                    <p className="text-[15px] font-semibold text-white/70">
-                      Season {seasonNum}
-                    </p>
+                    {!isAnime && (
+                      <p className="text-[15px] font-semibold text-white/70">
+                        Season {seasonNum}
+                      </p>
+                    )}
                     <p className="text-[15px] text-white/80">
-                      {currentEpisodeInfo?.name
+                      {currentEpisodeInfo?.name &&
+                      currentEpisodeInfo.name !== `Episode ${episodeNum}` &&
+                      currentEpisodeInfo.name !== `Episode ${episodeNum}:`
                         ? `${currentEpisodeInfo.name}`
                         : `Episode ${episodeNum}`}
                     </p>
@@ -5550,7 +5646,7 @@ export function VideoPlayer({
               <div className="flex gap-4">
                 {media.posterPath && (
                   <img
-                    src={`https://image.tmdb.org/t/p/w185${media.posterPath}`}
+                    src={tmdbImage(media.posterPath, "w185")}
                     alt={media.title}
                     className="h-36 w-24 shrink-0 rounded-[12px] object-cover shadow-[0_4px_20px_rgba(0,0,0,0.6)]"
                   />
@@ -5563,7 +5659,9 @@ export function VideoPlayer({
                   {mediaType === "show" ? (
                     <p className="mt-1 text-[13px] text-white/65">
                       {`Season ${seasonNum} • Episode ${episodeNum}`}
-                      {currentEpisodeInfo?.name
+                      {currentEpisodeInfo?.name &&
+                      currentEpisodeInfo.name !== `Episode ${episodeNum}` &&
+                      currentEpisodeInfo.name !== `Episode ${episodeNum}:`
                         ? ` • ${currentEpisodeInfo.name}`
                         : ""}
                     </p>
@@ -5665,29 +5763,38 @@ export function VideoPlayer({
                       </button>
                     </div>
 
-                    {tmdbId && (
+                    {/* Link for normal shows/movies or AniList link for Anime */}
+                    {tmdbId && !isAnime && (
                       <a
                         href={`https://www.themoviedb.org/${mediaType === "show" ? "tv" : "movie"}/${tmdbId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-[10px] bg-teal-500/15 px-3 py-1.5 text-[11px] font-semibold text-teal-300 hover:bg-teal-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="11" cy="11" r="8" />
                           <path d="m21 21-4.3-4.3" />
                         </svg>
                         TMDB
                       </a>
                     )}
+                    {tmdbId && isAnime && (
+                      <a
+                        href={`https://anilist.co/anime/${tmdbId.replace("al-", "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-[10px] bg-indigo-500/15 px-3 py-1.5 text-[11px] font-semibold text-indigo-300 hover:bg-indigo-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="11" cy="11" r="8" />
+                          <path d="m21 21-4.3-4.3" />
+                        </svg>
+                        AniList
+                      </a>
+                    )}
 
-                    {tmdbId && mediaType === "show" && media?.title && (
+                    {/* SeriesGraph for regular shows only */}
+                    {mediaType === "show" && media?.title && !isAnime && (
                       <a
                         href={`https://seriesgraph.com/show/${tmdbId}-${media.title
                           .toLowerCase()
@@ -5697,14 +5804,7 @@ export function VideoPlayer({
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-500/15 px-3 py-1.5 text-[11px] font-semibold text-violet-300 hover:bg-violet-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M3 3v18h18" />
                           <path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3" />
                         </svg>

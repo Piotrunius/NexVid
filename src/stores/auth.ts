@@ -101,6 +101,10 @@ export const useAuthStore = create<AuthStore>()(
             omdbApiKey: "",
             preferredSources: [],
             disabledSources: [],
+            playerViewMode: "original",
+            playerFillWidth: false,
+            playerFillHeight: false,
+            animeAudioMode: "sub",
           },
         };
         set({ user, isLoggedIn: true, authToken: "" });
@@ -148,6 +152,10 @@ export const useAuthStore = create<AuthStore>()(
             omdbApiKey: "",
             preferredSources: [],
             disabledSources: [],
+            playerViewMode: "original",
+            playerFillWidth: false,
+            playerFillHeight: false,
+            animeAudioMode: "sub",
           },
         };
         set({ user, isLoggedIn: true, authToken: "" });

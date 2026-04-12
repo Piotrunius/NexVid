@@ -143,6 +143,23 @@ export default async function ShowPage({ params }: PageProps) {
       getSimilar("tv", id),
     ]);
 
+    const { detectAnime } = await import("@/lib/animeDetect");
+    const { searchAnime } = await import("@/lib/anilist");
+    const isAnime = await detectAnime(id, show.title, show.releaseYear, show.originCountry);
+    
+    if (isAnime) {
+      const searchRes = await searchAnime(show.title, 1);
+      const showTitleNorm = show.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const exactMatch = searchRes.results.find(
+        (res) => res.title.toLowerCase().replace(/[^a-z0-9]/g, "") === showTitleNorm
+      ) || searchRes.results[0];
+
+      if (exactMatch && exactMatch.tmdbId && String(exactMatch.tmdbId).startsWith("al-")) {
+        const { redirect } = await import("next/navigation");
+        return redirect(`/anime/${exactMatch.tmdbId.toString().replace("al-", "")}`);
+      }
+    }
+
     return (
       <ShowPageClient
         initialShow={show}

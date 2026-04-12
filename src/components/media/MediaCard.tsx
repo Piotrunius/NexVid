@@ -5,7 +5,7 @@
 "use client";
 
 import { cn, formatTime, tmdbImage } from "@/lib/utils";
-import { normalizeMediaType } from "@/lib/mediaType";
+import { normalizeMediaType, isAnimeMedia } from "@/lib/mediaType";
 import { useWatchlistStore } from "@/stores/watchlist";
 import type { MediaItem, WatchlistStatus } from "@/types";
 import {
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 interface MediaCardProps {
@@ -77,6 +78,9 @@ export function MediaCard({
   showType = false,
 }: MediaCardProps) {
   const [mounted, setMounted] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const router = useRouter();
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -90,19 +94,49 @@ export function MediaCard({
   const isShow =
     normalizedItemType === "show" || normalizedWatchlistType === "show";
 
+  // AniList anime items have tmdbId like "al-12345" — skip TMDB show pages
+  const isAniListItem = item.tmdbId?.startsWith("al-");
+
   const canonicalType = normalizedItemType === "show" ? "show" : "movie";
-  const defaultHref =
-    canonicalType === "movie"
+
+  const defaultHref = isAniListItem
+    ? `/anime/${item.tmdbId.replace("al-", "")}`
+    : canonicalType === "movie"
       ? `/movie/${item.tmdbId}`
       : `/show/${item.tmdbId}`;
 
   const watchUrl = hasProgress
-    ? `/watch/${canonicalType}/${item.tmdbId}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
+    ? isAniListItem
+      ? `/watch/anime/${item.tmdbId.replace("al-", "")}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
+      : `/watch/${canonicalType}/${item.tmdbId}?s=${progress.season || 1}&e=${progress.episode || 1}&t=${progress.timestamp || 0}`
     : defaultHref;
 
   const href = hasProgress ? watchUrl : defaultHref;
   const [showMenu, setShowMenu] = useState(false);
   const { addItem, setStatus: setWatchlistStatus } = useWatchlistStore();
+
+  // For TMDB show items (not already-known AniList), resolve to /anime/[id] on click if anime
+  const handleCardClick = async (e: React.MouseEvent) => {
+    // Only intercept show items that are NOT already AniList
+    if (isAniListItem || canonicalType !== "show" || resolving) return;
+    e.preventDefault();
+    setResolving(true);
+    try {
+      const params = new URLSearchParams({ title: item.title });
+      if (item.releaseYear) params.set("year", String(item.releaseYear));
+      const res = await fetch(`/api/anime-resolve?${params}`);
+      const data = await res.json();
+      if (data.anilistId) {
+        router.push(`/anime/${data.anilistId}`);
+      } else {
+        router.push(href);
+      }
+    } catch {
+      router.push(href);
+    } finally {
+      setResolving(false);
+    }
+  };
 
   const handleWatchlistClick = (
     e: React.MouseEvent,
@@ -132,19 +166,30 @@ export function MediaCard({
 
   const sizeClasses = { sm: "w-[140px]", md: "w-[180px]", lg: "w-[220px]" };
 
+  // Non-AniList show: use div+onClick for anime resolution; everything else uses Link
+  const isResolvableShow = !isAniListItem && canonicalType === "show";
+
   return (
     <Link
-      href={href}
-      className={cn("media-card group media-grid-item", sizeClasses[size])}
+      href={isResolvableShow ? href : href}
+      onClick={isResolvableShow ? handleCardClick : undefined}
+      className={cn("media-card group media-grid-item", sizeClasses[size], resolving && "opacity-70 pointer-events-none")}
+      prefetch={false}
     >
       <div className="relative overflow-hidden rounded-[24px] aspect-[2/3] bg-black shadow-[0_4px_24px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.1)] transition-all duration-600 ease-[var(--spring)]">
         {item.posterPath ? (
           <Image
-            src={tmdbImage(item.posterPath, size === "lg" ? "w500" : "w342")}
+            src={
+              // AniList images are already absolute URLs; TMDB images need the CDN prefix
+              item.posterPath.startsWith("http")
+                ? item.posterPath
+                : tmdbImage(item.posterPath, size === "lg" ? "w500" : "w342")
+            }
             alt={item.title}
             fill
             className="object-cover transition-transform duration-700 ease-[var(--spring)] group-hover:scale-[1.08]"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
+            unoptimized={item.posterPath.startsWith("http")}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -240,7 +285,7 @@ export function MediaCard({
         {showType && (
           <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-[20px] px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
             <span className="text-[10px] font-bold uppercase text-white tracking-[0.12em]">
-              {canonicalType === "movie" ? "Movie" : "TV"}
+              {isAnimeMedia(item) ? "Anime" : canonicalType === "movie" ? "Movie" : "TV"}
             </span>
           </div>
         )}
@@ -267,7 +312,7 @@ export function MediaCard({
           {hasProgress && progress && (
             <p className="text-white/50 tracking-wide font-bold">
               {isShow
-                ? `S${progress.season}:E${progress.episode}`
+                ? `S${progress.season ?? 1}:E${progress.episode ?? 1}`
                 : formatTime(progress.timestamp || 0)}
             </p>
           )}
