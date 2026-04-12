@@ -117,27 +117,17 @@ export default function LoginPage() {
 
         {/* Glass card */}
         <div className="glass-card glass-liquid p-8">
-          {/* Segmented control */}
-          <div className="flex rounded-full bg-white/[0.04] backdrop-blur-2xl p-1 mb-6 overflow-hidden">
+          {/* Segmented control matching Admin Feedback style */}
+          <div className="flex gap-2 p-1 rounded-full bg-white/5 mb-6 w-full">
             <button
               onClick={() => setMode("login")}
-              className={cn(
-                "flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center flex items-center justify-center leading-none",
-                mode === "login"
-                  ? "bg-accent text-white"
-                  : "text-text-secondary hover:text-text-primary",
-              )}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === "login" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
             >
               Sign In
             </button>
             <button
               onClick={() => setMode("register")}
-              className={cn(
-                "flex-1 rounded-full py-2.5 text-[13px] font-medium transition-all duration-200 text-center flex items-center justify-center leading-none",
-                mode === "register"
-                  ? "bg-accent text-white"
-                  : "text-text-secondary hover:text-text-primary",
-              )}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === "register" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
             >
               Register
             </button>

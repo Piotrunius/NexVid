@@ -109,7 +109,7 @@ export default async function HomePage() {
                     href={`/watch/${featuredType}/${featured.tmdbId}`}
                     className="btn-accent group relative overflow-hidden !px-10 !py-4 text-[15px] font-bold"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                    <div className="absolute Hover:scale-20 inset-0" />
                     <Play className="h-5 w-5 fill-current stroke-[1.85] transition-transform group-hover:scale-110" />
                     Watch Now
                   </Link>

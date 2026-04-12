@@ -218,9 +218,9 @@ export default function BrowsePage() {
           </p>
         </div>
 
-        {/* macOS segmented control */}
+        {/* Segmented control matching Admin Feedback style */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div className="inline-flex rounded-full bg-white/[0.04] backdrop-blur-2xl p-1">
+          <div className="flex gap-2 p-1 rounded-full bg-white/5 w-fit">
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -228,14 +228,9 @@ export default function BrowsePage() {
                   setTab(t.key);
                   setFilter("popular");
                 }}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-5 py-2 text-[13px] font-medium transition-all duration-200",
-                  tab === t.key
-                    ? "bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]"
-                    : "text-text-secondary hover:text-text-primary hover:bg-white/[0.06]",
-                )}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border ${tab === t.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
               >
-                {t.icon}
+                <span className="opacity-80">{t.icon}</span>
                 {t.label}
               </button>
             ))}
@@ -347,3 +342,5 @@ export default function BrowsePage() {
     </div>
   );
 }
+
+// CACHE BUSTER 1

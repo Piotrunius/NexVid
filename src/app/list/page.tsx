@@ -15,6 +15,7 @@ import {
   PauseCircle,
   PlayCircle,
   XCircle,
+  LayoutGrid,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -162,47 +163,27 @@ export default function WatchlistPage() {
           </select>
         </div>
 
-        {/* macOS segmented status tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-          <button
-            onClick={() => setActiveStatus("all")}
-            className={cn(
-              "flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200",
-              activeStatus === "all"
-                ? "bg-accent text-white border-accent shadow-[0_4px_14px_rgba(var(--accent-rgb),0.4)]"
-                : "border-white/6 text-text-secondary hover:text-text-primary hover:bg-white/[0.06]",
-            )}
-          >
-            All
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px]">
-              {statusCounts.all}
-            </span>
-          </button>
-          {STATUSES.map((s) => (
+        {/* Segmented status tabs matching Admin Feedback style */}
+        <div className="w-full overflow-x-auto pb-4 mb-2 -mx-4 px-4 sm:mx-0 sm:px-0 custom-scrollbar">
+          <div className="flex gap-2 p-1 rounded-full bg-white/5 w-max">
             <button
-              key={s.key}
-              onClick={() => setActiveStatus(s.key)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200",
-                activeStatus === s.key
-                  ? "bg-accent text-white border-accent shadow-[0_4px_14px_rgba(var(--accent-rgb),0.4)]"
-                  : "border-white/6 text-text-secondary hover:text-text-primary hover:bg-white/[0.06]",
-              )}
+              onClick={() => setActiveStatus("all")}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${activeStatus === "all" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
             >
-              <span className="text-[12px]">{s.icon}</span>
-              {s.label}
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px]",
-                  activeStatus === s.key
-                    ? "bg-white/20"
-                    : "bg-[var(--bg-glass-light)]",
-                )}
-              >
-                {statusCounts[s.key]}
-              </span>
+              <span className="text-[12px] opacity-80"><LayoutGrid className="h-[12px] w-[12px]" /></span>
+              All
             </button>
-          ))}
+            {STATUSES.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setActiveStatus(s.key)}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${activeStatus === s.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+              >
+                <span className="text-[12px] opacity-80">{s.icon}</span>
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Continue Watching */}
@@ -530,3 +511,5 @@ function WatchlistCard({
     </div>
   );
 }
+
+// CACHE BUSTER 1
