@@ -4,7 +4,7 @@
 
 export const metadata = { title: "Terms of Service - NexVid" };
 
-const DISCORD_INVITE_URL = process.env.DISCORD_URL;
+const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_URL;
 
 export default function TermsPage() {
   return (
