@@ -238,23 +238,13 @@ export function AiAssistantModal({
                           <div className="flex rounded-full bg-white/[0.05] p-1">
                             <button
                               onClick={() => setType("movie")}
-                              className={cn(
-                                "rounded-full px-4 py-1.5 text-xs font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
-                                type === "movie"
-                                  ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
-                                  : "text-white/80 hover:text-white",
-                              )}
+                              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === "movie" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                             >
                               Movies
                             </button>
                             <button
                               onClick={() => setType("show")}
-                              className={cn(
-                                "rounded-full px-4 py-1.5 text-xs font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
-                                type === "show"
-                                  ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
-                                  : "text-white/80 hover:text-white",
-                              )}
+                              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === "show" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                             >
                               TV Shows
                             </button>
@@ -267,12 +257,7 @@ export function AiAssistantModal({
                                 <button
                                   key={e}
                                   onClick={() => setEra(e)}
-                                  className={cn(
-                                    "flex-shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold whitespace-nowrap outline-none transition-all focus:outline-none focus-visible:outline-none",
-                                    era === e
-                                      ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
-                                      : "bg-transparent text-white/80 hover:bg-white/10 hover:text-white",
-                                  )}
+                                  className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none flex-shrink-0 ${era === e ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                                 >
                                   {e}
                                 </button>
@@ -313,12 +298,7 @@ export function AiAssistantModal({
                                 <button
                                   key={genre}
                                   onClick={() => handleToggleGenre(genre)}
-                                  className={cn(
-                                    "grow rounded-full px-3 py-1.5 text-center text-[11px] font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
-                                    selectedGenres.includes(genre)
-                                      ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
-                                      : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white",
-                                  )}
+                                  className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap grow outline-none focus:outline-none focus-visible:outline-none ${selectedGenres.includes(genre) ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                                 >
                                   {genre}
                                 </button>

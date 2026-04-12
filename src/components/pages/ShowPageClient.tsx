@@ -727,17 +727,12 @@ export default function ShowPage({
             </div>
           </div>
         ) : (
-          <div className="mb-5 inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full bg-white/[0.04] p-1 backdrop-blur-2xl">
+          <div className="mb-5 inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-full bg-white/5 p-1 backdrop-blur-2xl custom-scrollbar">
             {availableSeasons.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setSelectedSeason(s.seasonNumber)}
-                className={cn(
-                  "rounded-full px-5 py-2 text-[13px] font-medium whitespace-nowrap transition-all duration-500 ease-[var(--spring)]",
-                  selectedSeason === s.seasonNumber
-                    ? "bg-accent text-white shadow-[0_2px_12px_var(--accent-glow)]"
-                    : "text-text-secondary hover:text-text-primary hover:bg-white/[0.06]",
-                )}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${selectedSeason === s.seasonNumber ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
               >
                 {s.name}
               </button>

@@ -519,12 +519,7 @@ export function Navbar() {
                           key={item.key}
                           type="button"
                           onClick={() => setSearchType(item.key)}
-                          className={cn(
-                            "h-8 rounded-full px-5 text-xs font-semibold whitespace-nowrap outline-none transition-all",
-                            searchType === item.key
-                              ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
-                              : "text-white/80 hover:bg-white/10 hover:text-white",
-                          )}
+                          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none ${searchType === item.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                         >
                           {item.label}
                         </button>

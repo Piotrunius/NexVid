@@ -93,12 +93,7 @@ export function RecommendationRows() {
           <button
             key={item.id}
             onClick={() => setSelectedId(item.id)}
-            className={cn(
-              "whitespace-nowrap px-4 py-1.5 rounded-full text-[12px] font-bold transition-all duration-300 border-2",
-              selectedId === item.id
-                ? "bg-accent/20 border-accent text-accent shadow-[0_0_15px_rgba(var(--accent-rgb),0.2)]"
-                : "bg-white/[0.03] border-white/10 text-white/40 hover:text-white/70 hover:bg-white/10",
-            )}
+            className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${selectedId === item.id ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
           >
             {item.title}
           </button>

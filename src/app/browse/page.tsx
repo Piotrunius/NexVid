@@ -264,12 +264,7 @@ export default function BrowsePage() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200 border",
-                  filter === f.key
-                    ? "bg-accent/10 text-accent border-transparent shadow-[0_0_0_1px_var(--accent-muted)]"
-                    : "bg-white/[0.02] border-white/10 text-text-muted hover:text-text-secondary hover:bg-white/[0.06] hover:border-white/10",
-                )}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === f.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
               >
                 {f.label}
               </button>
@@ -279,12 +274,7 @@ export default function BrowsePage() {
               <button
                 key={g.id}
                 onClick={() => setFilter(String(g.id))}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-[12px] font-medium transition-all duration-200 border",
-                  filter === String(g.id)
-                    ? "bg-accent/10 text-accent border-transparent shadow-[0_0_0_1px_var(--accent-muted)]"
-                    : "bg-white/[0.02] text-text-muted hover:text-text-secondary hover:bg-white/[0.06] hover:border-white/10 border-white/10",
-                )}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === String(g.id) ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
               >
                 {g.name}
               </button>
