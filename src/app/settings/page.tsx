@@ -502,12 +502,7 @@ export default function SettingsPage() {
                       onClick={() =>
                         store.updateSettings({ accentColor: c.key })
                       }
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all duration-200",
-                        settings.accentColor === c.key
-                          ? "bg-accent/10 text-text-primary shadow-[0_0_0_1px_var(--accent-muted)]"
-                          : "bg-white/[0.04] text-text-secondary hover:bg-white/[0.06]",
-                      )}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${settings.accentColor === c.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
                     >
                       <div
                         className="h-3 w-3 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"

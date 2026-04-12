@@ -9,7 +9,7 @@ import { normalizeMediaType, toTmdbMediaType } from "@/lib/mediaType";
 import { getPopular, getTopRated, getTrending } from "@/lib/tmdb";
 import { tmdbImage } from "@/lib/utils";
 import type { MediaItem } from "@/types";
-import { Play } from "lucide-react";
+import { Play, Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -115,8 +115,9 @@ export default async function HomePage() {
                   </Link>
                   <Link
                     href={`/${featuredType}/${featured.tmdbId}`}
-                    className="btn-glass !px-8 !py-4 text-[15px] font-bold"
+                    className="btn-glass !px-8 !py-4 text-[15px] font-bold flex items-center gap-2"
                   >
+                    <Info className="w-5 h-5" />
                     More Info
                   </Link>
                 </div>
