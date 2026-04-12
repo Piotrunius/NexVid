@@ -4,7 +4,7 @@
 
 export const metadata = { title: "Privacy Policy - NexVid" };
 
-const DISCORD_INVITE_URL = "process.env.DISCORD_URL";
+const DISCORD_INVITE_URL = process.env.DISCORD_URL;
 
 export default function PrivacyPage() {
   return (
