@@ -14,6 +14,7 @@ export interface MediaBase {
   overview: string;
   posterPath: string | null;
   backdropPath: string | null;
+  logoPath?: string | null;
   releaseYear: number;
   rating: number;
   genres: Genre[];

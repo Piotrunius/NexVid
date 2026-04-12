@@ -3,15 +3,12 @@
    ============================================ */
 
 import { MediaRow } from "@/components/media/MediaCard";
+import { FeaturedHeroClient } from "@/components/pages/FeaturedHeroClient";
 import { HomePageClient } from "@/components/pages/HomePageClient";
 import { loadPublicBlockedMedia } from "@/lib/cloudSync";
-import { normalizeMediaType, toTmdbMediaType } from "@/lib/mediaType";
-import { getPopular, getTopRated, getTrending } from "@/lib/tmdb";
-import { tmdbImage } from "@/lib/utils";
+import { toTmdbMediaType } from "@/lib/mediaType";
+import { getPopular, getTopRated, getTrending, getTitleLogoSvgPath } from "@/lib/tmdb";
 import type { MediaItem } from "@/types";
-import { Play, Info } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 
 export const runtime = "edge";
 export const revalidate = 3600; // Revalidate every hour
@@ -21,7 +18,6 @@ export default async function HomePage() {
   let popular: MediaItem[] = [];
   let topMovies: MediaItem[] = [];
   let topShows: MediaItem[] = [];
-  let featured: MediaItem | null = null;
 
   try {
     const [t, p, m, s, blockedRes] = await Promise.all([
@@ -47,87 +43,15 @@ export default async function HomePage() {
     popular = filterBlocked(p);
     topMovies = filterBlocked(m);
     topShows = filterBlocked(s);
-
-    if (trending.length > 0) {
-      featured =
-        trending[Math.floor(Math.random() * Math.min(5, trending.length))];
-    }
   } catch (err) {
     console.error("Failed to load homepage data:", err);
   }
 
-  const featuredType = normalizeMediaType(featured?.mediaType);
-
   return (
     <div className="min-h-screen">
       {/* ── Hero Section ── */}
-      {featured ? (
-        <section className="relative h-[90vh] min-h-[640px]">
-          {/* Background image */}
-          <div className="absolute inset-0">
-            <Image
-              src={tmdbImage(featured.backdropPath, "original")}
-              alt={featured.title}
-              fill
-              priority
-              className="object-cover transition-opacity duration-1000"
-              sizes="100vw"
-            />
-            {/* Apple Sequoia Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/20 to-transparent" />
-          </div>
+      <FeaturedHeroClient items={trending.slice(0, 20)} />
 
-          {/* Hero Content */}
-          <div className="absolute inset-0 flex items-center justify-start pt-20">
-            <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-              <div className="max-w-[40rem] space-y-6">
-                <div className="flex flex-wrap items-center gap-3 animate-fade-in opacity-90">
-                  <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
-                    {featured.mediaType === "movie" ? "Movie" : "TV"}
-                  </span>
-                  <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
-                    {featured.releaseYear || "N/A"}
-                  </span>
-                  {featured.voteAverage > 0 && (
-                    <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-emerald-200 backdrop-blur-[10px] shadow-[0_0_12px_rgba(0,0,0,0.35)]">
-                      {(featured.voteAverage * 10).toFixed(0)}% Match
-                    </span>
-                  )}
-                </div>
-
-                <h1 className="animate-slide-up text-[48px] font-black leading-[1.1] tracking-tight text-white sm:text-[64px] lg:text-[72px]">
-                  {featured.title}
-                </h1>
-
-                <p className="animate-slide-up line-clamp-3 text-[16px] leading-relaxed text-white/60 [animation-delay:100ms] sm:text-[18px]">
-                  {featured.overview}
-                </p>
-
-                <div className="flex animate-slide-up flex-wrap items-center gap-4 pt-4 [animation-delay:200ms]">
-                  <Link
-                    href={`/watch/${featuredType}/${featured.tmdbId}`}
-                    className="btn-accent group relative overflow-hidden !px-10 !py-4 text-[15px] font-bold"
-                  >
-                    <div className="absolute Hover:scale-20 inset-0" />
-                    <Play className="h-5 w-5 fill-current stroke-[1.85] transition-transform group-hover:scale-110" />
-                    Watch Now
-                  </Link>
-                  <Link
-                    href={`/${featuredType}/${featured.tmdbId}`}
-                    className="btn-glass !px-8 !py-4 text-[15px] font-bold flex items-center gap-2"
-                  >
-                    <Info className="w-5 h-5" />
-                    More Info
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className="relative h-[90vh] min-h-[640px] bg-black animate-pulse" />
-      )}
 
       {/* ── Content Rows ── */}
       <div className="relative z-10 -mt-32 space-y-4 pb-24 sm:-mt-36">
