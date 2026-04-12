@@ -91,6 +91,7 @@ export interface ScrapeOptions {
   autoSkipSegments?: boolean;
   nextButton?: boolean;
   episodeSelector?: boolean;
+  excludeSources?: string[];
 }
 
 function pushDebug(
@@ -504,6 +505,8 @@ export async function scrapeAllSources(
   const results: SourceResult[] = [];
 
   for (const source of SOURCES) {
+    if (options.excludeSources?.includes(source.id)) continue;
+
     if (source.id === "febbox" && !options.febboxCookie) {
       continue;
     }

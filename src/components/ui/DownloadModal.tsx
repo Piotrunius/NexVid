@@ -74,6 +74,7 @@ export function DownloadModal({
         febboxCookie: febboxApiKey,
         sessionToken,
         accentColor: resolvedAccentHex,
+        excludeSources: ["pobreflix"],
       });
 
       if (scrapeResults.length === 0) {
