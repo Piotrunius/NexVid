@@ -871,19 +871,19 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="flex items-center justify-center rounded-[14px] bg-accent p-2.5 text-[12px] font-semibold text-white shadow-[0_0_24px_var(--accent-glow)] hover:bg-accent-hover hover:shadow-[0_0_40px_var(--accent-glow)] hover:scale-105 active:scale-95 transition-all duration-500 sm:gap-2 sm:rounded-[16px] sm:px-5 sm:py-2.5 sm:text-[13px]"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 bg-accent-muted text-accent border-accent-glow hover:bg-accent/20"
               aria-label="Sign In"
             >
               <svg
-                width="18"
-                height="18"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="sm:mr-1"
+                className="sm:mr-0.5"
                 aria-hidden="true"
               >
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />

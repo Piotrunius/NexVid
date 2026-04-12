@@ -208,8 +208,7 @@ body {
 .glass {
     background: var(--bg-glass);
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur))
-        saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     border: none;
     box-shadow:
         var(--shadow-ambient),
@@ -244,12 +243,10 @@ body {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-        165deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0.02) 30%,
-        transparent 50%
-    );
+    background: linear-gradient(165deg,
+            rgba(255, 255, 255, 0.08) 0%,
+            rgba(255, 255, 255, 0.02) 30%,
+            transparent 50%);
     border-radius: inherit;
     pointer-events: none;
     z-index: 1;
@@ -272,8 +269,7 @@ body {
 .glass-card {
     background: var(--bg-glass);
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur))
-        saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     border: none;
     border-radius: var(--glass-radius);
     box-shadow:
@@ -392,30 +388,33 @@ body {
 }
 
 .btn-glass-teal {
-    background: rgba(20, 184, 166, 0.1);
+    background: rgba(20, 184, 166, 0.08);
     border: 1px solid rgba(20, 184, 166, 0.12);
-    color: #5eead4; /* teal-300 */
+    color: #5eead4;
+    /* teal-300 */
 }
 
 .btn-glass-teal:hover {
-    background: rgba(20, 184, 166, 0.2);
-    border-color: rgba(20, 184, 166, 0.2);
+    background: rgba(20, 184, 166, 0.12);
+    border-color: rgba(20, 184, 166, 0.12);
 }
 
 .btn-glass-violet {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(139, 92, 246, 0.08);
     border: 1px solid rgba(139, 92, 246, 0.12);
-    color: #c4b5fd; /* violet-300 */
+    color: #c4b5fd;
+    /* violet-300 */
 }
 
 .btn-glass-violet:hover {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.2);
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.12);
 }
 
 .btn-accent {
-    background: var(--accent);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--text-primary);
     border-radius: var(--glass-radius);
     padding: 10px 20px;
     font-weight: 500;
@@ -424,7 +423,9 @@ body {
     cursor: pointer;
     transition:
         transform 0.2s ease,
-        box-shadow 0.2s ease;
+        box-shadow 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -439,7 +440,7 @@ body {
 }
 
 .btn-accent:hover {
-    background: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.34);
     transform: translateY(-1px);
 }
@@ -664,12 +665,10 @@ select.input option {
    ============================================ */
 
 .skeleton {
-    background: linear-gradient(
-        110deg,
-        rgba(255, 255, 255, 0.03) 30%,
-        rgba(255, 255, 255, 0.06) 50%,
-        rgba(255, 255, 255, 0.03) 70%
-    );
+    background: linear-gradient(110deg,
+            rgba(255, 255, 255, 0.03) 30%,
+            rgba(255, 255, 255, 0.06) 50%,
+            rgba(255, 255, 255, 0.03) 70%);
     background-size: 300% 100%;
     animation: shimmer 2s infinite ease-in-out;
     border-radius: var(--glass-radius-sm);
@@ -737,7 +736,7 @@ select.input option {
     height: 0;
 }
 
-.scroll-row > * {
+.scroll-row>* {
     flex-shrink: 0;
 }
 
@@ -875,6 +874,7 @@ select.input option {
 }
 
 @keyframes pulseGlow {
+
     0%,
     100% {
         box-shadow: 0 0 12px var(--accent-muted);
@@ -886,6 +886,7 @@ select.input option {
 }
 
 @keyframes float {
+
     0%,
     100% {
         transform: translateY(0);
@@ -1038,6 +1039,7 @@ button:focus-visible,
 }
 
 @keyframes fade-in-out {
+
     0%,
     100% {
         opacity: 0;

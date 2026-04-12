@@ -241,7 +241,7 @@ export function AiAssistantModal({
                               className={cn(
                                 "rounded-full px-4 py-1.5 text-xs font-semibold outline-none transition-all focus:outline-none focus-visible:outline-none",
                                 type === "movie"
-                                  ? "bg-accent/16 text-accent"
+                                  ? "bg-accent/16 text-accent shadow-[inset_0_0_0_1px_var(--accent)]"
                                   : "text-white/80 hover:text-white",
                               )}
                             >
