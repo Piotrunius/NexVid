@@ -68,6 +68,14 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
           animation: nxBar ${INTERVAL}ms linear forwards;
           transform-origin: top;
         }
+        @keyframes nxBarH {
+          from { transform: scaleX(0); }
+          to   { transform: scaleX(1); }
+        }
+        .nx-bar-h {
+          animation: nxBarH ${INTERVAL}ms linear forwards;
+          transform-origin: left;
+        }
       ` }} />
 
       {/* Background crossfade */}
@@ -150,40 +158,60 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
         </div>
       </div>
 
-      {/* Side indicators */}
-      {featuredItems.length > 1 && (
-        <div className="absolute right-4 sm:right-6 lg:right-10 xl:right-14 2xl:right-16 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-2.5 h-48">
-          {featuredItems.map((_, index) => {
-            const isActive = index === currentIndex;
-            const isPast = index < currentIndex;
-            return (
-              <button
-                key={`ind-${index}`}
-                aria-label={`Go to slide ${index + 1}`}
-                onClick={() => {
-                  setCurrentIndex(index);
-                  startInterval(); // reset countdown from this moment
-                }}
-                className={`w-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
-                  isActive ? "flex-1 bg-white/20" : "h-6 bg-white/30 hover:bg-white/50"
-                }`}
-              >
-                {isActive ? (
-                  <div
-                    key={`bar-${currentIndex}`}
-                    className="nx-bar w-full h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
-                  />
-                ) : (
-                  <div
-                    className="w-full h-full bg-white transition-opacity duration-300"
-                    style={{ opacity: isPast ? 0.85 : 0 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {/* ── Indicators: bottom bar on mobile / vertical pills on desktop ── */}
+      {featuredItems.length > 1 && (() => {
+        const dots = featuredItems.map((_, index) => {
+          const isActive = index === currentIndex;
+          const isPast = index < currentIndex;
+          const handleClick = () => { setCurrentIndex(index); startInterval(); };
+          return { isActive, isPast, handleClick, index };
+        });
+
+        return (
+          <>
+            {/* Mobile: horizontal pill bars anchored near the bottom */}
+            <div className="sm:hidden absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 h-1.5">
+              {dots.map(({ isActive, isPast, handleClick, index }) => (
+                <button
+                  key={`mob-${index}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                  onClick={handleClick}
+                  className={`h-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
+                    isActive ? "w-7 bg-white/25" : "w-3 bg-white/35 hover:bg-white/55"
+                  }`}
+                >
+                  {isActive ? (
+                    <div key={`mob-bar-${currentIndex}`} className="nx-bar-h w-full h-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
+                  ) : (
+                    <div className="w-full h-full bg-white transition-opacity duration-300" style={{ opacity: isPast ? 0.85 : 0 }} />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Desktop: vertical pills on right edge */}
+            <div className="hidden sm:flex absolute right-6 lg:right-10 xl:right-14 2xl:right-16 top-1/2 -translate-y-1/2 z-20 flex-col gap-2.5 h-48">
+              {dots.map(({ isActive, isPast, handleClick, index }) => (
+                <button
+                  key={`desk-${index}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                  onClick={handleClick}
+                  className={`w-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
+                    isActive ? "flex-1 bg-white/20" : "h-6 bg-white/30 hover:bg-white/50"
+                  }`}
+                >
+                  {isActive ? (
+                    <div key={`desk-bar-${currentIndex}`} className="nx-bar w-full h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+                  ) : (
+                    <div className="w-full h-full bg-white transition-opacity duration-300" style={{ opacity: isPast ? 0.85 : 0 }} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </>
+        );
+      })()}
     </section>
   );
 }
+
