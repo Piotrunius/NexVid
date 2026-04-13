@@ -1,7 +1,7 @@
 import { animekaiSource } from "@/lib/animekai";
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   const linkId = req.nextUrl.searchParams.get("linkId")?.trim();

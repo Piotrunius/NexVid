@@ -9,7 +9,7 @@ type PageProps = {
 };
 
 // Must be nodejs (not edge) to support AniList fetch with next.revalidate
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export default async function WatchPage({ params }: PageProps) {
   const { type, id } = await params;

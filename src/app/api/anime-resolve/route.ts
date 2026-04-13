@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const runtime = "edge";
 
 /**
  * GET /api/anime-resolve?title=Frieren&year=2023

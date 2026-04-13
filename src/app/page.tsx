@@ -11,7 +11,7 @@ import { toTmdbMediaType } from "@/lib/mediaType";
 import { getPopular, getTopRated, getTrending } from "@/lib/tmdb";
 import type { MediaItem } from "@/types";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function HomePage() {
