@@ -4503,10 +4503,8 @@ export function VideoPlayer({
                               Sources
                             </button>
                             <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
-                              {sourceResults.map((res) => {
-                                const isSelected =
-                                  currentSourceIndex ===
-                                  sourceResults.indexOf(res);
+                              {sourceResults.map((res, index) => {
+                                const isSelected = currentSourceIndex === index;
                                 const isDangerous = [
                                   "vidlink",
                                   "vidsync",
@@ -4526,11 +4524,9 @@ export function VideoPlayer({
 
                                 return (
                                   <button
-                                    key={res.sourceId}
+                                    key={`${res.sourceId}-${index}`}
                                     onClick={() => {
-                                      onSelectSource?.(
-                                        sourceResults.indexOf(res),
-                                      );
+                                      onSelectSource?.(index);
                                       setSettingsPanel(null);
                                     }}
                                     className={cn(
@@ -4562,7 +4558,7 @@ export function VideoPlayer({
                                         {formatSourceName(res.sourceId)}
                                       </p>
                                     </div>
-                                                            {isAnime ? (
+                                    {isAnime ? (
                                       <span
                                         className={cn(
                                           "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase self-center",
@@ -4678,6 +4674,7 @@ export function VideoPlayer({
                                       </span>
                                     )}
                                   </button>
+                                );
                               })}
                             </div>
                           </div>
