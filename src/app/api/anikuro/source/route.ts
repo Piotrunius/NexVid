@@ -15,7 +15,7 @@ export const runtime = "edge";
  *
  * Valid servers: animez | allani | animekai | anigg
  */
-const ANIKURO_SERVERS = ["animekai"] as const;
+const ANIKURO_SERVERS = ["animekai", "allani", "anigg", "animez"] as const;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
     : [...ANIKURO_SERVERS];
 
   let lastError = "No source found";
+  let globalFallback: { srv: string; data: any } | null = null;
 
   for (const srv of serversToTry) {
     try {
@@ -58,17 +59,29 @@ export async function GET(req: NextRequest) {
 
       const data = await res.json();
 
-      // Actual shape: { sub: { default, tracks, intro, outro, referer } | "...url...", dub: ... }
-      // Pick requested mode, fallback dub→sub if dub unavailable
-      const preferred = data[mode];
-      const fallback = mode === "dub" ? (data["sub"] ?? null) : null;
-      const modeData = preferred ?? fallback;
-
-      if (!modeData) {
-        lastError = `Server ${srv}: no ${mode} stream available`;
-        continue;
+      // Animez notoriously duplicates the exact same URL string for both "sub" and "dub" if dub isn't available.
+      // We must detect and invalidate this fake dub, otherwise the search will stop here and return a sub instead of a genuine dub.
+      if (data["dub"] && data["sub"] && typeof data["dub"] === "string" && data["dub"] === data["sub"]) {
+        data["dub"] = null;
       }
 
+      // Actual shape: { sub: { default, tracks, intro, outro, referer } | "...url...", dub: ... }
+      // Pick requested mode, fallback dub→sub if dub unavailable
+      // Ensure that if 'dub' is requested, we actively search all servers for it.
+      // We shouldn't instantly fallback to 'sub' unless ALL servers lack a 'dub'.
+      let modeData = data[mode];
+      
+      if (!modeData) {
+        // If we are looking for dub and it's missing, but sub exists, save sub as a global fallback
+        if (mode === "dub" && data["sub"]) {
+          if (!globalFallback) {
+             globalFallback = { srv, data: data["sub"] };
+          }
+        }
+        lastError = `Server ${srv}: no exact ${mode} stream available`;
+        continue;
+      }
+      
       let playlist: string;
       let referer: string | undefined = undefined;
       let rawTracks: Array<{ url?: string; file?: string; kind?: string; lang?: string; label?: string }> = [];
@@ -109,7 +122,7 @@ export async function GET(req: NextRequest) {
         {
           success: true,
           server: srv,
-          mode: preferred ? mode : "sub",
+          mode: mode,
           playlist,
           tracks,
           skip: {
@@ -130,5 +143,49 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ error: lastError }, { status: 502 });
+  // If we completely exhausted servers but have a global sub fallback
+  if (globalFallback) {
+    let modeData = globalFallback.data;
+    let playlist: string = "";
+    let referer: string | undefined = undefined;
+    let rawTracks: Array<any> = [];
+    let intro: any = null;
+    let outro: any = null;
+
+    if (typeof modeData === "string") {
+      playlist = modeData;
+    } else if (typeof modeData === "object") {
+      const potentialPlaylist = modeData.default || modeData.file || modeData.preferred?.url || (modeData.sources && Object.values(modeData.sources)[0] && (Object.values(modeData.sources)[0] as any).url);
+      if (potentialPlaylist) {
+        playlist = potentialPlaylist;
+        referer = modeData.referer ?? undefined;
+        rawTracks = Array.isArray(modeData.tracks) ? modeData.tracks : [];
+        intro = modeData.intro ?? null;
+        outro = modeData.outro ?? null;
+      }
+    }
+
+    if (playlist) {
+      const tracks = rawTracks.map((t) => ({
+        file: t.url || t.file || "",
+        kind: t.kind || "captions",
+        label: t.lang || t.label || "English",
+      })).filter(t => t.file);
+
+      return NextResponse.json(
+        {
+          success: true,
+          server: globalFallback.srv,
+          mode: "sub", // We return sub because we fell back
+          playlist,
+          tracks,
+          skip: { intro, outro },
+          headers: referer ? { Referer: referer } : undefined,
+        },
+        { headers: { "Cache-Control": "no-store" } }
+       );
+    }
+  }
+
+  return NextResponse.json({ error: lastError }, { status: 404 });
 }
