@@ -15,7 +15,7 @@ export const runtime = "edge";
  *
  * Valid servers: animez | allani | animekai | anigg
  */
-const ANIKURO_SERVERS = ["animez", "allani", "animekai", "anigg"] as const;
+const ANIKURO_SERVERS = ["animekai"] as const;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -77,12 +77,18 @@ export async function GET(req: NextRequest) {
 
       if (typeof modeData === "string") {
         playlist = modeData;
-      } else if (typeof modeData === "object" && (modeData.default || modeData.file)) {
-        playlist = modeData.default || modeData.file;
-        referer = modeData.referer ?? undefined;
-        rawTracks = Array.isArray(modeData.tracks) ? modeData.tracks : [];
-        intro = modeData.intro ?? null;
-        outro = modeData.outro ?? null;
+      } else if (typeof modeData === "object") {
+        const potentialPlaylist = modeData.default || modeData.file || modeData.preferred?.url || (modeData.sources && Object.values(modeData.sources)[0] && (Object.values(modeData.sources)[0] as any).url);
+        if (potentialPlaylist) {
+          playlist = potentialPlaylist;
+          referer = modeData.referer ?? undefined;
+          rawTracks = Array.isArray(modeData.tracks) ? modeData.tracks : [];
+          intro = modeData.intro ?? null;
+          outro = modeData.outro ?? null;
+        } else {
+          lastError = `Server ${srv}: invalid stream format (no playlist found in object)`;
+          continue;
+        }
       } else {
         lastError = `Server ${srv}: invalid stream format`;
         continue;

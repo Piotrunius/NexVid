@@ -38,16 +38,8 @@ function isAllowedHost(hostname: string): boolean {
       process.env.NEXT_PUBLIC_ALLOWED_HOSTS ||
       process.env.PROXY_ALLOWED_HOSTS,
   );
-  
-  const essentialHosts = [
-    "*.anikuro.ru", "proxy.anikuro.ru",
-    "*.megaup.cc", "megaup.cc",
-    "*.megaup.nl", "megaup.nl",
-    "*.megaup.live", "megaup.live",
-    "*.app28base.site", "app28base.site"
-  ];
-  allowed.push(...essentialHosts);
 
+  if (allowed.length === 0) return false;
   return allowed.some((pattern) => matchHostname(hostname, pattern));
 }
 
