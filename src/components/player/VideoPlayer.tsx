@@ -580,6 +580,7 @@ export function VideoPlayer({
     playerViewMode = "original",
     playerFillWidth = false,
     playerFillHeight = false,
+    preferNativeAnimeSkip = true,
   } = useSettingsStore((s) => s.settings);
 
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -2633,6 +2634,7 @@ export function VideoPlayer({
     autoSkipSegments,
     autoSwitchSource,
     idlePauseOverlay,
+    preferNativeAnimeSkip,
   ].filter(Boolean).length;
 
   const hasSkipSegments = Boolean(
@@ -4053,6 +4055,13 @@ export function VideoPlayer({
                                 checked={autoPlay}
                                 onChange={(v) =>
                                   updateSettings({ autoPlay: v })
+                                }
+                              />
+                              <PlayerToggle
+                                label="Prefer Provider Anime Timestamps"
+                                checked={preferNativeAnimeSkip}
+                                onChange={(v) =>
+                                  updateSettings({ preferNativeAnimeSkip: v })
                                 }
                               />
                               <PlayerToggle

@@ -39,6 +39,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   playerFillWidth: false,
   playerFillHeight: false,
   animeAudioMode: "sub",
+  preferNativeAnimeSkip: true,
 };
 
 const CLOUD_PERSISTED_KEYS = [
@@ -65,6 +66,7 @@ const CLOUD_PERSISTED_KEYS = [
   "playerFillWidth",
   "playerFillHeight",
   "animeAudioMode",
+  "preferNativeAnimeSkip",
 ] as const;
 
 function toCloudPersistedSettings(

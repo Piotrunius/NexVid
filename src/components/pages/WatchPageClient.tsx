@@ -364,6 +364,8 @@ export default function WatchPageClient({
       try {
         let mediaData: Movie | Show | null = media;
         let extImdbId: string | undefined = imdbId;
+        let discoveredTmdbId: string | undefined = undefined;
+        let discoveredImdbId: string | undefined = undefined;
 
         // ── AniList anime fast-path (al-XXXX IDs or /anime/ type) ─────────
         // These don't exist in TMDB — skip directly to AnimeKAI scraping.
@@ -402,8 +404,6 @@ export default function WatchPageClient({
           }
 
           // Try to discover real TMDB ID for subtitles and rich metadata
-          let discoveredTmdbId: string | undefined = undefined;
-          let discoveredImdbId: string | undefined = undefined;
           if (finalMedia) {
              try {
                 const { searchShowByTitle, getTmdbEpisodesForAnime } = await import("@/lib/tmdb");
@@ -821,17 +821,30 @@ export default function WatchPageClient({
         setSourceIndex(0);
         setScrapeStatus("success");
 
-        // 4. Set intro/outro skip times if available
-        // Anikuro returns {start:0,end:0} when no segment — check values not object truthiness
-        const hasIntro = (skip?.intro?.start ?? 0) > 0 && (skip?.intro?.end ?? 0) > 0;
-        const hasOutro = (skip?.outro?.start ?? 0) > 0 && (skip?.outro?.end ?? 0) > 0;
-        if (hasIntro || hasOutro) {
-          setIntroOutro({
+        // 4. Set intro/outro skip times if available (Anikuro format)
+        // Check if values are numbers, as 0 is a valid start time
+        const hasIntro = typeof skip?.intro?.start === 'number' && typeof skip?.intro?.end === 'number';
+        const hasOutro = typeof skip?.outro?.start === 'number' && typeof skip?.outro?.end === 'number';
+        
+        const preferNative = useSettingsStore.getState().settings.preferNativeAnimeSkip;
+
+        if (preferNative && (hasIntro || hasOutro)) {
+          const introOutroData = {
             introStart: hasIntro ? skip.intro.start : undefined,
             introEnd: hasIntro ? skip.intro.end : undefined,
             outroStart: hasOutro ? skip.outro.start : undefined,
             outroEnd: hasOutro ? skip.outro.end : undefined,
-          });
+          };
+          setIntroOutro(introOutroData);
+
+          // Also populate segments so markers show on the time bar
+          const segmentsData: any = {
+            intro: hasIntro ? [{ startMs: skip.intro.start * 1000, endMs: skip.intro.end * 1000 }] : [],
+            recap: [],
+            credits: hasOutro ? [{ startMs: skip.outro.start * 1000, endMs: skip.outro.end * 1000 }] : [],
+            preview: [],
+          };
+          setSegments(segmentsData);
         }
       } catch (err: any) {
         console.error("[Anikuro] scrape error:", err);
