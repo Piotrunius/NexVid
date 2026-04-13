@@ -544,6 +544,23 @@ export default function WatchPageClient({
               })),
             });
 
+            // Fetch segments for anime if TMDB ID was discovered
+            if (discoveredTmdbId) {
+              const seg = await fetchSegments({
+                tmdbId: discoveredTmdbId,
+                mediaType: "show",
+                season: seasonNum,
+                episode: episodeNum,
+              });
+              setSegments(seg);
+              setIntroOutro({
+                introStart: seg.intro?.[0]?.startMs != null ? seg.intro[0].startMs / 1000 : undefined,
+                introEnd: seg.intro?.[0]?.endMs != null ? seg.intro[0].endMs / 1000 : undefined,
+                outroStart: seg.credits?.[0]?.startMs != null ? seg.credits[0].startMs / 1000 : undefined,
+                outroEnd: seg.credits?.[0]?.endMs != null ? seg.credits[0].endMs / 1000 : undefined,
+              });
+            }
+
             // Use AnimeKAI pipeline instead of standard scraping
             await scrapeAnimeSource(show.title, episodeNum, animeAudioMode);
             return;
