@@ -636,8 +636,11 @@ export default function WatchPageClient({
   );
 
   /**
-   * AnimeKAI scraping pipeline:
-   * search(title) → info(slug) → episodes(aniId) → servers(epToken) → source(linkId) → m3u8
+   * Anikuro scraping pipeline:
+   * Resolves AniList ID → calls anikuro.to/api/getsources → extracts HLS playlist
+   *
+   * URL format: https://anikuro.to/api/getsources/?id={anilistId}&lol={server}&ep={epNum}
+   * Servers: animez | allani | animekai | anigg  (tried in order via the backend route)
    */
   const scrapeAnimeSource = useCallback(
     async (title: string, epNum: number, mode: AnimeAudioMode) => {
@@ -646,94 +649,46 @@ export default function WatchPageClient({
       setScrapeStatus("loading");
 
       try {
-        // 1. Search anime by title
-        const searchRes = await fetch(
-          `/api/animekai/search?keyword=${encodeURIComponent(title)}`,
-        );
-        if (!searchRes.ok) throw new Error("AnimeKAI search failed");
-        const searchData = await searchRes.json();
-        const results: any[] = searchData.results ?? [];
-        if (results.length === 0) throw new Error("Anime not found on AnimeKAI");
+        // 1. Resolve AniList ID
+        //    - For native anime routes the id is "al-XXXX"; strip prefix.
+        //    - For TMDB-detected anime use /api/anime-resolve.
+        let anilistId: string | null = null;
 
-        const slug = results[0].slug;
-
-        // 2. Get ani_id from slug
-        const infoRes = await fetch(
-          `/api/animekai/info?slug=${encodeURIComponent(slug)}`,
-        );
-        if (!infoRes.ok) throw new Error("AnimeKAI info failed");
-        const infoData = await infoRes.json();
-        const aniId: string = infoData.aniId;
-        if (!aniId) throw new Error("No ani_id found");
-
-        // 3. Get episode list
-        const epsRes = await fetch(
-          `/api/animekai/episodes?aniId=${encodeURIComponent(aniId)}`,
-        );
-        if (!epsRes.ok) throw new Error("AnimeKAI episodes failed");
-        const epsData = await epsRes.json();
-        const episodes: any[] = epsData.episodes ?? [];
-
-        // Find target episode (1-indexed)
-        const targetEp =
-          episodes.find(
-            (ep: any) => String(ep.number) === String(epNum),
-          ) ?? episodes[epNum - 1];
-
-        if (!targetEp) throw new Error(`Episode ${epNum} not found`);
-
-        // Check sub/dub availability
-        if (mode === "dub" && !targetEp.hasDub) {
-          toast("Dub not available, falling back to sub", "info");
-          mode = "sub";
-        }
-
-        const epToken: string = targetEp.token;
-
-        // 4. Get servers
-        const srvRes = await fetch(
-          `/api/animekai/servers?epToken=${encodeURIComponent(epToken)}`,
-        );
-        if (!srvRes.ok) throw new Error("AnimeKAI servers failed");
-        const srvData = await srvRes.json();
-        // Map AnimeAudioMode to AnimeKAI server keys
-        const langKey = mode === "dub" ? "dub" : "sub";
-        const serverGroup: any[] =
-          srvData.servers?.[langKey] ??
-          srvData.servers?.["sub"] ??
-          Object.values(srvData.servers ?? {})[0] ??
-          [];
-
-        if (serverGroup.length === 0) throw new Error("No servers available");
-
-        // 5. Resolve source (try each server until success)
-        let playlist = "";
-        let tracks: any[] = [];
-        let skip: any = {};
-        let headers: Record<string, string> | undefined = undefined;
-
-        for (const server of serverGroup) {
-          try {
-            const srcRes = await fetch(
-              `/api/animekai/source?linkId=${encodeURIComponent(server.linkId)}`,
-            );
-            if (!srcRes.ok) continue;
-            const srcData = await srcRes.json();
-            if (srcData.playlist) {
-              playlist = srcData.playlist;
-              tracks = srcData.tracks ?? [];
-              skip = srcData.skip ?? {};
-              headers = srcData.headers;
-              break;
+        if (id.startsWith("al-")) {
+          anilistId = id.replace("al-", "");
+        } else {
+          const resolveRes = await fetch(
+            `/api/anime-resolve?title=${encodeURIComponent(title)}&year=${media?.releaseYear ?? ""}`,
+          );
+          if (resolveRes.ok) {
+            const resolveData = await resolveRes.json();
+            if (resolveData.anilistId) {
+              anilistId = String(resolveData.anilistId);
             }
-          } catch {
-            continue;
           }
         }
 
-        if (!playlist) throw new Error("No playable source found");
+        if (!anilistId) throw new Error("Could not resolve AniList ID for this anime");
 
-        // Map subtitle tracks to Caption objects
+        // 2. Fetch source from anikuro.to (backend tries all servers in order)
+        const srcRes = await fetch(
+          `/api/anikuro/source?anilistId=${encodeURIComponent(anilistId)}&ep=${encodeURIComponent(epNum)}&mode=${mode}`,
+        );
+
+        if (!srcRes.ok) {
+          const errData = await srcRes.json().catch(() => ({}));
+          throw new Error(errData?.error ?? `Anikuro returned ${srcRes.status}`);
+        }
+
+        const srcData = await srcRes.json();
+        const playlist: string = srcData.playlist ?? "";
+        const tracks: any[] = srcData.tracks ?? [];
+        const skip: any = srcData.skip ?? {};
+        const headers: Record<string, string> | undefined = srcData.headers;
+
+        if (!playlist) throw new Error("No playable source found on anikuro.to");
+
+        // 3. Map subtitle tracks to Caption objects
         const sourceCaptions: Caption[] = tracks
           .filter((t: any) => t.kind === "subtitles" || t.kind === "captions")
           .map((t: any, i: number) => ({
@@ -744,24 +699,11 @@ export default function WatchPageClient({
             type: "vtt" as const,
           }));
 
-        let exSubs: Caption[] = [];
-        try {
-          exSubs = await fetchSubtitles({
-            mediaType: type as "movie" | "show",
-            tmdbId: id,
-            season: seasonNum,
-            episode: episodeNum,
-            title: title || media?.title,
-          });
-        } catch (e) {
-          console.error("Failed to fetch wyzie subtitles for anime:", e);
-        }
-
-        const captions = [...exSubs, ...sourceCaptions];
+        const captions = sourceCaptions;
 
         const animeStream: import("@/types").HlsBasedStream = {
           type: "hls",
-          id: "animekai-stream",
+          id: "anikuro-stream",
           flags: [],
           captions,
           playlist,
@@ -770,28 +712,30 @@ export default function WatchPageClient({
 
         const mergedStream = withMergedCaptions(animeStream, externalCaptions);
         setStream(mergedStream);
-        // Store as single source result for compatibility
-        setSourceResults([{ sourceId: "animekai", stream: mergedStream }]);
+        setSourceResults([{ sourceId: "anikuro", stream: mergedStream }]);
         setSourceIndex(0);
         setScrapeStatus("success");
 
-        // Set intro/outro skip times if available
-        if (skip?.intro || skip?.outro) {
+        // 4. Set intro/outro skip times if available
+        // Anikuro returns {start:0,end:0} when no segment — check values not object truthiness
+        const hasIntro = (skip?.intro?.start ?? 0) > 0 && (skip?.intro?.end ?? 0) > 0;
+        const hasOutro = (skip?.outro?.start ?? 0) > 0 && (skip?.outro?.end ?? 0) > 0;
+        if (hasIntro || hasOutro) {
           setIntroOutro({
-            introStart: skip?.intro?.start,
-            introEnd: skip?.intro?.end,
-            outroStart: skip?.outro?.start,
-            outroEnd: skip?.outro?.end,
+            introStart: hasIntro ? skip.intro.start : undefined,
+            introEnd: hasIntro ? skip.intro.end : undefined,
+            outroStart: hasOutro ? skip.outro.start : undefined,
+            outroEnd: hasOutro ? skip.outro.end : undefined,
           });
         }
       } catch (err: any) {
-        console.error("[AnimeKAI] scrape error:", err);
+        console.error("[Anikuro] scrape error:", err);
         setScrapeStatus("error");
       } finally {
         animeLoadingRef.current = false;
       }
     },
-    [setIntroOutro],
+    [id, media, externalCaptions, setIntroOutro],
   );
 
   /** Called from VideoPlayer when user changes Sub/Dub/Soft-sub */
@@ -918,10 +862,10 @@ export default function WatchPageClient({
     };
   }, [id, imdbId, type, seasonNum, episodeNum]);
 
+
   useEffect(() => {
-    loadMedia();
     return () => reset();
-  }, [loadMedia, reset]);
+  }, [reset]);
 
   const saveProgress = useCallback(
     (time: number, dur: number) => {
