@@ -23,6 +23,7 @@ interface WatchlistStore {
     progress: WatchlistItem["progress"],
     mediaMeta?: {
       tmdbId: string;
+      externalTmdbId?: string;
       mediaType: MediaType;
       title: string;
       posterPath: string | null;
@@ -74,6 +75,7 @@ function normalizeWatchlistItem(item: any): WatchlistItem {
   return {
     ...item,
     tmdbId,
+    externalTmdbId: item?.externalTmdbId ?? item?.external_tmdb_id ?? undefined,
     mediaType: normalizedMediaType,
     title: String(item?.title ?? item?.name ?? ""),
     posterPath: item?.posterPath ?? item?.poster_path ?? null,
@@ -220,6 +222,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
         progress: WatchlistItem["progress"],
         mediaMeta?: {
           tmdbId: string;
+          externalTmdbId?: string;
           mediaType: MediaType;
           title: string;
           posterPath: string | null;
@@ -250,6 +253,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
                 ...i,
                 progress,
                 totalWatchedMinutes,
+                externalTmdbId: mediaMeta?.externalTmdbId || i.externalTmdbId,
                 updatedAt: new Date().toISOString(),
               };
             }
@@ -260,6 +264,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
             const newItem: WatchlistItem = {
               id: generateId(),
               tmdbId: String(mediaMeta.tmdbId),
+              externalTmdbId: mediaMeta.externalTmdbId,
               mediaType: normalizeMediaType(mediaMeta.mediaType),
               title: mediaMeta.title,
               posterPath: mediaMeta.posterPath,

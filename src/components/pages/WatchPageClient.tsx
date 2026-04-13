@@ -580,8 +580,9 @@ export default function WatchPageClient({
           );
           setCurrentEpisode(ep || null);
 
+          const segmentsTmdbId = discoveredTmdbId || id;
           const seg = await fetchSegments({
-            tmdbId: id,
+            tmdbId: segmentsTmdbId,
             mediaType: "show",
             season: seasonNum,
             episode: episodeNum,
@@ -935,6 +936,7 @@ export default function WatchPageClient({
         mediaType: normalizedType as "movie" | "show",
         season: seasonNum,
         episode: episodeNum,
+        title: media?.title,
       });
 
       if (!cancelled) {
@@ -950,7 +952,7 @@ export default function WatchPageClient({
     return () => {
       cancelled = true;
     };
-  }, [id, imdbId, tmdbId, type, seasonNum, episodeNum]);
+  }, [id, imdbId, tmdbId, type, seasonNum, episodeNum, media?.title]);
 
 
   useEffect(() => {
@@ -974,6 +976,7 @@ export default function WatchPageClient({
         },
         {
           tmdbId: id,
+          externalTmdbId: tmdbId || (media as any)?.externalTmdbId,
           mediaType: (type === "anime" ? "show" : type) as "movie" | "show",
           title: media.title,
           posterPath: media.posterPath,

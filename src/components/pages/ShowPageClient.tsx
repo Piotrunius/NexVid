@@ -256,6 +256,7 @@ export default function ShowPage({
       addItem({
         mediaType: "show",
         tmdbId: show.tmdbId || id,
+        externalTmdbId: (show as any).externalTmdbId,
         title: show.title,
         posterPath: show.posterPath,
         status,
@@ -520,7 +521,7 @@ export default function ShowPage({
                   : "Watch Now"}
               </Link>
 
-              {febboxApiKey && (
+              {febboxApiKey && !show.tmdbId?.startsWith("al-") && (
                 <button
                   onClick={() => setShowDownloadModal(true)}
                   className="btn-glass !px-6 !py-3 group"
