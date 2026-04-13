@@ -18,8 +18,26 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
   const { type, id } = await params;
 
   const isShow = type === 'show' || type === 'tv' || type === 'series';
+  const isAnime = type === 'anime' || id.startsWith("al-");
 
   try {
+    if (isAnime) {
+      // Return a lightweight generic metadata for anime, 
+      // preventing TMDB from fetching a completely unrelated movie ID
+      const title = `Watch Anime for free on NexVid`;
+      return {
+        title,
+        description: 'Watch anime online for free on NexVid.',
+        alternates: { canonical: `/watch/anime/${id.replace("al-", "")}` },
+        openGraph: {
+          title,
+          description: 'Watch anime online for free on NexVid.',
+          url: `${SITE_URL}/watch/anime/${id.replace("al-", "")}`,
+          type: 'video.tv_show',
+        },
+      };
+    }
+
     const media = isShow ? await getShowDetails(id) : await getMovieDetails(id);
     const releaseSuffix = media.releaseYear ? ` (${media.releaseYear})` : '';
     const baseTitle = `${media.title}${releaseSuffix}`;

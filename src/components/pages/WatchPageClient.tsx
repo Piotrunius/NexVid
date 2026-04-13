@@ -359,14 +359,40 @@ export default function WatchPageClient({
         // These don't exist in TMDB — skip directly to AnimeKAI scraping.
         if (id.startsWith("al-") || type === "anime") {
           setIsAnime(true);
-          const animeTitle = media?.title ?? "";
+          let animeTitle = mediaData?.title ?? "";
+          let finalMedia = mediaData;
+          
           if (!animeTitle) {
-            setScrapeStatus("error");
-            return;
+            try {
+              const numericId = parseInt(id.replace("al-", ""), 10);
+              const { getAnimeFullDetails } = await import("@/lib/anilist");
+              const details = await getAnimeFullDetails(numericId);
+              const titleStr = details.title.english || details.title.romaji || details.title.native || "";
+              animeTitle = titleStr;
+              
+              const mItem = {
+                id: numericId.toString(),
+                tmdbId: `al-${numericId}`,
+                mediaType: "show" as const,
+                title: titleStr,
+                posterPath: details.coverImage?.extraLarge || details.coverImage?.large,
+                backdropPath: details.bannerImage || null,
+                releaseYear: details.startDate?.year,
+                rating: details.averageScore ? details.averageScore / 10 : 0,
+                overview: details.description?.replace(/<[^>]+>/g, "") ?? "",
+                type: "show",
+              };
+              setMedia(mItem as unknown as Show);
+              finalMedia = mItem as unknown as Show;
+            } catch (fallbackErr) {
+              console.error("Client-side AniList fallback fetch failed:", fallbackErr);
+              setScrapeStatus("error");
+              return;
+            }
           }
           
           // Use real season data from initialMedia if available (AniList streamingEpisodes mapped episodes)
-          const realSeasonData = media && "seasons" in media && (media as any).seasons?.[0];
+          const realSeasonData = finalMedia && "seasons" in finalMedia && (finalMedia as any).seasons?.[0];
           if (realSeasonData && realSeasonData.episodes?.length > 0) {
             setSeason(realSeasonData);
             // Also set the current episode so infoSummaryText has the right description
@@ -376,22 +402,22 @@ export default function WatchPageClient({
             if (currentEp) setCurrentEpisode(currentEp);
           } else {
             // Fallback: generate generic episode stubs
-            const maxEps = media && "totalEpisodes" in media && typeof (media as any).totalEpisodes === "number" && (media as any).totalEpisodes > 0
-              ? (media as any).totalEpisodes
+            const maxEps = finalMedia && "totalEpisodes" in finalMedia && typeof (finalMedia as any).totalEpisodes === "number" && (finalMedia as any).totalEpisodes > 0
+              ? (finalMedia as any).totalEpisodes
               : 24;
             setSeason({
               id: 1,
               seasonNumber: 1,
               name: "Episodes",
               overview: "",
-              posterPath: media?.posterPath || null,
+              posterPath: finalMedia?.posterPath || null,
               episodes: Array.from({ length: maxEps }).map((_, i) => ({
                 id: i + 1,
                 episodeNumber: i + 1,
                 name: `Episode ${i + 1}`,
                 overview: "",
-                stillPath: media?.backdropPath || media?.posterPath || null,
-                airDate: media?.releaseYear ? String(media.releaseYear) : "",
+                stillPath: finalMedia?.backdropPath || finalMedia?.posterPath || null,
+                airDate: finalMedia?.releaseYear ? String(finalMedia.releaseYear) : "",
                 runtime: 24,
                 voteAverage: 0,
               })),
@@ -400,7 +426,6 @@ export default function WatchPageClient({
 
           await scrapeAnimeSource(animeTitle, episodeNum, animeAudioMode);
           return;
-
         }
         // ──────────────────────────────────────────────────────────────────
 
