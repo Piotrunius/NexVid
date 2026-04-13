@@ -79,8 +79,9 @@ export default function ShowPage({
     setIsLoading(true);
     try {
       // Anime (AniList) path — id is the numeric AniList ID
-      if (id.startsWith("al-") || show?.tmdbId?.startsWith("al-")) {
-        const numericId = parseInt((id.startsWith("al-") ? id : show!.tmdbId!).replace("al-", ""), 10);
+      const isAnimePath = typeof window !== "undefined" && window.location.pathname.startsWith("/anime");
+      if (id.startsWith("al-") || show?.tmdbId?.startsWith("al-") || isAnimePath) {
+        const numericId = parseInt((id.startsWith("al-") ? id : (show?.tmdbId || id)).replace("al-", ""), 10);
         const { getAnimeFullDetails } = await import("@/lib/anilist");
         const { getShowDetails: getTmdbShowById } = await import("@/lib/tmdb");
         const media = await getAnimeFullDetails(numericId);
