@@ -2,6 +2,8 @@ import ShowPageClient from "@/components/pages/ShowPageClient";
 import { notFound } from "next/navigation";
 import type { Show, MediaItem } from "@/types";
 import type { Metadata } from "next";
+import { searchMedia, getTmdbEpisodesForAnime } from "@/lib/tmdb";
+import { getAnimeFullDetails } from "@/lib/anilist";
 
 export const runtime = "edge";
 const SITE_URL = (process.env.APP_BASE_URL || "https://nexvid.online").replace(
@@ -13,106 +15,13 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-import { searchMedia, getTmdbEpisodesForAnime } from "@/lib/tmdb";
-
-async function getAnimeDetailsFromAniList(id: number) {
-  const res = await fetch("https://graphql.anilist.co", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      query: `
-        query ($id: Int) {
-          Media(id: $id, type: ANIME) {
-            id
-            title { romaji english native }
-            description
-            coverImage { large extraLarge }
-            bannerImage
-            startDate { year }
-            endDate { year }
-            averageScore
-            episodes
-            genres
-            status
-            format
-            trailer { id site thumbnail }
-            studios(isMain: true) { nodes { name } }
-            characters(perPage: 20, sort: ROLE) {
-              edges {
-                role
-                node { id name { full } image { medium } }
-              }
-            }
-            streamingEpisodes {
-              title
-              thumbnail
-              url
-              site
-            }
-            relations {
-              edges {
-                relationType
-                node {
-                  id
-                  title { romaji english }
-                  coverImage { large extraLarge }
-                  episodes
-                  startDate { year }
-                  type
-                  format
-                  streamingEpisodes {
-                    title
-                    thumbnail
-                  }
-                }
-              }
-            }
-            externalLinks {
-              site
-              url
-              id
-            }
-            recommendations(sort: RATING_DESC, perPage: 12) {
-              edges {
-                node {
-                  mediaRecommendation {
-                    id
-                    title { romaji english }
-                    coverImage { large extraLarge }
-                    bannerImage
-                    averageScore
-                    startDate { year }
-                    format
-                  }
-                }
-              }
-            }
-          }
-        }
-      `,
-      variables: { id },
-    }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) throw new Error("Failed to fetch AniList data");
-  const json = await res.json();
-  const media = json?.data?.Media;
-  if (!media) throw new Error("Anime not found");
-  return media;
-}
-
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const anilistId = parseInt(id, 10);
   if (!anilistId) return { title: "Not Found" };
 
   try {
-    const media = await getAnimeDetailsFromAniList(anilistId);
+    const media = await getAnimeFullDetails(anilistId);
     const titleObj = media.title;
     const titleStr = titleObj.english || titleObj.romaji || titleObj.native;
     const releaseSuffix = media.startDate?.year ? ` (${media.startDate.year})` : "";
@@ -143,8 +52,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
       twitter: { card: "summary_large_image", title, description, images: [imageUrl] },
     };
-  } catch {
-    return { title: "Not Found" };
+  } catch (err) {
+    console.error("Metadata generation failed for anime:", err);
+    return { title: "Watch Anime Online for free on NexVid" };
   }
 }
 
@@ -155,7 +65,7 @@ export default async function AnimePage({ params }: PageProps) {
   if (!anilistId) return notFound();
 
   try {
-    const media = await getAnimeDetailsFromAniList(anilistId);
+    const media = await getAnimeFullDetails(anilistId);
 
     const titleObj = media.title;
     const titleStr = titleObj.english || titleObj.romaji || titleObj.native;
@@ -176,18 +86,24 @@ export default async function AnimePage({ params }: PageProps) {
           tmdbIdFromSearch = String(bestMatch.tmdbId);
         }
       }
-    } catch { /* ignore */ }
+    } catch (err) { 
+      console.error("AniList-TMDB search ignore error:", err);
+    }
 
     // Fetch precisely aligned TMDB episodes based on air_date
     let tmdbEpisodesList: any[] = [];
     let imdbIdFromTmdb: string | null = null;
-    if (tmdbIdFromSearch) {
-      const startDateStr = media.startDate?.year
-        ? `${media.startDate.year}-${String(media.startDate.month || 1).padStart(2, "0")}-${String(media.startDate.day || 1).padStart(2, "0")}`
-        : null;
-      const tmdbData = await getTmdbEpisodesForAnime(tmdbIdFromSearch, startDateStr, media.episodes || 12);
-      tmdbEpisodesList = tmdbData.episodes;
-      if (tmdbData.imdbId) imdbIdFromTmdb = tmdbData.imdbId;
+    try {
+      if (tmdbIdFromSearch) {
+        const startDateStr = media.startDate?.year
+          ? `${media.startDate.year}-${String(media.startDate.month || 1).padStart(2, "0")}-${String(media.startDate.day || 1).padStart(2, "0")}`
+          : null;
+        const tmdbData = await getTmdbEpisodesForAnime(tmdbIdFromSearch, startDateStr, media.episodes || 12).catch(() => ({ episodes: [] }));
+        tmdbEpisodesList = tmdbData.episodes || [];
+        if (tmdbData.imdbId) imdbIdFromTmdb = tmdbData.imdbId;
+      }
+    } catch (err) {
+      console.error("TMDB mapping failed in page:", err);
     }
 
     // ── Helper: build episodes array for a given media entry ──
@@ -231,7 +147,7 @@ export default async function AnimePage({ params }: PageProps) {
       });
     }
 
-    // ── Build exactly 1 season for Anime (User requested no multiple seasons) ──
+    // ── Build exactly 1 season for Anime ──
     const seasons = [
       {
         id: 1,
@@ -268,8 +184,6 @@ export default async function AnimePage({ params }: PageProps) {
       .filter(Boolean);
 
     // ── Build Show object ──
-    // If we found a TMDB ID, set tmdbId so ShowPageClient can show TMDB/SeriesGraph buttons
-    // We still keep al- prefix as the primary identifier
     const show: Show = {
       id: anilistId.toString(),
       tmdbId: `al-${anilistId}`,
@@ -333,8 +247,13 @@ export default async function AnimePage({ params }: PageProps) {
       />
     );
   } catch (err) {
-    console.error("Failed to load anime:", err);
-    return notFound();
+    console.error("Failed to load anime page on server:", err);
+    if (err instanceof Error && err.message === "Anime not found") {
+      return notFound();
+    }
+    
+    // Fallback: Render client shell and let it fetch data
+    return <ShowPageClient initialShow={null} />;
   }
 }
 

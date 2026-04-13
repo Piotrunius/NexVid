@@ -58,29 +58,42 @@ export async function GET(req: NextRequest) {
 
       const data = await res.json();
 
-      // Actual shape: { sub: { default, tracks, intro, outro, referer }, dub: { ... } }
+      // Actual shape: { sub: { default, tracks, intro, outro, referer } | "...url...", dub: ... }
       // Pick requested mode, fallback dub→sub if dub unavailable
       const preferred = data[mode];
       const fallback = mode === "dub" ? (data["sub"] ?? null) : null;
       const modeData = preferred ?? fallback;
 
-      if (!modeData || !modeData.default) {
+      if (!modeData) {
         lastError = `Server ${srv}: no ${mode} stream available`;
         continue;
       }
 
-      const playlist: string = modeData.default;
-      const referer: string | undefined = modeData.referer ?? undefined;
+      let playlist: string;
+      let referer: string | undefined = undefined;
+      let rawTracks: Array<{ url?: string; file?: string; kind?: string; lang?: string; label?: string }> = [];
+      let intro: any = null;
+      let outro: any = null;
 
-      // Normalise tracks: anikuro uses { url, kind, lang } — map to { file, kind, label }
-      const rawTracks: Array<{ url: string; kind: string; lang: string }> =
-        Array.isArray(modeData.tracks) ? modeData.tracks : [];
+      if (typeof modeData === "string") {
+        playlist = modeData;
+      } else if (typeof modeData === "object" && (modeData.default || modeData.file)) {
+        playlist = modeData.default || modeData.file;
+        referer = modeData.referer ?? undefined;
+        rawTracks = Array.isArray(modeData.tracks) ? modeData.tracks : [];
+        intro = modeData.intro ?? null;
+        outro = modeData.outro ?? null;
+      } else {
+        lastError = `Server ${srv}: invalid stream format`;
+        continue;
+      }
 
+      // Normalise tracks: anikuro uses { url, kind, lang } or { file, kind, label } — map to { file, kind, label }
       const tracks = rawTracks.map((t) => ({
-        file: t.url,
-        kind: t.kind,
-        label: t.lang,
-      }));
+        file: t.url || t.file || "",
+        kind: t.kind || "captions",
+        label: t.lang || t.label || "English",
+      })).filter(t => t.file);
 
       const headers: Record<string, string> | undefined = referer
         ? { Referer: referer }
@@ -94,8 +107,8 @@ export async function GET(req: NextRequest) {
           playlist,
           tracks,
           skip: {
-            intro: modeData.intro ?? null,
-            outro: modeData.outro ?? null,
+            intro,
+            outro,
           },
           headers,
         },
