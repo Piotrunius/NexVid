@@ -21,7 +21,6 @@ import {
 } from "@/lib/cloudSync";
 import { resolveFebboxToken } from "@/lib/febbox";
 import type { MediaSegments } from "@/lib/tidb";
-import { submitSegment } from "@/lib/tidb";
 import { getSeasonDetails } from "@/lib/tmdb";
 import { cn, formatTime, getAccentHex, getQualityLabel, tmdbImage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
@@ -44,10 +43,10 @@ import type {
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Award,
+  Building2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Building2,
   Clock,
   Compass,
   Crown,
@@ -4567,7 +4566,7 @@ export function VideoPlayer({
                                             : "bg-white/5 text-white/30",
                                         )}
                                       >
-                                        (direct)
+                                        Direct
                                       </span>
                                     ) : isDangerous ? (
                                       <div className="flex items-center gap-1.5 hover:opacity-90">
@@ -5858,7 +5857,7 @@ export function VideoPlayer({
                               : "bg-white/5 text-white/30",
                           )}
                         >
-                          (direct)
+                          Direct
                         </span>
                       ) : isDangerous ? (
                         <div className="flex items-center gap-1.5 hover:opacity-90">
