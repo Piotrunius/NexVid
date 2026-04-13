@@ -3781,7 +3781,6 @@ export function VideoPlayer({
                                             <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">
                                               Now
                                             </span>
-                                          </div>
                                         )}
                                     </div>
 
