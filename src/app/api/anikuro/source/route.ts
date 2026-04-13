@@ -177,6 +177,7 @@ export async function GET(req: NextRequest) {
           success: true,
           server: globalFallback.srv,
           mode: "sub", // We return sub because we fell back
+          isFallback: true, // Tell client we fell back
           playlist,
           tracks,
           skip: { intro, outro },

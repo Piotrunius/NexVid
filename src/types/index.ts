@@ -11,6 +11,7 @@ export type AnimeAudioMode = "sub" | "dub";
 export interface MediaBase {
   id: number;
   tmdbId: string;
+  externalTmdbId?: string;
   imdbId?: string;
   title: string;
   overview: string;
@@ -274,6 +275,7 @@ export interface WatchlistItem {
   id: string;
   mediaType: MediaType;
   tmdbId: string;
+  externalTmdbId?: string;
   title: string;
   posterPath: string | null;
   status: WatchlistStatus;

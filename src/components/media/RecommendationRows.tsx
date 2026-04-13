@@ -57,21 +57,16 @@ export function RecommendationRows() {
 
       setIsLoading(true);
       try {
-        let tmdbIdToUse = String(selectedItem.tmdbId);
-        
-        if (tmdbIdToUse.startsWith("al-")) {
-          const { findShowByTitleAndYear } = await import("@/lib/tmdb");
-          const resolved = await findShowByTitleAndYear(selectedItem.title, selectedItem.releaseYear);
-          if (resolved) {
-            tmdbIdToUse = String(resolved.id);
-          } else {
-             // If we can't resolve, we can't get TMDB recommendations
-             setRecommendations([]);
-             return;
-          }
+        const apiType = toTmdbMediaType(selectedItem.mediaType);
+        const tmdbIdToUse = selectedItem.tmdbId.startsWith("al-") 
+          ? selectedItem.externalTmdbId 
+          : selectedItem.tmdbId;
+
+        if (!tmdbIdToUse) {
+           setRecommendations([]);
+           return;
         }
 
-        const apiType = toTmdbMediaType(selectedItem.mediaType);
         const recs = await getRecommendations(apiType, tmdbIdToUse);
         const filteredRecs = recs.filter(
           (rec) =>

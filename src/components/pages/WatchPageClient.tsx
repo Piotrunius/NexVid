@@ -87,12 +87,19 @@ async function loadExternalCaptions(params: {
   const { imdbId, tmdbId, mediaType, season, episode, title } = params;
   if (!imdbId && !tmdbId && !title) return [];
 
+  // If TMDB ID is a placeholder/mock from AniList (al-XXXX), try to ignore it and prefer title if possible,
+  // but better to have resolved the real TMDB ID beforehand.
+  const queryTmdbId = tmdbId?.startsWith("al-") ? undefined : tmdbId;
+
+  // Normalize mediaType: Wyzie/subtitles API only expects 'show' or 'movie'
+  const normalizedType = mediaType === "movie" ? "movie" : "show";
+
   const query = new URLSearchParams({
-    type: mediaType,
+    type: normalizedType,
     t: Date.now().toString(),
   });
   if (imdbId) query.set("imdbId", imdbId);
-  if (tmdbId) query.set("tmdbId", tmdbId);
+  if (queryTmdbId) query.set("tmdbId", queryTmdbId);
   if (title) query.set("title", title);
 
   if (mediaType === "show") {
@@ -225,6 +232,9 @@ export default function WatchPageClient({
   const [imdbId, setImdbId] = useState<string | undefined>(
     (initialMedia as any)?.imdbId,
   );
+  const [tmdbId, setTmdbId] = useState<string | undefined>(
+    (initialMedia as any)?.tmdbId || id,
+  );
   const [stream, setStream] = useState<Stream | null>(null);
   const [segments, setSegments] = useState<MediaSegments>(EMPTY_SEGMENTS);
   const [scrapeStatus, setScrapeStatus] = useState<
@@ -243,7 +253,6 @@ export default function WatchPageClient({
   const [animeAudioMode, setAnimeAudioMode] = useState<AnimeAudioMode>(
     (useSettingsStore.getState().settings.animeAudioMode as AnimeAudioMode) ?? "sub",
   );
-  const [externalTmdbId, setExternalTmdbId] = useState<string | null>(null);
   const animeLoadingRef = useRef(false);
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -391,39 +400,62 @@ export default function WatchPageClient({
               return;
             }
           }
-          
-          let tmdbShow: Show | null = null;
-          try {
-            const { findShowByTitleAndYear } = await import("@/lib/tmdb");
-            tmdbShow = await findShowByTitleAndYear(animeTitle, finalMedia?.releaseYear);
-            if (tmdbShow) {
-              setExternalTmdbId(tmdbShow.tmdbId);
-              setImdbId(tmdbShow.imdbId || undefined);
-            }
-          } catch (e) {
-            console.error("Failed to resolve TMDB ID for anime:", e);
-          }
 
-          // Use real season data from initialMedia if available (AniList streamingEpisodes mapped episodes)
-          const realSeasonData = finalMedia && "seasons" in finalMedia && (finalMedia as any).seasons?.[0];
+          // Try to discover real TMDB ID for subtitles and rich metadata
+          let discoveredTmdbId: string | undefined = undefined;
+          let discoveredImdbId: string | undefined = undefined;
+          if (finalMedia) {
+             try {
+                const { searchShowByTitle, getTmdbEpisodesForAnime } = await import("@/lib/tmdb");
+                const tmdbMatch = await searchShowByTitle(animeTitle, finalMedia.releaseYear);
+                if (tmdbMatch) {
+                   discoveredTmdbId = String(tmdbMatch.tmdbId);
+                   discoveredImdbId = tmdbMatch.imdbId;
+                   setTmdbId(discoveredTmdbId);
+                   if (discoveredImdbId) setImdbId(discoveredImdbId);
+
+                   // Also try to get rich episode metadata
+                   const startDate = (initialMedia as any)?.startDate || { year: finalMedia.releaseYear, month: 1, day: 1 };
+                   const epData = await getTmdbEpisodesForAnime(discoveredTmdbId, `${startDate.year}-${startDate.month}-${startDate.day}`, (finalMedia as any).totalEpisodes || 24);
+                   
+                   if (epData.episodes?.length > 0) {
+                      const enrichedSeason = {
+                         id: 1,
+                         seasonNumber: 1,
+                         name: "Episodes",
+                         overview: finalMedia.overview || "",
+                         posterPath: finalMedia.posterPath || null,
+                         episodes: epData.episodes.map(tep => ({
+                            id: tep.episode_number,
+                            episodeNumber: tep.episode_number,
+                            name: (tep.name && !tep.name.toLowerCase().startsWith("episode ")) ? tep.name : `Episode ${tep.episode_number}`,
+                            overview: tep.overview,
+                            stillPath: tep.still_path,
+                            airDate: "",
+                            runtime: 24,
+                            voteAverage: 0
+                         }))
+                      };
+                      setSeason(enrichedSeason as any);
+                      const curEp = enrichedSeason.episodes.find(e => e.episodeNumber === episodeNum);
+                      if (curEp) setCurrentEpisode(curEp as any);
+                   }
+                }
+             } catch (tmdbErr) {
+                console.error("Failed to discover TMDB metadata for anime:", tmdbErr);
+             }
+          }
           
-          if (tmdbShow) {
-            try {
-              const { getSeasonDetails } = await import("@/lib/tmdb");
-              const tmdbSeason = await getSeasonDetails(tmdbShow.tmdbId, 1);
-              setSeason(tmdbSeason);
-              const tmdbEp = tmdbSeason.episodes?.find(e => e.episodeNumber === episodeNum);
-              if (tmdbEp) setCurrentEpisode(tmdbEp);
-            } catch (e) {
-              console.error("Failed to fetch TMDB season for anime:", e);
-            }
-          } else if (realSeasonData && realSeasonData.episodes?.length > 0) {
+          // Use real season data from initialMedia if available (AniList streamingEpisodes mapped episodes)
+          // Only if we haven't already enriched from TMDB
+          const realSeasonData = finalMedia && "seasons" in finalMedia && (finalMedia as any).seasons?.[0];
+          if (realSeasonData && realSeasonData.episodes?.length > 0 && !discoveredTmdbId) {
             setSeason(realSeasonData);
             const currentEp = realSeasonData.episodes.find(
               (ep: any) => ep.episodeNumber === episodeNum
             );
             if (currentEp) setCurrentEpisode(currentEp);
-          } else {
+          } else if (!discoveredTmdbId) {
             // Fallback: generate generic episode stubs
             const maxEps = finalMedia && "totalEpisodes" in finalMedia && typeof (finalMedia as any).totalEpisodes === "number" && (finalMedia as any).totalEpisodes > 0
               ? (finalMedia as any).totalEpisodes
@@ -725,22 +757,21 @@ export default function WatchPageClient({
         );
 
         if (!srcRes.ok) {
-          const errData = await srcRes.json().catch(() => ({}));
-          throw new Error(errData?.error ?? `Anikuro returned ${srcRes.status}`);
+          const data = await srcRes.json().catch(() => ({}));
+          throw new Error(data.error || `Anikuro returned ${srcRes.status}`);
         }
 
         const srcData = await srcRes.json();
+
+        // Handle fallback from dub to sub
+        if (srcData.isFallback && mode === "dub") {
+          setAnimeAudioMode("sub");
+        }
+
         const playlist: string = srcData.playlist ?? "";
         const tracks: any[] = srcData.tracks ?? [];
         const skip: any = srcData.skip ?? {};
         const headers: Record<string, string> | undefined = srcData.headers;
-        const actualMode: AnimeAudioMode = srcData.mode ?? mode;
-
-        // If returned mode doesn't match requested mode, update state and settings
-        if (actualMode !== mode) {
-          setAnimeAudioMode(actualMode);
-          updateSettings({ animeAudioMode: actualMode });
-        }
 
         if (!playlist) throw new Error("No playable source found on anikuro.to");
 
@@ -895,10 +926,13 @@ export default function WatchPageClient({
 
     let cancelled = false;
     const load = async () => {
+      // Normalize type for subtitles service (only supports show/movie)
+      const normalizedType = type === "anime" ? "show" : type;
+
       const caps = await loadExternalCaptions({
         imdbId,
-        tmdbId: externalTmdbId || id,
-        mediaType: type as "movie" | "show",
+        tmdbId: tmdbId || id,
+        mediaType: normalizedType as "movie" | "show",
         season: seasonNum,
         episode: episodeNum,
       });
@@ -916,7 +950,7 @@ export default function WatchPageClient({
     return () => {
       cancelled = true;
     };
-  }, [id, imdbId, type, seasonNum, episodeNum]);
+  }, [id, imdbId, tmdbId, type, seasonNum, episodeNum]);
 
 
   useEffect(() => {

@@ -91,34 +91,45 @@ export default function ShowPage({
         const bannerImg = media.bannerImage || null;
         const animeOverview = media.description?.replace(/<[^>]+>/g, "") ?? "";
 
-        // Try to find a matching TMDB show for episode thumbnails/IMDB id
+        // Try to find a matching TMDB show for episode thumbnails/IMDB id/recommendations
         let tmdbEpisodesList: any[] = [];
-        let imdbIdFromTmdb: string | null = null;
-        let tmdbIdFromSearch: number | undefined;
+        let imdbIdFromTmdb: string | undefined = undefined;
+        let tmdbIdFromSearch: string | undefined = undefined;
+        let tmdbRecommendations: MediaItem[] = [];
+        let tmdbSimilar: MediaItem[] = [];
+
         try {
-          const { findShowByTitleAndYear } = await import("@/lib/tmdb");
-          const tmdbShow = await findShowByTitleAndYear(titleStr, media.startDate?.year);
-          if (tmdbShow) {
-            tmdbIdFromSearch = tmdbShow.id;
-            imdbIdFromTmdb = tmdbShow.imdbId || null;
+          const { searchShowByTitle, getTmdbEpisodesForAnime, getRecommendations, getSimilar } = await import("@/lib/tmdb");
+          const tmdbMatch = await searchShowByTitle(titleStr, media.startDate?.year);
+          
+          if (tmdbMatch) {
+            tmdbIdFromSearch = String(tmdbMatch.tmdbId);
+            imdbIdFromTmdb = tmdbMatch.imdbId;
             
-            const { getSeasonDetails } = await import("@/lib/tmdb");
-            const seasonFull = await getSeasonDetails(String(tmdbShow.id), 1);
-            tmdbEpisodesList = seasonFull?.episodes || [];
+            const [epData, recs, sim] = await Promise.all([
+              getTmdbEpisodesForAnime(tmdbIdFromSearch, `${media.startDate.year}-${media.startDate.month}-${media.startDate.day}`, media.episodes || 0),
+              getRecommendations("tv", tmdbIdFromSearch).catch(() => []),
+              getSimilar("tv", tmdbIdFromSearch).catch(() => [])
+            ]);
+            
+            tmdbEpisodesList = epData.episodes || [];
+            if (!imdbIdFromTmdb) imdbIdFromTmdb = epData.imdbId;
+            tmdbRecommendations = recs;
+            tmdbSimilar = sim;
           }
         } catch (e) {
-          console.error("Failed to resolve TMDB mapping for anime:", e);
+          console.error("Failed to resolve anime with TMDB:", e);
         }
 
         const episodes = Array.from({ length: media.episodes || 12 }).map((_, i) => {
           const epNum = i + 1;
-          const tmdbEp = tmdbEpisodesList[i];
+          const tmdbEp = tmdbEpisodesList.find(e => e.episode_number === epNum) || tmdbEpisodesList[i];
           return {
             id: epNum,
             episodeNumber: epNum,
             name: (tmdbEp?.name && !tmdbEp.name.toLowerCase().startsWith("episode ")) ? tmdbEp.name : `Episode ${epNum}`,
             overview: tmdbEp?.overview || "",
-            stillPath: tmdbEp?.still_path ? `https://image.tmdb.org/t/p/w300${tmdbEp.still_path}` : (bannerImg || coverImg),
+            stillPath: tmdbEp?.still_path ? tmdbEp.still_path : (bannerImg || coverImg || null),
             airDate: media.startDate?.year?.toString() || "",
             runtime: 24,
             voteAverage: 0,
@@ -128,11 +139,11 @@ export default function ShowPage({
         const s: Show = {
           id: numericId.toString(),
           tmdbId: `al-${numericId}`,
-          imdbId: imdbIdFromTmdb || undefined,
-          externalTmdbId: tmdbIdFromSearch || undefined,
+          imdbId: imdbIdFromTmdb,
+          externalTmdbId: tmdbIdFromSearch,
           title: titleStr,
           originalTitle: media.title.native || titleStr,
-          overview: animeOverview,
+          overview: media.description?.replace(/<[^>]+>/g, "") ?? "",
           posterPath: coverImg,
           backdropPath: bannerImg,
           releaseYear: media.startDate?.year,
@@ -143,7 +154,7 @@ export default function ShowPage({
           status: media.status,
           totalEpisodes: episodes.length,
           certification: media.format,
-          seasons: [{ id: 1, seasonNumber: 1, name: titleStr, overview: animeOverview, posterPath: coverImg, episodes }],
+          seasons: [{ id: 1, seasonNumber: 1, name: "Season 1", overview: media.description?.replace(/<[^>]+>/g, "") ?? "", posterPath: coverImg, episodes }],
           cast: (media.characters?.edges || []).slice(0, 15).map((e: any) => ({
             id: e.node.id,
             name: e.node.name.full,
@@ -158,21 +169,29 @@ export default function ShowPage({
         } as any;
 
         setShow(s);
-        const recommendations: MediaItem[] = (media.recommendations?.edges || []).map((e: any) => {
-          const rec = e.node?.mediaRecommendation;
-          if (!rec) return null;
-          return {
-            id: `al-${rec.id}`,
-            tmdbId: `al-${rec.id}`,
-            mediaType: "show",
-            title: rec.title.english || rec.title.romaji,
-            posterPath: rec.coverImage.extraLarge || rec.coverImage.large,
-            backdropPath: rec.bannerImage,
-            releaseYear: rec.startDate?.year,
-            rating: rec.averageScore ? rec.averageScore / 10 : 0,
-          } as MediaItem;
-        }).filter(Boolean);
-        setRecommendations(recommendations);
+        
+        // Prioritize TMDB recommendations if found, else fallback to AniList's
+        if (tmdbRecommendations.length > 0) {
+          setRecommendations(tmdbRecommendations);
+          setSimilar(tmdbSimilar);
+        } else {
+          const recommendations: MediaItem[] = (media.recommendations?.edges || []).map((e: any) => {
+            const rec = e.node?.mediaRecommendation;
+            if (!rec) return null;
+            return {
+              id: `al-${rec.id}`,
+              tmdbId: `al-${rec.id}`,
+              mediaType: "show",
+              title: rec.title.english || rec.title.romaji,
+              posterPath: rec.coverImage.extraLarge || rec.coverImage.large,
+              backdropPath: rec.bannerImage,
+              releaseYear: rec.startDate?.year,
+              rating: rec.averageScore ? rec.averageScore / 10 : 0,
+            } as MediaItem;
+          }).filter(Boolean);
+          setRecommendations(recommendations);
+          setSimilar([]);
+        }
         setSelectedSeason(1);
       } else {
         const [s, recs, sim] = await Promise.all([

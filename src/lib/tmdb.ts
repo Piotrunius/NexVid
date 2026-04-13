@@ -583,6 +583,26 @@ export async function getTopRated(
   );
 }
 
+export async function searchShowByTitle(
+  title: string,
+  year?: number,
+): Promise<Show | null> {
+  try {
+    const params: Record<string, string> = { query: title };
+    if (year) params.first_air_date_year = String(year);
+
+    const data = await tmdbFetch<{ results: TmdbRawShow[] }>("/search/tv", params);
+    if (!data.results || data.results.length === 0) return null;
+
+    // Pick the best match (simple strategy: first result if title matches closely)
+    const best = data.results[0];
+    return transformShow(best);
+  } catch (err) {
+    console.error("Failed to search show by title:", err);
+    return null;
+  }
+}
+
 export async function getMovieDetails(id: string): Promise<Movie> {
   const cached = getCached(movieCache, id);
   if (cached) return cached;
@@ -847,26 +867,5 @@ export async function getTmdbEpisodesForAnime(
   } catch (err) {
     console.error("Failed to map TMDB episodes for anime:", err);
     return { episodes: [] };
-  }
-}
-export async function findShowByTitleAndYear(
-  title: string,
-  year?: number,
-): Promise<Show | null> {
-  try {
-    const params: Record<string, string> = {
-      query: title,
-      include_adult: "false",
-    };
-    if (year) params.first_air_date_year = String(year);
-
-    const data = await tmdbFetch<{ results: TmdbRawShow[] }>("/search/tv", params);
-    if (!data.results || data.results.length === 0) return null;
-
-    // Return the best match (first result) transformed
-    return transformShow(data.results[0]);
-  } catch (err) {
-    console.error(`[TMDB] search failed for ${title}:`, err);
-    return null;
   }
 }
