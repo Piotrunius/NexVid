@@ -39,7 +39,6 @@ function isAllowedHost(hostname: string): boolean {
       process.env.PROXY_ALLOWED_HOSTS,
   );
   
-  // Essential streaming hosts built into the app logic 
   const essentialHosts = [
     "*.anikuro.ru", "proxy.anikuro.ru",
     "*.megaup.cc", "megaup.cc",
