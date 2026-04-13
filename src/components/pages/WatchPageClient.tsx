@@ -672,7 +672,8 @@ export default function WatchPageClient({
 
         // 2. Fetch source from anikuro.to (backend tries all servers in order)
         const srcRes = await fetch(
-          `/api/anikuro/source?anilistId=${encodeURIComponent(anilistId)}&ep=${encodeURIComponent(epNum)}&mode=${mode}`,
+          `/api/anikuro/source?anilistId=${encodeURIComponent(anilistId)}&ep=${encodeURIComponent(epNum)}&mode=${mode}&t=${Date.now()}`,
+          { cache: 'no-store' }
         );
 
         if (!srcRes.ok) {
