@@ -3423,7 +3423,7 @@ export function VideoPlayer({
                 <Info className="h-[14px] w-[14px] stroke-[1.9]" />
               </button>
             )}
-            {stream?.type === "embed" && safeSourceResults.length > 1 && (
+            {(isAnime || (stream?.type === "embed" && safeSourceResults.length > 1)) && (
               <button
                 onClick={() =>
                   setSettingsPanel(
@@ -5793,16 +5793,31 @@ export function VideoPlayer({
             </div>
             <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
               {sourceResults
-                .filter((r) => r.stream.type !== "embed")
-                .map((res) => {
-                  const isSelected =
-                    currentSourceIndex === sourceResults.indexOf(res);
-                  const isBest = ["febbox", "pobreflix"].includes(res.sourceId);
+                .filter((r) => isAnime || r.stream.type !== "embed")
+                .map((res, index) => {
+                  const isSelected = currentSourceIndex === index;
+                  const isDangerous = [
+                    "vidlink",
+                    "vidsync",
+                  ].includes(res.sourceId);
+                  const isUnsafe = [
+                    "videasy",
+                    "vidfast",
+                  ].includes(res.sourceId);
+                  const isBest = ["febbox", "pobreflix"].includes(
+                    res.sourceId,
+                  );
+                  const isGood = [
+                    "cinesrc",
+                    "vidking",
+                    "zxcstream",
+                  ].includes(res.sourceId);
+
                   return (
                     <button
-                      key={res.sourceId}
+                      key={`${res.sourceId}-overlay-${index}`}
                       onClick={() => {
-                        onSelectSource?.(safeSourceResults.indexOf(res));
+                        onSelectSource?.(index);
                         setSettingsPanel(null);
                       }}
                       className={cn(
@@ -5826,13 +5841,72 @@ export function VideoPlayer({
                         <p
                           className={cn(
                             "text-[12px] font-semibold truncate",
-                            isSelected ? "text-accent" : "text-white",
+                            isSelected
+                              ? "text-accent"
+                              : "text-white",
                           )}
                         >
                           {formatSourceName(res.sourceId)}
                         </p>
                       </div>
-                      {isBest ? (
+                      {isAnime ? (
+                        <span
+                          className={cn(
+                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase self-center",
+                            isSelected
+                              ? "bg-accent/20 text-accent shadow-[0_0_10px_rgba(var(--color-accent),0.2)]"
+                              : "bg-white/5 text-white/30",
+                          )}
+                        >
+                          (direct)
+                        </span>
+                      ) : isDangerous ? (
+                        <div className="flex items-center gap-1.5 hover:opacity-90">
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              isSelected
+                                ? "bg-red-500/20 text-red-500"
+                                : "bg-red-500/10 text-red-500/50",
+                            )}
+                          >
+                            Dangerous
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              isSelected
+                                ? "bg-accent/20 text-accent"
+                                : "bg-white/5 text-white/30",
+                            )}
+                          >
+                            Embed
+                          </span>
+                        </div>
+                      ) : isUnsafe ? (
+                        <div className="flex items-center gap-1.5 hover:opacity-90">
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              isSelected
+                                ? "bg-amber-500/20 text-amber-500"
+                                : "bg-amber-500/10 text-amber-500/50",
+                            )}
+                          >
+                            Unsafe
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              isSelected
+                                ? "bg-accent/20 text-accent"
+                                : "bg-white/5 text-white/30",
+                            )}
+                          >
+                            Embed
+                          </span>
+                        </div>
+                      ) : isBest ? (
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
@@ -5855,6 +5929,29 @@ export function VideoPlayer({
                             Direct
                           </span>
                         </div>
+                      ) : isGood ? (
+                        <div className="flex items-center gap-1.5 hover:opacity-90">
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              isSelected
+                                ? "bg-emerald-500/20 text-emerald-500"
+                                : "bg-emerald-500/10 text-emerald-500/80",
+                            )}
+                          >
+                            Safe
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              isSelected
+                                ? "bg-accent/20 text-accent"
+                                : "bg-white/5 text-white/30",
+                            )}
+                          >
+                            Embed
+                          </span>
+                        </div>
                       ) : (
                         <span
                           className={cn(
@@ -5864,7 +5961,7 @@ export function VideoPlayer({
                               : "bg-white/5 text-white/30",
                           )}
                         >
-                          Direct
+                          Source
                         </span>
                       )}
                     </button>

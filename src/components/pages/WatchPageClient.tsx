@@ -1331,9 +1331,9 @@ export default function WatchPageClient({
           }
           canTryNextSource={!isAnime && sourceResults.length > 1}
           onTryNextSource={isAnime ? undefined : tryNextSource}
-          allSourceResults={isAnime ? [] : sourceResults}
-          currentSourceIndex={isAnime ? 0 : sourceIndex}
-          onSelectSource={isAnime ? undefined : selectSource}
+          allSourceResults={sourceResults}
+          currentSourceIndex={sourceIndex}
+          onSelectSource={selectSource}
           externalCaptions={memoizedExternalCaptions}
           scrapeErrorTitle={
             shouldShowMissingFebboxTokenPrompt
