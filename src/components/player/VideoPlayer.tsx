@@ -580,7 +580,6 @@ export function VideoPlayer({
     playerViewMode = "original",
     playerFillWidth = false,
     playerFillHeight = false,
-    preferNativeAnimeSkip = true,
   } = useSettingsStore((s) => s.settings);
 
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -2124,6 +2123,11 @@ export function VideoPlayer({
     );
     if (!activeSegment) return;
 
+    // Fix: Prevent auto-skipping if we literally just started the media (currentTime < 1)
+    // and the segment starts later than 1 second. This avoids jumping to the end of
+    // an intro (e.g. at 2:30) immediately upon starting at 0:00.
+    if (currentTime < 1 && activeSegment.startSec > 1) return;
+
     // If autoNext is ON and this segment ends at the very end of the video,
     // we let the Auto-Next logic handle it (transition via countdown).
     // We only skip if it's NOT the final segment or if autoNext is OFF.
@@ -2634,7 +2638,6 @@ export function VideoPlayer({
     autoSkipSegments,
     autoSwitchSource,
     idlePauseOverlay,
-    preferNativeAnimeSkip,
   ].filter(Boolean).length;
 
   const hasSkipSegments = Boolean(
@@ -4058,13 +4061,6 @@ export function VideoPlayer({
                                 }
                               />
                               <PlayerToggle
-                                label="Prefer Provider Anime Timestamps"
-                                checked={preferNativeAnimeSkip}
-                                onChange={(v) =>
-                                  updateSettings({ preferNativeAnimeSkip: v })
-                                }
-                              />
-                              <PlayerToggle
                                 label="Auto-next"
                                 checked={autoNext}
                                 onChange={(v) =>
@@ -5231,128 +5227,6 @@ export function VideoPlayer({
                                 )}
                             </div>
 
-                            {/* Submit new segment */}
-                            <hr className="my-2 border-white/[0.06]" />
-                            <p className="text-[11px] text-white/50 mb-2">
-                              Submit a segment
-                            </p>
-                            <div className="space-y-2">
-                              <select
-                                value={submitType}
-                                onChange={(e) =>
-                                  setSubmitType(e.target.value as any)
-                                }
-                                className="w-full rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white border-none outline-none"
-                              >
-                                <option value="intro" className="bg-[#0a0a0f]">
-                                  Intro
-                                </option>
-                                <option value="recap" className="bg-[#0a0a0f]">
-                                  Recap
-                                </option>
-                                <option
-                                  value="credits"
-                                  className="bg-[#0a0a0f]"
-                                >
-                                  Credits
-                                </option>
-                                <option
-                                  value="preview"
-                                  className="bg-[#0a0a0f]"
-                                >
-                                  Preview
-                                </option>
-                              </select>
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={submitStart}
-                                  onChange={(e) =>
-                                    setSubmitStart(e.target.value)
-                                  }
-                                  placeholder="Start (sec)"
-                                  className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
-                                />
-                                <button
-                                  onClick={() =>
-                                    setSubmitStart(
-                                      String(Math.floor(currentTime)),
-                                    )
-                                  }
-                                  className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
-                                  title="Use current time"
-                                >
-                                  Now
-                                </button>
-                              </div>
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={submitEnd}
-                                  onChange={(e) => setSubmitEnd(e.target.value)}
-                                  placeholder="End (sec)"
-                                  className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
-                                />
-                                <button
-                                  onClick={() =>
-                                    setSubmitEnd(
-                                      String(Math.floor(currentTime)),
-                                    )
-                                  }
-                                  className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
-                                  title="Use current time"
-                                >
-                                  Now
-                                </button>
-                              </div>
-                              <button
-                                disabled={
-                                  !introDbApiKey ||
-                                  submitStatus === "sending" ||
-                                  !submitStart ||
-                                  !submitEnd
-                                }
-                                onClick={async () => {
-                                  if (!introDbApiKey || !tmdbId) return;
-                                  setSubmitStatus("sending");
-                                  const res = await submitSegment({
-                                    apiKey: introDbApiKey,
-                                    tmdbId,
-                                    type:
-                                      mediaType === "movie" ? "movie" : "show",
-                                    segment: submitType,
-                                    startSec: parseFloat(submitStart),
-                                    endSec: parseFloat(submitEnd),
-                                    season: seasonNum,
-                                    episode: episodeNum,
-                                    sessionToken: sessionToken || undefined,
-                                  });
-                                  setSubmitStatus(res.ok ? "ok" : "error");
-                                  setTimeout(
-                                    () => setSubmitStatus("idle"),
-                                    2000,
-                                  );
-                                }}
-                                className={cn(
-                                  "w-full rounded-[8px] px-3 py-2 text-[11px] font-medium transition-colors",
-                                  submitStatus === "ok"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : submitStatus === "error"
-                                      ? "bg-red-500/20 text-red-400"
-                                      : "bg-accent/20 text-accent hover:bg-accent/30 disabled:opacity-40 disabled:cursor-not-allowed",
-                                )}
-                              >
-                                {submitStatus === "sending"
-                                  ? "Submitting..."
-                                  : submitStatus === "ok"
-                                    ? "Submitted!"
-                                    : submitStatus === "error"
-                                      ? "Failed"
-                                      : !introDbApiKey
-                                        ? "Add API key in Settings"
-                                        : "Submit"}
-                              </button>
-                            </div>
                           </div>
                         )}
                       </div>

@@ -244,7 +244,6 @@ export interface UserSettings {
   playerFillWidth: boolean;
   playerFillHeight: boolean;
   animeAudioMode: AnimeAudioMode;
-  preferNativeAnimeSkip: boolean;
 }
 
 export type AccentColor =
