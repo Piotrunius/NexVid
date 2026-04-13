@@ -17,6 +17,9 @@ export function DevToolGuard() {
     user?.role === "moderator";
 
   useEffect(() => {
+    // Disabled for debugging
+    return;
+
     if (process.env.NODE_ENV !== "production") return;
 
     if (isAdmin) return;
