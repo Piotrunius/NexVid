@@ -241,7 +241,7 @@ function resolveFlagUrl(lang: string, providedUrl?: string | null): string | nul
 }
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
-const KNOWN_SOURCE_ORDER = ["febbox", "pobreflix","zxcstream", "cinesrc", "vidking", "vidfast", "videasy","vidsync", "vidlink"] as const;
+const KNOWN_SOURCE_ORDER = ["febbox", "pobreflix", "animekai", "allani", "anigg", "animez", "zxcstream", "cinesrc", "vidking", "vidfast", "videasy", "vidsync", "vidlink"] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = "nexvid-subtitle-appearance";
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 

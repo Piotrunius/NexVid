@@ -371,6 +371,12 @@ export default function WatchPageClient({
         // These don't exist in TMDB — skip directly to AnimeKAI scraping.
         if (id.startsWith("al-") || type === "anime") {
           setIsAnime(true);
+          const animeServers = ["animekai", "allani", "anigg", "animez"];
+          setSourceResults(animeServers.map(srv => ({
+            sourceId: srv,
+            stream: { type: "hls" as const, playlist: "", id: `stub-${srv}` }
+          })));
+
           let animeTitle = mediaData?.title ?? "";
           let finalMedia = mediaData;
           
@@ -524,6 +530,12 @@ export default function WatchPageClient({
           setIsAnime(detected);
 
           if (detected) {
+            setIsAnime(true);
+            const animeServers = ["animekai", "allani", "anigg", "animez"];
+            setSourceResults(animeServers.map(srv => ({
+              sourceId: srv,
+              stream: { type: "hls" as const, playlist: "", id: `stub-${srv}` }
+            })));
             // Mock season to enable VideoPlayer episode selector for TMDB animes
             const maxEps = show.totalEpisodes && show.totalEpisodes > 0 ? show.totalEpisodes : 24;
             setSeason({
