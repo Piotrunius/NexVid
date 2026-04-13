@@ -726,7 +726,7 @@ export default function WatchPageClient({
    * Servers: animez | allani | animekai | anigg  (tried in order via the backend route)
    */
   const scrapeAnimeSource = useCallback(
-    async (title: string, epNum: number, mode: AnimeAudioMode) => {
+    async (title: string, epNum: number, mode: AnimeAudioMode, specificServer?: string) => {
       if (animeLoadingRef.current) return;
       animeLoadingRef.current = true;
       setScrapeStatus("loading");
@@ -753,9 +753,10 @@ export default function WatchPageClient({
 
         if (!anilistId) throw new Error("Could not resolve AniList ID for this anime");
 
-        // 2. Fetch source from anikuro.to (backend tries all servers in order)
+        // 2. Fetch source from anikuro.to (backend tries all servers or a specific one)
+        const serverQuery = specificServer ? `&server=${specificServer}` : "";
         const srcRes = await fetch(
-          `/api/anikuro/source?anilistId=${encodeURIComponent(anilistId)}&ep=${encodeURIComponent(epNum)}&mode=${mode}&t=${Date.now()}`,
+          `/api/anikuro/source?anilistId=${encodeURIComponent(anilistId)}&ep=${encodeURIComponent(epNum)}&mode=${mode}${serverQuery}&t=${Date.now()}`,
           { cache: 'no-store' }
         );
 
@@ -793,7 +794,7 @@ export default function WatchPageClient({
 
         const animeStream: import("@/types").HlsBasedStream = {
           type: "hls",
-          id: "anikuro-stream",
+          id: `anikuro-stream-${srcData.server || "auto"}`,
           flags: [],
           captions,
           playlist,
@@ -802,8 +803,18 @@ export default function WatchPageClient({
 
         const mergedStream = withMergedCaptions(animeStream, externalCaptions);
         setStream(mergedStream);
-        setSourceResults([{ sourceId: "anikuro", stream: mergedStream }]);
-        setSourceIndex(0);
+
+        // Populate all 4 servers as source results for anime
+        const animeServers = ["animekai", "allani", "anigg", "animez"];
+        const currentServer = srcData.server;
+        
+        const results = animeServers.map((srv) => ({
+          sourceId: srv,
+          stream: srv === currentServer ? mergedStream : { type: "hls" as const, playlist: "", id: `stub-${srv}` }
+        }));
+
+        setSourceResults(results);
+        setSourceIndex(animeServers.indexOf(currentServer) === -1 ? 0 : animeServers.indexOf(currentServer));
         setScrapeStatus("success");
 
         // 4. Set intro/outro skip times if available (Anikuro format)
@@ -1180,11 +1191,24 @@ export default function WatchPageClient({
   const selectSource = useCallback(
     (idx: number) => {
       if (idx < 0 || idx >= sourceResults.length) return;
+      
+      if (type === "anime" && media) {
+        const targetServer = sourceResults[idx].sourceId;
+        // If the stream is a stub (playlist is empty), re-scrape for this specific server
+        if (sourceResults[idx].stream.type === "hls" && !(sourceResults[idx].stream as any).playlist) {
+          reset();
+          setStream(null);
+          setScrapeStatus("loading");
+          void scrapeAnimeSource(media.title, episodeNum, animeAudioMode, targetServer);
+          return;
+        }
+      }
+
       const currentStream = sourceResults[idx].stream;
       setSourceIndex(idx);
       setStream(withMergedCaptions(currentStream, externalCaptions));
     },
-    [sourceResults, externalCaptions],
+    [sourceResults, externalCaptions, type, media, episodeNum, animeAudioMode, scrapeAnimeSource, reset],
   );
 
   const openSettings = useCallback(() => {

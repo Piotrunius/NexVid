@@ -47,6 +47,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Building2,
   Clock,
   Compass,
   Crown,
@@ -54,8 +55,10 @@ import {
   Gem,
   Infinity as InfinityIcon,
   Info,
+  Landmark,
   Link,
   ListVideo,
+  MapPin,
   Pause,
   PauseCircle,
   Play,
@@ -784,6 +787,10 @@ export function VideoPlayer({
     if (sourceId === "videasy") return "Theta";
     if (sourceId === "vidsync") return "Kappa";
     if (sourceId === "vidlink") return "Omega";
+    if (sourceId === "animekai") return "Tokyo";
+    if (sourceId === "allani") return "Osaka";
+    if (sourceId === "anigg") return "Fukuoka";
+    if (sourceId === "animez") return "Kyoto";
     return sourceId;
   }, []);
 
@@ -808,6 +815,14 @@ export function VideoPlayer({
         return <Link className="w-3.5 h-3.5" />;
       case "vidlink":
         return <InfinityIcon className="w-3.5 h-3.5" />;
+      case "animekai":
+        return <Building2 className="w-3.5 h-3.5 text-[#ff3b30]" />;
+      case "allani":
+        return <Landmark className="w-3.5 h-3.5 text-[#ffcc00]" />;
+      case "anigg":
+        return <MapPin className="w-3.5 h-3.5 text-[#4cd964]" />;
+      case "animez":
+        return <Compass className="w-3.5 h-3.5 text-[#5856d6]" />;
       default:
         return <Server className="w-3.5 h-3.5" />;
     }
@@ -3326,7 +3341,7 @@ export function VideoPlayer({
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipIntro}
             className={cn(
-              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+              "absolute right-6 bottom-24 z-[60] flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
@@ -3347,7 +3362,7 @@ export function VideoPlayer({
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipOutro}
             className={cn(
-              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+              "absolute right-6 bottom-24 z-[60] flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
@@ -3763,9 +3778,10 @@ export function VideoPlayer({
                                       </p>
                                       {episodePanelSeason === seasonNum &&
                                         ep.episodeNumber === episodeNum && (
-                                          <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">
-                                            Now
-                                          </span>
+                                            <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">
+                                              Now
+                                            </span>
+                                          </div>
                                         )}
                                     </div>
 
@@ -3828,58 +3844,9 @@ export function VideoPlayer({
                         {settingsPanel === "main" && (
                           <div className="space-y-3">
                             <div className="grid grid-cols-3 gap-2">
-                              {/* Quality Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("quality")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-white/80"
-                                >
-                                  <path d="M2 6h4M18 6h4M8 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
-                                  <path d="M12 10v4" />
-                                </svg>
-                                <span className="text-[10px] text-white/60">
-                                  Quality
-                                </span>
-                                <span className="text-[10px] font-semibold text-accent">
-                                  {getQualityLabel(currentQuality)}
-                                </span>
-                              </button>
-
-                              {/* Sources Tile — hidden for anime; anime shows Audio tile instead */}
                               {isAnime ? (
-                                  <button
-                                    onClick={() => setSettingsPanel("audio")}
-                                    className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                                  >
-                                    <svg
-                                      width="20"
-                                      height="20"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      className="text-white/80"
-                                    >
-                                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-                                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                                      <line x1="12" y1="19" x2="12" y2="22"/>
-                                    </svg>
-                                    <span className="text-[10px] text-white/60">Audio</span>
-                                    <span className="text-[10px] font-semibold text-accent">
-                                      {animeAudioMode === "sub" ? "Subbed" : "Dubbed"}
-                                    </span>
-                                  </button>
-                              ) : (
                                 <button
-                                  onClick={() => setSettingsPanel("sources")}
+                                  onClick={() => setSettingsPanel("audio")}
                                   className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
                                 >
                                   <svg
@@ -3891,19 +3858,63 @@ export function VideoPlayer({
                                     strokeWidth="2"
                                     className="text-white/80"
                                   >
-                                    <rect x="2" y="2" width="20" height="8" rx="2" />
-                                    <rect x="2" y="14" width="20" height="8" rx="2" />
-                                    <line x1="6" y1="6" x2="6" y2="6" />
-                                    <line x1="6" y1="18" x2="6" y2="18" />
+                                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                    <line x1="12" y1="19" x2="12" y2="22" />
                                   </svg>
-                                  <span className="text-[10px] text-white/60">Sources</span>
-                                  <span className="text-[10px] font-semibold text-accent truncate max-w-full">
-                                    {formatSourceName(
-                                      sourceResults[currentSourceIndex]?.sourceId,
-                                    )}
+                                  <span className="text-[10px] text-white/60">Audio</span>
+                                  <span className="text-[10px] font-semibold text-accent">
+                                    {animeAudioMode === "sub" ? "Subbed" : "Dubbed"}
+                                  </span>
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setSettingsPanel("quality")}
+                                  className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                                >
+                                  <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    className="text-white/80"
+                                  >
+                                    <path d="M2 6h4M18 6h4M8 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+                                    <path d="M12 10v4" />
+                                  </svg>
+                                  <span className="text-[10px] text-white/60">Quality</span>
+                                  <span className="text-[10px] font-semibold text-accent">
+                                    {getQualityLabel(currentQuality)}
                                   </span>
                                 </button>
                               )}
+
+                              {/* Tile 2: Sources */}
+                              <button
+                                onClick={() => setSettingsPanel("sources")}
+                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                              >
+                                <svg
+                                  width="20"
+                                  height="20"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  className="text-white/80"
+                                >
+                                  <rect x="2" y="2" width="20" height="8" rx="2" />
+                                  <rect x="2" y="14" width="20" height="8" rx="2" />
+                                  <line x1="6" y1="6" x2="6" y2="6" />
+                                  <line x1="6" y1="18" x2="6" y2="18" />
+                                </svg>
+                                <span className="text-[10px] text-white/60">Sources</span>
+                                <span className="text-[10px] font-semibold text-accent truncate max-w-full">
+                                  {formatSourceName(sourceResults[currentSourceIndex]?.sourceId)}
+                                </span>
+                              </button>
                               {/* Subtitles Tile */}
                               <button
                                 onClick={() => setSettingsPanel("subtitles")}
@@ -4551,8 +4562,18 @@ export function VideoPlayer({
                                       >
                                         {formatSourceName(res.sourceId)}
                                       </p>
-                                    </div>
-                                    {isDangerous ? (
+                                                            {isAnime ? (
+                                      <span
+                                        className={cn(
+                                          "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase self-center",
+                                          isSelected
+                                            ? "bg-accent/20 text-accent shadow-[0_0_10px_rgba(var(--color-accent),0.2)]"
+                                            : "bg-white/5 text-white/30",
+                                        )}
+                                      >
+                                        (direct)
+                                      </span>
+                                    ) : isDangerous ? (
                                       <div className="flex items-center gap-1.5 hover:opacity-90">
                                         <span
                                           className={cn(
@@ -4653,7 +4674,7 @@ export function VideoPlayer({
                                             : "bg-white/5 text-white/30",
                                         )}
                                       >
-                                        Direct
+                                        Source
                                       </span>
                                     )}
                                   </button>
