@@ -4677,7 +4677,6 @@ export function VideoPlayer({
                                       </span>
                                     )}
                                   </button>
-                                );
                               })}
                             </div>
                           </div>
