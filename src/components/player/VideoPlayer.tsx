@@ -4561,6 +4561,7 @@ export function VideoPlayer({
                                       >
                                         {formatSourceName(res.sourceId)}
                                       </p>
+                                    </div>
                                                             {isAnime ? (
                                       <span
                                         className={cn(
