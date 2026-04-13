@@ -41,7 +41,6 @@ const GENRES = [
   "Sci-Fi",
   "Thriller",
   "War",
-  "Western",
 ];
 
 const ERAS = ["All Time", "2020s", "2010s", "2000s", "90s", "80s", "Classics"];
@@ -100,7 +99,10 @@ export function AiAssistantModal({
     // mood is optional, it can add context but genres are the main filter.
 
     if (isLocked) {
-      toast("AI Assistant requires a Cloud account or your own Groq API key in Settings.", "error");
+      toast(
+        "AI Assistant requires a Cloud account or your own Groq API key in Settings.",
+        "error",
+      );
       setStep("input");
       return;
     }
@@ -440,9 +442,7 @@ export function AiAssistantModal({
                       {step === "input" ? (
                         <button
                           onClick={handleGenerate}
-                          disabled={
-                            selectedGenres.length === 0 && !mood.trim()
-                          }
+                          disabled={selectedGenres.length === 0 && !mood.trim()}
                           className="group flex w-full items-center justify-center gap-3 rounded-xl bg-accent py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:text-base"
                         >
                           {isLocked
