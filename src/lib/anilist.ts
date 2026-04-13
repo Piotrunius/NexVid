@@ -380,6 +380,7 @@ export async function getAnimeFullDetails(id: number) {
     query ($id: Int) {
       Media(id: $id, type: ANIME) {
         id
+        idMal
         title { romaji english native }
         description
         coverImage { large extraLarge }

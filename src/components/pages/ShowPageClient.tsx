@@ -96,24 +96,19 @@ export default function ShowPage({
         let imdbIdFromTmdb: string | null = null;
         let tmdbIdFromSearch: number | undefined;
         try {
-          const searchRes = await fetch(
-            `/api/anime-resolve?title=${encodeURIComponent(titleStr)}&year=${media.startDate?.year ?? ""}`,
-          );
-          if (searchRes.ok) {
-            const tmdbHit = await searchRes.json();
-            if (tmdbHit?.tmdbId) {
-              tmdbIdFromSearch = tmdbHit.tmdbId;
-              const tmdbData = await getTmdbShowById(String(tmdbHit.tmdbId));
-              const seasonOne = tmdbData?.seasons?.find((s: any) => s.seasonNumber === 1);
-              if (seasonOne) {
-                const { getSeasonDetails } = await import("@/lib/tmdb");
-                const seasonFull = await getSeasonDetails(String(tmdbHit.tmdbId), 1);
-                tmdbEpisodesList = seasonFull?.episodes || [];
-              }
-              imdbIdFromTmdb = (tmdbData as any)?.imdbId || null;
-            }
+          const { findShowByTitleAndYear } = await import("@/lib/tmdb");
+          const tmdbShow = await findShowByTitleAndYear(titleStr, media.startDate?.year);
+          if (tmdbShow) {
+            tmdbIdFromSearch = tmdbShow.id;
+            imdbIdFromTmdb = tmdbShow.imdbId || null;
+            
+            const { getSeasonDetails } = await import("@/lib/tmdb");
+            const seasonFull = await getSeasonDetails(String(tmdbShow.id), 1);
+            tmdbEpisodesList = seasonFull?.episodes || [];
           }
-        } catch {}
+        } catch (e) {
+          console.error("Failed to resolve TMDB mapping for anime:", e);
+        }
 
         const episodes = Array.from({ length: media.episodes || 12 }).map((_, i) => {
           const epNum = i + 1;

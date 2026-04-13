@@ -243,6 +243,7 @@ export default function WatchPageClient({
   const [animeAudioMode, setAnimeAudioMode] = useState<AnimeAudioMode>(
     (useSettingsStore.getState().settings.animeAudioMode as AnimeAudioMode) ?? "sub",
   );
+  const [externalTmdbId, setExternalTmdbId] = useState<string | null>(null);
   const animeLoadingRef = useRef(false);
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -391,11 +392,33 @@ export default function WatchPageClient({
             }
           }
           
+          let tmdbShow: Show | null = null;
+          try {
+            const { findShowByTitleAndYear } = await import("@/lib/tmdb");
+            tmdbShow = await findShowByTitleAndYear(animeTitle, finalMedia?.releaseYear);
+            if (tmdbShow) {
+              setExternalTmdbId(tmdbShow.tmdbId);
+              setImdbId(tmdbShow.imdbId || undefined);
+            }
+          } catch (e) {
+            console.error("Failed to resolve TMDB ID for anime:", e);
+          }
+
           // Use real season data from initialMedia if available (AniList streamingEpisodes mapped episodes)
           const realSeasonData = finalMedia && "seasons" in finalMedia && (finalMedia as any).seasons?.[0];
-          if (realSeasonData && realSeasonData.episodes?.length > 0) {
+          
+          if (tmdbShow) {
+            try {
+              const { getSeasonDetails } = await import("@/lib/tmdb");
+              const tmdbSeason = await getSeasonDetails(tmdbShow.tmdbId, 1);
+              setSeason(tmdbSeason);
+              const tmdbEp = tmdbSeason.episodes?.find(e => e.episodeNumber === episodeNum);
+              if (tmdbEp) setCurrentEpisode(tmdbEp);
+            } catch (e) {
+              console.error("Failed to fetch TMDB season for anime:", e);
+            }
+          } else if (realSeasonData && realSeasonData.episodes?.length > 0) {
             setSeason(realSeasonData);
-            // Also set the current episode so infoSummaryText has the right description
             const currentEp = realSeasonData.episodes.find(
               (ep: any) => ep.episodeNumber === episodeNum
             );
@@ -711,6 +734,13 @@ export default function WatchPageClient({
         const tracks: any[] = srcData.tracks ?? [];
         const skip: any = srcData.skip ?? {};
         const headers: Record<string, string> | undefined = srcData.headers;
+        const actualMode: AnimeAudioMode = srcData.mode ?? mode;
+
+        // If returned mode doesn't match requested mode, update state and settings
+        if (actualMode !== mode) {
+          setAnimeAudioMode(actualMode);
+          updateSettings({ animeAudioMode: actualMode });
+        }
 
         if (!playlist) throw new Error("No playable source found on anikuro.to");
 
@@ -867,7 +897,7 @@ export default function WatchPageClient({
     const load = async () => {
       const caps = await loadExternalCaptions({
         imdbId,
-        tmdbId: id,
+        tmdbId: externalTmdbId || id,
         mediaType: type as "movie" | "show",
         season: seasonNum,
         episode: episodeNum,

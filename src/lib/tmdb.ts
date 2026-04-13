@@ -849,3 +849,24 @@ export async function getTmdbEpisodesForAnime(
     return { episodes: [] };
   }
 }
+export async function findShowByTitleAndYear(
+  title: string,
+  year?: number,
+): Promise<Show | null> {
+  try {
+    const params: Record<string, string> = {
+      query: title,
+      include_adult: "false",
+    };
+    if (year) params.first_air_date_year = String(year);
+
+    const data = await tmdbFetch<{ results: TmdbRawShow[] }>("/search/tv", params);
+    if (!data.results || data.results.length === 0) return null;
+
+    // Return the best match (first result) transformed
+    return transformShow(data.results[0]);
+  } catch (err) {
+    console.error(`[TMDB] search failed for ${title}:`, err);
+    return null;
+  }
+}
