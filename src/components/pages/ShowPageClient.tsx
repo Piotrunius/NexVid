@@ -78,17 +78,119 @@ export default function ShowPage({
   const loadShow = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [s, recs, sim] = await Promise.all([
-        getShowDetails(id),
-        getRecommendations("tv", id),
-        getSimilar("tv", id),
-      ]);
-      setShow(s);
-      setRecommendations(recs);
-      setSimilar(sim);
-      const firstSeason =
-        s.seasons.find((s) => s.seasonNumber > 0)?.seasonNumber || 1;
-      setSelectedSeason(firstSeason);
+      // Anime (AniList) path — id is the numeric AniList ID
+      if (id.startsWith("al-") || show?.tmdbId?.startsWith("al-")) {
+        const numericId = parseInt((id.startsWith("al-") ? id : show!.tmdbId!).replace("al-", ""), 10);
+        const { getAnimeFullDetails } = await import("@/lib/anilist");
+        const { getShowDetails: getTmdbShowById } = await import("@/lib/tmdb");
+        const media = await getAnimeFullDetails(numericId);
+
+        const titleStr = media.title.english || media.title.romaji || media.title.native || "";
+        const coverImg = media.coverImage?.extraLarge || media.coverImage?.large || null;
+        const bannerImg = media.bannerImage || null;
+        const animeOverview = media.description?.replace(/<[^>]+>/g, "") ?? "";
+
+        // Try to find a matching TMDB show for episode thumbnails/IMDB id
+        let tmdbEpisodesList: any[] = [];
+        let imdbIdFromTmdb: string | null = null;
+        let tmdbIdFromSearch: number | undefined;
+        try {
+          const searchRes = await fetch(
+            `/api/anime-resolve?title=${encodeURIComponent(titleStr)}&year=${media.startDate?.year ?? ""}`,
+          );
+          if (searchRes.ok) {
+            const tmdbHit = await searchRes.json();
+            if (tmdbHit?.tmdbId) {
+              tmdbIdFromSearch = tmdbHit.tmdbId;
+              const tmdbData = await getTmdbShowById(String(tmdbHit.tmdbId));
+              const seasonOne = tmdbData?.seasons?.find((s: any) => s.seasonNumber === 1);
+              if (seasonOne) {
+                const { getSeasonDetails } = await import("@/lib/tmdb");
+                const seasonFull = await getSeasonDetails(String(tmdbHit.tmdbId), 1);
+                tmdbEpisodesList = seasonFull?.episodes || [];
+              }
+              imdbIdFromTmdb = (tmdbData as any)?.imdbId || null;
+            }
+          }
+        } catch {}
+
+        const episodes = Array.from({ length: media.episodes || 12 }).map((_, i) => {
+          const epNum = i + 1;
+          const tmdbEp = tmdbEpisodesList[i];
+          return {
+            id: epNum,
+            episodeNumber: epNum,
+            name: (tmdbEp?.name && !tmdbEp.name.toLowerCase().startsWith("episode ")) ? tmdbEp.name : `Episode ${epNum}`,
+            overview: tmdbEp?.overview || "",
+            stillPath: tmdbEp?.still_path ? `https://image.tmdb.org/t/p/w300${tmdbEp.still_path}` : (bannerImg || coverImg),
+            airDate: media.startDate?.year?.toString() || "",
+            runtime: 24,
+            voteAverage: 0,
+          };
+        });
+
+        const s: Show = {
+          id: numericId.toString(),
+          tmdbId: `al-${numericId}`,
+          imdbId: imdbIdFromTmdb || undefined,
+          externalTmdbId: tmdbIdFromSearch || undefined,
+          title: titleStr,
+          originalTitle: media.title.native || titleStr,
+          overview: animeOverview,
+          posterPath: coverImg,
+          backdropPath: bannerImg,
+          releaseYear: media.startDate?.year,
+          rating: media.averageScore ? media.averageScore / 10 : 0,
+          type: "show",
+          genres: media.genres?.map((g: string, i: number) => ({ id: i, name: g })) || [],
+          tagline: "",
+          status: media.status,
+          totalEpisodes: episodes.length,
+          certification: media.format,
+          seasons: [{ id: 1, seasonNumber: 1, name: titleStr, overview: animeOverview, posterPath: coverImg, episodes }],
+          cast: (media.characters?.edges || []).slice(0, 15).map((e: any) => ({
+            id: e.node.id,
+            name: e.node.name.full,
+            character: e.role === "MAIN" ? "Main Character" : "Supporting Character",
+            profilePath: e.node.image.medium,
+            order: 0,
+          })),
+          networks: media.studios?.nodes?.map((n: any) => n.name) || [],
+          videos: media.trailer?.id && media.trailer?.site === "youtube"
+            ? [{ id: media.trailer.id, key: media.trailer.id, name: "Trailer", site: "YouTube", type: "Trailer" }]
+            : [],
+        } as any;
+
+        setShow(s);
+        const recommendations: MediaItem[] = (media.recommendations?.edges || []).map((e: any) => {
+          const rec = e.node?.mediaRecommendation;
+          if (!rec) return null;
+          return {
+            id: `al-${rec.id}`,
+            tmdbId: `al-${rec.id}`,
+            mediaType: "show",
+            title: rec.title.english || rec.title.romaji,
+            posterPath: rec.coverImage.extraLarge || rec.coverImage.large,
+            backdropPath: rec.bannerImage,
+            releaseYear: rec.startDate?.year,
+            rating: rec.averageScore ? rec.averageScore / 10 : 0,
+          } as MediaItem;
+        }).filter(Boolean);
+        setRecommendations(recommendations);
+        setSelectedSeason(1);
+      } else {
+        const [s, recs, sim] = await Promise.all([
+          getShowDetails(id),
+          getRecommendations("tv", id),
+          getSimilar("tv", id),
+        ]);
+        setShow(s);
+        setRecommendations(recs);
+        setSimilar(sim);
+        const firstSeason =
+          s.seasons.find((s) => s.seasonNumber > 0)?.seasonNumber || 1;
+        setSelectedSeason(firstSeason);
+      }
     } catch (err) {
       console.error("Failed to load show:", err);
     } finally {

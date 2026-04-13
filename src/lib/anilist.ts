@@ -29,17 +29,46 @@ function setCached<T>(key: string, data: T): void {
 async function anilistQuery<T>(
   query: string,
   variables: Record<string, unknown>,
+  retries = 2,
 ): Promise<T> {
-  const res = await fetch(ANILIST_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query, variables }),
-    next: { revalidate: 300 },
-  });
-  if (!res.ok) throw new Error(`AniList query failed: ${res.status}`);
-  const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0]?.message ?? "AniList error");
-  return json.data as T;
+  let lastError: any;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(ANILIST_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 NexVid/1.0",
+        },
+        body: JSON.stringify({ query, variables }),
+        next: { revalidate: 300 },
+      });
+
+      if (!res.ok) {
+        if (res.status === 429 || res.status >= 500) {
+          lastError = new Error(`AniList error: ${res.status}`);
+          if (i < retries) await new Promise(r => setTimeout(r, 500 * (i + 1)));
+          continue;
+        }
+        throw new Error(`AniList query failed: ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (json.errors) {
+        const msg = json.errors[0]?.message ?? "AniList error";
+        if (msg.includes("Not Found")) throw new Error("Anime not found");
+        lastError = new Error(msg);
+        if (i < retries) await new Promise(r => setTimeout(r, 500 * (i + 1)));
+        continue;
+      }
+      return json.data as T;
+    } catch (err) {
+      lastError = err;
+      if (i < retries) await new Promise(r => setTimeout(r, 500 * (i + 1)));
+    }
+  }
+  throw lastError;
 }
 
 // ---- Shared fragment types ----
@@ -341,4 +370,79 @@ export async function getAniListByGenre(
   const result = data.Page.media.map(mapAniListToMediaItem);
   setCached(key, result);
   return result;
+}
+
+/**
+ * Get full details for an anime from AniList (used for the detail page).
+ */
+export async function getAnimeFullDetails(id: number) {
+  const gql = `
+    query ($id: Int) {
+      Media(id: $id, type: ANIME) {
+        id
+        title { romaji english native }
+        description
+        coverImage { large extraLarge }
+        bannerImage
+        startDate { year month day }
+        endDate { year }
+        averageScore
+        episodes
+        genres
+        status
+        format
+        trailer { id site thumbnail }
+        studios(isMain: true) { nodes { name } }
+        characters(perPage: 20, sort: ROLE) {
+          edges {
+            role
+            node { id name { full } image { medium } }
+          }
+        }
+        streamingEpisodes {
+          title
+          thumbnail
+          url
+          site
+        }
+        relations {
+          edges {
+            relationType
+            node {
+              id
+              title { romaji english }
+              coverImage { large extraLarge }
+              episodes
+              startDate { year }
+              type
+              format
+            }
+          }
+        }
+        externalLinks {
+          site
+          url
+          id
+        }
+        recommendations(sort: RATING_DESC, perPage: 12) {
+          edges {
+            node {
+              mediaRecommendation {
+                id
+                title { romaji english }
+                coverImage { large extraLarge }
+                bannerImage
+                averageScore
+                startDate { year }
+                format
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const data = await anilistQuery<{ Media: any }>(gql, { id });
+  return data.Media;
 }
