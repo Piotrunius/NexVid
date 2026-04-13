@@ -23,5 +23,5 @@ pages_build_output_dir = ".vercel/output/static"
 
 [vars]
 TURNSTILE_SITE_KEY = "0x4AAAAAACn4sX2wYBjJSQUo"
-ALLOWED_HOSTS = "*.febbox.com,febbox.com,*.shegu.net,*.febbox.org,*.stream.febbox.com,*.pobreflix.com,pobreflix.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org,*.vidlink.pro,vidlink.pro,*.vodvidl.site,*.b-cdn.net,videostr.net,oneproxy.1x2.space,*.1x2.space"
+ALLOWED_HOSTS = "*.febbox.com,febbox.com,*.shegu.net,*.febbox.org,*.stream.febbox.com,*.pobreflix.com,pobreflix.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org,*.vidlink.pro,vidlink.pro,*.vodvidl.site,*.b-cdn.net,videostr.net,oneproxy.1x2.space,*.1x2.space,*.anikuro.ru,proxy.anikuro.ru,*.megaup.cc,megaup.cc,*.megaup.nl,megaup.nl,*.megaup.live,megaup.live,*.app28base.site,app28base.site,*.animekai.to,animekai.to"
 NEXT_PUBLIC_DISCORD_URL = "https://discord.gg/jTWt8HN5RU"
