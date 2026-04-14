@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { LIMITS, VALID_USERNAME_REGEX } from "@/lib/validation";
 
 export const runtime = "edge";
 
@@ -38,6 +39,68 @@ function getClientIpFromRequest(req: NextRequest): string | null {
   for (const candidate of candidates) {
     const ip = sanitizeIpCandidate(candidate);
     if (ip) return ip;
+  }
+
+  return null;
+}
+
+function validatePayload(path: string, body: any): string | null {
+  if (!body || typeof body !== "object") return null;
+
+  if (path === "auth/register") {
+    const { username, password } = body;
+    if (typeof username !== "string" || username.trim().length < LIMITS.USERNAME_MIN || username.trim().length > LIMITS.USERNAME_MAX) {
+      return `Username must be between ${LIMITS.USERNAME_MIN} and ${LIMITS.USERNAME_MAX} characters`;
+    }
+    if (!VALID_USERNAME_REGEX.test(username.trim())) {
+      return "Username contains invalid characters";
+    }
+    if (typeof password !== "string" || password.length < LIMITS.PASSWORD_MIN || password.length > LIMITS.PASSWORD_MAX) {
+      return `Password must be between ${LIMITS.PASSWORD_MIN} and ${LIMITS.PASSWORD_MAX} characters`;
+    }
+  }
+
+  if (path === "auth/change-password") {
+    const { newPassword } = body;
+    if (newPassword && (typeof newPassword !== "string" || newPassword.length < LIMITS.PASSWORD_MIN || newPassword.length > LIMITS.PASSWORD_MAX)) {
+      return `New password must be between ${LIMITS.PASSWORD_MIN} and ${LIMITS.PASSWORD_MAX} characters`;
+    }
+  }
+
+  if (path === "user/feedback" && body.subject && body.message) {
+    if (typeof body.subject !== "string" || body.subject.trim().length < LIMITS.FEEDBACK_SUBJECT_MIN || body.subject.trim().length > LIMITS.FEEDBACK_SUBJECT_MAX) {
+      return `Subject must be between ${LIMITS.FEEDBACK_SUBJECT_MIN} and ${LIMITS.FEEDBACK_SUBJECT_MAX} characters`;
+    }
+    if (typeof body.message !== "string" || body.message.trim().length < LIMITS.FEEDBACK_MESSAGE_MIN || body.message.trim().length > LIMITS.FEEDBACK_MESSAGE_MAX) {
+      return `Message must be between ${LIMITS.FEEDBACK_MESSAGE_MIN} and ${LIMITS.FEEDBACK_MESSAGE_MAX} characters`;
+    }
+  }
+
+  if (path === "user/feedback/messages" && body.message) {
+    if (typeof body.message !== "string" || body.message.trim().length < LIMITS.FEEDBACK_REPLY_MIN || body.message.trim().length > LIMITS.FEEDBACK_REPLY_MAX) {
+      return `Reply must be between ${LIMITS.FEEDBACK_REPLY_MIN} and ${LIMITS.FEEDBACK_REPLY_MAX} characters`;
+    }
+  }
+
+  if (path === "user/profile" && body.username) {
+    if (typeof body.username !== "string" || body.username.trim().length < LIMITS.USERNAME_MIN || body.username.trim().length > LIMITS.USERNAME_MAX) {
+      return `Nickname must be between ${LIMITS.USERNAME_MIN} and ${LIMITS.USERNAME_MAX} characters`;
+    }
+    if (!VALID_USERNAME_REGEX.test(body.username.trim())) {
+      return "Nickname contains invalid characters";
+    }
+  }
+
+  if (path === "admin/surveys" && body.title) {
+    if (typeof body.title !== "string" || body.title.trim().length < 1 || body.title.trim().length > 120) {
+      return "Survey title must be between 1 and 120 characters";
+    }
+  }
+
+  if (path === "admin/febbox-tokens" && body.label) {
+    if (typeof body.label !== "string" || body.label.length > 50) {
+      return "Token label cannot exceed 50 characters";
+    }
   }
 
   return null;
@@ -97,7 +160,22 @@ export async function ANY(
     };
 
     if (req.method !== "GET" && req.method !== "HEAD") {
-      init.body = await req.text();
+      const bodyText = await req.text();
+      init.body = bodyText;
+
+      // Validate payload before proxying
+      const contentType = req.headers.get("Content-Type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          const bodyJson = JSON.parse(bodyText);
+          const validationError = validatePayload(path, bodyJson);
+          if (validationError) {
+            return NextResponse.json({ error: validationError }, { status: 400 });
+          }
+        } catch {
+          // Ignore parse errors, let the worker handle malformed JSON if we can't parse it
+        }
+      }
     }
 
     const workerResponse = await fetch(targetUrl, init);

@@ -9,12 +9,13 @@ import { Turnstile } from "@/components/ui/Turnstile";
 import { hasCloudBackend } from "@/lib/cloudSync";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import { LIMITS, VALID_USERNAME_REGEX } from "@/lib/validation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type Mode = "login" | "register";
-const MIN_PASSWORD_LENGTH = 8;
+const { PASSWORD_MIN, PASSWORD_MAX, USERNAME_MIN, USERNAME_MAX } = LIMITS;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,12 +58,30 @@ export default function LoginPage() {
       toast("Passwords do not match", "error");
       return;
     }
-    if (mode === "register" && password.length < MIN_PASSWORD_LENGTH) {
-      toast(
-        `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
-        "error",
-      );
-      return;
+    if (mode === "register") {
+      if (!VALID_USERNAME_REGEX.test(username.trim())) {
+        toast(
+          "Username can only contain letters, numbers, dots, underscores, and dashes",
+          "error",
+        );
+        return;
+      }
+      if (username.trim().length < USERNAME_MIN) {
+        toast(`Username must be at least ${USERNAME_MIN} characters`, "error");
+        return;
+      }
+      if (username.trim().length > USERNAME_MAX) {
+        toast(`Username cannot exceed ${USERNAME_MAX} characters`, "error");
+        return;
+      }
+      if (password.length < PASSWORD_MIN) {
+        toast(`Password must be at least ${PASSWORD_MIN} characters`, "error");
+        return;
+      }
+      if (password.length > PASSWORD_MAX) {
+        toast(`Password cannot exceed ${PASSWORD_MAX} characters`, "error");
+        return;
+      }
     }
     setIsSubmitting(true);
     try {
@@ -145,6 +164,8 @@ export default function LoginPage() {
                 required
                 placeholder="your_nickname"
                 className="input w-full"
+                minLength={USERNAME_MIN}
+                maxLength={USERNAME_MAX}
               />
             </div>
             <div>
@@ -158,6 +179,8 @@ export default function LoginPage() {
                 required
                 placeholder="••••••••"
                 className="input w-full"
+                minLength={PASSWORD_MIN}
+                maxLength={PASSWORD_MAX}
               />
             </div>
             {mode === "register" && (
@@ -172,6 +195,8 @@ export default function LoginPage() {
                   required
                   placeholder="••••••••"
                   className="input w-full"
+                  minLength={PASSWORD_MIN}
+                  maxLength={PASSWORD_MAX}
                 />
               </div>
             )}

@@ -4,6 +4,7 @@ import { searchMedia } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
+import { LIMITS } from "@/lib/validation";
 import type { MediaItem } from "@/types";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
@@ -321,6 +322,7 @@ export function AiAssistantModal({
                               }
                               placeholder="Type titles, genres, keywords or just anything you can think of..."
                               className="h-12 w-full appearance-none rounded-xl border border-transparent bg-white/5 pl-11 pr-4 text-sm text-white shadow-inner outline-none transition-all placeholder:text-white/20 focus:border-accent/45 focus:outline-none focus:ring-0 focus-visible:outline-none"
+                              maxLength={LIMITS.AI_ASSISTANT_MOOD_MAX}
                             />
                           </div>
                         </div>

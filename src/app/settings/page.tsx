@@ -17,6 +17,7 @@ import {
   PUBLIC_OMDB_API_KEY_PLACEHOLDER,
   useSettingsStore,
 } from "@/stores/settings";
+import { LIMITS } from "@/lib/validation";
 import { useWatchlistStore } from "@/stores/watchlist";
 import type { AccentColor } from "@/types";
 import {
@@ -234,8 +235,12 @@ export default function SettingsPage() {
       toast("Fill in both password fields", "error");
       return;
     }
-    if (newPassword.length < 6) {
-      toast("Password must be at least 6 characters", "error");
+    if (newPassword.length < LIMITS.PASSWORD_MIN) {
+      toast(`Password must be at least ${LIMITS.PASSWORD_MIN} characters`, "error");
+      return;
+    }
+    if (newPassword.length > LIMITS.PASSWORD_MAX) {
+      toast(`Password cannot exceed ${LIMITS.PASSWORD_MAX} characters`, "error");
       return;
     }
 
@@ -253,9 +258,17 @@ export default function SettingsPage() {
 
   const handleNicknameChange = async () => {
     const candidate = newUsername.trim();
-    if (!/^[a-zA-Z0-9._-]{2,24}$/.test(candidate)) {
+    const trimmed = candidate.trim();
+    if (trimmed.length < LIMITS.USERNAME_MIN || trimmed.length > LIMITS.USERNAME_MAX) {
       toast(
-        "Nickname must be 2-24 chars: letters, numbers, dot, underscore, dash",
+        `Nickname must be between ${LIMITS.USERNAME_MIN} and ${LIMITS.USERNAME_MAX} characters`,
+        "error",
+      );
+      return;
+    }
+    if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) {
+      toast(
+        "Nickname can only contain letters, numbers, dot, underscore, dash",
         "error",
       );
       return;
@@ -436,6 +449,8 @@ export default function SettingsPage() {
                       onChange={(e) => setNewUsername(e.target.value)}
                       placeholder="New nickname"
                       className="input flex-1"
+                      minLength={LIMITS.USERNAME_MIN}
+                      maxLength={LIMITS.USERNAME_MAX}
                     />
                     <button
                       onClick={handleNicknameChange}
@@ -460,6 +475,8 @@ export default function SettingsPage() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="New password"
                       className="input flex-1"
+                      minLength={LIMITS.PASSWORD_MIN}
+                      maxLength={LIMITS.PASSWORD_MAX}
                     />
                     <button
                       onClick={handlePasswordReset}
