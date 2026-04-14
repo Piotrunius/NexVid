@@ -10,7 +10,6 @@ const REDIRECT_HOSTS = new Set([
   "nexvid.pl",
   "www.nexvid.pl",
   "www.nexvid.online",
-  "nexvid.nexvid.pages.dev",
 ]);
 
 function applySecurityHeaders(response: NextResponse) {

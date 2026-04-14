@@ -294,7 +294,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
             <button
               onClick={() => setShowArchived((prev) => !prev)}
               className={cn(
-                "btn-glass text-[10px] px-3 py-1.5 uppercase tracking-wider",
+                "btn-glass text-[10px] px-3 py-1.5 tracking-wider",
                 showArchived && "bg-accent/15 text-accent",
               )}
             >

@@ -12,6 +12,7 @@ import {
 } from "@/lib/cloudSync";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import { LIMITS } from "@/lib/validation";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -213,12 +214,12 @@ export default function ContactPage() {
     const subjectValue = subject.trim();
     const messageValue = message.trim();
 
-    if (!subjectValue) {
-      toast("Subject is required", "error");
+    if (subjectValue.length < LIMITS.FEEDBACK_SUBJECT_MIN) {
+      toast(`Subject must be at least ${LIMITS.FEEDBACK_SUBJECT_MIN} characters`, "error");
       return;
     }
-    if (!messageValue) {
-      toast("Message is required", "error");
+    if (messageValue.length < LIMITS.FEEDBACK_MESSAGE_MIN) {
+      toast(`Message must be at least ${LIMITS.FEEDBACK_MESSAGE_MIN} characters`, "error");
       return;
     }
 
@@ -250,8 +251,8 @@ export default function ContactPage() {
   const handleReply = async () => {
     if (!selectedThreadId) return;
     const body = replyText.trim();
-    if (!body) {
-      toast("Reply cannot be empty", "error");
+    if (body.length < LIMITS.FEEDBACK_REPLY_MIN) {
+      toast(`Reply must be at least ${LIMITS.FEEDBACK_REPLY_MIN} characters`, "error");
       return;
     }
 
@@ -399,7 +400,8 @@ export default function ContactPage() {
                     value={subject}
                     onChange={(event) => setSubject(event.target.value)}
                     placeholder="Short, descriptive title..."
-                    maxLength={120}
+                    minLength={LIMITS.FEEDBACK_SUBJECT_MIN}
+                    maxLength={LIMITS.FEEDBACK_SUBJECT_MAX}
                   />
                 </div>
 
@@ -412,7 +414,8 @@ export default function ContactPage() {
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
                     placeholder="Describe your issue or feedback in detail..."
-                    maxLength={4000}
+                    minLength={LIMITS.FEEDBACK_MESSAGE_MIN}
+                    maxLength={LIMITS.FEEDBACK_MESSAGE_MAX}
                   />
                 </div>
 
@@ -704,13 +707,14 @@ export default function ContactPage() {
                           )}
                           value={replyText}
                           onChange={(event) => setReplyText(event.target.value)}
-                          placeholder={
-                            isSelectedClosed
-                              ? "This conversation has been archived."
-                              : "Type your reply here..."
-                          }
-                          maxLength={4000}
-                          disabled={isSelectedClosed || isSubmitting}
+                            placeholder={
+                              isSelectedClosed
+                                ? "This conversation has been archived."
+                                : "Type your reply here..."
+                            }
+                            minLength={LIMITS.FEEDBACK_REPLY_MIN}
+                            maxLength={LIMITS.FEEDBACK_REPLY_MAX}
+                            disabled={isSelectedClosed || isSubmitting}
                           rows={1}
                           onKeyDown={(e) => {
                             if (
