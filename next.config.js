@@ -53,6 +53,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  turbopack: {},
   eslint: {
     ignoreDuringBuilds: true,
   },
