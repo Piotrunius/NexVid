@@ -597,7 +597,7 @@ select.input option {
     opacity: 1;
 }
 
-.player-container.is-fullscreen:not(.controls-visible) {
+.player-container:not(.controls-visible) {
     cursor: none;
 }
 

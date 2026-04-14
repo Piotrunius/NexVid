@@ -2938,7 +2938,11 @@ export function VideoPlayer({
           <div
             className={cn(
               "absolute inset-x-0 top-16 bottom-24 z-[20] select-none",
-              isDraggingProgress ? "cursor-grabbing" : "cursor-pointer"
+              isDraggingProgress 
+                ? "cursor-grabbing" 
+                : controlsVisible || settingsPanel !== null 
+                  ? "cursor-pointer" 
+                  : "cursor-none"
             )}
             onClick={handleInteractionAreaClick}
             onTouchEnd={handleInteractionAreaTouch}

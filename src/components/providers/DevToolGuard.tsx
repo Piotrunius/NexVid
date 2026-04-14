@@ -6,10 +6,16 @@
 "use client";
 
 import { useAuthStore } from "@/stores/auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function DevToolGuard() {
   const user = useAuthStore((s) => s.user);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isAdmin =
     user?.isAdmin ||
     user?.role === "admin" ||
@@ -17,9 +23,19 @@ export function DevToolGuard() {
     user?.role === "moderator";
 
   useEffect(() => {
+    if (!mounted) return;
     if (process.env.NODE_ENV !== "production") return;
 
-    if (isAdmin) return;
+    if (isAdmin) {
+      import("disable-devtool").then((mod) => {
+        try {
+          if (mod.default) {
+             mod.default.isSuspend = true;
+          }
+        } catch {}
+      });
+      return;
+    }
 
     let cleanup: (() => void) | undefined;
 
@@ -60,7 +76,7 @@ export function DevToolGuard() {
     return () => {
       cleanup?.();
     };
-  }, [isAdmin]);
+  }, [mounted, isAdmin]);
 
   return null;
 }
