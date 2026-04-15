@@ -776,8 +776,6 @@ export async function febboxGetLinks(
   return { qualities: results, subtitles: [], audioTracks: [] };
 }
 
-// ---- Full Resolution Pipeline ----
-
 export interface ResolvedStream {
   qualities: { url: string; quality: string; label: string; size: string }[];
   subtitles: {
