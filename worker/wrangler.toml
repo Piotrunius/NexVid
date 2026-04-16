@@ -8,7 +8,7 @@ database_name = "nexvid-db"
 database_id = "a0f07533-793a-43db-86ff-5c141bf54c64"
 
 [vars]
-ALLOWED_ORIGINS = "https://nexvid.online,https://www.nexvid.online,https://*.nexvid.online,https://nexvid.pages.dev,https://*.nexvid.pages.dev,http://localhost:3000"
+ALLOWED_ORIGINS = "https://nexvid.online,https://www.nexvid.online,https://*.nexvid.online,https://nexvid.pages.dev,https://*.nexvid.pages.dev"
 ALLOWED_HOSTS = "*.febbox.com,febbox.com,*.shegu.net,*.febbox.org,*.stream.febbox.com,*.pobreflix.com,pobreflix.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org,*.vidlink.pro,vidlink.pro,*.vodvidl.site,*.b-cdn.net,videostr.net"
 SESSION_TTL_DAYS = "30"
 APP_BASE_URL = "https://nexvid.online"

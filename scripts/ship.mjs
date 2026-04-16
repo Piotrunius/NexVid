@@ -67,13 +67,15 @@ async function ship() {
   try {
     console.log("\n🚢 Shipping mode:");
     console.log("1. Development (Git + Deploy selection)");
-    console.log('2. Preview (Quick Pages deploy to "nexvid")');
+    console.log('2. Preview (Quick Pages deploy to "Preview")');
 
     const mode = await question("\nChoice (1-2): ");
 
     if (mode.trim() === "2") {
       console.log("\n🚀 Deploying Preview...");
-      execSync("bun run pages:deploy -- --branch nexvid", { stdio: "inherit" });
+      execSync("bun run pages:deploy -- --branch preview", {
+        stdio: "inherit",
+      });
       console.log("\n✨ Done!");
       return;
     }
@@ -130,11 +132,11 @@ async function ship() {
 
       console.log("\n🎯 Environment:");
       console.log("1. Production (main)");
-      console.log("2. Preview (nexvid)");
+      console.log("2. Preview (preview)");
       const envChoice = await question("Choice (1-2, default: 1): ");
 
       const isPreview = envChoice.trim() === "2";
-      const branch = isPreview ? "nexvid" : "main";
+      const branch = isPreview ? "preview" : "main";
 
       if (shouldDeployWorker) {
         console.log("\n⚡ Deploying Worker...");
