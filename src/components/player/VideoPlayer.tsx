@@ -2778,6 +2778,21 @@ export function VideoPlayer({
       setFullscreen(isNowFullscreen);
       if (isNowFullscreen) {
         showControls();
+        // Automatically go to landscape on mobile when entering fullscreen
+        if (typeof screen !== "undefined" && screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock("landscape").catch(() => {
+            // Silently ignore if the browser doesn't support locking or if it fails
+          });
+        }
+      } else {
+        // Unlock orientation when exiting fullscreen
+        if (typeof screen !== "undefined" && screen.orientation && screen.orientation.unlock) {
+          try {
+            screen.orientation.unlock();
+          } catch {
+            // Ignore errors
+          }
+        }
       }
     };
 
