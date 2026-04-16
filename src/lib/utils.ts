@@ -54,13 +54,13 @@ export function getBestQuality(
 
 export function getQualityLabel(quality: string): string {
   const labels: Record<string, string> = {
-    "4k": "2160p (UHD)",
-    "2k": "1440p (QHD)",
-    "1440": "1440p (QHD)",
-    "1080": "1080p (FHD)",
-    "720": "720p (HD)",
-    "480": "480p (SD)",
-    "360": "360p (SD)",
+    "4k": "2160 (UHD)",
+    "2k": "1440 (QHD)",
+    "1440": "1440 (QHD)",
+    "1080": "1080 (FHD)",
+    "720": "720 (HD)",
+    "480": "480 (SD)",
+    "360": "360 (SD)",
     unknown: "Unknown",
   };
   return labels[quality] || quality;

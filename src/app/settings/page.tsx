@@ -9,7 +9,7 @@ import { clearCloudEverything, hasCloudBackend } from "@/lib/cloudSync";
 import { normalizeFebboxTokenForStorage } from "@/lib/febbox";
 import { SOURCES } from "@/lib/providers";
 import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from "@/lib/tidb";
-import { cn } from "@/lib/utils";
+import { cn, getQualityLabel } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
 import { usePlayerStore } from "@/stores/player";
 import {
@@ -236,11 +236,17 @@ export default function SettingsPage() {
       return;
     }
     if (newPassword.length < LIMITS.PASSWORD_MIN) {
-      toast(`Password must be at least ${LIMITS.PASSWORD_MIN} characters`, "error");
+      toast(
+        `Password must be at least ${LIMITS.PASSWORD_MIN} characters`,
+        "error",
+      );
       return;
     }
     if (newPassword.length > LIMITS.PASSWORD_MAX) {
-      toast(`Password cannot exceed ${LIMITS.PASSWORD_MAX} characters`, "error");
+      toast(
+        `Password cannot exceed ${LIMITS.PASSWORD_MAX} characters`,
+        "error",
+      );
       return;
     }
 
@@ -259,7 +265,10 @@ export default function SettingsPage() {
   const handleNicknameChange = async () => {
     const candidate = newUsername.trim();
     const trimmed = candidate.trim();
-    if (trimmed.length < LIMITS.USERNAME_MIN || trimmed.length > LIMITS.USERNAME_MAX) {
+    if (
+      trimmed.length < LIMITS.USERNAME_MIN ||
+      trimmed.length > LIMITS.USERNAME_MAX
+    ) {
       toast(
         `Nickname must be between ${LIMITS.USERNAME_MIN} and ${LIMITS.USERNAME_MAX} characters`,
         "error",
@@ -634,12 +643,12 @@ export default function SettingsPage() {
                   }
                   className="input w-full"
                 >
-                  <option value="4k">4K</option>
-                  <option value="2k">2K</option>
-                  <option value="1080">1080p</option>
-                  <option value="720">720p</option>
-                  <option value="480">480p</option>
-                  <option value="360">360p</option>
+                  <option value="4k">{getQualityLabel("4k")}</option>
+                  <option value="2k">{getQualityLabel("2k")}</option>
+                  <option value="1080">{getQualityLabel("1080")}</option>
+                  <option value="720">{getQualityLabel("720")}</option>
+                  <option value="480">{getQualityLabel("480")}</option>
+                  <option value="360">{getQualityLabel("360")}</option>
                 </select>
                 <p className="mt-1.5 text-[11px] text-text-muted">
                   Default video quality preference when multiple streams are
