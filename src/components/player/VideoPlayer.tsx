@@ -5358,8 +5358,8 @@ export function VideoPlayer({
                       {isEpisodeNavigating
                         ? "Loading..."
                         : autoNext
-                          ? `Auto-Next in ${nextCountdown}s`
-                          : "Ready to play"}
+                          ? (mediaType === "movie" ? `Finishing in ${nextCountdown}s` : `Auto-Next in ${nextCountdown}s`)
+                          : (mediaType === "movie" ? "About to finish" : "Ready to play")}
                     </p>
                   </div>
                 </div>
@@ -5380,7 +5380,7 @@ export function VideoPlayer({
                     disabled={isEpisodeNavigating}
                     className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
                   >
-                    {isEpisodeNavigating ? "..." : "Play Now"}
+                    {isEpisodeNavigating ? "..." : mediaType === "movie" ? "Finish" : "Play Now"}
                   </button>
                   {autoNext && (
                     <button
