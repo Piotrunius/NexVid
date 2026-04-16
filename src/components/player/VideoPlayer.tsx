@@ -1893,7 +1893,7 @@ export function VideoPlayer({
     [isMuted],
   );
 
-  const promptKey = `${seasonNum}-${episodeNum}`;
+   const promptKey = mediaType === "movie" ? "movie-finish" : `${seasonNum}-${episodeNum}`;
   const effectiveSegments: MediaSegments = segments ?? {
     intro: [],
     recap: [],
@@ -1967,27 +1967,10 @@ export function VideoPlayer({
       return;
     }
 
-    // Handle movies auto-finish when autoNext is enabled
-    if (mediaType === "movie") {
-      if (autoNext && currentTime >= effectiveVideoEndTime - 0.1) {
-        setIsFinished(true);
-        setAutoNextLocked(true);
-      }
-      if (showNextPrompt) setShowNextPrompt(false);
-      return;
-    }
-
-    if (
-      !onNavigateEpisode ||
-      mediaType !== "show" ||
-      !season?.episodes?.length
-    ) {
-      if (showNextPrompt) setShowNextPrompt(false);
-      return;
-    }
-
-    const nextEpisodeTarget = getNextEpisodeTarget();
-    if (!nextEpisodeTarget) {
+    const nextEpisodeTarget = mediaType === "show" ? getNextEpisodeTarget() : null;
+    
+    // If it's a show and no next episode, and it's not a movie, we don't show prompt.
+    if (mediaType === "show" && !nextEpisodeTarget) {
       if (showNextPrompt) setShowNextPrompt(false);
       return;
     }
@@ -2000,23 +1983,27 @@ export function VideoPlayer({
     const remaining = Math.max(0, effectiveVideoEndTime - currentTime);
 
     // If we're within 12s of the effective end (e.g. credits start), show the prompt.
-    // The user requested to hide this toast entirely if autoNext is disabled.
     const shouldPrompt = autoNext && remaining <= 12;
 
     if (shouldPrompt) {
       if (!showNextPrompt) setShowNextPrompt(true);
 
-      // Trigger automatic navigation if autoNext is on and we reached the effective end.
-      // We also check remaining <= 0.5 to allow for a tiny buffer.
+      // Trigger automatic transition if autoNext is on and we reached the effective end.
       if (
         autoNext &&
         (nextCountdown <= 0 || remaining <= 0.1) &&
         nextPromptHandledForRef.current !== promptKey
       ) {
         nextPromptHandledForRef.current = promptKey;
-        setIsEpisodeNavigating(true);
-        nextEpisodeAutoNavRef.current = true;
-        onNavigateEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
+        if (mediaType === "movie") {
+          setIsFinished(true);
+          setPlaying(false);
+          setAutoNextLocked(true);
+        } else if (nextEpisodeTarget) {
+          setIsEpisodeNavigating(true);
+          nextEpisodeAutoNavRef.current = true;
+          onNavigateEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
+        }
       }
     } else {
       if (showNextPrompt) setShowNextPrompt(false);
@@ -5343,7 +5330,7 @@ export function VideoPlayer({
           </div>
 
           <AnimatePresence>
-            {showNextPrompt && isShowWithEpisodes && (
+            {showNextPrompt && (isShowWithEpisodes || mediaType === "movie") && (
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
                 animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
@@ -5362,7 +5349,10 @@ export function VideoPlayer({
                   </div>
                   <div className="min-w-0">
                     <p className="text-[12px] font-bold text-white truncate">
-                      Next: S{getNextEpisodeTarget()?.season} E{getNextEpisodeTarget()?.episode}
+                      {mediaType === "movie" 
+                        ? "Movie finishing" 
+                        : `Next: S${getNextEpisodeTarget()?.season} E${getNextEpisodeTarget()?.episode}`
+                      }
                     </p>
                     <p className="text-[10px] font-medium text-white/50">
                       {isEpisodeNavigating
@@ -5378,7 +5368,14 @@ export function VideoPlayer({
                   <button
                     onClick={() => {
                       nextPromptHandledForRef.current = promptKey;
-                      navigateNextEpisode();
+                      if (mediaType === "movie") {
+                        setIsFinished(true);
+                        setPlaying(false);
+                        setAutoNextLocked(true);
+                        setShowNextPrompt(false);
+                      } else {
+                        navigateNextEpisode();
+                      }
                     }}
                     disabled={isEpisodeNavigating}
                     className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
@@ -5416,7 +5413,7 @@ export function VideoPlayer({
 
           {/* End Screen / Finished Overlay */}
           {isFinished && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black animate-fade-in">
               <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 animate-scale-in">
                 <div className="mb-4 flex justify-center">
                   <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
