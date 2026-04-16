@@ -16,12 +16,8 @@ pages_build_output_dir = ".vercel/output/static"
 # database_name = "nexvid-db"
 # database_id = "your-database-id-here"
 
-# Environment variables (secrets should be set via dashboard or CLI)
-# npx wrangler pages secret put FEBBOX_CLIENT_ID
-# npx wrangler pages secret put FEBBOX_CLIENT_SECRET
-# npx wrangler pages secret put TURNSTILE_SECRET_KEY
-
 [vars]
+ALLOWED_ORIGINS = "https://nexvid.online,https://www.nexvid.online,https://*.nexvid.online,https://nexvid.pages.dev,https://*.nexvid.pages.dev"
 TURNSTILE_SITE_KEY = "0x4AAAAAACn4sX2wYBjJSQUo"
 ALLOWED_HOSTS = "*.febbox.com,febbox.com,*.shegu.net,*.febbox.org,*.stream.febbox.com,*.pobreflix.com,pobreflix.com,*.tmdb.org,api.themoviedb.org,image.tmdb.org,sub.wyzie.ru,api.theintrodb.org,*.vidlink.pro,vidlink.pro,*.vodvidl.site,*.b-cdn.net,videostr.net,oneproxy.1x2.space,*.1x2.space"
 NEXT_PUBLIC_DISCORD_URL = "https://discord.gg/jTWt8HN5RU"
