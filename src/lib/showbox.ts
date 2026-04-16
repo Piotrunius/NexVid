@@ -373,8 +373,8 @@ export async function febboxGetLinks(
   subtitles: FebBoxSubtitle[];
   audioTracks: FebBoxAudioTrack[];
 }> {
-  const directUrl = `${FEBBOX_BASE}/file/file_download?fid=${fid}&share_key=${encodeURIComponent(shareKey)}`;
-  const url = `${FEBBOX_BASE}/console/video_quality_list?fid=${fid}`;
+  const directUrl = `${FEBBOX_BASE}/file/file_download?fid=${fid}&share_key=${encodeURIComponent(shareKey)}&is_hls=1`;
+  const url = `${FEBBOX_BASE}/console/video_quality_list?fid=${fid}&is_hls=1`;
   const headers: Record<string, string> = {
     ...FEBBOX_HEADERS,
     referer: `${FEBBOX_BASE}/share/${shareKey}`,
@@ -394,6 +394,7 @@ export async function febboxGetLinks(
   };
 
   const pickQualityUrl = (item: any, fallback: string): string => {
+    // Strictly prioritize HLS manifest URLs for browser compatibility
     const candidates = [
       item?.hls_url,
       item?.play_url,
@@ -402,15 +403,25 @@ export async function febboxGetLinks(
       item?.download_url,
       item?.file_url,
       item?.src,
-      fallback,
     ];
 
     for (const candidate of candidates) {
       const value = String(candidate || "").trim();
       if (!value) continue;
+      if (/^https?:\/\//i.test(value)) {
+        // If we found an HLS URL, return it immediately
+        if (value.toLowerCase().includes(".m3u8")) return value;
+      }
+    }
+
+    // Secondary pass: return the first non-HLS URL found (e.g. mp4)
+    for (const candidate of candidates) {
+      const value = String(candidate || "").trim();
+      if (!value) continue;
       if (/^https?:\/\//i.test(value)) return value;
     }
-    return "";
+
+    return String(fallback || "").trim();
   };
 
   // Preferred: public share download endpoint (works without logged-in UI cookie)
