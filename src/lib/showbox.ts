@@ -373,8 +373,6 @@ export async function febboxGetLinks(
   subtitles: FebBoxSubtitle[];
   audioTracks: FebBoxAudioTrack[];
 }> {
-  const directUrl = `${FEBBOX_BASE}/file/file_download?fid=${fid}&share_key=${encodeURIComponent(shareKey)}&is_hls=1`;
-  const url = `${FEBBOX_BASE}/console/video_quality_list?fid=${fid}&is_hls=1`;
   const headers: Record<string, string> = {
     ...FEBBOX_HEADERS,
     referer: `${FEBBOX_BASE}/share/${shareKey}`,
@@ -382,8 +380,7 @@ export async function febboxGetLinks(
   const cookieHeader = buildFebboxCookieHeader(uiCookie);
   if (cookieHeader) headers.cookie = cookieHeader;
 
-  let data: any;
-
+  // Helpers
   const inferFormatFromUrl = (rawUrl: string): string => {
     const url = String(rawUrl || "").toLowerCase();
     if (!url) return "";
@@ -394,7 +391,6 @@ export async function febboxGetLinks(
   };
 
   const pickQualityUrl = (item: any, fallback: string): string => {
-    // Strictly prioritize HLS manifest URLs for browser compatibility
     const candidates = [
       item?.hls_url,
       item?.play_url,
@@ -404,387 +400,134 @@ export async function febboxGetLinks(
       item?.file_url,
       item?.src,
     ];
-
     for (const candidate of candidates) {
       const value = String(candidate || "").trim();
       if (!value) continue;
-      if (/^https?:\/\//i.test(value)) {
-        // If we found an HLS URL, return it immediately
-        if (value.toLowerCase().includes(".m3u8")) return value;
-      }
+      if (/^https?:\/\//i.test(value) && value.toLowerCase().includes(".m3u8")) return value;
     }
-
-    // Secondary pass: return the first non-HLS URL found (e.g. mp4)
     for (const candidate of candidates) {
       const value = String(candidate || "").trim();
       if (!value) continue;
       if (/^https?:\/\//i.test(value)) return value;
     }
-
     return String(fallback || "").trim();
   };
 
-  // Preferred: public share download endpoint (works without logged-in UI cookie)
-  const parseDirectSubtitles = (directData: any): FebBoxSubtitle[] => {
-    const fileEntry =
-      Array.isArray(directData?.data) && directData.data.length > 0
-        ? directData.data[0]
-        : {};
-    const rawCollections = [
-      fileEntry?.subtitle_list,
-      fileEntry?.subtitles,
-      fileEntry?.sub_list,
-      fileEntry?.srt_list,
-      directData?.subtitle_list,
-      directData?.subtitles,
-    ];
-
-    const items: any[] = [];
-    for (const collection of rawCollections) {
-      if (Array.isArray(collection)) items.push(...collection);
+  const fetchJson = async (url: string) => {
+    try {
+      const resp = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
+      if (!resp.ok) return null;
+      const text = await resp.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { html: text }; // Treat as HTML if JSON fails
+      }
+    } catch {
+      return null;
     }
+  };
 
-    const guessLang = (value: string) => {
-      const lowered = value.toLowerCase();
-      if (lowered.includes("pol") || lowered.includes("pl")) return "pl";
-      if (lowered.includes("spa") || lowered.includes("es")) return "es";
-      if (lowered.includes("fre") || lowered.includes("fr")) return "fr";
-      if (lowered.includes("ger") || lowered.includes("de")) return "de";
-      if (lowered.includes("ita") || lowered.includes("it")) return "it";
-      if (lowered.includes("por") || lowered.includes("pt")) return "pt";
+  const parseDirectSubtitles = (directData: any): FebBoxSubtitle[] => {
+    const fileEntry = Array.isArray(directData?.data) ? directData.data[0] : (directData?.data || {});
+    const items = [...(Array.isArray(fileEntry?.subtitle_list) ? fileEntry.subtitle_list : []), ...(Array.isArray(directData?.subtitle_list) ? directData.subtitle_list : [])];
+    const guessLang = (v: string) => {
+      const l = v.toLowerCase();
+      if (l.includes("pol") || l.includes("pl")) return "pl";
+      if (l.includes("spa") || l.includes("es")) return "es";
       return "en";
     };
-
-    const mapped = items
-      .map((item) => {
-        if (typeof item === "string") {
-          const type = item.toLowerCase().includes(".vtt") ? "vtt" : "srt";
-          return {
-            url: item,
-            language: guessLang(item),
-            label: guessLang(item).toUpperCase(),
-            type,
-          } as FebBoxSubtitle;
-        }
-
-        const url =
-          item?.url || item?.src || item?.download_url || item?.file_path || "";
-        if (!url) return null;
-
-        const language =
-          item?.language ||
-          item?.lang ||
-          item?.locale ||
-          guessLang(String(item?.label || item?.name || url));
-        const label =
-          item?.label || item?.name || String(language).toUpperCase();
-        const type = String(url).toLowerCase().includes(".vtt") ? "vtt" : "srt";
-
-        return {
-          url,
-          language: String(language).toLowerCase(),
-          label: String(label),
-          type,
-        } as FebBoxSubtitle;
-      })
-      .filter((entry): entry is FebBoxSubtitle => Boolean(entry && entry.url));
-
-    const unique = new Map<string, FebBoxSubtitle>();
-    for (const subtitle of mapped) {
-      if (!unique.has(subtitle.url)) unique.set(subtitle.url, subtitle);
-    }
-    return Array.from(unique.values());
+    return items.map(item => {
+      const u = typeof item === "string" ? item : (item?.url || item?.src || "");
+      if (!u) return null;
+      return { url: u, language: guessLang(u), label: guessLang(u).toUpperCase(), type: u.toLowerCase().includes(".vtt") ? "vtt" : "srt" } as FebBoxSubtitle;
+    }).filter((s): s is FebBoxSubtitle => !!s);
   };
 
   const parseDirectAudioTracks = (directData: any): FebBoxAudioTrack[] => {
-    const fileEntry =
-      Array.isArray(directData?.data) && directData.data.length > 0
-        ? directData.data[0]
-        : {};
-    const rawCollections = [
-      fileEntry?.audio_list,
-      fileEntry?.audio_tracks,
-      fileEntry?.audios,
-      fileEntry?.track_list,
-      fileEntry?.multi_audio,
-      directData?.audio_list,
-      directData?.audio_tracks,
-      directData?.audios,
-    ];
+    const fileEntry = Array.isArray(directData?.data) ? directData.data[0] : (directData?.data || {});
+    const items = [...(Array.isArray(fileEntry?.audio_list) ? fileEntry.audio_list : []), ...(Array.isArray(directData?.audio_list) ? directData.audio_list : [])];
+    return items.map((item, index) => {
+      const u = typeof item === "string" ? item : (item?.url || item?.src || "");
+      const lang = String(item?.lang || "en");
+      return { id: index, name: lang.toUpperCase(), lang, isDefault: index === 0, url: u } as FebBoxAudioTrack;
+    });
+  };
 
-    const guessLang = (value: string) => {
-      const lowered = String(value || "").toLowerCase();
-      if (lowered.includes("pol") || lowered.includes("pl")) return "pl";
-      if (lowered.includes("eng") || lowered.includes("en")) return "en";
-      if (lowered.includes("spa") || lowered.includes("es")) return "es";
-      if (lowered.includes("fre") || lowered.includes("fr")) return "fr";
-      if (lowered.includes("ger") || lowered.includes("de")) return "de";
-      if (lowered.includes("ita") || lowered.includes("it")) return "it";
-      if (lowered.includes("por") || lowered.includes("pt")) return "pt";
-      if (lowered.includes("jpn") || lowered.includes("ja")) return "ja";
-      if (lowered.includes("kor") || lowered.includes("ko")) return "ko";
-      return "unknown";
-    };
+  const parseLinks = (data: any) => {
+    const fileEntry = Array.isArray(data?.data) ? data.data[0] : (data?.data || data || {});
+    const rawList = fileEntry.quality_list || fileEntry.transcode_list || data.list || data.data?.list || {};
+    const items = Array.isArray(rawList) ? rawList : Object.values(rawList);
+    
+    const qualities = items.map((q: any) => {
+      const u = pickQualityUrl(q, String(fileEntry?.download_url || ""));
+      if (!u) return null;
+      return {
+        url: u,
+        quality: String(q?.quality || q?.label || "ORG"),
+        name: String(q?.label || q?.name || "Original"),
+        label: String(q?.label || q?.name || "Original"),
+        size: q?.file_size ? `${q.file_size}` : "",
+        format: inferFormatFromUrl(u),
+      };
+    }).filter((q): q is FebBoxQuality => !!q);
 
-    const items: any[] = [];
-    for (const collection of rawCollections) {
-      if (Array.isArray(collection)) items.push(...collection);
+    return { qualities, subtitles: parseDirectSubtitles(data), audioTracks: parseDirectAudioTracks(data) };
+  };
+
+  let allQualities: FebBoxQuality[] = [];
+  let allSubtitles: FebBoxSubtitle[] = [];
+  let allAudioTracks: FebBoxAudioTrack[] = [];
+
+  // 1. Try file_download (Direct)
+  const d1 = await fetchJson(`${FEBBOX_BASE}/file/file_download?fid=${fid}&share_key=${encodeURIComponent(shareKey)}&is_hls=1&is_html=0`);
+  if (d1) {
+    const p = parseLinks(d1);
+    allQualities.push(...p.qualities);
+    allSubtitles.push(...p.subtitles);
+    allAudioTracks.push(...p.audioTracks);
+    if (d1.data?.[0]?.download_url) {
+      const u = d1.data[0].download_url;
+      if (!allQualities.find(q => q.url === u)) {
+        allQualities.push({ url: u, quality: "ORG", name: "Original", label: "Original", size: d1.data[0].file_size || "", format: inferFormatFromUrl(u) });
+      }
     }
+  }
 
-    const mapped = items
-      .map((item, index) => {
-        if (typeof item === "string") {
-          const lang = guessLang(item);
-          return {
-            id: index,
-            name:
-              lang !== "unknown" ? lang.toUpperCase() : `Track ${index + 1}`,
-            lang,
-            isDefault: index === 0,
-            url: item,
-          } as FebBoxAudioTrack;
+  // 2. Try video_quality_list (Quality Console)
+  const d2 = await fetchJson(`${FEBBOX_BASE}/console/video_quality_list?fid=${fid}&share_id=${shareKey}&is_hls=1&is_html=0`);
+  if (d2) {
+    if (d2.html) {
+      const regex = /class="file_quality"[^>]*data-url="([^"]*)"[^>]*data-quality="([^"]*)"/g;
+      let m;
+      while ((m = regex.exec(d2.html)) !== null) {
+        if (!allQualities.find(q => q.url === m![1])) {
+          allQualities.push({ url: m[1], quality: m[2], name: m[2], label: m[2], size: "", format: inferFormatFromUrl(m[1]) });
         }
-
-        if (!item || typeof item !== "object") return null;
-
-        const url =
-          item?.url ||
-          item?.src ||
-          item?.download_url ||
-          item?.file_path ||
-          undefined;
-        const lang = String(
-          item?.language ||
-            item?.lang ||
-            item?.locale ||
-            item?.code ||
-            guessLang(item?.name || item?.label || ""),
-        ).toLowerCase();
-        const name = String(
-          item?.label ||
-            item?.name ||
-            item?.title ||
-            (lang !== "unknown" ? lang.toUpperCase() : `Track ${index + 1}`),
-        );
-        const id = Number.isFinite(Number(item?.id)) ? Number(item.id) : index;
-
-        return {
-          id,
-          name,
-          lang,
-          isDefault: Boolean(
-            item?.default || item?.is_default || item?.enabled || index === 0,
-          ),
-          url,
-        } as FebBoxAudioTrack;
-      })
-      .filter((entry): entry is FebBoxAudioTrack => Boolean(entry));
-
-    if (mapped.length === 0) return [];
-
-    const unique = new Map<string, FebBoxAudioTrack>();
-    for (const track of mapped) {
-      const key = track.url || `${track.lang}:${track.name}`;
-      if (!unique.has(key)) unique.set(key, track);
-    }
-
-    const deduped = Array.from(unique.values()).map((track, index) => ({
-      ...track,
-      id: index,
-      isDefault: track.isDefault || index === 0,
-    }));
-
-    return deduped;
-  };
-
-  const parseDirectLinks = (
-    directData: any,
-  ): {
-    qualities: FebBoxQuality[];
-    subtitles: FebBoxSubtitle[];
-    audioTracks: FebBoxAudioTrack[];
-  } => {
-    if (
-      !(
-        directData?.code === 1 &&
-        Array.isArray(directData?.data) &&
-        directData.data.length > 0
-      )
-    ) {
-      return { qualities: [], subtitles: [], audioTracks: [] };
-    }
-
-    const fileEntry = directData.data[0] || {};
-    const qualityList = Array.isArray(fileEntry.quality_list)
-      ? fileEntry.quality_list
-      : [];
-    const subtitles = parseDirectSubtitles(directData);
-    const audioTracks = parseDirectAudioTracks(directData);
-
-    const mapped = qualityList
-      .map((q: any) => {
-        const url = pickQualityUrl(q, String(fileEntry?.download_url || ""));
-        const quality = String(q?.quality || q?.label || q?.name || "ORG");
-        const format = String(
-          q?.format ||
-            q?.ext ||
-            q?.type ||
-            q?.mime_type ||
-            inferFormatFromUrl(url),
-        );
-        const mime = String(q?.mime || q?.mime_type || "");
-
-        return {
-          url,
-          quality,
-          name: String(q?.name || q?.label || quality || "Original"),
-          label: String(q?.label || q?.name || quality || "Original"),
-          size: q?.file_size ? `${q.file_size}` : "",
-          format,
-          mime,
-          type: String(q?.type || ""),
-        };
-      })
-      .filter((q: FebBoxQuality) => Boolean(q.url));
-
-    if (mapped.length > 0) return { qualities: mapped, subtitles, audioTracks };
-
-    if (fileEntry?.download_url) {
-      const fallbackUrl = String(fileEntry.download_url);
-      return {
-        qualities: [
-          {
-            url: fallbackUrl,
-            quality: "ORG",
-            name: "Original",
-            label: "Original",
-            size: fileEntry?.file_size ? `${fileEntry.file_size}` : "",
-            format: inferFormatFromUrl(fallbackUrl),
-            mime: "",
-            type: "",
-          },
-        ],
-        subtitles,
-        audioTracks,
-      };
-    }
-
-    return { qualities: [], subtitles: [], audioTracks: [] };
-  };
-
-  try {
-    const response = await fetch(directUrl, {
-      headers,
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const directData = await response.json();
-    const parsed = parseDirectLinks(directData);
-    if (parsed.qualities.length > 0) return parsed;
-  } catch {
-    // fallback below
-  }
-
-  // Fallback: HTML quality list endpoint
-  try {
-    const response = await fetch(url, {
-      headers,
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    data = await response.json();
-  } catch {
-    throw new Error("FebBox links fetch failed");
-  }
-
-  const html: string = data?.html || data?.data?.html || "";
-
-  if (!html) {
-    // Try alternate JSON structure
-    if (data?.data?.list && Array.isArray(data.data.list)) {
-      return {
-        qualities: data.data.list.map((item: any) => ({
-          url: item.url || item.play_url || item.download_url || "",
-          quality: item.quality || item.resolution || item.label || "unknown",
-          name: item.name || item.label || item.quality || "unknown",
-          label: item.label || item.name || item.quality || "unknown",
-          size: item.size || "",
-          format:
-            item.format ||
-            item.ext ||
-            item.type ||
-            inferFormatFromUrl(
-              item.url || item.play_url || item.download_url || "",
-            ),
-          mime: item.mime || item.mime_type || "",
-          type: item.type || "",
-        })),
-        subtitles: [],
-        audioTracks: [],
-      };
-    }
-    return { qualities: [], subtitles: [], audioTracks: [] };
-  }
-
-  const results: FebBoxQuality[] = [];
-
-  // Primary regex
-  const regex =
-    /class="file_quality"[^>]*data-url="([^"]*)"[^>]*data-quality="([^"]*)"/g;
-  let match;
-  while ((match = regex.exec(html)) !== null) {
-    const chunk = html.substring(match.index, match.index + 500);
-    const nameMatch = chunk.match(/class="name"[^>]*>([^<]*)</);
-    const sizeMatch = chunk.match(/class="size"[^>]*>([^<]*)</);
-    results.push({
-      url: match[1],
-      quality: match[2],
-      name: nameMatch?.[1]?.trim() || match[2],
-      size: sizeMatch?.[1]?.trim() || "",
-      label: nameMatch?.[1]?.trim() || match[2],
-      format: inferFormatFromUrl(match[1]),
-      mime: "",
-      type: "",
-    });
-  }
-
-  // Fallback regex
-  if (results.length === 0) {
-    const regex2 = /data-url="([^"]+)"[^>]*data-quality="([^"]+)"/g;
-    let m2;
-    while ((m2 = regex2.exec(html)) !== null) {
-      results.push({
-        url: m2[1],
-        quality: m2[2],
-        name: m2[2],
-        label: m2[2],
-        size: "",
-        format: inferFormatFromUrl(m2[1]),
-        mime: "",
-        type: "",
-      });
+      }
+    } else {
+      const p = parseLinks(d2);
+      p.qualities.forEach(q => { if (!allQualities.find(aq => aq.url === q.url)) allQualities.push(q); });
     }
   }
 
-  // Last resort: plain link extraction
-  if (results.length === 0) {
-    const linkRegex = /href="(https?:\/\/[^"]+\.(mp4|mkv|m3u8)[^"]*)"/g;
-    let m3;
-    while ((m3 = linkRegex.exec(html)) !== null) {
-      results.push({
-        url: m3[1],
-        quality: "unknown",
-        name: "Stream",
-        label: "Stream",
-        size: "",
-        format: inferFormatFromUrl(m3[1]),
-        mime: "",
-        type: "",
-      });
-    }
+  // 3. Try hls_playlist (Dedicated HLS)
+  const d3 = await fetchJson(`${FEBBOX_BASE}/file/hls_playlist?fid=${fid}&share_key=${shareKey}`);
+  if (d3 && !d3.html) {
+    const p = parseLinks(d3);
+    p.qualities.forEach(q => { if (!allQualities.find(aq => aq.url === q.url)) allQualities.push(q); });
   }
 
-  return { qualities: results, subtitles: [], audioTracks: [] };
+  // Final Merge & Priority
+  allQualities.sort((a, b) => {
+    const aH = a.url.toLowerCase().includes(".m3u8");
+    const bH = b.url.toLowerCase().includes(".m3u8");
+    if (aH && !bH) return -1;
+    if (!aH && bH) return 1;
+    return 0;
+  });
+
+  return { qualities: allQualities, subtitles: allSubtitles, audioTracks: allAudioTracks };
 }
 
 export interface ResolvedStream {
