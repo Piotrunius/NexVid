@@ -250,19 +250,8 @@ export function Navbar() {
         const filtered = results.filter(
           (item) => !isBlocked(item.tmdbId, item.mediaType),
         );
-        const scored = filtered.sort((a, b) => {
-          const scoreA =
-            (a.rating || 0) * 0.5 +
-            Math.min((a.voteCount || 0) / 1000, 5) * 0.3 +
-            (a.popularity || 0) * 0.2;
-          const scoreB =
-            (b.rating || 0) * 0.5 +
-            Math.min((b.voteCount || 0) / 1000, 5) * 0.3 +
-            (b.popularity || 0) * 0.2;
-          return scoreB - scoreA;
-        });
 
-        setSearchResults(scored.slice(0, 12));
+        setSearchResults(filtered.slice(0, 12));
       } catch {
         if (!cancelled) setSearchResults([]);
       } finally {

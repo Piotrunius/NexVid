@@ -500,6 +500,64 @@ function transformSearchItem(
   } as unknown as TmdbRawMovie);
 }
 
+// ---- Search Results Scoring ----
+
+function calculateRelevanceScore(item: MediaItem, query: string): number {
+  let score = 0;
+  const title = item.title.toLowerCase().trim();
+  const q = query.toLowerCase().trim();
+
+  // 1. RELEVANCE (Max ~300)
+  if (title === q) {
+    score += 300; // Exact match is king
+  } else if (title.startsWith(q)) {
+    score += 200; // Starts with query
+  } else if (title.includes(q)) {
+    score += 100; // Contains query
+  }
+
+  // Word-based match (bonus for matching whole words)
+  const queryWords = q.split(/\s+/).filter((w) => w.length > 1);
+  const titleWords = title.split(/\s+/).filter(Boolean);
+  let matchedWords = 0;
+  for (const qw of queryWords) {
+    if (titleWords.includes(qw)) matchedWords++;
+  }
+  if (queryWords.length > 0) {
+    score += (matchedWords / queryWords.length) * 50;
+  }
+
+  // 2. POPULARITY & VISIBILITY (Max ~150)
+  // Popularity can vary wildly (from < 1 to > 5000)
+  score += Math.min((item.popularity || 0) / 10, 150);
+
+  // 3. RATING QUALITY (Max ~100)
+  // We weight the rating by vote count to avoid "1 vote = 10 stars" junk
+  const votes = item.voteCount || 0;
+  if (votes > 5) {
+    const ratingWeight = Math.min(votes / 100, 1); // 0.05 to 1.0 multiplier
+    score += (item.rating || 0) * ratingWeight * 10;
+  }
+
+  // Logarithmic bonus for very high vote counts
+  score += Math.log10(votes + 1) * 15;
+
+  // 4. RECENCY (Max ~20)
+  const currentYear = new Date().getFullYear();
+  if (item.releaseYear > 0) {
+    const age = currentYear - item.releaseYear;
+    if (age <= 2) score += 20;
+    else if (age <= 5) score += 10;
+    else if (age > 30) score -= 10; // Slight penalty for very old/niche content unless relevant
+  }
+
+  // 5. JUNK PENALTIES
+  if (!item.posterPath) score -= 80; // High penalty for items without posters (often junk entries)
+  if (votes < 2) score -= 50; // High penalty for items with essentially 0 visibility
+
+  return score;
+}
+
 // ---- Public API ----
 
 export async function searchMedia(
@@ -529,8 +587,15 @@ export async function searchMedia(
           .map((r: any) => transformSearchItem(r))
       : data.results.map((r: any) => transformSearchItem(r, mediaType));
 
+  // Apply custom scoring to prioritize relevant/popular/high-quality results
+  const scoredResults = results.sort((a, b) => {
+    const scoreA = calculateRelevanceScore(a, query);
+    const scoreB = calculateRelevanceScore(b, query);
+    return scoreB - scoreA;
+  });
+
   return {
-    results,
+    results: scoredResults,
     totalPages: data.total_pages,
     totalResults: data.total_results,
   };
