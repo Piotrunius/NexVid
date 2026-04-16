@@ -35,6 +35,7 @@ async function sendDiscordNotification(message, branch, sha) {
 
   const payload = {
     username: "NexVid Update",
+    content: "<@&1493288088166731836>",
     embeds: [
       {
         title: `Site ${type.label} Pushed`,
