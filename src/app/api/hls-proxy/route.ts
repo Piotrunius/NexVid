@@ -34,10 +34,22 @@ function matchHostname(hostname: string, pattern: string): boolean {
 
 function isAllowedHost(hostname: string): boolean {
   const allowed = parseCsvSet(
-    process.env.ALLOWED_HOSTS || process.env.NEXT_PUBLIC_ALLOWED_HOSTS,
+    process.env.ALLOWED_HOSTS || 
+    process.env.NEXT_PUBLIC_ALLOWED_HOSTS ||
+    process.env.PROXY_ALLOWED_HOSTS
   );
-  if (allowed.length === 0) return false;
-  return allowed.some((pattern) => matchHostname(hostname, pattern));
+
+  // Fallback allowlist for critical sources if env vars are missing
+  const fallback = ["*.shegu.net", "*.febbox.com", "*.febbox.org", "febbox.com"];
+  
+  if (allowed.length === 0) {
+    return fallback.some((pattern) => matchHostname(hostname, pattern));
+  }
+  
+  return (
+    allowed.some((pattern) => matchHostname(hostname, pattern)) ||
+    fallback.some((pattern) => matchHostname(hostname, pattern))
+  );
 }
 
 function parseIPv4(hostname: string): number[] | null {

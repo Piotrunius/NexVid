@@ -240,6 +240,7 @@ type NormalizedQualityEntry = {
   quality: StreamQuality;
   url: string;
   sourceKey: string;
+  headers?: Record<string, string>;
 };
 
 function normalizeQualityKey(raw: string): StreamQuality | null {
@@ -283,7 +284,12 @@ function getNormalizedQualityEntries(
     const quality = normalizeQualityKey(key);
     if (!quality || !file?.url) continue;
     if (!bestByQuality.has(quality)) {
-      bestByQuality.set(quality, { quality, url: file.url, sourceKey: key });
+      bestByQuality.set(quality, { 
+        quality, 
+        url: file.url, 
+        sourceKey: key,
+        headers: (file as any).headers
+      });
     }
   }
 
@@ -1006,8 +1012,16 @@ export function VideoPlayer({
         : null;
 
       if (selectedEntry?.url) {
-        video.src = selectedEntry.url;
-        video.load();
+        // Robust HLS detection within file-type qualities
+        const isHls = selectedEntry.url.toLowerCase().includes(".m3u8");
+        
+        if (isHls) {
+          loadHls(selectedEntry.url, video, selectedEntry.headers);
+        } else {
+          video.src = selectedEntry.url;
+          video.load();
+        }
+        
         setQuality(selectedEntry.quality);
 
         if (

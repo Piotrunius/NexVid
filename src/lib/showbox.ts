@@ -242,6 +242,7 @@ export interface FebBoxQuality {
   mime?: string;
   type?: string;
   label?: string;
+  headers?: Record<string, string>;
 }
 
 export interface FebBoxSubtitle {
@@ -462,7 +463,8 @@ export async function febboxGetLinks(
     const qualities = items.map((q: any) => {
       const u = pickQualityUrl(q, String(fileEntry?.download_url || ""));
       if (!u) return null;
-      return {
+      
+      const res: FebBoxQuality = {
         url: u,
         quality: String(q?.quality || q?.label || "ORG"),
         name: String(q?.label || q?.name || "Original"),
@@ -470,6 +472,13 @@ export async function febboxGetLinks(
         size: q?.file_size ? `${q.file_size}` : "",
         format: inferFormatFromUrl(u),
       };
+
+      // Inject required referer for HLS links
+      if (u.toLowerCase().includes(".m3u8")) {
+        res.headers = { referer: "https://www.febbox.com/" };
+      }
+
+      return res;
     }).filter((q): q is FebBoxQuality => !!q);
 
     return { qualities, subtitles: parseDirectSubtitles(data), audioTracks: parseDirectAudioTracks(data) };
@@ -489,7 +498,18 @@ export async function febboxGetLinks(
     if (d1.data?.[0]?.download_url) {
       const u = d1.data[0].download_url;
       if (!allQualities.find(q => q.url === u)) {
-        allQualities.push({ url: u, quality: "ORG", name: "Original", label: "Original", size: d1.data[0].file_size || "", format: inferFormatFromUrl(u) });
+        const quality: FebBoxQuality = { 
+          url: u, 
+          quality: "ORG", 
+          name: "Original", 
+          label: "Original", 
+          size: d1.data[0].file_size || "", 
+          format: inferFormatFromUrl(u) 
+        };
+        if (u.toLowerCase().includes(".m3u8")) {
+          quality.headers = { referer: "https://www.febbox.com/" };
+        }
+        allQualities.push(quality);
       }
     }
   }
@@ -502,7 +522,18 @@ export async function febboxGetLinks(
       let m;
       while ((m = regex.exec(d2.html)) !== null) {
         if (!allQualities.find(q => q.url === m![1])) {
-          allQualities.push({ url: m[1], quality: m[2], name: m[2], label: m[2], size: "", format: inferFormatFromUrl(m[1]) });
+          const quality: FebBoxQuality = { 
+            url: m[1], 
+            quality: m[2], 
+            name: m[2], 
+            label: m[2], 
+            size: "", 
+            format: inferFormatFromUrl(m[1]) 
+          };
+          if (m[1].toLowerCase().includes(".m3u8")) {
+            quality.headers = { referer: "https://www.febbox.com/" };
+          }
+          allQualities.push(quality);
         }
       }
     } else {
