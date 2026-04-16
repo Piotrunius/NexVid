@@ -1959,11 +1959,28 @@ export function VideoPlayer({
     }
 
     if (
+      !duration ||
+      !currentTime ||
+      (mediaType !== "show" && mediaType !== "movie")
+    ) {
+      if (showNextPrompt) setShowNextPrompt(false);
+      return;
+    }
+
+    // Handle movies auto-finish when autoNext is enabled
+    if (mediaType === "movie") {
+      if (autoNext && currentTime >= effectiveVideoEndTime - 0.1) {
+        setIsFinished(true);
+        setAutoNextLocked(true);
+      }
+      if (showNextPrompt) setShowNextPrompt(false);
+      return;
+    }
+
+    if (
       !onNavigateEpisode ||
       mediaType !== "show" ||
-      !season?.episodes?.length ||
-      !duration ||
-      !currentTime
+      !season?.episodes?.length
     ) {
       if (showNextPrompt) setShowNextPrompt(false);
       return;
@@ -3333,8 +3350,8 @@ export function VideoPlayer({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipIntro}
-            className={cn(
-              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+             className={cn(
+              "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
@@ -3355,7 +3372,7 @@ export function VideoPlayer({
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipOutro}
             className={cn(
-              "absolute right-6 bottom-24 z-40 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+              "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
               glassEffect
                 ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
                 : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
