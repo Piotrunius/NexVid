@@ -32,6 +32,7 @@ export const SOURCES: SourceMeta[] = [
   { id: "zxcstream", name: "Gamma", rank: 900, type: "embed" },
   { id: "cinesrc", name: "Delta", rank: 850, type: "embed" },
   { id: "vidking", name: "Epsilon", rank: 800, type: "embed" },
+  { id: "peachify", name: "Sigma", rank: 110, type: "embed" },
   { id: "vidfast", name: "Zeta", rank: 104, type: "embed" },
   { id: "videasy", name: "Theta", rank: 103, type: "embed" },
   { id: "vidsync", name: "Kappa", rank: 102, type: "embed" },
@@ -48,6 +49,7 @@ const SOURCE_LABELS: Record<string, string> = {
   videasy: "Theta",
   vidsync: "Kappa",
   vidlink: "Omega",
+  peachify: "Sigma",
 };
 
 export function mapQuality(raw: string): StreamQuality {
@@ -204,6 +206,7 @@ async function scrapeSource(
       "vidking",
       "zxcstream",
       "cinesrc",
+      "peachify",
     ].includes(sourceId);
     if (isGenericEmbed) {
       options.onProgress?.({ id: sourceId, percentage: 50, status: "pending" });
@@ -339,6 +342,25 @@ async function scrapeSource(
               ? `https://zxcstream.xyz/player/movie/${tId}?domainAd=nexvid.online&color=${accent}&autoplay=${(options.autoPlay ?? true) ? "true" : "false"}`
               : `https://zxcstream.xyz/player/tv/${tId}/${sNum}/${eNum}?domainAd=nexvid.online&color=${accent}&autoplay=${(options.autoPlay ?? true) ? "true" : "false"}`;
           break;
+        case "peachify": {
+          const baseUrl = "https://peachify.top";
+          const path =
+            mType === "movie"
+              ? `/embed/movie/${tId}`
+              : `/embed/tv/${tId}/${sNum}/${eNum}`;
+          const url = new URL(`${baseUrl}${path}`);
+          url.searchParams.set("accent", accent);
+          if (options.startAt && options.startAt > 0) {
+            url.searchParams.set("startAt", Math.floor(options.startAt).toString());
+          }
+          // UI Toggles - Hide internal UI to use NexVid's overlay
+          url.searchParams.set("pip", "hide");
+          url.searchParams.set("cast", "hide");
+          url.searchParams.set("fullscreen", "hide");
+          
+          embedUrl = url.toString();
+          break;
+        }
       }
 
       const stream: EmbedStream = { type: "embed", url: embedUrl };

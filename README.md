@@ -33,15 +33,16 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 
 | Display Name | Internal ID | Type | Remote Link / Source Target |
 |--------------|-------------|------|-------------------------------|
-| Alpha        | `febbox`    | Direct | _FebBox API (Requires Token)_ |
-| Beta         | `pobreflix` | Direct | `https://pobreflix.codes` |
-| Gamma        | `zxcstream` | Embed  | `https://zxcstream.xyz` |
-| Delta        | `cinesrc`   | Embed  | `https://cinesrc.st` |
-| Epsilon      | `vidking`   | Embed  | `https://www.vidking.net` |
-| Zeta         | `vidfast`   | Embed  | `https://vidfast.pro/` |
-| Theta        | `videasy`   | Embed  | `https://videasy.net/` |
-| Kappa        | `vidsync`   | Embed  | `https://vidsync.xyz` |
-| Omega        | `vidlink`   | Embed  | `https://vidlink.pro/` |
+| Alpha        | `febbox`    | Direct (Best) | _FebBox API (Requires Token)_ |
+| Beta         | `pobreflix` | Direct (Best) | `https://pobreflix.codes` |
+| Gamma        | `zxcstream` | Embed (Safe)  | `https://zxcstream.xyz` |
+| Delta        | `cinesrc`   | Embed (Safe)  | `https://cinesrc.st` |
+| Epsilon      | `vidking`   | Embed (Safe)  | `https://www.vidking.net` |
+| Sigma        | `peachify`  | Embed (Unsafe)  | `https://peachify.top/` |
+| Zeta         | `vidfast`   | Embed (Unsafe)  | `https://vidfast.pro/` |
+| Theta        | `videasy`   | Embed (Unsafe)  | `https://videasy.net/` |
+| Kappa        | `vidsync`   | Embed (Dangerous)  | `https://vidsync.xyz` |
+| Omega        | `vidlink`   | Embed (Dangerous)  | `https://vidlink.pro/` |
 
 ---
 
@@ -235,10 +236,7 @@ Worker configuration is stored in `worker/wrangler.toml`. Common settings:
 If some HLS sources return `403`/`401` due to CDN restrictions, you can deploy a dedicated worker resolver and set:
 
 ```env
-DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=
-```
-
-When configured, the frontend will route problematic URLs through the resolver before hitting the upstream.
+DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=Ls through the resolver before hitting the upstream.
 
 ---
 
