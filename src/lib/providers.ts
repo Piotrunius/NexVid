@@ -356,8 +356,7 @@ async function scrapeSource(
           // UI Toggles - Hide internal UI to use NexVid's overlay
           url.searchParams.set("pip", "hide");
           url.searchParams.set("cast", "hide");
-          url.searchParams.set("fullscreen", "hide");
-          
+
           embedUrl = url.toString();
           break;
         }
