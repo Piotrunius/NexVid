@@ -12,14 +12,14 @@ import type { WatchlistItem, WatchlistStatus } from "@/types";
 import {
   CheckCircle2,
   Clock,
+  LayoutGrid,
   PauseCircle,
   PlayCircle,
   XCircle,
-  LayoutGrid,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const STATUSES: {
   key: WatchlistStatus;
@@ -65,7 +65,22 @@ export default function WatchlistPage() {
     "all",
   );
   const [sortBy, setSortBy] = useState<"title" | "added" | "rating">("added");
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const blockedItems = useBlockedContentStore((s) => s.blockedItems);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // Close menu if click is outside any watchlist card menu
+      if (!(e.target as HTMLElement).closest(".watchlist-menu-container")) {
+        setActiveMenuId(null);
+      }
+    };
+    if (activeMenuId) {
+      window.addEventListener("click", handleClickOutside);
+    }
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [activeMenuId]);
+
 
   const continueWatching = useMemo(
     () =>
@@ -137,7 +152,7 @@ export default function WatchlistPage() {
   }, [items, blockedItems]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
+    <div className="relative min-h-screen overflow-x-hidden pt-24 pb-10">
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
           <h1 className="text-[30px] font-bold text-text-primary tracking-tight">
@@ -170,7 +185,9 @@ export default function WatchlistPage() {
               onClick={() => setActiveStatus("all")}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${activeStatus === "all" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
             >
-              <span className="text-[12px] opacity-80"><LayoutGrid className="h-[12px] w-[12px]" /></span>
+              <span className="text-[12px] opacity-80">
+                <LayoutGrid className="h-[12px] w-[12px]" />
+              </span>
               All
             </button>
             {STATUSES.map((s) => (
@@ -247,6 +264,8 @@ export default function WatchlistPage() {
                 item={item}
                 onRemove={removeItem}
                 onStatusChange={setStatus}
+                isActive={activeMenuId === item.id}
+                onToggleMenu={(open) => setActiveMenuId(open ? item.id : null)}
               />
             ))}
           </div>
@@ -342,12 +361,29 @@ function WatchlistCard({
   item,
   onRemove,
   onStatusChange,
+  isActive,
+  onToggleMenu,
 }: {
   item: WatchlistItem;
   onRemove: (id: string) => void;
   onStatusChange: (id: string, status: WatchlistStatus) => void;
+  isActive: boolean;
+  onToggleMenu: (open: boolean) => void;
 }) {
-  const [showMenu, setShowMenu] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleToggleMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isActive && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // If the button is in the lower half of the viewport, open the menu upwards
+      setOpenUp(rect.top > window.innerHeight / 1.65);
+    }
+    onToggleMenu(!isActive);
+  };
+
+
   const statusInfo = STATUSES.find((s) => s.key === item.status);
   const link =
     item.mediaType === "movie"
@@ -358,7 +394,7 @@ function WatchlistCard({
     <div
       className={cn(
         "glass-card group relative",
-        showMenu && "z-40 overflow-visible",
+        isActive && "z-40 overflow-visible",
       )}
     >
       <Link href={link} className="flex gap-3 p-3">
@@ -445,14 +481,14 @@ function WatchlistCard({
 
       {/* Hover menu */}
       <div
-        className={cn("absolute right-2 top-2 transition-opacity opacity-100")}
+        className={cn(
+          "absolute right-2 top-2 transition-opacity opacity-100 watchlist-menu-container",
+        )}
       >
         <div className="relative">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
+            ref={buttonRef}
+            onClick={handleToggleMenu}
             className="rounded-[8px] bg-[var(--bg-primary)]/80 p-1.5 text-text-secondary hover:text-text-primary backdrop-blur-sm"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -461,15 +497,22 @@ function WatchlistCard({
               <circle cx="12" cy="19" r="2" />
             </svg>
           </button>
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-1 panel-glass w-40 p-1.5 z-50 animate-scale-in rounded-[12px]">
+          {isActive && (
+            <div
+              className={cn(
+                "absolute right-0 panel-glass w-40 p-1.5 z-50 animate-scale-in rounded-[12px] origin-top-right",
+                openUp
+                  ? "bottom-full mb-2 origin-bottom-right"
+                  : "top-full mt-1",
+              )}
+            >
               {STATUSES.map((s) => (
                 <button
                   key={s.key}
                   onClick={(e) => {
                     e.stopPropagation();
                     onStatusChange(item.id, s.key);
-                    setShowMenu(false);
+                    onToggleMenu(false);
                   }}
                   className={cn(
                     "w-full rounded-[8px] px-3 py-1.5 text-left text-[12px] transition-colors flex items-center gap-2",
@@ -487,7 +530,7 @@ function WatchlistCard({
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemove(item.id);
-                  setShowMenu(false);
+                  onToggleMenu(false);
                 }}
                 className="w-full rounded-[8px] px-3 py-1.5 text-left text-[12px] text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
               >
@@ -500,7 +543,7 @@ function WatchlistCard({
                   strokeWidth="2"
                 >
                   <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
                 Remove
               </button>
