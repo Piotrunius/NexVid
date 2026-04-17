@@ -10,6 +10,7 @@ import { normalizeFebboxTokenForStorage } from "@/lib/febbox";
 import { SOURCES } from "@/lib/providers";
 import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from "@/lib/tidb";
 import { cn, getQualityLabel } from "@/lib/utils";
+import { LIMITS } from "@/lib/validation";
 import { useAuthStore } from "@/stores/auth";
 import { usePlayerStore } from "@/stores/player";
 import {
@@ -17,7 +18,6 @@ import {
   PUBLIC_OMDB_API_KEY_PLACEHOLDER,
   useSettingsStore,
 } from "@/stores/settings";
-import { LIMITS } from "@/lib/validation";
 import { useWatchlistStore } from "@/stores/watchlist";
 import type { AccentColor } from "@/types";
 import {

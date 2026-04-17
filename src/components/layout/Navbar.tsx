@@ -21,7 +21,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { TbBrandDiscord } from "react-icons/tb";
+
 
 interface Announcement {
   id: string;
@@ -125,7 +125,7 @@ export function Navbar() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [hasUnreadSupportReply, setHasUnreadSupportReply] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [isDiscordClicked, setIsDiscordClicked] = useState(false);
+
   const searchRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLElement>(null);
   const { user, isLoggedIn, logout } = useAuthStore();
@@ -730,35 +730,6 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Discord only for non-admins */}
-          {!user?.isAdmin && (
-            <a
-              href={process.env.NEXT_PUBLIC_DISCORD_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => {
-                e.preventDefault();
-                setIsDiscordClicked(true);
-                setTimeout(() => setIsDiscordClicked(false), 5000);
-                setTimeout(() => {
-                  window.open(process.env.NEXT_PUBLIC_DISCORD_URL);
-                }, 600);
-              }}
-              className="flex flex-col items-center flex-1 min-w-0 basis-0"
-              aria-label="Join Discord"
-            >
-              <div
-                className={cn(
-                  `${iconContainerBase} ${iconSize}`,
-                  isDiscordClicked ? navActiveClass : navIdleClass,
-                )}
-              >
-                <div className="relative flex flex-col items-center">
-                  <TbBrandDiscord size={20} />
-                </div>
-              </div>
-            </a>
-          )}
 
 
           {/* Contact only when logged in */}
