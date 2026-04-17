@@ -103,14 +103,17 @@ export const useSettingsStore = create<SettingsStore>()(
           return { settings: next };
         }),
 
-      setAllSettings: (settings) =>
-        set((state) => ({
-          settings: {
+      setAllSettings: (newSettings) =>
+        set((state) => {
+          // Merge sequentially to ensure we don't lose local state 
+          // if cloud data is missing some keys (like newly added ones)
+          const merged = {
             ...DEFAULT_SETTINGS,
             ...state.settings,
-            ...settings,
-          },
-        })),
+            ...newSettings,
+          };
+          return { settings: merged };
+        }),
 
       resetSettings: () => {
         const current = get().settings;
