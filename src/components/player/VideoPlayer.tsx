@@ -550,10 +550,31 @@ export function VideoPlayer({
           onBack?.();
         }
       }
+
+      // Handle Peachify messages
+      if (event.origin === "https://peachify.top" && event.data) {
+        const { type, data: msgData } = event.data;
+        if (type === "timeupdate" && msgData) {
+          const { currentTime, duration } = msgData;
+          if (typeof currentTime === "number" && typeof duration === "number") {
+            setCurrentTime(currentTime);
+            setDuration(duration);
+          }
+        } else if (type === "play") {
+          setPlaying(true);
+        } else if (type === "pause") {
+          setPlaying(false);
+        } else if (type === "ended") {
+          setPlaying(false);
+        } else if (type === "playerstatus" && msgData) {
+          if (typeof msgData.currentTime === "number") setCurrentTime(msgData.currentTime);
+          if (typeof msgData.duration === "number") setDuration(msgData.duration);
+        }
+      }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [setCurrentTime, setDuration]);
+  }, [setCurrentTime, setDuration, setPlaying, onBack]);
 
   const {
     skipIntro,
@@ -698,6 +719,15 @@ export function VideoPlayer({
   const username = useAuthStore((s) => s.user?.username) || "Guest";
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const sessionToken = useAuthStore((s) => s.authToken);
+
+  const sendEmbedCommand = useCallback((command: string, value?: any) => {
+    if (stream?.type === "embed" && (stream.url.includes("peachify.top") || stream.url.includes("cinesrc.st"))) {
+      const iframe = containerRef.current?.querySelector("iframe");
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage({ command, value }, "*");
+      }
+    }
+  }, [stream]);
   const {
     addItem,
     getByTmdbId,
@@ -710,6 +740,16 @@ export function VideoPlayer({
     0,
     Math.ceil((watchPartyForceSyncUntil - watchPartyNowTs) / 1000),
   );
+
+  useEffect(() => {
+    sendEmbedCommand("setVolume", isMuted ? 0 : volume);
+  }, [isMuted, volume, sendEmbedCommand]);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      sendEmbedCommand("toggleFullscreen", true);
+    }
+  }, [isFullscreen, sendEmbedCommand]);
   const currentEpisodeInfo =
     mediaType === "show"
       ? (season?.episodes || []).find(
@@ -780,6 +820,7 @@ export function VideoPlayer({
     if (sourceId === "videasy") return "Theta";
     if (sourceId === "vidsync") return "Kappa";
     if (sourceId === "vidlink") return "Omega";
+    if (sourceId === "peachify") return "Sigma";
     return sourceId;
   }, []);
 
@@ -804,6 +845,8 @@ export function VideoPlayer({
         return <Link className="w-3.5 h-3.5" />;
       case "vidlink":
         return <InfinityIcon className="w-3.5 h-3.5" />;
+      case "peachify":
+        return <FastForward className="w-3.5 h-3.5" />;
       default:
         return <Server className="w-3.5 h-3.5" />;
     }
@@ -1685,6 +1728,14 @@ export function VideoPlayer({
 
   // ---- Controls ----
   const togglePlay = useCallback(() => {
+    if (stream?.type === "embed") {
+      const nextPlaying = !isPlaying;
+      setPlaying(nextPlaying);
+      sendEmbedCommand(nextPlaying ? "play" : "pause");
+      setPlaybackIndicator(nextPlaying ? "play" : "pause");
+      setTimeout(() => setPlaybackIndicator(null), 800);
+      return;
+    }
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
       videoRef.current.play().catch(() => {});
@@ -1694,16 +1745,25 @@ export function VideoPlayer({
       setPlaybackIndicator("pause");
     }
     setTimeout(() => setPlaybackIndicator(null), 800);
-  }, []);
+  }, [isPlaying, sendEmbedCommand, setPlaying, stream?.type]);
 
   const seek = useCallback(
     (time: number) => {
-      if (!videoRef.current) return;
       const clampedTime = Math.max(0, Math.min(time, duration || 999999));
 
       // Update ref immediately for accumulation
       targetTimeRef.current = clampedTime;
       setCurrentTime(clampedTime); // Update UI immediately
+
+      if (stream?.type === "embed") {
+        sendEmbedCommand("seek", clampedTime);
+        if (duration && clampedTime < duration - 1) setIsFinished(false);
+        pushWatchPartyHostStateNow();
+        targetTimeRef.current = null;
+        return;
+      }
+
+      if (!videoRef.current) return;
 
       // Debounce the actual heavy seek operation
       if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
@@ -1722,7 +1782,7 @@ export function VideoPlayer({
         targetTimeRef.current = null;
       }, 100);
     },
-    [duration, externalAudioUrl, pushWatchPartyHostStateNow, setCurrentTime],
+    [duration, externalAudioUrl, pushWatchPartyHostStateNow, setCurrentTime, stream?.type, sendEmbedCommand],
   );
 
   const handleProgressClick = useCallback(
@@ -2903,7 +2963,7 @@ export function VideoPlayer({
                 allowFullScreen
                 allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                 referrerPolicy="origin"
-                {...(/videasy|vidlink|vidfast|vidsync/i.test(stream.url)
+                {...(/videasy|vidlink|vidfast|vidsync|peachify/i.test(stream.url)
                   ? {}
                   : {
                       sandbox:
@@ -4444,6 +4504,7 @@ export function VideoPlayer({
                                 const isUnsafe = [
                                   "videasy",
                                   "vidfast",
+                                  "peachify",
                                 ].includes(res.sourceId);
                                 const isBest = ["febbox", "pobreflix"].includes(
                                   res.sourceId,
