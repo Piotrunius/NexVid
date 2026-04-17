@@ -1154,11 +1154,11 @@ export function VideoPlayer({
   }, [
     stream,
     defaultQuality,
-    playerVolume,
-    playbackSpeed,
-    autoPlay,
     canTryNextSource,
     onTryNextSource,
+    // explicitly ignoring playbackSpeed, playerVolume, autoPlay 
+    // to prevent stream reloading when local fast-changing state updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ]);
 
   useEffect(() => {
@@ -2717,6 +2717,7 @@ export function VideoPlayer({
   const changeSpeed = useCallback(
     (speed: number) => {
       if (videoRef.current) videoRef.current.playbackRate = speed;
+      if (externalAudioRef.current) externalAudioRef.current.playbackRate = speed;
       setPlaybackSpeed(speed);
       pushWatchPartyHostStateNow();
       setSettingsPanel(null);
@@ -4149,6 +4150,83 @@ export function VideoPlayer({
                                   updateSettings({ idlePauseOverlay: v })
                                 }
                               />
+                            </div>
+
+                            <hr className="my-3 border-white/[0.06]" />
+
+                            <button
+                              onClick={() => setSettingsPanel("speed")}
+                              className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                <svg
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                >
+                                  <circle cx="12" cy="12" r="10" />
+                                  <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                Playback Speed
+                              </div>
+                              <span className="text-[11px] text-accent font-medium">
+                                {playbackSpeed === 1 ? "Normal" : `${playbackSpeed}x`}
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                        {/* Speed Sub-panel */}
+                        {settingsPanel === "speed" && (
+                          <div>
+                            <button
+                              onClick={() => setSettingsPanel("playback")}
+                              className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="m15 18-6-6 6-6" />
+                              </svg>
+                              Playback Speed
+                            </button>
+
+                            <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                              {PLAYBACK_SPEEDS.map((speed) => (
+                                <button
+                                  key={speed}
+                                  onClick={() => changeSpeed(speed)}
+                                  className={cn(
+                                    "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between",
+                                    playbackSpeed === speed
+                                      ? "bg-accent/20 text-accent font-bold"
+                                      : "text-white/60 hover:bg-white/10",
+                                  )}
+                                >
+                                  <span>
+                                    {speed === 1 ? "Normal" : `${speed}x`}
+                                  </span>
+                                  {playbackSpeed === speed && (
+                                    <svg
+                                      width="12"
+                                      height="12"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="3"
+                                    >
+                                      <path d="M20 6 9 17l-5-5" />
+                                    </svg>
+                                  )}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         )}
