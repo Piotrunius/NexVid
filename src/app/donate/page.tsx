@@ -81,30 +81,22 @@ export default function DonatePage() {
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         {/* ── Hero Section ── */}
-        <header className="text-center mb-14 animate-slide-up">
+        <header className="text-center mb-14">
           {/* Heart container */}
           <div className="inline-flex items-center justify-center mb-5">
-            <div
-              className="relative flex h-16 w-16 items-center justify-center rounded-2xl animate-pulse-glow"
-              style={{
-                background: "#000000",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
+            <svg
+              width="42"
+              height="42"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ filter: "drop-shadow(0 0 12px var(--accent-glow))" }}
             >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ filter: "drop-shadow(0 0 8px var(--accent-glow))" }}
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </div>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
           </div>
 
           <h1 className="text-[34px] sm:text-[42px] font-bold text-text-primary tracking-tight leading-tight">
@@ -121,8 +113,7 @@ export default function DonatePage() {
           {GROUPS.map((group, groupIdx) => (
             <section
               key={group.title}
-              className="animate-slide-up"
-              style={{ animationDelay: `${groupIdx * 100}ms` }}
+              className=""
             >
               {/* Group Header */}
               <div className="flex items-center gap-3 mb-4 px-1">
@@ -274,7 +265,7 @@ export default function DonatePage() {
         </div>
 
         {/* ── Bottom CTA / Note ── */}
-        <div className="mt-14 text-center animate-fade-in">
+        <div className="mt-14 text-center">
           <div
             className="inline-flex items-center gap-3 rounded-2xl px-6 py-4 border border-white/[0.06] bg-white/[0.02]"
           >
