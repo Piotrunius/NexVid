@@ -6,13 +6,35 @@ const rl = createInterface({
   output: process.stdout,
 });
 
-const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+const format = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  red: '\x1b[31m',
+};
+
+const ui = {
+  header: (text) =>
+    console.log(`\n${format.bold}${format.blue}=== ${text.toUpperCase()} ===${format.reset}\n`),
+  step: (text) => console.log(`${format.green}[+]${format.reset} ${text}`),
+  info: (text) => console.log(`${format.dim} -  ${text}${format.reset}`),
+  warn: (text) => console.log(`\n${format.yellow}[!]${format.reset} ${text}`),
+  error: (text) => console.error(`\n${format.red}[x] ERROR:${format.reset} ${text}`),
+  success: (text) => console.log(`\n${format.bold}${format.green}[V] ${text}${format.reset}\n`),
+};
+
+const question = (query) =>
+  new Promise((resolve) => rl.question(`${format.cyan}?${format.reset} ${query}`, resolve));
 
 async function sendDiscordNotification(message, branch, sha) {
   const webhookUrl = process.env.DISCORD_WEBHOOK;
 
   if (!webhookUrl) {
-    console.log('\n⚠️  Notification skipped: DISCORD_WEBHOOK environment variable is not set.');
+    ui.warn('Notification skipped: DISCORD_WEBHOOK environment variable is not set.');
     return;
   }
 
@@ -54,52 +76,47 @@ async function sendDiscordNotification(message, branch, sha) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    console.log(`\n🔔 Discord notification sent: [${type.label}]`);
+    ui.info(`Discord notification sent: [${type.label}]`);
   } catch (err) {
-    console.error('\n❌ Error sending to Discord:', err.message);
+    ui.error(`Sending to Discord: ${err.message}`);
   }
 }
 
 async function ship() {
   try {
-    console.log('\n🚢 Shipping mode:');
-    console.log('1. Development (Git + Deploy selection)');
-    console.log('2. Preview (Quick Pages deploy to "Preview")');
+    ui.header('Shipping Mode');
+    console.log('  1. Development (Git + Deploy selection)');
+    console.log('  2. Preview (Quick Pages deploy to "Preview")');
 
     const mode = await question('\nChoice (1-2): ');
 
     if (mode.trim() === '2') {
-      console.log('\n🚀 Deploying Preview...');
-      execSync('bun run pages:deploy -- --branch preview', {
-        stdio: 'inherit',
-      });
-      console.log('\n✨ Done!');
+      ui.step('Deploying Preview...');
+      execSync('bun run pages:deploy -- --branch preview', { stdio: 'inherit' });
+      ui.success('Done');
       return;
     }
 
-    // --- GIT PROCESS ---
-    console.log('\n🛠️  Starting Development process...\n');
+    ui.header('Development Process');
 
-    console.log('📦 Staging files...');
+    ui.step('Staging files...');
     execSync('git add .', { stdio: 'inherit' });
 
     const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
     const commitMsg = await question(
-      `📝 Commit message (e.g. feat: description) [default: ${defaultMsg}]: `,
+      `Commit message (e.g. feat: description) [default: ${defaultMsg}]: `,
     );
     const finalMsg = commitMsg.trim() || defaultMsg;
 
-    console.log(`\n💾 Committing: "${finalMsg}"...`);
+    ui.step(`Committing: "${finalMsg}"`);
     execSync(`git commit -m "${finalMsg}"`, { stdio: 'inherit' });
 
-    // --- DISCORD OPTION ---
-    const notifyChoice = await question('\n🔔 Send a Discord notification? (y/N): ');
+    const notifyChoice = await question('\nSend a Discord notification? (y/N): ');
     const shouldNotify = notifyChoice.toLowerCase().trim() === 'y';
 
-    // --- PUSH ---
-    const pushChoice = await question('\n⬆️  Push to GitHub? (y/N): ');
+    const pushChoice = await question('Push to GitHub? (y/N): ');
     if (pushChoice.toLowerCase().trim() === 'y') {
-      console.log('🚀 Pushing...');
+      ui.step('Pushing to remote...');
       execSync('git push', { stdio: 'inherit' });
 
       if (shouldNotify) {
@@ -109,12 +126,11 @@ async function ship() {
       }
     }
 
-    // --- DEPLOYMENT ---
-    console.log('\n🌐 Where do you want to deploy the changes?');
-    console.log('1. Worker only');
-    console.log('2. Pages only');
-    console.log('3. Both (Worker & Pages)');
-    console.log('4. None');
+    ui.header('Deployment Target');
+    console.log('  1. Worker only');
+    console.log('  2. Pages only');
+    console.log('  3. Both (Worker & Pages)');
+    console.log('  4. None');
 
     const deployChoice = await question('\nChoice (1-4): ');
 
@@ -123,32 +139,30 @@ async function ship() {
       const shouldDeployWorker = selected === '1' || selected === '3';
       const shouldDeployPages = selected === '2' || selected === '3';
 
-      console.log('\n🎯 Environment:');
-      console.log('1. Production (main)');
-      console.log('2. Preview (preview)');
-      const envChoice = await question('Choice (1-2, default: 1): ');
+      ui.header('Environment');
+      console.log('  1. Production (main)');
+      console.log('  2. Preview (preview)');
+      const envChoice = await question('\nChoice (1-2, default: 1): ');
 
       const isPreview = envChoice.trim() === '2';
       const branch = isPreview ? 'preview' : 'main';
 
       if (shouldDeployWorker) {
-        console.log('\n⚡ Deploying Worker...');
+        ui.step('Deploying Worker...');
         execSync('bun run worker:deploy', { stdio: 'inherit' });
       }
 
       if (shouldDeployPages) {
-        console.log(`\n📄 Deploying Pages to branch "${branch}"...`);
-        execSync(`bun run pages:deploy -- --branch ${branch}`, {
-          stdio: 'inherit',
-        });
+        ui.step(`Deploying Pages to branch "${branch}"...`);
+        execSync(`bun run pages:deploy -- --branch ${branch}`, { stdio: 'inherit' });
       }
     } else {
-      console.log('\n✅ Deployment skipped.');
+      ui.info('Deployment skipped.');
     }
 
-    console.log('\n✨ All tasks completed!\n');
+    ui.success('All tasks completed');
   } catch (error) {
-    console.error('\n❌ Error during ship:', error.message);
+    ui.error(error.message);
   } finally {
     rl.close();
   }
