@@ -172,17 +172,18 @@ async function generateCommitMessage() {
             role: 'system',
             content: `Generate a strictly compliant Conventional Commit message based on the provided git diff.
 Rules:
-1. Determine the correct type:
+1. Analyze the diff. Focus strictly on lines starting with '+' (additions) and '-' (deletions). The unchanged lines are only for context.
+2. Determine the correct type:
   - feat: A new feature.
   - fix: A bug fix.
   - refactor: A code change that neither fixes a bug nor adds a feature.
   - chore: Updating build tasks, configurations, etc.
   - perf: A performance improvement.
   - sec: Security patches.
-2. Determine a short, 1-word scope based on the modified function, feature, or file (e.g., ai, discord, ui, git, worker).
-3. Format MUST be exactly: "type(scope): short description in lowercase imperative mood".
-4. Maximum description length is 50 characters.
-5. Output ONLY the raw string. No markdown formatting, no quotes, no preamble.`,
+3. Determine a short, 1-word scope based on the modified function, feature, or file (e.g., ai, discord, ui, git, worker).
+4. Format MUST be exactly: "type(scope): short description in lowercase imperative mood".
+5. Maximum description length is 50 characters.
+6. Output ONLY the raw string. No markdown formatting, no quotes, no preamble.`,
           },
           { role: 'user', content: diff },
         ],
