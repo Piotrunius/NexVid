@@ -149,13 +149,23 @@ async function generateCommitMessage() {
         messages: [
           {
             role: 'system',
-            content:
-              'Generate a short Conventional Commit message. Use only these types: feat, fix, chore, refactor, perf, sec. Format must be "type: description". Return ONLY the raw string, no markdown, no quotes.',
+            content: `Generate a strictly compliant Conventional Commit message based on the provided git diff.
+Rules:
+1. Determine the correct type based on the diff:
+  - feat: A new feature for the user.
+  - fix: A bug fix for the user.
+  - refactor: A code change that neither fixes a bug nor adds a feature (e.g., extracting functions, renaming variables, formatting).
+  - chore: Updating build tasks, package manager configs, etc.
+  - perf: A code change that improves performance.
+  - sec: Security patches.
+2. Format: "type: short description in lowercase imperative mood".
+3. Maximum description length is 50 characters.
+4. Output ONLY the raw string. No markdown formatting, no quotes, no preamble.`,
           },
           { role: 'user', content: diff },
         ],
         max_tokens: 50,
-        temperature: 0.2,
+        temperature: 0.1, // Lower temperature enforces stricter adherence to the rules
       }),
     });
 
