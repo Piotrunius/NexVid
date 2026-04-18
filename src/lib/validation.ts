@@ -26,8 +26,5 @@ export function isValidUsername(username: string): boolean {
 }
 
 export function isValidPassword(password: string): boolean {
-  return (
-    password.length >= LIMITS.PASSWORD_MIN &&
-    password.length <= LIMITS.PASSWORD_MAX
-  );
+  return password.length >= LIMITS.PASSWORD_MIN && password.length <= LIMITS.PASSWORD_MAX;
 }

@@ -2,75 +2,71 @@
    Settings Store (Zustand)
    ============================================ */
 
-import { getCloudToken, saveCloudSettings } from "@/lib/cloudSync";
-import { PUBLIC_TIDB_API_KEY_PLACEHOLDER } from "@/lib/tidb";
-import type { AccentColor, StreamQuality, UserSettings } from "@/types";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { getCloudToken, saveCloudSettings } from '@/lib/cloudSync';
+import { PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
+import type { AccentColor, StreamQuality, UserSettings } from '@/types';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export const PUBLIC_GROQ_API_KEY_PLACEHOLDER = "__PUBLIC_GROQ_KEY__";
-export const PUBLIC_OMDB_API_KEY_PLACEHOLDER = "__PUBLIC_OMDB_KEY__";
+export const PUBLIC_GROQ_API_KEY_PLACEHOLDER = '__PUBLIC_GROQ_KEY__';
+export const PUBLIC_OMDB_API_KEY_PLACEHOLDER = '__PUBLIC_OMDB_KEY__';
 
 export const DEFAULT_SETTINGS: UserSettings = {
-  theme: "dark",
-  accentColor: "indigo",
-  customAccentHex: "#6366f1",
+  theme: 'dark',
+  accentColor: 'indigo',
+  customAccentHex: '#6366f1',
   glassEffect: true,
-  language: "en",
-  subtitleLanguage: "en",
+  language: 'en',
+  subtitleLanguage: 'en',
   autoPlay: true,
   autoNext: true,
-  defaultQuality: "1080",
-  defaultSource: "febbox",
+  defaultQuality: '1080',
+  defaultSource: 'febbox',
   playerVolume: 1,
   skipIntro: true,
   skipOutro: true,
   autoSkipSegments: true,
   autoSwitchSource: true,
   idlePauseOverlay: true,
-  febboxApiKey: "",
+  febboxApiKey: '',
   enableUnsafeEmbeds: false,
   introDbApiKey: PUBLIC_TIDB_API_KEY_PLACEHOLDER,
   groqApiKey: PUBLIC_GROQ_API_KEY_PLACEHOLDER,
   omdbApiKey: PUBLIC_OMDB_API_KEY_PLACEHOLDER,
   preferredSources: [],
   disabledSources: [],
-  playerViewMode: "original",
+  playerViewMode: 'original',
   playerFillWidth: false,
   playerFillHeight: false,
 };
 
 const CLOUD_PERSISTED_KEYS = [
-  "theme",
-  "accentColor",
-  "customAccentHex",
-  "subtitleLanguage",
-  "autoPlay",
-  "autoNext",
-  "defaultQuality",
-  "defaultSource",
-  "playerVolume",
-  "skipIntro",
-  "skipOutro",
-  "autoSkipSegments",
-  "autoSwitchSource",
-  "idlePauseOverlay",
-  "febboxApiKey",
-  "enableUnsafeEmbeds",
-  "introDbApiKey",
-  "groqApiKey",
-  "omdbApiKey",
-  "playerViewMode",
-  "playerFillWidth",
-  "playerFillHeight",
+  'theme',
+  'accentColor',
+  'customAccentHex',
+  'subtitleLanguage',
+  'autoPlay',
+  'autoNext',
+  'defaultQuality',
+  'defaultSource',
+  'playerVolume',
+  'skipIntro',
+  'skipOutro',
+  'autoSkipSegments',
+  'autoSwitchSource',
+  'idlePauseOverlay',
+  'febboxApiKey',
+  'enableUnsafeEmbeds',
+  'introDbApiKey',
+  'groqApiKey',
+  'omdbApiKey',
+  'playerViewMode',
+  'playerFillWidth',
+  'playerFillHeight',
 ] as const;
 
-function toCloudPersistedSettings(
-  settings: UserSettings,
-): Record<string, unknown> {
-  return Object.fromEntries(
-    CLOUD_PERSISTED_KEYS.map((key) => [key, settings[key]]),
-  );
+function toCloudPersistedSettings(settings: UserSettings): Record<string, unknown> {
+  return Object.fromEntries(CLOUD_PERSISTED_KEYS.map((key) => [key, settings[key]]));
 }
 
 interface SettingsStore {
@@ -78,7 +74,7 @@ interface SettingsStore {
   updateSettings: (partial: Partial<UserSettings>) => void;
   setAllSettings: (settings: UserSettings) => void;
   resetSettings: () => void;
-  setTheme: (theme: "dark" | "light") => void;
+  setTheme: (theme: 'dark' | 'light') => void;
   setAccentColor: (color: AccentColor) => void;
   toggleGlass: () => void;
   setDefaultQuality: (quality: StreamQuality) => void;
@@ -96,16 +92,14 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => {
           const next = { ...state.settings, ...partial };
           if (getCloudToken()) {
-            void saveCloudSettings(toCloudPersistedSettings(next)).catch(
-              () => {},
-            );
+            void saveCloudSettings(toCloudPersistedSettings(next)).catch(() => {});
           }
           return { settings: next };
         }),
 
       setAllSettings: (newSettings) =>
         set((state) => {
-          // Merge sequentially to ensure we don't lose local state 
+          // Merge sequentially to ensure we don't lose local state
           // if cloud data is missing some keys (like newly added ones)
           const merged = {
             ...DEFAULT_SETTINGS,
@@ -123,9 +117,7 @@ export const useSettingsStore = create<SettingsStore>()(
           customAccentHex: current.customAccentHex,
         };
         if (getCloudToken()) {
-          void saveCloudSettings(toCloudPersistedSettings(next)).catch(
-            () => {},
-          );
+          void saveCloudSettings(toCloudPersistedSettings(next)).catch(() => {});
         }
         set({ settings: next });
       },
@@ -134,14 +126,11 @@ export const useSettingsStore = create<SettingsStore>()(
 
       setAccentColor: (accentColor) => get().updateSettings({ accentColor }),
 
-      toggleGlass: () =>
-        get().updateSettings({ glassEffect: !get().settings.glassEffect }),
+      toggleGlass: () => get().updateSettings({ glassEffect: !get().settings.glassEffect }),
 
-      setDefaultQuality: (defaultQuality) =>
-        get().updateSettings({ defaultQuality }),
+      setDefaultQuality: (defaultQuality) => get().updateSettings({ defaultQuality }),
 
-      setDefaultSource: (defaultSource) =>
-        get().updateSettings({ defaultSource }),
+      setDefaultSource: (defaultSource) => get().updateSettings({ defaultSource }),
 
       toggleSource: (sourceId) =>
         set((state) => {
@@ -164,15 +153,13 @@ export const useSettingsStore = create<SettingsStore>()(
         set((state) => {
           const next = { ...state.settings, preferredSources: sourceIds };
           if (getCloudToken()) {
-            void saveCloudSettings(toCloudPersistedSettings(next)).catch(
-              () => {},
-            );
+            void saveCloudSettings(toCloudPersistedSettings(next)).catch(() => {});
           }
           return { settings: next };
         }),
     }),
     {
-      name: "nexvid-settings",
+      name: 'nexvid-settings',
     },
   ),
 );

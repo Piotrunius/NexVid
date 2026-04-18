@@ -1,37 +1,32 @@
-import type {
-  ProviderCapabilities,
-  ProviderMediaObject,
-  ProviderResult,
-  Source,
-} from "./base";
-import { BaseProvider } from "./base";
+import type { ProviderCapabilities, ProviderMediaObject, ProviderResult, Source } from './base';
+import { BaseProvider } from './base';
 
-const BASE_URL = "https://pobreflix.codes";
-const XPASS_BASE = "https://play.xpass.top";
+const BASE_URL = 'https://pobreflix.codes';
+const XPASS_BASE = 'https://play.xpass.top';
 
 const DEFAULT_HEADERS = {
-  "user-agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  accept: "application/json, */*",
+  'user-agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  accept: 'application/json, */*',
   referer: `${XPASS_BASE}/`,
-  "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+  'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
 };
 
 export class PobreflixProvider extends BaseProvider {
-  readonly id = "pobreflix";
-  readonly name = "Pobreflix";
+  readonly id = 'pobreflix';
+  readonly name = 'Pobreflix';
   readonly enabled = true;
   readonly capabilities: ProviderCapabilities = {
-    supportedContentTypes: ["movies", "tv"],
+    supportedContentTypes: ['movies', 'tv'],
   };
 
   private buildXpassPlaylistUrls(
     tmdbId: string,
-    type: "movie" | "tv",
+    type: 'movie' | 'tv',
     season?: number,
     episode?: number,
   ): string[] {
-    if (type === "movie") {
+    if (type === 'movie') {
       return [
         `${XPASS_BASE}/mov/${tmdbId}/0/0/0/playlist.json`,
         `${XPASS_BASE}/vrk/movie/${tmdbId}/playlist.json`,
@@ -53,7 +48,7 @@ export class PobreflixProvider extends BaseProvider {
 
   private async resolveViaXpass(
     tmdbId: string,
-    type: "movie" | "tv",
+    type: 'movie' | 'tv',
     season?: number,
     episode?: number,
   ): Promise<string | null> {
@@ -83,34 +78,26 @@ export class PobreflixProvider extends BaseProvider {
   }
 
   async getMovieSources(media: ProviderMediaObject): Promise<ProviderResult> {
-    const streamUrl = await this.resolveViaXpass(media.tmdbId, "movie");
+    const streamUrl = await this.resolveViaXpass(media.tmdbId, 'movie');
     return this.formatResult(streamUrl, media);
   }
 
   async getTVSources(media: ProviderMediaObject): Promise<ProviderResult> {
-    const streamUrl = await this.resolveViaXpass(
-      media.tmdbId,
-      "tv",
-      media.s,
-      media.e,
-    );
+    const streamUrl = await this.resolveViaXpass(media.tmdbId, 'tv', media.s, media.e);
     return this.formatResult(streamUrl, media);
   }
 
-  private formatResult(
-    streamUrl: string | null,
-    media: ProviderMediaObject,
-  ): ProviderResult {
+  private formatResult(streamUrl: string | null, media: ProviderMediaObject): ProviderResult {
     if (!streamUrl) {
       return {
         sources: [],
         subtitles: [],
         diagnostics: [
           {
-            code: "PROVIDER_NOT_FOUND",
-            message: "Pobreflix/XPASS returned no playable playlist",
-            field: "",
-            severity: "error",
+            code: 'PROVIDER_NOT_FOUND',
+            message: 'Pobreflix/XPASS returned no playable playlist',
+            field: '',
+            severity: 'error',
           },
         ],
       };
@@ -119,15 +106,15 @@ export class PobreflixProvider extends BaseProvider {
     const sources: Source[] = [
       {
         url: streamUrl,
-        type: "hls",
-        quality: "auto",
+        type: 'hls',
+        quality: 'auto',
         headers: {
           ...DEFAULT_HEADERS,
           Referer: `${XPASS_BASE}/`,
         },
         audioTracks: [
-          { language: "pt", label: "Portuguese" },
-          { language: "en", label: "English" },
+          { language: 'pt', label: 'Portuguese' },
+          { language: 'en', label: 'English' },
         ],
         provider: {
           id: this.id,

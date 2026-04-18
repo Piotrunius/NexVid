@@ -5,9 +5,9 @@
    timeline segments (TIDB), etc.
    ============================================ */
 
-"use client";
+'use client';
 
-import { toast } from "@/components/ui/Toaster";
+import { toast } from '@/components/ui/Toaster';
 import {
   createWatchParty,
   joinWatchParty,
@@ -18,16 +18,16 @@ import {
   updateWatchPartyState,
   type WatchPartyPlaybackState,
   type WatchPartyRole,
-} from "@/lib/cloudSync";
-import { resolveFebboxToken } from "@/lib/febbox";
-import type { MediaSegments } from "@/lib/tidb";
-import { submitSegment } from "@/lib/tidb";
-import { getSeasonDetails } from "@/lib/tmdb";
-import { cn, formatTime, getAccentHex, getQualityLabel } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth";
-import { usePlayerStore } from "@/stores/player";
-import { useSettingsStore } from "@/stores/settings";
-import { useWatchlistStore } from "@/stores/watchlist";
+} from '@/lib/cloudSync';
+import { resolveFebboxToken } from '@/lib/febbox';
+import type { MediaSegments } from '@/lib/tidb';
+import { submitSegment } from '@/lib/tidb';
+import { getSeasonDetails } from '@/lib/tmdb';
+import { cn, formatTime, getAccentHex, getQualityLabel } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { usePlayerStore } from '@/stores/player';
+import { useSettingsStore } from '@/stores/settings';
+import { useWatchlistStore } from '@/stores/watchlist';
 import type {
   AudioTrack,
   Caption,
@@ -39,8 +39,8 @@ import type {
   Stream,
   StreamQuality,
   WatchlistStatus,
-} from "@/types";
-import { AnimatePresence, motion } from "framer-motion";
+} from '@/types';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Award,
   CheckCircle2,
@@ -70,21 +70,21 @@ import {
   X,
   XCircle,
   Zap,
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FaEarDeaf } from "react-icons/fa6";
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FaEarDeaf } from 'react-icons/fa6';
 
 function StatusIcon({ status }: { status: WatchlistStatus }) {
   switch (status) {
-    case "Planned":
+    case 'Planned':
       return <Clock className="h-3.5 w-3.5" />;
-    case "Watching":
+    case 'Watching':
       return <PlayCircle className="h-3.5 w-3.5" />;
-    case "Completed":
+    case 'Completed':
       return <CheckCircle2 className="h-3.5 w-3.5" />;
-    case "Dropped":
+    case 'Dropped':
       return <XCircle className="h-3.5 w-3.5" />;
-    case "On-Hold":
+    case 'On-Hold':
       return <PauseCircle className="h-3.5 w-3.5" />;
   }
 }
@@ -98,9 +98,9 @@ interface PlayerProps {
   season?: Season | null;
   seasonNum?: number;
   episodeNum?: number;
-  mediaType?: "movie" | "show";
+  mediaType?: 'movie' | 'show';
   onNavigateEpisode?: (season: number, episode: number) => void;
-  scrapeStatus?: "idle" | "loading" | "success" | "error";
+  scrapeStatus?: 'idle' | 'loading' | 'success' | 'error';
   segments?: MediaSegments | null;
   tmdbId?: string;
   sourceLabel?: string;
@@ -134,72 +134,72 @@ const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 // Maps language code variants to a canonical group key
 const LANGUAGE_GROUP_MAP: Record<string, string> = {
   // Chinese — actual wyzie codes: zh (simplified), zt (traditional), ze (bilingual)
-  zt: "zh",
-  ze: "zh",
+  zt: 'zh',
+  ze: 'zh',
   // Cantonese (various codes used by different subtitle sources)
-  yue: "yue",
-  yc: "yue",
-  zc: "yue",
-  zcy: "yue",
+  yue: 'yue',
+  yc: 'yue',
+  zc: 'yue',
+  zcy: 'yue',
   // Legacy / other source codes for Chinese
-  zhs: "zh",
-  zht: "zh",
-  zhb: "zh",
-  "zh-hans": "zh",
-  "zh-hant": "zh",
-  "zh-cn": "zh",
-  "zh-tw": "zh",
-  "zh-sg": "zh",
-  "zh-hk": "yue",
-  "zh-mo": "yue",
+  zhs: 'zh',
+  zht: 'zh',
+  zhb: 'zh',
+  'zh-hans': 'zh',
+  'zh-hant': 'zh',
+  'zh-cn': 'zh',
+  'zh-tw': 'zh',
+  'zh-sg': 'zh',
+  'zh-hk': 'yue',
+  'zh-mo': 'yue',
   // Portuguese — wyzie uses "pb" for Brazilian
-  pb: "br",
-  ptbr: "br",
-  "pt-br": "br",
-  "pt-pt": "pt",
+  pb: 'br',
+  ptbr: 'br',
+  'pt-br': 'br',
+  'pt-pt': 'pt',
   // Spanish variants — wyzie uses "sp" for Spanish (EU), "ea" for Spanish (LA)
-  sp: "es",
-  ea: "mx",
-  spl: "es",
-  "es-la": "mx",
-  "es-419": "mx",
+  sp: 'es',
+  ea: 'mx',
+  spl: 'es',
+  'es-la': 'mx',
+  'es-419': 'mx',
   // Iberian regional languages — Catalan, Galician, Basque
-  ca: "es",
-  gl: "es",
-  eu: "es",
+  ca: 'es',
+  gl: 'es',
+  eu: 'es',
   // Serbian
-  scc: "sr",
-  scr: "sr",
-  "sr-cyrl": "sr",
-  "sr-latn": "sr",
+  scc: 'sr',
+  scr: 'sr',
+  'sr-cyrl': 'sr',
+  'sr-latn': 'sr',
   // Norwegian
-  nb: "no",
-  nn: "no",
-  nob: "no",
-  nno: "no",
+  nb: 'no',
+  nn: 'no',
+  nob: 'no',
+  nno: 'no',
   // Malay
-  "ms-my": "ms",
-  "ms-sg": "ms",
+  'ms-my': 'ms',
+  'ms-sg': 'ms',
   // Kurdish
-  kmr: "ku",
-  ckb: "ku",
+  kmr: 'ku',
+  ckb: 'ku',
   // Hebrew — old code
-  iw: "he",
+  iw: 'he',
 };
 
 // Canonical display name for grouped languages
 const LANGUAGE_GROUP_LABELS: Record<string, string> = {
-  zh: "Chinese",
-  yue: "Cantonese",
-  pt: "Portuguese",
-  br: "Portuguese (BR)",
-  es: "Spanish",
-  mx: "Spanish (LA)",
-  sr: "Serbian",
-  no: "Norwegian",
-  ms: "Malay",
-  ku: "Kurdish",
-  he: "Hebrew",
+  zh: 'Chinese',
+  yue: 'Cantonese',
+  pt: 'Portuguese',
+  br: 'Portuguese (BR)',
+  es: 'Spanish',
+  mx: 'Spanish (LA)',
+  sr: 'Serbian',
+  no: 'Norwegian',
+  ms: 'Malay',
+  ku: 'Kurdish',
+  he: 'Hebrew',
 };
 
 function getLanguageGroup(lang: string): string {
@@ -207,42 +207,32 @@ function getLanguageGroup(lang: string): string {
   return LANGUAGE_GROUP_MAP[normalized] ?? normalized;
 }
 
-function resolveFlagUrl(
-  lang: string,
-  providedUrl?: string | null,
-): string | null {
+function resolveFlagUrl(lang: string, providedUrl?: string | null): string | null {
   const normalized = lang.toLowerCase();
   // Forced mappings per user request
-  if (normalized === "zh" || normalized === "zt" || normalized === "ze")
-    return "https://flagsapi.com/CN/flat/24.png";
+  if (normalized === 'zh' || normalized === 'zt' || normalized === 'ze')
+    return 'https://flagsapi.com/CN/flat/24.png';
   if (
-    normalized === "yue" ||
-    normalized === "yc" ||
-    normalized === "zc" ||
-    normalized === "zcy" ||
-    normalized === "zh-hk"
+    normalized === 'yue' ||
+    normalized === 'yc' ||
+    normalized === 'zc' ||
+    normalized === 'zcy' ||
+    normalized === 'zh-hk'
   )
-    return "https://flagsapi.com/HK/flat/24.png";
+    return 'https://flagsapi.com/HK/flat/24.png';
   if (
-    normalized === "mx" ||
-    normalized === "ea" ||
-    normalized === "es-la" ||
-    normalized === "es-419"
+    normalized === 'mx' ||
+    normalized === 'ea' ||
+    normalized === 'es-la' ||
+    normalized === 'es-419'
   )
-    return "https://flagsapi.com/MX/flat/24.png";
-  if (
-    normalized === "br" ||
-    normalized === "pb" ||
-    normalized === "pt-br" ||
-    normalized === "ptbr"
-  )
-    return "https://flagsapi.com/BR/flat/24.png";
-  if (normalized === "es" || normalized === "sp")
-    return "https://flagsapi.com/ES/flat/24.png";
-  if (normalized === "pt" || normalized === "pt-pt")
-    return "https://flagsapi.com/PT/flat/24.png";
-  if (normalized === "pl") return "https://flagsapi.com/PL/flat/24.png";
-  if (normalized === "en") return "https://flagsapi.com/GB/flat/24.png";
+    return 'https://flagsapi.com/MX/flat/24.png';
+  if (normalized === 'br' || normalized === 'pb' || normalized === 'pt-br' || normalized === 'ptbr')
+    return 'https://flagsapi.com/BR/flat/24.png';
+  if (normalized === 'es' || normalized === 'sp') return 'https://flagsapi.com/ES/flat/24.png';
+  if (normalized === 'pt' || normalized === 'pt-pt') return 'https://flagsapi.com/PT/flat/24.png';
+  if (normalized === 'pl') return 'https://flagsapi.com/PL/flat/24.png';
+  if (normalized === 'en') return 'https://flagsapi.com/GB/flat/24.png';
 
   if (providedUrl) return providedUrl;
   return null;
@@ -250,17 +240,17 @@ function resolveFlagUrl(
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
 const KNOWN_SOURCE_ORDER = [
-  "febbox",
-  "pobreflix",
-  "zxcstream",
-  "cinesrc",
-  "vidking",
-  "vidfast",
-  "videasy",
-  "vidsync",
-  "vidlink",
+  'febbox',
+  'pobreflix',
+  'zxcstream',
+  'cinesrc',
+  'vidking',
+  'vidfast',
+  'videasy',
+  'vidsync',
+  'vidlink',
 ] as const;
-const SUBTITLE_APPEARANCE_CACHE_KEY = "nexvid-subtitle-appearance";
+const SUBTITLE_APPEARANCE_CACHE_KEY = 'nexvid-subtitle-appearance';
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 
 type NormalizedQualityEntry = {
@@ -271,34 +261,34 @@ type NormalizedQualityEntry = {
 };
 
 function normalizeQualityKey(raw: string): StreamQuality | null {
-  const value = String(raw || "")
+  const value = String(raw || '')
     .trim()
     .toLowerCase();
   if (!value) return null;
-  if (value === "4k" || value === "2160" || value.includes("2160")) return "4k";
-  if (value === "2k" || value === "1440" || value.includes("1440")) return "2k";
-  if (value === "1080" || value.includes("1080")) return "1080";
-  if (value === "720" || value.includes("720")) return "720";
-  if (value === "480" || value.includes("480")) return "480";
-  if (value === "360" || value.includes("360")) return "360";
+  if (value === '4k' || value === '2160' || value.includes('2160')) return '4k';
+  if (value === '2k' || value === '1440' || value.includes('1440')) return '2k';
+  if (value === '1080' || value.includes('1080')) return '1080';
+  if (value === '720' || value.includes('720')) return '720';
+  if (value === '480' || value.includes('480')) return '480';
+  if (value === '360' || value.includes('360')) return '360';
   if (
-    value === "unknown" ||
-    value === "original" ||
-    value === "orig" ||
-    value === "source" ||
-    value === "auto"
+    value === 'unknown' ||
+    value === 'original' ||
+    value === 'orig' ||
+    value === 'source' ||
+    value === 'auto'
   )
-    return "unknown";
+    return 'unknown';
   return null;
 }
 
 function getQualitySortWeight(quality: StreamQuality): number {
-  if (quality === "4k") return 0;
-  if (quality === "2k") return 1;
-  if (quality === "1080") return 2;
-  if (quality === "720") return 3;
-  if (quality === "480") return 4;
-  if (quality === "360") return 5;
+  if (quality === '4k') return 0;
+  if (quality === '2k') return 1;
+  if (quality === '1080') return 2;
+  if (quality === '720') return 3;
+  if (quality === '480') return 4;
+  if (quality === '360') return 5;
   return 6;
 }
 
@@ -330,42 +320,32 @@ function getPreferredManualQuality(
   preferred: StreamQuality,
 ): StreamQuality | null {
   if (entries.some((entry) => entry.quality === preferred)) return preferred;
-  const fallbackOrder: StreamQuality[] = [
-    "2k",
-    "1080",
-    "720",
-    "480",
-    "360",
-    "4k",
-    "unknown",
-  ];
+  const fallbackOrder: StreamQuality[] = ['2k', '1080', '720', '480', '360', '4k', 'unknown'];
   return (
-    fallbackOrder.find((quality) =>
-      entries.some((entry) => entry.quality === quality),
-    ) || null
+    fallbackOrder.find((quality) => entries.some((entry) => entry.quality === quality)) || null
   );
 }
 
 function normalizeLanguageCode(input: string): string {
-  const value = String(input || "")
+  const value = String(input || '')
     .trim()
     .toLowerCase();
-  if (!value) return "unknown";
-  const raw = value.includes("-")
-    ? value.split("-")[0]
-    : value.includes("_")
-      ? value.split("_")[0]
+  if (!value) return 'unknown';
+  const raw = value.includes('-')
+    ? value.split('-')[0]
+    : value.includes('_')
+      ? value.split('_')[0]
       : value;
   return raw;
 }
 
 function convertSrtToVtt(text: string): string {
-  const normalized = text.replace(/\r/g, "").replace(/^﻿/, "");
-  if (normalized.startsWith("WEBVTT")) return normalized;
+  const normalized = text.replace(/\r/g, '').replace(/^﻿/, '');
+  if (normalized.startsWith('WEBVTT')) return normalized;
   const body = normalized
-    .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")
-    .replace(/(\d{2}:\d{2}),(\d{3})/g, "$1.$2")
-    .replace(/\{\\an\d\}/g, "");
+    .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
+    .replace(/(\d{2}:\d{2}),(\d{3})/g, '$1.$2')
+    .replace(/\{\\an\d\}/g, '');
   return `WEBVTT\n\n${body}`;
 }
 
@@ -408,7 +388,7 @@ export function VideoPlayer({
   initialSeekTime = 0,
   externalCaptions = [],
 }: PlayerProps) {
-  const WATCH_PARTY_CODE_KEY = "nexvid-watch-party-code";
+  const WATCH_PARTY_CODE_KEY = 'nexvid-watch-party-code';
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasReportedSuccessRef = useRef(false);
@@ -467,26 +447,20 @@ export function VideoPlayer({
   }, [error]);
   useEffect(() => {
     sourceChangeTimeRef.current = Date.now();
-  }, [
-    stream?.type === "embed"
-      ? stream.url
-      : stream?.type === "hls"
-        ? stream.playlist
-        : null,
-  ]);
+  }, [stream?.type === 'embed' ? stream.url : stream?.type === 'hls' ? stream.playlist : null]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // Handle VidLink messages
-      if (event.origin === "https://vidlink.pro") {
-        if (event.data?.type === "PLAYER_EVENT") {
+      if (event.origin === 'https://vidlink.pro') {
+        if (event.data?.type === 'PLAYER_EVENT') {
           const { currentTime: time, duration: dur } = event.data.data;
           if (time && dur) {
             setCurrentTime(time);
             setDuration(dur);
           }
         }
-        if (event.data?.type === "MEDIA_DATA") {
+        if (event.data?.type === 'MEDIA_DATA') {
           const { progress } = event.data.data;
           if (progress?.watched && progress?.duration) {
             setCurrentTime(progress.watched);
@@ -496,18 +470,11 @@ export function VideoPlayer({
       }
 
       // Handle Videasy messages
-      if (event.origin === "https://player.videasy.net") {
+      if (event.origin === 'https://player.videasy.net') {
         try {
-          const data =
-            typeof event.data === "string"
-              ? JSON.parse(event.data)
-              : event.data;
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
           // Videasy sends: { progress, timestamp, duration, ... }
-          if (
-            data &&
-            typeof data.timestamp === "number" &&
-            typeof data.duration === "number"
-          ) {
+          if (data && typeof data.timestamp === 'number' && typeof data.duration === 'number') {
             setCurrentTime(data.timestamp);
             setDuration(data.duration);
           }
@@ -518,23 +485,23 @@ export function VideoPlayer({
 
       // Handle VidFast & VidSync messages
       const vidfastOrigins = [
-        "https://vidfast.pro",
-        "https://vidfast.in",
-        "https://vidfast.io",
-        "https://vidfast.me",
-        "https://vidfast.net",
-        "https://vidfast.pm",
-        "https://vidfast.xyz",
-        "https://vidsync.xyz",
+        'https://vidfast.pro',
+        'https://vidfast.in',
+        'https://vidfast.io',
+        'https://vidfast.me',
+        'https://vidfast.net',
+        'https://vidfast.pm',
+        'https://vidfast.xyz',
+        'https://vidsync.xyz',
       ];
       if (vidfastOrigins.includes(event.origin) && event.data) {
-        if (event.data.type === "PLAYER_EVENT") {
+        if (event.data.type === 'PLAYER_EVENT') {
           const { currentTime: time, duration: dur } = event.data.data;
-          if (typeof time === "number" && typeof dur === "number") {
+          if (typeof time === 'number' && typeof dur === 'number') {
             setCurrentTime(time);
             setDuration(dur);
           }
-        } else if (event.data.type === "MEDIA_DATA") {
+        } else if (event.data.type === 'MEDIA_DATA') {
           const { progress } = event.data.data;
           if (progress?.watched && progress?.duration) {
             setCurrentTime(progress.watched);
@@ -544,18 +511,15 @@ export function VideoPlayer({
       }
 
       // Handle VidKing messages
-      if (event.origin === "https://www.vidking.net" && event.data) {
+      if (event.origin === 'https://www.vidking.net' && event.data) {
         // Ignore messages for the first 5 seconds to prevent race condition with URL progress param
         if (Date.now() - sourceChangeTimeRef.current < 5000) return;
 
         try {
-          const data =
-            typeof event.data === "string"
-              ? JSON.parse(event.data)
-              : event.data;
-          if (data && data.type === "PLAYER_EVENT" && data.data) {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          if (data && data.type === 'PLAYER_EVENT' && data.data) {
             const { currentTime: time, duration: dur } = data.data;
-            if (typeof time === "number" && typeof dur === "number") {
+            if (typeof time === 'number' && typeof dur === 'number') {
               setCurrentTime(time);
               setDuration(dur);
             }
@@ -564,45 +528,39 @@ export function VideoPlayer({
       }
 
       // Handle CineSrc messages
-      if (event.origin === "https://cinesrc.st" && event.data) {
+      if (event.origin === 'https://cinesrc.st' && event.data) {
         const { type, currentTime: time, duration: dur } = event.data;
-        if (
-          type === "cinesrc:timeupdate" &&
-          typeof time === "number" &&
-          typeof dur === "number"
-        ) {
+        if (type === 'cinesrc:timeupdate' && typeof time === 'number' && typeof dur === 'number') {
           setCurrentTime(time);
           setDuration(dur);
-        } else if (type === "cinesrc:close") {
+        } else if (type === 'cinesrc:close') {
           onBack?.();
         }
       }
 
       // Handle Peachify messages
-      if (event.origin === "https://peachify.top" && event.data) {
+      if (event.origin === 'https://peachify.top' && event.data) {
         const { type, data: msgData } = event.data;
-        if (type === "timeupdate" && msgData) {
+        if (type === 'timeupdate' && msgData) {
           const { currentTime, duration } = msgData;
-          if (typeof currentTime === "number" && typeof duration === "number") {
+          if (typeof currentTime === 'number' && typeof duration === 'number') {
             setCurrentTime(currentTime);
             setDuration(duration);
           }
-        } else if (type === "play") {
+        } else if (type === 'play') {
           setPlaying(true);
-        } else if (type === "pause") {
+        } else if (type === 'pause') {
           setPlaying(false);
-        } else if (type === "ended") {
+        } else if (type === 'ended') {
           setPlaying(false);
-        } else if (type === "playerstatus" && msgData) {
-          if (typeof msgData.currentTime === "number")
-            setCurrentTime(msgData.currentTime);
-          if (typeof msgData.duration === "number")
-            setDuration(msgData.duration);
+        } else if (type === 'playerstatus' && msgData) {
+          if (typeof msgData.currentTime === 'number') setCurrentTime(msgData.currentTime);
+          if (typeof msgData.duration === 'number') setDuration(msgData.duration);
         }
       }
     };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [setCurrentTime, setDuration, setPlaying, onBack]);
 
   const {
@@ -623,7 +581,7 @@ export function VideoPlayer({
     customAccentHex,
     accentColor,
     glassEffect,
-    playerViewMode = "original",
+    playerViewMode = 'original',
     playerFillWidth = false,
     playerFillHeight = false,
   } = useSettingsStore((s) => s.settings);
@@ -633,59 +591,47 @@ export function VideoPlayer({
   const effectiveFebboxToken = resolveFebboxToken(febboxApiKey);
   const hasAnyFebboxToken = Boolean(effectiveFebboxToken);
   const effectiveShowTokenNotice = false;
-  const effectiveTokenNoticeText = "";
+  const effectiveTokenNoticeText = '';
   const effectiveTokenNoticeActionLabel = tokenNoticeActionLabel;
-  const effectiveTokenNoticeSettingsLabel =
-    tokenNoticeSettingsLabel || "Settings";
-  const effectiveTokenNoticeDismissLabel =
-    tokenNoticeDismissLabel || "Dismiss for this title";
+  const effectiveTokenNoticeSettingsLabel = tokenNoticeSettingsLabel || 'Settings';
+  const effectiveTokenNoticeDismissLabel = tokenNoticeDismissLabel || 'Dismiss for this title';
   const handleTokenNoticeAction = onTokenNoticeAction;
 
   const [settingsPanel, setSettingsPanel] = useState<
-    | "main"
-    | "quality"
-    | "speed"
-    | "subtitles"
-    | "subtitlesPicker"
-    | "subAppearance"
-    | "episodes"
-    | "info"
-    | "segments"
-    | "playback"
-    | "skip"
-    | "watchParty"
-    | "alternative"
-    | "sources"
-    | "aspectRatio"
+    | 'main'
+    | 'quality'
+    | 'speed'
+    | 'subtitles'
+    | 'subtitlesPicker'
+    | 'subAppearance'
+    | 'episodes'
+    | 'info'
+    | 'segments'
+    | 'playback'
+    | 'skip'
+    | 'watchParty'
+    | 'alternative'
+    | 'sources'
+    | 'aspectRatio'
     | null
   >(null);
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [hoverProgress, setHoverProgress] = useState<number | null>(null);
-  const [captionTrackUrls, setCaptionTrackUrls] = useState<
-    Record<string, string>
-  >({});
+  const [captionTrackUrls, setCaptionTrackUrls] = useState<Record<string, string>>({});
   const [subFontSize, setSubFontSize] = useState(20);
-  const [subColor, setSubColor] = useState("#ffffff");
-  const [subBg, setSubBg] = useState("rgba(0,0,0,0.75)");
+  const [subColor, setSubColor] = useState('#ffffff');
+  const [subBg, setSubBg] = useState('rgba(0,0,0,0.75)');
   const [subVertical, setSubVertical] = useState(88);
   const [subDelayMs, setSubDelayMs] = useState(0);
-  const [renderedSubtitle, setRenderedSubtitle] = useState("");
+  const [renderedSubtitle, setRenderedSubtitle] = useState('');
   const [captionTouchedByUser, setCaptionTouchedByUser] = useState(false);
-  const [subtitlePickerLanguage, setSubtitlePickerLanguage] = useState<
-    string | null
-  >(null);
-  const [submitType, setSubmitType] = useState<
-    "intro" | "recap" | "credits" | "preview"
-  >("intro");
-  const [submitStart, setSubmitStart] = useState("");
-  const [submitEnd, setSubmitEnd] = useState("");
-  const [submitStatus, setSubmitStatus] = useState<
-    "idle" | "sending" | "ok" | "error"
-  >("idle");
-  const [videoNaturalAspectRatio, setVideoNaturalAspectRatio] = useState<
-    number | null
-  >(null);
+  const [subtitlePickerLanguage, setSubtitlePickerLanguage] = useState<string | null>(null);
+  const [submitType, setSubmitType] = useState<'intro' | 'recap' | 'credits' | 'preview'>('intro');
+  const [submitStart, setSubmitStart] = useState('');
+  const [submitEnd, setSubmitEnd] = useState('');
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
+  const [videoNaturalAspectRatio, setVideoNaturalAspectRatio] = useState<number | null>(null);
   const [episodePanelSeason, setEpisodePanelSeason] = useState(seasonNum);
 
   const [episodePanelEpisodes, setEpisodePanelEpisodes] = useState<Episode[]>(
@@ -694,19 +640,15 @@ export function VideoPlayer({
   const [episodePanelLoading, setEpisodePanelLoading] = useState(false);
   const [showNextPrompt, setShowNextPrompt] = useState(false);
   const [nextCountdown, setNextCountdown] = useState(8);
-  const [embedLockState, setEmbedLockState] = useState<"locked" | "unlocked">(
-    "locked",
-  );
+  const [embedLockState, setEmbedLockState] = useState<'locked' | 'unlocked'>('locked');
   const [externalAudioUrl, setExternalAudioUrl] = useState<string | null>(null);
-  const [watchPartyRoomId, setWatchPartyRoomId] = useState("");
-  const [watchPartyJoinCode, setWatchPartyJoinCode] = useState("");
-  const [watchPartyRole, setWatchPartyRole] = useState<WatchPartyRole | null>(
-    null,
-  );
-  const [watchPartyHostToken, setWatchPartyHostToken] = useState("");
-  const [watchPartyParticipantId, setWatchPartyParticipantId] = useState("");
-  const [watchPartyStatus, setWatchPartyStatus] = useState("Not connected");
-  const [watchPartySyncAt, setWatchPartySyncAt] = useState("");
+  const [watchPartyRoomId, setWatchPartyRoomId] = useState('');
+  const [watchPartyJoinCode, setWatchPartyJoinCode] = useState('');
+  const [watchPartyRole, setWatchPartyRole] = useState<WatchPartyRole | null>(null);
+  const [watchPartyHostToken, setWatchPartyHostToken] = useState('');
+  const [watchPartyParticipantId, setWatchPartyParticipantId] = useState('');
+  const [watchPartyStatus, setWatchPartyStatus] = useState('Not connected');
+  const [watchPartySyncAt, setWatchPartySyncAt] = useState('');
   const [watchPartyGuestPollMs, setWatchPartyGuestPollMs] = useState(10000);
   const [watchPartyBusy, setWatchPartyBusy] = useState(false);
   const [watchPartyForceSyncUntil, setWatchPartyForceSyncUntil] = useState(0);
@@ -724,20 +666,14 @@ export function VideoPlayer({
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
   const [dragStartTime, setDragStartTime] = useState(0);
   const [dragCurrentTime, setDragCurrentTime] = useState(0);
-  const [showSkipIndicator, setShowSkipIndicator] = useState<
-    "left" | "right" | null
-  >(null);
-  const [playbackIndicator, setPlaybackIndicator] = useState<
-    "play" | "pause" | null
-  >(null);
-  const lastTapRef = useRef<{ time: number; side: "left" | "right" } | null>(
-    null,
-  );
+  const [showSkipIndicator, setShowSkipIndicator] = useState<'left' | 'right' | null>(null);
+  const [playbackIndicator, setPlaybackIndicator] = useState<'play' | 'pause' | null>(null);
+  const lastTapRef = useRef<{ time: number; side: 'left' | 'right' } | null>(null);
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
   const nextEpisodeAutoNavRef = useRef(false);
   const autoNextTimeoutRef = useRef<number | null>(null);
-  const lastAutoSkippedSegmentRef = useRef("");
+  const lastAutoSkippedSegmentRef = useRef('');
   const lastAutoSkipAtRef = useRef(0);
   const lastInteractionAtRef = useRef(Date.now());
   const attemptedAutoPlayRef = useRef(false);
@@ -751,32 +687,27 @@ export function VideoPlayer({
   const hlsAutoSwitchAttemptedRef = useRef(false);
   const autoSourceSwitchAttemptedRef = useRef(false);
   const autoSourceTimeoutRef = useRef<number | null>(null);
-  const username = useAuthStore((s) => s.user?.username) || "Guest";
+  const username = useAuthStore((s) => s.user?.username) || 'Guest';
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const sessionToken = useAuthStore((s) => s.authToken);
 
   const sendEmbedCommand = useCallback(
     (command: string, value?: any) => {
       if (
-        stream?.type === "embed" &&
-        (stream.url.includes("peachify.top") ||
-          stream.url.includes("cinesrc.st"))
+        stream?.type === 'embed' &&
+        (stream.url.includes('peachify.top') || stream.url.includes('cinesrc.st'))
       ) {
-        const iframe = containerRef.current?.querySelector("iframe");
+        const iframe = containerRef.current?.querySelector('iframe');
         if (iframe?.contentWindow) {
-          iframe.contentWindow.postMessage({ command, value }, "*");
+          iframe.contentWindow.postMessage({ command, value }, '*');
         }
       }
     },
     [stream],
   );
-  const {
-    addItem,
-    getByTmdbId,
-    setStatus: setWatchlistStatus,
-  } = useWatchlistStore();
+  const { addItem, getByTmdbId, setStatus: setWatchlistStatus } = useWatchlistStore();
 
-  const mediaTmdbId = tmdbId || (media?.id ? String(media.id) : "");
+  const mediaTmdbId = tmdbId || (media?.id ? String(media.id) : '');
   const infoWatchlistItem = mediaTmdbId ? getByTmdbId(mediaTmdbId) : undefined;
   const watchPartyForceSyncCooldownSec = Math.max(
     0,
@@ -784,37 +715,34 @@ export function VideoPlayer({
   );
 
   useEffect(() => {
-    sendEmbedCommand("setVolume", isMuted ? 0 : volume);
+    sendEmbedCommand('setVolume', isMuted ? 0 : volume);
   }, [isMuted, volume, sendEmbedCommand]);
 
   useEffect(() => {
     if (isFullscreen) {
-      sendEmbedCommand("toggleFullscreen", true);
+      sendEmbedCommand('toggleFullscreen', true);
     }
   }, [isFullscreen, sendEmbedCommand]);
   const currentEpisodeInfo =
-    mediaType === "show"
-      ? (season?.episodes || []).find(
-          (ep) => ep.episodeNumber === episodeNum,
-        ) || null
+    mediaType === 'show'
+      ? (season?.episodes || []).find((ep) => ep.episodeNumber === episodeNum) || null
       : null;
   const infoSummaryText =
-    mediaType === "show"
-      ? currentEpisodeInfo?.overview || media?.overview || ""
-      : media?.overview || "";
+    mediaType === 'show'
+      ? currentEpisodeInfo?.overview || media?.overview || ''
+      : media?.overview || '';
 
   const normalizedFileQualities = useMemo(() => {
-    if (!stream || stream.type !== "file")
-      return [] as NormalizedQualityEntry[];
+    if (!stream || stream.type !== 'file') return [] as NormalizedQualityEntry[];
     return getNormalizedQualityEntries(
       stream.qualities as Record<string, { url: string } | undefined>,
     );
   }, [stream]);
 
   const watchPartyMediaKey = useMemo(() => {
-    const normalizedType = mediaType === "show" ? "show" : "movie";
-    const baseId = tmdbId || media?.id || title || "unknown";
-    if (normalizedType === "show") {
+    const normalizedType = mediaType === 'show' ? 'show' : 'movie';
+    const baseId = tmdbId || media?.id || title || 'unknown';
+    if (normalizedType === 'show') {
       return `${normalizedType}:${baseId}:s${seasonNum}:e${episodeNum}`;
     }
     return `${normalizedType}:${baseId}`;
@@ -825,26 +753,22 @@ export function VideoPlayer({
   const currentSourceIndex = Math.max(
     0,
     Math.min(
-      typeof propSourceIndex === "number" ? propSourceIndex : 0,
+      typeof propSourceIndex === 'number' ? propSourceIndex : 0,
       Math.max(sourceResults.length - 1, 0),
     ),
   );
 
   useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      typeof window.matchMedia !== "function"
-    )
-      return;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
 
-    const mediaQuery = window.matchMedia("(hover: none), (pointer: coarse)");
+    const mediaQuery = window.matchMedia('(hover: none), (pointer: coarse)');
     const syncTouchDevice = () => setIsTouchDevice(mediaQuery.matches);
 
     syncTouchDevice();
 
-    if (typeof mediaQuery.addEventListener === "function") {
-      mediaQuery.addEventListener("change", syncTouchDevice);
-      return () => mediaQuery.removeEventListener("change", syncTouchDevice);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncTouchDevice);
+      return () => mediaQuery.removeEventListener('change', syncTouchDevice);
     }
 
     mediaQuery.addListener(syncTouchDevice);
@@ -852,42 +776,42 @@ export function VideoPlayer({
   }, []);
 
   const formatSourceName = useCallback((sourceId?: string) => {
-    if (!sourceId) return "Source";
-    if (sourceId === "febbox") return "Alpha";
-    if (sourceId === "pobreflix") return "Beta";
-    if (sourceId === "zxcstream") return "Gamma";
-    if (sourceId === "cinesrc") return "Delta";
-    if (sourceId === "vidking") return "Epsilon";
-    if (sourceId === "vidfast") return "Zeta";
-    if (sourceId === "videasy") return "Theta";
-    if (sourceId === "vidsync") return "Kappa";
-    if (sourceId === "vidlink") return "Omega";
-    if (sourceId === "peachify") return "Sigma";
+    if (!sourceId) return 'Source';
+    if (sourceId === 'febbox') return 'Alpha';
+    if (sourceId === 'pobreflix') return 'Beta';
+    if (sourceId === 'zxcstream') return 'Gamma';
+    if (sourceId === 'cinesrc') return 'Delta';
+    if (sourceId === 'vidking') return 'Epsilon';
+    if (sourceId === 'vidfast') return 'Zeta';
+    if (sourceId === 'videasy') return 'Theta';
+    if (sourceId === 'vidsync') return 'Kappa';
+    if (sourceId === 'vidlink') return 'Omega';
+    if (sourceId === 'peachify') return 'Sigma';
     return sourceId;
   }, []);
 
   const getSourceIcon = (sourceId?: string) => {
     switch (sourceId) {
-      case "febbox":
+      case 'febbox':
         return <Crown className="w-3.5 h-3.5" />;
-      case "pobreflix":
+      case 'pobreflix':
         return <Gem className="w-3.5 h-3.5" />;
-      case "gamma":
-      case "zxcstream":
+      case 'gamma':
+      case 'zxcstream':
         return <Zap className="w-3.5 h-3.5" />;
-      case "cinesrc":
+      case 'cinesrc':
         return <Sparkles className="w-3.5 h-3.5" />;
-      case "vidking":
+      case 'vidking':
         return <Award className="w-3.5 h-3.5" />;
-      case "vidfast":
+      case 'vidfast':
         return <Rocket className="w-3.5 h-3.5" />;
-      case "videasy":
+      case 'videasy':
         return <Compass className="w-3.5 h-3.5" />;
-      case "vidsync":
+      case 'vidsync':
         return <Link className="w-3.5 h-3.5" />;
-      case "vidlink":
+      case 'vidlink':
         return <InfinityIcon className="w-3.5 h-3.5" />;
-      case "peachify":
+      case 'peachify':
         return <FastForward className="w-3.5 h-3.5" />;
       default:
         return <Server className="w-3.5 h-3.5" />;
@@ -904,9 +828,7 @@ export function VideoPlayer({
     const seen = new Set<string>();
 
     for (const sourceId of KNOWN_SOURCE_ORDER) {
-      const resultIndex = sourceResults.findIndex(
-        (result) => result.sourceId === sourceId,
-      );
+      const resultIndex = sourceResults.findIndex((result) => result.sourceId === sourceId);
       catalog.push({
         id: sourceId,
         name: formatSourceName(sourceId),
@@ -931,20 +853,13 @@ export function VideoPlayer({
 
   const canOpenSourceSelector = sourceCatalog.length > 0;
 
-  const buildHlsProxyUrl = useCallback(
-    (url: string, headers?: Record<string, string>) => {
-      const params = new URLSearchParams({ url });
-      if (
-        headers &&
-        typeof headers === "object" &&
-        Object.keys(headers).length > 0
-      ) {
-        params.set("headers", JSON.stringify(headers));
-      }
-      return `/api/hls-proxy?${params.toString()}`;
-    },
-    [],
-  );
+  const buildHlsProxyUrl = useCallback((url: string, headers?: Record<string, string>) => {
+    const params = new URLSearchParams({ url });
+    if (headers && typeof headers === 'object' && Object.keys(headers).length > 0) {
+      params.set('headers', JSON.stringify(headers));
+    }
+    return `/api/hls-proxy?${params.toString()}`;
+  }, []);
 
   const selectableQualities = useMemo(
     () => normalizedFileQualities.map((entry) => entry.quality),
@@ -953,10 +868,8 @@ export function VideoPlayer({
 
   const applyFileQuality = useCallback(
     (quality: StreamQuality, opts?: { persistDefault?: boolean }) => {
-      if (!stream || stream.type !== "file" || !videoRef.current) return;
-      const target = normalizedFileQualities.find(
-        (entry) => entry.quality === quality,
-      );
+      if (!stream || stream.type !== 'file' || !videoRef.current) return;
+      const target = normalizedFileQualities.find((entry) => entry.quality === quality);
       if (!target?.url) return;
 
       const video = videoRef.current;
@@ -977,18 +890,12 @@ export function VideoPlayer({
         updateSettings({ defaultQuality: quality });
       }
     },
-    [
-      stream,
-      normalizedFileQualities,
-      currentQuality,
-      setQuality,
-      updateSettings,
-    ],
+    [stream, normalizedFileQualities, currentQuality, setQuality, updateSettings],
   );
 
   useEffect(() => {
-    setEmbedLockState("locked");
-  }, [stream && stream.type === "embed" ? stream.url : null]);
+    setEmbedLockState('locked');
+  }, [stream && stream.type === 'embed' ? stream.url : null]);
 
   useEffect(() => {
     setEpisodePanelSeason(seasonNum);
@@ -996,7 +903,7 @@ export function VideoPlayer({
   }, [seasonNum, season]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     try {
       const cachedRaw = localStorage.getItem(SUBTITLE_APPEARANCE_CACHE_KEY);
       if (!cachedRaw) return;
@@ -1007,24 +914,19 @@ export function VideoPlayer({
         subVertical?: number;
         subDelayMs?: number;
       };
-      if (typeof cached.subFontSize === "number")
+      if (typeof cached.subFontSize === 'number')
         setSubFontSize(Math.max(14, Math.min(42, cached.subFontSize)));
-      if (typeof cached.subColor === "string") setSubColor(cached.subColor);
-      if (typeof cached.subBg === "string") setSubBg(cached.subBg);
-      if (typeof cached.subVertical === "number")
+      if (typeof cached.subColor === 'string') setSubColor(cached.subColor);
+      if (typeof cached.subBg === 'string') setSubBg(cached.subBg);
+      if (typeof cached.subVertical === 'number')
         setSubVertical(Math.max(65, Math.min(106, cached.subVertical)));
-      if (typeof cached.subDelayMs === "number")
-        setSubDelayMs(
-          Math.max(
-            SUB_DELAY_MIN_MS,
-            Math.min(SUB_DELAY_MAX_MS, cached.subDelayMs),
-          ),
-        );
+      if (typeof cached.subDelayMs === 'number')
+        setSubDelayMs(Math.max(SUB_DELAY_MIN_MS, Math.min(SUB_DELAY_MAX_MS, cached.subDelayMs)));
     } catch {}
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(
         SUBTITLE_APPEARANCE_CACHE_KEY,
@@ -1054,7 +956,7 @@ export function VideoPlayer({
     attemptedAutoPlayRef.current = false;
     setCaptionTouchedByUser(false);
     setActiveCaption(null);
-    setRenderedSubtitle("");
+    setRenderedSubtitle('');
     setAudioTracks([]);
     setActiveAudioTrack(null);
     setExternalAudioUrl(null);
@@ -1063,7 +965,7 @@ export function VideoPlayer({
     setVolume(playerVolume);
     video.playbackRate = playbackSpeed;
 
-    if (stream.type === "embed") {
+    if (stream.type === 'embed') {
       // Embed streams are handled by iframe, no video setup needed
       setLoading(false);
       return;
@@ -1076,29 +978,25 @@ export function VideoPlayer({
         if (!isLoadingRef.current && !errorRef.current) return;
 
         autoSourceSwitchAttemptedRef.current = true;
-        setError(
-          "Current source is taking too long to load. Switching to next source...",
-        );
-        toast("Switching source...", "info");
+        setError('Current source is taking too long to load. Switching to next source...');
+        toast('Switching source...', 'info');
         onTryNextSource();
       }, 20000);
     }
 
-    if (stream.type === "hls") {
+    if (stream.type === 'hls') {
       loadHls(stream.playlist, video, stream.headers);
-    } else if (stream.type === "file") {
+    } else if (stream.type === 'file') {
       const entries = getNormalizedQualityEntries(
         stream.qualities as Record<string, { url: string } | undefined>,
       );
       const selected = getPreferredManualQuality(entries, defaultQuality);
 
-      const selectedEntry = selected
-        ? entries.find((entry) => entry.quality === selected)
-        : null;
+      const selectedEntry = selected ? entries.find((entry) => entry.quality === selected) : null;
 
       if (selectedEntry?.url) {
         // Robust HLS detection within file-type qualities
-        const isHls = selectedEntry.url.toLowerCase().includes(".m3u8");
+        const isHls = selectedEntry.url.toLowerCase().includes('.m3u8');
 
         if (isHls) {
           loadHls(selectedEntry.url, video, selectedEntry.headers);
@@ -1109,14 +1007,10 @@ export function VideoPlayer({
 
         setQuality(selectedEntry.quality);
 
-        if (
-          Array.isArray(stream.audioTracks) &&
-          stream.audioTracks.length > 0
-        ) {
+        if (Array.isArray(stream.audioTracks) && stream.audioTracks.length > 0) {
           setAudioTracks(stream.audioTracks);
           const defaultTrack =
-            stream.audioTracks.find((track) => track.isDefault) ||
-            stream.audioTracks[0];
+            stream.audioTracks.find((track) => track.isDefault) || stream.audioTracks[0];
           setActiveAudioTrack(defaultTrack?.id ?? null);
           if (defaultTrack?.url) setExternalAudioUrl(defaultTrack.url);
         }
@@ -1131,18 +1025,16 @@ export function VideoPlayer({
               tracks.push({
                 id: i,
                 name: t.label || t.language || `Track ${i + 1}`,
-                lang: t.language || "",
+                lang: t.language || '',
                 isDefault: t.enabled || false,
               });
             }
             setAudioTracks(tracks);
-            const activeIdx = Array.from(nativeTracks as any).findIndex(
-              (t: any) => t.enabled,
-            );
+            const activeIdx = Array.from(nativeTracks as any).findIndex((t: any) => t.enabled);
             setActiveAudioTrack(activeIdx >= 0 ? activeIdx : 0);
           }
         };
-        video.addEventListener("loadedmetadata", detectNativeAudioTracks, {
+        video.addEventListener('loadedmetadata', detectNativeAudioTracks, {
           once: true,
         });
 
@@ -1176,14 +1068,14 @@ export function VideoPlayer({
       const video = videoRef.current;
       if (video) {
         video.pause();
-        video.removeAttribute("src");
+        video.removeAttribute('src');
         video.load();
       }
       // Pause and unload external audio element
       const audio = externalAudioRef.current;
       if (audio) {
         audio.pause();
-        audio.removeAttribute("src");
+        audio.removeAttribute('src');
         audio.load();
       }
       if (autoSourceTimeoutRef.current) {
@@ -1208,10 +1100,10 @@ export function VideoPlayer({
     const audio = externalAudioRef.current;
     if (!video || !audio) return;
 
-    if (stream?.type !== "file" || !externalAudioUrl) {
+    if (stream?.type !== 'file' || !externalAudioUrl) {
       audio.pause();
       if (audio.src) {
-        audio.removeAttribute("src");
+        audio.removeAttribute('src');
         audio.load();
       }
       return;
@@ -1239,13 +1131,10 @@ export function VideoPlayer({
   useEffect(() => {
     const video = videoRef.current;
     const audio = externalAudioRef.current;
-    if (!video || !audio || stream?.type !== "file" || !externalAudioUrl)
-      return;
+    if (!video || !audio || stream?.type !== 'file' || !externalAudioUrl) return;
 
     const syncTime = () => {
-      const drift = Math.abs(
-        (audio.currentTime || 0) - (video.currentTime || 0),
-      );
+      const drift = Math.abs((audio.currentTime || 0) - (video.currentTime || 0));
       if (drift > 0.35 && Number.isFinite(video.currentTime)) {
         try {
           audio.currentTime = video.currentTime;
@@ -1273,20 +1162,20 @@ export function VideoPlayer({
       audio.volume = isMuted ? 0 : volume;
     };
 
-    video.addEventListener("timeupdate", syncTime);
-    video.addEventListener("seeked", syncTime);
-    video.addEventListener("play", syncPlay);
-    video.addEventListener("pause", syncPause);
-    video.addEventListener("ratechange", syncRate);
-    video.addEventListener("volumechange", syncVolume);
+    video.addEventListener('timeupdate', syncTime);
+    video.addEventListener('seeked', syncTime);
+    video.addEventListener('play', syncPlay);
+    video.addEventListener('pause', syncPause);
+    video.addEventListener('ratechange', syncRate);
+    video.addEventListener('volumechange', syncVolume);
 
     return () => {
-      video.removeEventListener("timeupdate", syncTime);
-      video.removeEventListener("seeked", syncTime);
-      video.removeEventListener("play", syncPlay);
-      video.removeEventListener("pause", syncPause);
-      video.removeEventListener("ratechange", syncRate);
-      video.removeEventListener("volumechange", syncVolume);
+      video.removeEventListener('timeupdate', syncTime);
+      video.removeEventListener('seeked', syncTime);
+      video.removeEventListener('play', syncPlay);
+      video.removeEventListener('pause', syncPause);
+      video.removeEventListener('ratechange', syncRate);
+      video.removeEventListener('volumechange', syncVolume);
     };
   }, [stream, externalAudioUrl, isMuted, volume]);
 
@@ -1299,46 +1188,35 @@ export function VideoPlayer({
   useEffect(() => {
     if (captions.length === 0) {
       setManualCues([]);
-      setRenderedSubtitle("");
+      setRenderedSubtitle('');
       if (activeCaption) setActiveCaption(null);
       return;
     }
 
     if (captionTouchedByUser) return;
 
-    const preferred = normalizeLanguageCode(subtitleLanguage || "pl");
-    if (preferred === "off") {
+    const preferred = normalizeLanguageCode(subtitleLanguage || 'pl');
+    if (preferred === 'off') {
       if (activeCaption) setActiveCaption(null);
       return;
     }
 
-    if (
-      !activeCaption ||
-      !captions.some((caption) => caption.id === activeCaption)
-    ) {
+    if (!activeCaption || !captions.some((caption) => caption.id === activeCaption)) {
       const preferredCaption = captions.find(
         (caption) => normalizeLanguageCode(caption.language) === preferred,
       );
-      const polish = captions.find(
-        (caption) => normalizeLanguageCode(caption.language) === "pl",
-      );
-      const english = captions.find(
-        (caption) => normalizeLanguageCode(caption.language) === "en",
-      );
-      setActiveCaption(
-        (preferredCaption || polish || english || captions[0]).id,
-      );
+      const polish = captions.find((caption) => normalizeLanguageCode(caption.language) === 'pl');
+      const english = captions.find((caption) => normalizeLanguageCode(caption.language) === 'en');
+      setActiveCaption((preferredCaption || polish || english || captions[0]).id);
     }
   }, [captions, activeCaption, captionTouchedByUser, subtitleLanguage]);
 
-  const [manualCues, setManualCues] = useState<
-    { start: number; end: number; text: string }[]
-  >([]);
+  const [manualCues, setManualCues] = useState<{ start: number; end: number; text: string }[]>([]);
 
   useEffect(() => {
     if (!activeCaption || !captions.length) {
       setManualCues([]);
-      setRenderedSubtitle("");
+      setRenderedSubtitle('');
       return;
     }
 
@@ -1350,36 +1228,35 @@ export function VideoPlayer({
       try {
         const proxiedUrl = `/api/subtitle?url=${encodeURIComponent(caption.url)}`;
         const response = await fetch(proxiedUrl);
-        if (!response.ok) throw new Error("Fetch failed");
+        if (!response.ok) throw new Error('Fetch failed');
         const text = await response.text();
         if (cancelled) return;
 
         // Simple VTT/SRT Parser
         const parseSubtitles = (rawText: string) => {
-          const normalized = rawText.replace(/\r/g, "").replace(/^﻿/, "");
+          const normalized = rawText.replace(/\r/g, '').replace(/^﻿/, '');
           const blocks = normalized.split(/\n\s*\n/);
           const result: { start: number; end: number; text: string }[] = [];
 
           const timeToSec = (t: string) => {
-            const parts = t.trim().split(":");
+            const parts = t.trim().split(':');
             if (parts.length < 2) return 0;
             const s =
               parts.length === 3
                 ? parseFloat(parts[0]) * 3600 +
                   parseFloat(parts[1]) * 60 +
-                  parseFloat(parts[2].replace(",", "."))
-                : parseFloat(parts[0]) * 60 +
-                  parseFloat(parts[1].replace(",", "."));
+                  parseFloat(parts[2].replace(',', '.'))
+                : parseFloat(parts[0]) * 60 + parseFloat(parts[1].replace(',', '.'));
             return s;
           };
 
           for (const block of blocks) {
-            const lines = block.trim().split("\n");
-            let timeLine = "";
+            const lines = block.trim().split('\n');
+            let timeLine = '';
             const textLines: string[] = [];
 
             for (const line of lines) {
-              if (line.includes("-->")) {
+              if (line.includes('-->')) {
                 timeLine = line;
               } else if (timeLine) {
                 textLines.push(line);
@@ -1387,10 +1264,10 @@ export function VideoPlayer({
             }
 
             if (timeLine) {
-              const [startStr, endStr] = timeLine.split("-->");
+              const [startStr, endStr] = timeLine.split('-->');
               const text = textLines
-                .join("\n")
-                .replace(/<[^>]*>/g, "")
+                .join('\n')
+                .replace(/<[^>]*>/g, '')
                 .trim();
               if (text) {
                 result.push({
@@ -1406,7 +1283,7 @@ export function VideoPlayer({
 
         setManualCues(parseSubtitles(text));
       } catch (err) {
-        console.error("Manual subtitle load error:", err);
+        console.error('Manual subtitle load error:', err);
         setManualCues([]);
       }
     };
@@ -1423,16 +1300,14 @@ export function VideoPlayer({
 
     const updateSubtitleText = () => {
       if (!activeCaption || manualCues.length === 0 || !videoRef.current) {
-        setRenderedSubtitle("");
+        setRenderedSubtitle('');
         return;
       }
 
       const shiftedTime = videoRef.current.currentTime - subDelayMs / 1000;
-      const active = manualCues.filter(
-        (c) => shiftedTime >= c.start && shiftedTime <= c.end,
-      );
+      const active = manualCues.filter((c) => shiftedTime >= c.start && shiftedTime <= c.end);
 
-      const newText = active.map((a) => a.text).join("\n");
+      const newText = active.map((a) => a.text).join('\n');
       if (newText !== renderedSubtitle) {
         setRenderedSubtitle(newText);
       }
@@ -1442,14 +1317,10 @@ export function VideoPlayer({
     return () => window.clearInterval(interval);
   }, [activeCaption, manualCues, subDelayMs, renderedSubtitle]);
 
-  async function loadHls(
-    url: string,
-    video: HTMLVideoElement,
-    headers?: Record<string, string>,
-  ) {
+  async function loadHls(url: string, video: HTMLVideoElement, headers?: Record<string, string>) {
     try {
       const proxiedUrl = buildHlsProxyUrl(url, headers);
-      const Hls = (await import("hls.js")).default;
+      const Hls = (await import('hls.js')).default;
       if (Hls.isSupported()) {
         if (hlsRef.current) hlsRef.current.destroy();
         const hls = new Hls({
@@ -1469,7 +1340,7 @@ export function VideoPlayer({
             const tracks = hls.audioTracks.map((t: any) => ({
               id: t.id,
               name: t.name || t.lang || `Track ${t.id}`,
-              lang: t.lang || "",
+              lang: t.lang || '',
               isDefault: t.default || false,
             }));
             setAudioTracks(tracks);
@@ -1485,10 +1356,10 @@ export function VideoPlayer({
         hls.on(Hls.Events.ERROR, (_: any, data: any) => {
           if (data.fatal) {
             reportPlayerError(
-              mediaType || "",
-              tmdbId || "",
+              mediaType || '',
+              tmdbId || '',
               data.type,
-              data.details || "Fatal HLS error",
+              data.details || 'Fatal HLS error',
               false,
               febboxApiKey,
             ).catch(() => {});
@@ -1504,31 +1375,29 @@ export function VideoPlayer({
                 clearTimeout(autoSourceTimeoutRef.current);
                 autoSourceTimeoutRef.current = null;
               }
-              setError(
-                "Current source is blocked or unavailable. Switching source...",
-              );
-              toast("Switching source...", "info");
+              setError('Current source is blocked or unavailable. Switching source...');
+              toast('Switching source...', 'info');
               onTryNextSource();
               return;
             }
             setError(`Playback error: ${data.type}`);
           }
         });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = proxiedUrl;
-        video.addEventListener("loadedmetadata", () => {
+        video.addEventListener('loadedmetadata', () => {
           setLoading(false);
           if (autoPlay) video.play().catch(() => {});
         });
       }
     } catch {
-      setError("Failed to load video player");
+      setError('Failed to load video player');
     }
   }
 
   const pushWatchPartyHostStateNow = useCallback(() => {
     if (
-      watchPartyRole !== "host" ||
+      watchPartyRole !== 'host' ||
       !watchPartyRoomId ||
       !watchPartyHostToken ||
       !watchPartyMediaKey ||
@@ -1547,14 +1416,9 @@ export function VideoPlayer({
       playbackRate: video.playbackRate,
       mediaKey: watchPartyMediaKey,
     }).catch(() => {
-      setWatchPartyStatus("Sync warning: host update failed");
+      setWatchPartyStatus('Sync warning: host update failed');
     });
-  }, [
-    watchPartyRole,
-    watchPartyRoomId,
-    watchPartyHostToken,
-    watchPartyMediaKey,
-  ]);
+  }, [watchPartyRole, watchPartyRoomId, watchPartyHostToken, watchPartyMediaKey]);
 
   // ---- Video Event Handlers ----
   const handleTimeUpdate = useCallback(() => {
@@ -1609,10 +1473,8 @@ export function VideoPlayer({
       if (!isLoadingRef.current && !errorRef.current) return;
 
       autoSourceSwitchAttemptedRef.current = true;
-      setError(
-        "Current source is taking too long to load. Switching to next source...",
-      );
-      toast("Switching source...", "info");
+      setError('Current source is taking too long to load. Switching to next source...');
+      toast('Switching source...', 'info');
       onTryNextSource();
     }, 20000);
   }, [autoSwitchSource, canTryNextSource, onTryNextSource, setError]);
@@ -1624,18 +1486,10 @@ export function VideoPlayer({
     autoSourceSwitchAttemptedRef.current = false;
 
     setLoading(false);
-    if (
-      videoRef.current &&
-      initialSeekTime > 1 &&
-      videoRef.current.currentTime < 1
-    ) {
+    if (videoRef.current && initialSeekTime > 1 && videoRef.current.currentTime < 1) {
       videoRef.current.currentTime = initialSeekTime;
     }
-    if (
-      watchPartyRole === "guest" &&
-      watchPartyForcePausedRef.current &&
-      videoRef.current
-    ) {
+    if (watchPartyRole === 'guest' && watchPartyForcePausedRef.current && videoRef.current) {
       videoRef.current.pause();
       return;
     }
@@ -1658,16 +1512,14 @@ export function VideoPlayer({
     }
   }, [autoPlay, initialSeekTime, isMuted, watchPartyRole]);
   const getNextEpisodeTarget = useCallback(() => {
-    if (!onNavigateEpisode || mediaType !== "show") return null;
+    if (!onNavigateEpisode || mediaType !== 'show') return null;
 
-    const nextEpisodeInSeason = season?.episodes?.find(
-      (ep) => ep.episodeNumber === episodeNum + 1,
-    );
+    const nextEpisodeInSeason = season?.episodes?.find((ep) => ep.episodeNumber === episodeNum + 1);
     if (nextEpisodeInSeason) {
       return { season: seasonNum, episode: nextEpisodeInSeason.episodeNumber };
     }
 
-    const showSeasons = media && "seasons" in media ? media.seasons : [];
+    const showSeasons = media && 'seasons' in media ? media.seasons : [];
     const nextSeason = showSeasons.find(
       (s) => s.seasonNumber === seasonNum + 1 && (s.episodeCount || 0) > 0,
     );
@@ -1679,7 +1531,7 @@ export function VideoPlayer({
   }, [onNavigateEpisode, mediaType, season, episodeNum, seasonNum, media]);
 
   const navigateNextEpisode = useCallback(() => {
-    if (!onNavigateEpisode || mediaType !== "show") return false;
+    if (!onNavigateEpisode || mediaType !== 'show') return false;
     const target = getNextEpisodeTarget();
     if (!target) return false;
     if (nextEpisodeAutoNavRef.current) return false;
@@ -1691,12 +1543,7 @@ export function VideoPlayer({
   }, [onNavigateEpisode, mediaType, getNextEpisodeTarget]);
 
   const navigatePrevEpisode = useCallback(() => {
-    if (
-      !onNavigateEpisode ||
-      mediaType !== "show" ||
-      !season?.episodes?.length ||
-      episodeNum <= 1
-    )
+    if (!onNavigateEpisode || mediaType !== 'show' || !season?.episodes?.length || episodeNum <= 1)
       return;
     setIsEpisodeNavigating(true);
     onNavigateEpisode(seasonNum, episodeNum - 1);
@@ -1707,7 +1554,7 @@ export function VideoPlayer({
 
     // When autoNext is enabled, directly navigate to next episode once the current one ends.
     // Do not show the finished overlay in this flow.
-    if (autoNext && mediaType === "show" && !isEpisodeNavigating) {
+    if (autoNext && mediaType === 'show' && !isEpisodeNavigating) {
       if (navigateNextEpisode()) {
         return;
       }
@@ -1731,17 +1578,12 @@ export function VideoPlayer({
 
   const handleError = useCallback(() => {
     setPlaying(false);
-    setError("Video playback error");
-    const msg = videoRef.current?.error?.message || "Unknown video error";
-    const code = String(videoRef.current?.error?.code || "unknown");
-    reportPlayerError(
-      mediaType || "",
-      tmdbId || "",
-      code,
-      msg,
-      false,
-      febboxApiKey,
-    ).catch(() => {});
+    setError('Video playback error');
+    const msg = videoRef.current?.error?.message || 'Unknown video error';
+    const code = String(videoRef.current?.error?.code || 'unknown');
+    reportPlayerError(mediaType || '', tmdbId || '', code, msg, false, febboxApiKey).catch(
+      () => {},
+    );
 
     if (
       !autoSwitchSource ||
@@ -1756,35 +1598,28 @@ export function VideoPlayer({
       clearTimeout(autoSourceTimeoutRef.current);
       autoSourceTimeoutRef.current = null;
     }
-    setError("Current source is unavailable. Switching to next source...");
-    toast("Switching source...", "info");
+    setError('Current source is unavailable. Switching to next source...');
+    toast('Switching source...', 'info');
     onTryNextSource();
-  }, [
-    autoSwitchSource,
-    canTryNextSource,
-    mediaType,
-    onTryNextSource,
-    tmdbId,
-    febboxApiKey,
-  ]);
+  }, [autoSwitchSource, canTryNextSource, mediaType, onTryNextSource, tmdbId, febboxApiKey]);
 
   // ---- Controls ----
   const togglePlay = useCallback(() => {
-    if (stream?.type === "embed") {
+    if (stream?.type === 'embed') {
       const nextPlaying = !isPlaying;
       setPlaying(nextPlaying);
-      sendEmbedCommand(nextPlaying ? "play" : "pause");
-      setPlaybackIndicator(nextPlaying ? "play" : "pause");
+      sendEmbedCommand(nextPlaying ? 'play' : 'pause');
+      setPlaybackIndicator(nextPlaying ? 'play' : 'pause');
       setTimeout(() => setPlaybackIndicator(null), 800);
       return;
     }
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
       videoRef.current.play().catch(() => {});
-      setPlaybackIndicator("play");
+      setPlaybackIndicator('play');
     } else {
       videoRef.current.pause();
-      setPlaybackIndicator("pause");
+      setPlaybackIndicator('pause');
     }
     setTimeout(() => setPlaybackIndicator(null), 800);
   }, [isPlaying, sendEmbedCommand, setPlaying, stream?.type]);
@@ -1797,8 +1632,8 @@ export function VideoPlayer({
       targetTimeRef.current = clampedTime;
       setCurrentTime(clampedTime); // Update UI immediately
 
-      if (stream?.type === "embed") {
-        sendEmbedCommand("seek", clampedTime);
+      if (stream?.type === 'embed') {
+        sendEmbedCommand('seek', clampedTime);
         if (duration && clampedTime < duration - 1) setIsFinished(false);
         pushWatchPartyHostStateNow();
         targetTimeRef.current = null;
@@ -1858,7 +1693,7 @@ export function VideoPlayer({
       const clamped = Math.max(0, Math.min(time, duration || 0));
       setDragCurrentTime(clamped);
       // Optional: Real-time seeking for file-based streams
-      if (stream?.type === "file") {
+      if (stream?.type === 'file') {
         seek(clamped);
       }
     },
@@ -1915,16 +1750,16 @@ export function VideoPlayer({
 
     const handleUp = () => stopDragging();
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleUp);
-    window.addEventListener("touchmove", handleTouchMove, { passive: false });
-    window.addEventListener("touchend", handleUp);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleUp);
 
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleUp);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleUp);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleUp);
     };
   }, [isDraggingProgress, duration, updateDragging, stopDragging]);
 
@@ -1960,14 +1795,7 @@ export function VideoPlayer({
         }
       }
     },
-    [
-      controlsVisible,
-      showControls,
-      hideControls,
-      togglePlay,
-      settingsPanel,
-      isTouchDevice,
-    ],
+    [controlsVisible, showControls, hideControls, togglePlay, settingsPanel, isTouchDevice],
   );
 
   const handleInteractionAreaTouch = useCallback(
@@ -1983,11 +1811,11 @@ export function VideoPlayer({
       // 3-Sector Model: Left 30%, Right 30%, Center 40%
       const isLeft = touchX < width * 0.3;
       const isRight = touchX > width * 0.7;
-      const side = isLeft ? "left" : isRight ? "right" : "center";
+      const side = isLeft ? 'left' : isRight ? 'right' : 'center';
 
       const now = Date.now();
 
-      if (side !== "center") {
+      if (side !== 'center') {
         // HANDLE SKIP SECTORS
         if (
           lastTapRef.current &&
@@ -1995,14 +1823,14 @@ export function VideoPlayer({
           now - lastTapRef.current.time < 350
         ) {
           // Double tap detected
-          const skipAmount = side === "left" ? -10 : 10;
+          const skipAmount = side === 'left' ? -10 : 10;
           seek(currentTime + skipAmount);
-          setShowSkipIndicator(side as "left" | "right");
+          setShowSkipIndicator(side as 'left' | 'right');
           setTimeout(() => setShowSkipIndicator(null), 800);
           lastTapRef.current = null;
           showControls();
         } else {
-          lastTapRef.current = { time: now, side: side as "left" | "right" };
+          lastTapRef.current = { time: now, side: side as 'left' | 'right' };
           // Single tap on sides only wakes UI
           if (!controlsVisible) showControls();
           else hideControls();
@@ -2014,14 +1842,7 @@ export function VideoPlayer({
         lastTapRef.current = null; // Reset skip chain if tapping center
       }
     },
-    [
-      currentTime,
-      seek,
-      togglePlay,
-      showControls,
-      hideControls,
-      controlsVisible,
-    ],
+    [currentTime, seek, togglePlay, showControls, hideControls, controlsVisible],
   );
 
   const changeVolume = useCallback(
@@ -2038,8 +1859,7 @@ export function VideoPlayer({
     [isMuted],
   );
 
-  const promptKey =
-    mediaType === "movie" ? "movie-finish" : `${seasonNum}-${episodeNum}`;
+  const promptKey = mediaType === 'movie' ? 'movie-finish' : `${seasonNum}-${episodeNum}`;
   const effectiveSegments: MediaSegments = segments ?? {
     intro: [],
     recap: [],
@@ -2064,10 +1884,7 @@ export function VideoPlayer({
       }
     });
 
-    if (
-      introOutro?.outroStart !== undefined &&
-      introOutro?.outroEnd !== undefined
-    ) {
+    if (introOutro?.outroStart !== undefined && introOutro?.outroEnd !== undefined) {
       const start = introOutro.outroStart;
       const end = introOutro.outroEnd;
       if (end >= duration - 5) {
@@ -2096,7 +1913,7 @@ export function VideoPlayer({
   }, [promptKey]);
 
   useEffect(() => {
-    if (scrapeStatus === "loading") {
+    if (scrapeStatus === 'loading') {
       setIsEpisodeNavigating(false);
     }
   }, [scrapeStatus]);
@@ -2107,20 +1924,15 @@ export function VideoPlayer({
       return;
     }
 
-    if (
-      !duration ||
-      !currentTime ||
-      (mediaType !== "show" && mediaType !== "movie")
-    ) {
+    if (!duration || !currentTime || (mediaType !== 'show' && mediaType !== 'movie')) {
       if (showNextPrompt) setShowNextPrompt(false);
       return;
     }
 
-    const nextEpisodeTarget =
-      mediaType === "show" ? getNextEpisodeTarget() : null;
+    const nextEpisodeTarget = mediaType === 'show' ? getNextEpisodeTarget() : null;
 
     // If it's a show and no next episode, and it's not a movie, we don't show prompt.
-    if (mediaType === "show" && !nextEpisodeTarget) {
+    if (mediaType === 'show' && !nextEpisodeTarget) {
       if (showNextPrompt) setShowNextPrompt(false);
       return;
     }
@@ -2145,18 +1957,15 @@ export function VideoPlayer({
         nextPromptHandledForRef.current !== promptKey
       ) {
         nextPromptHandledForRef.current = promptKey;
-        if (mediaType === "movie") {
+        if (mediaType === 'movie') {
           setIsFinished(true);
           setPlaying(false);
           setAutoNextLocked(true);
         } else if (nextEpisodeTarget) {
           setIsEpisodeNavigating(true);
           nextEpisodeAutoNavRef.current = true;
-          if (typeof onNavigateEpisode === "function") {
-            onNavigateEpisode(
-              nextEpisodeTarget.season,
-              nextEpisodeTarget.episode,
-            );
+          if (typeof onNavigateEpisode === 'function') {
+            onNavigateEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
           }
         }
       }
@@ -2188,13 +1997,8 @@ export function VideoPlayer({
   }, [showNextPrompt, autoNext]);
 
   useEffect(() => {
-    if (
-      !autoSkipSegments ||
-      stream?.type === "embed" ||
-      !duration ||
-      !currentTime
-    ) {
-      lastAutoSkippedSegmentRef.current = "";
+    if (!autoSkipSegments || stream?.type === 'embed' || !duration || !currentTime) {
+      lastAutoSkippedSegmentRef.current = '';
       return;
     }
 
@@ -2246,10 +2050,7 @@ export function VideoPlayer({
         .filter(Boolean),
     ].flat() as Array<{ key: string; startSec: number; endSec: number }>;
 
-    const introSegment = normalizeSegment(
-      introOutro?.introStart,
-      introOutro?.introEnd,
-    );
+    const introSegment = normalizeSegment(introOutro?.introStart, introOutro?.introEnd);
     if (introSegment) {
       timelineSegments.push({
         key: `legacy-intro-${introSegment.start}-${introSegment.end}`,
@@ -2258,10 +2059,7 @@ export function VideoPlayer({
       });
     }
 
-    const outroSegment = normalizeSegment(
-      introOutro?.outroStart,
-      introOutro?.outroEnd,
-    );
+    const outroSegment = normalizeSegment(introOutro?.outroStart, introOutro?.outroEnd);
     if (outroSegment) {
       timelineSegments.push({
         key: `legacy-outro-${outroSegment.start}-${outroSegment.end}`,
@@ -2271,8 +2069,7 @@ export function VideoPlayer({
     }
 
     const activeSegment = timelineSegments.find(
-      (segment) =>
-        currentTime >= segment.startSec && currentTime < segment.endSec - 0.35,
+      (segment) => currentTime >= segment.startSec && currentTime < segment.endSec - 0.35,
     );
     if (!activeSegment) return;
 
@@ -2291,37 +2088,29 @@ export function VideoPlayer({
 
     lastAutoSkippedSegmentRef.current = activeSegment.key;
     lastAutoSkipAtRef.current = now;
-    toast("Skipping segment...", "info");
+    toast('Skipping segment...', 'info');
     seek(Math.min(activeSegment.endSec + 0.1, duration));
-  }, [
-    autoSkipSegments,
-    stream?.type,
-    duration,
-    currentTime,
-    introOutro,
-    effectiveSegments,
-    seek,
-  ]);
+  }, [autoSkipSegments, stream?.type, duration, currentTime, introOutro, effectiveSegments, seek]);
 
   useEffect(() => {
     const markInteraction = () => {
       lastInteractionAtRef.current = Date.now();
       setShowIdlePauseOverlay(false);
     };
-    window.addEventListener("mousemove", markInteraction, { passive: true });
-    window.addEventListener("mousedown", markInteraction, { passive: true });
-    window.addEventListener("touchstart", markInteraction, { passive: true });
-    window.addEventListener("keydown", markInteraction);
+    window.addEventListener('mousemove', markInteraction, { passive: true });
+    window.addEventListener('mousedown', markInteraction, { passive: true });
+    window.addEventListener('touchstart', markInteraction, { passive: true });
+    window.addEventListener('keydown', markInteraction);
     return () => {
-      window.removeEventListener("mousemove", markInteraction);
-      window.removeEventListener("mousedown", markInteraction);
-      window.removeEventListener("touchstart", markInteraction);
-      window.removeEventListener("keydown", markInteraction);
+      window.removeEventListener('mousemove', markInteraction);
+      window.removeEventListener('mousedown', markInteraction);
+      window.removeEventListener('touchstart', markInteraction);
+      window.removeEventListener('keydown', markInteraction);
     };
   }, []);
 
   useEffect(() => {
-    if (!idlePauseOverlay || stream?.type === "embed") {
+    if (!idlePauseOverlay || stream?.type === 'embed') {
       if (showIdlePauseOverlay) setShowIdlePauseOverlay(false);
       return;
     }
@@ -2338,13 +2127,7 @@ export function VideoPlayer({
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [
-    idlePauseOverlay,
-    stream?.type,
-    isLoading,
-    isPlaying,
-    showIdlePauseOverlay,
-  ]);
+  }, [idlePauseOverlay, stream?.type, isLoading, isPlaying, showIdlePauseOverlay]);
 
   useEffect(() => {
     if (!showIdlePauseOverlay) {
@@ -2356,7 +2139,7 @@ export function VideoPlayer({
     if (!video) return;
 
     try {
-      const canvas = document.createElement("canvas");
+      const canvas = document.createElement('canvas');
       const vw = Math.max(1, video.videoWidth || 1280);
       const vh = Math.max(1, video.videoHeight || 720);
       // scale down a bit for performance
@@ -2364,10 +2147,10 @@ export function VideoPlayer({
       const scale = Math.min(1, maxW / vw);
       canvas.width = Math.max(320, Math.floor(vw * scale));
       canvas.height = Math.max(180, Math.floor(vh * scale));
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
         setIdleSnapshot(dataUrl);
       }
     } catch {
@@ -2377,7 +2160,7 @@ export function VideoPlayer({
 
   const loadSeasonEpisodes = useCallback(
     async (targetSeason: number) => {
-      if (!tmdbId || mediaType !== "show") return;
+      if (!tmdbId || mediaType !== 'show') return;
       setEpisodePanelSeason(targetSeason);
       setEpisodePanelLoading(true);
       try {
@@ -2400,7 +2183,7 @@ export function VideoPlayer({
         setWatchlistStatus(infoWatchlistItem.id, status);
       } else {
         addItem({
-          mediaType: mediaType === "show" ? "show" : "movie",
+          mediaType: mediaType === 'show' ? 'show' : 'movie',
           tmdbId: mediaTmdbId,
           title: media.title,
           posterPath: media.posterPath,
@@ -2410,14 +2193,7 @@ export function VideoPlayer({
 
       setShowInfoWatchlistMenu(false);
     },
-    [
-      media,
-      mediaTmdbId,
-      infoWatchlistItem,
-      setWatchlistStatus,
-      addItem,
-      mediaType,
-    ],
+    [media, mediaTmdbId, infoWatchlistItem, setWatchlistStatus, addItem, mediaType],
   );
 
   const applyWatchPartyState = useCallback(
@@ -2480,39 +2256,30 @@ export function VideoPlayer({
   );
 
   const forceSyncGuestNow = useCallback(async () => {
-    if (
-      watchPartyRole !== "guest" ||
-      !watchPartyRoomId ||
-      watchPartyForceSyncCooldownSec > 0
-    )
+    if (watchPartyRole !== 'guest' || !watchPartyRoomId || watchPartyForceSyncCooldownSec > 0)
       return;
     try {
-      setWatchPartyStatus("Force syncing...");
+      setWatchPartyStatus('Force syncing...');
       const response = await loadWatchPartyState(watchPartyRoomId);
       if (response.state) {
         applyWatchPartyState(response.state);
       }
       if (response.updatedAt) setWatchPartySyncAt(response.updatedAt);
       setWatchPartyGuestPollMs(response.recommendedGuestPollMs || 10000);
-      setWatchPartyStatus("Force sync complete");
+      setWatchPartyStatus('Force sync complete');
       setWatchPartyForceSyncUntil(Date.now() + 30000);
     } catch {
-      setWatchPartyStatus("Force sync failed");
+      setWatchPartyStatus('Force sync failed');
     }
-  }, [
-    watchPartyRole,
-    watchPartyRoomId,
-    watchPartyForceSyncCooldownSec,
-    applyWatchPartyState,
-  ]);
+  }, [watchPartyRole, watchPartyRoomId, watchPartyForceSyncCooldownSec, applyWatchPartyState]);
 
   const leaveWatchPartySession = useCallback(async () => {
     if (!watchPartyRoomId || !watchPartyParticipantId) {
       setWatchPartyRole(null);
-      setWatchPartyHostToken("");
-      setWatchPartyParticipantId("");
-      setWatchPartySyncAt("");
-      setWatchPartyStatus("Not connected");
+      setWatchPartyHostToken('');
+      setWatchPartyParticipantId('');
+      setWatchPartySyncAt('');
+      setWatchPartyStatus('Not connected');
       return;
     }
 
@@ -2526,27 +2293,23 @@ export function VideoPlayer({
     }
 
     setWatchPartyRole(null);
-    setWatchPartyHostToken("");
-    setWatchPartyParticipantId("");
-    setWatchPartySyncAt("");
-    setWatchPartyRoomId("");
-    setWatchPartyJoinCode("");
+    setWatchPartyHostToken('');
+    setWatchPartyParticipantId('');
+    setWatchPartySyncAt('');
+    setWatchPartyRoomId('');
+    setWatchPartyJoinCode('');
     watchPartyForcePausedRef.current = false;
-    setWatchPartyStatus("Not connected");
+    setWatchPartyStatus('Not connected');
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem(WATCH_PARTY_CODE_KEY);
       } catch {}
 
       const nextUrl = new URL(window.location.href);
-      if (nextUrl.searchParams.has("party")) {
-        nextUrl.searchParams.delete("party");
-        window.history.replaceState(
-          {},
-          "",
-          `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`,
-        );
+      if (nextUrl.searchParams.has('party')) {
+        nextUrl.searchParams.delete('party');
+        window.history.replaceState({}, '', `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
       }
     }
   }, [watchPartyRoomId, watchPartyParticipantId]);
@@ -2554,19 +2317,19 @@ export function VideoPlayer({
   const createWatchPartyRoom = useCallback(async () => {
     if (watchPartyBusy) return;
     if (!isLoggedIn) {
-      setWatchPartyStatus("Sign in required for Watch Together");
+      setWatchPartyStatus('Sign in required for Watch Together');
       return;
     }
     setWatchPartyBusy(true);
-    setWatchPartyStatus("Creating room...");
+    setWatchPartyStatus('Creating room...');
     try {
       const video = videoRef.current;
       const response = await createWatchParty({
         mediaKey: watchPartyMediaKey,
         mediaType: mediaType || undefined,
         mediaId: tmdbId || (media?.id ? String(media.id) : undefined),
-        season: mediaType === "show" ? seasonNum : undefined,
-        episode: mediaType === "show" ? episodeNum : undefined,
+        season: mediaType === 'show' ? seasonNum : undefined,
+        episode: mediaType === 'show' ? episodeNum : undefined,
         title,
         name: username,
         paused: video ? video.paused : true,
@@ -2576,14 +2339,14 @@ export function VideoPlayer({
 
       setWatchPartyRoomId(response.roomId);
       setWatchPartyJoinCode(response.roomId);
-      setWatchPartyRole("host");
+      setWatchPartyRole('host');
       setWatchPartyHostToken(response.hostToken);
       setWatchPartyParticipantId(response.participantId);
       setWatchPartySyncAt(response.state.updatedAt);
       setWatchPartyGuestPollMs(response.recommendedGuestPollMs || 10000);
       setWatchPartyStatus(`Hosting room ${response.roomId}`);
     } catch (error: any) {
-      setWatchPartyStatus(error?.message || "Failed to create room");
+      setWatchPartyStatus(error?.message || 'Failed to create room');
     } finally {
       setWatchPartyBusy(false);
     }
@@ -2604,14 +2367,14 @@ export function VideoPlayer({
     async (roomCode?: string) => {
       if (watchPartyBusy) return;
       if (!isLoggedIn) {
-        setWatchPartyStatus("Sign in required for Watch Together");
+        setWatchPartyStatus('Sign in required for Watch Together');
         return;
       }
-      const code = String(roomCode || watchPartyJoinCode || "")
+      const code = String(roomCode || watchPartyJoinCode || '')
         .trim()
         .toUpperCase();
       if (!code) {
-        setWatchPartyStatus("Enter a room code");
+        setWatchPartyStatus('Enter a room code');
         return;
       }
 
@@ -2627,23 +2390,19 @@ export function VideoPlayer({
         setWatchPartyRoomId(response.roomId);
         setWatchPartyJoinCode(response.roomId);
         setWatchPartyRole(response.role);
-        setWatchPartyHostToken("");
+        setWatchPartyHostToken('');
         setWatchPartyParticipantId(response.participantId);
-        setWatchPartySyncAt(
-          response.updatedAt || response.state?.updatedAt || "",
-        );
+        setWatchPartySyncAt(response.updatedAt || response.state?.updatedAt || '');
         setWatchPartyGuestPollMs(response.recommendedGuestPollMs || 10000);
-        setWatchPartyStatus(
-          `Connected to ${response.roomId} (${response.hostName})`,
-        );
+        setWatchPartyStatus(`Connected to ${response.roomId} (${response.hostName})`);
         applyWatchPartyState(response.state, response.serverNow);
-        if (typeof window !== "undefined") {
+        if (typeof window !== 'undefined') {
           try {
             localStorage.removeItem(WATCH_PARTY_CODE_KEY);
           } catch {}
         }
       } catch (error: any) {
-        setWatchPartyStatus(error?.message || "Failed to join room");
+        setWatchPartyStatus(error?.message || 'Failed to join room');
       } finally {
         setWatchPartyBusy(false);
       }
@@ -2659,19 +2418,17 @@ export function VideoPlayer({
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     if (!isLoggedIn) return;
     if (watchPartyRole) return;
     if (watchPartyAutoJoinAttemptedRef.current) return;
     watchPartyAutoJoinAttemptedRef.current = true;
 
     const url = new URL(window.location.href);
-    const codeFromUrl = String(url.searchParams.get("party") || "")
+    const codeFromUrl = String(url.searchParams.get('party') || '')
       .trim()
       .toUpperCase();
-    const codeFromStorage = String(
-      localStorage.getItem(WATCH_PARTY_CODE_KEY) || "",
-    )
+    const codeFromStorage = String(localStorage.getItem(WATCH_PARTY_CODE_KEY) || '')
       .trim()
       .toUpperCase();
     const code = codeFromUrl || codeFromStorage;
@@ -2682,7 +2439,7 @@ export function VideoPlayer({
 
   useEffect(() => {
     if (
-      watchPartyRole !== "host" ||
+      watchPartyRole !== 'host' ||
       !watchPartyRoomId ||
       !watchPartyHostToken ||
       !watchPartyMediaKey
@@ -2709,34 +2466,28 @@ export function VideoPlayer({
   ]);
 
   useEffect(() => {
-    if (watchPartyRole !== "guest" || !watchPartyRoomId) return;
+    if (watchPartyRole !== 'guest' || !watchPartyRoomId) return;
 
     let canceled = false;
     const poll = async () => {
       try {
-        const response = await loadWatchPartyState(
-          watchPartyRoomId,
-          watchPartySyncAt || undefined,
-        );
+        const response = await loadWatchPartyState(watchPartyRoomId, watchPartySyncAt || undefined);
         if (canceled) return;
 
         setWatchPartyGuestPollMs(response.recommendedGuestPollMs || 10000);
         if (response.updatedAt) setWatchPartySyncAt(response.updatedAt);
 
         if (response.changed && response.state) {
-          setWatchPartyStatus(`Synced with ${response.hostName || "host"}`);
+          setWatchPartyStatus(`Synced with ${response.hostName || 'host'}`);
           applyWatchPartyState(response.state, response.serverNow);
         }
       } catch {
-        if (!canceled) setWatchPartyStatus("Sync warning: guest poll failed");
+        if (!canceled) setWatchPartyStatus('Sync warning: guest poll failed');
       }
     };
 
     poll();
-    const interval = window.setInterval(
-      poll,
-      Math.max(5000, watchPartyGuestPollMs),
-    );
+    const interval = window.setInterval(poll, Math.max(5000, watchPartyGuestPollMs));
     return () => {
       canceled = true;
       window.clearInterval(interval);
@@ -2773,8 +2524,7 @@ export function VideoPlayer({
       if (start === undefined || end === undefined) return null;
       const normalizedStart = Math.max(0, start);
       const normalizedEnd = end === 0 ? duration : end;
-      if (!Number.isFinite(normalizedEnd) || normalizedEnd <= normalizedStart)
-        return null;
+      if (!Number.isFinite(normalizedEnd) || normalizedEnd <= normalizedStart) return null;
       return { start: normalizedStart, end: normalizedEnd };
     },
     [duration],
@@ -2795,8 +2545,7 @@ export function VideoPlayer({
     effectiveSegments.credits.length > 0,
   );
 
-  const isShowWithEpisodes =
-    mediaType === "show" && Boolean(season?.episodes?.length);
+  const isShowWithEpisodes = mediaType === 'show' && Boolean(season?.episodes?.length);
 
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
@@ -2812,8 +2561,7 @@ export function VideoPlayer({
   const changeSpeed = useCallback(
     (speed: number) => {
       if (videoRef.current) videoRef.current.playbackRate = speed;
-      if (externalAudioRef.current)
-        externalAudioRef.current.playbackRate = speed;
+      if (externalAudioRef.current) externalAudioRef.current.playbackRate = speed;
       setPlaybackSpeed(speed);
       pushWatchPartyHostStateNow();
       setSettingsPanel(null);
@@ -2822,21 +2570,16 @@ export function VideoPlayer({
   );
 
   const skipForward = useCallback(() => {
-    const start =
-      targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
+    const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
     seek(start + 10);
   }, [currentTime, seek]);
 
   const skipBackward = useCallback(() => {
-    const start =
-      targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
+    const start = targetTimeRef.current !== null ? targetTimeRef.current : currentTime;
     seek(start - 10);
   }, [currentTime, seek]);
   const handleSkipIntro = useCallback(() => {
-    const introSegment = normalizeSegment(
-      introOutro?.introStart,
-      introOutro?.introEnd,
-    );
+    const introSegment = normalizeSegment(introOutro?.introStart, introOutro?.introEnd);
     if (!introSegment || !videoRef.current) return;
 
     if (videoRef.current.currentTime < introSegment.start) {
@@ -2849,10 +2592,7 @@ export function VideoPlayer({
   }, [introOutro, normalizeSegment, seek]);
 
   const handleSkipOutro = useCallback(() => {
-    const outroSegment = normalizeSegment(
-      introOutro?.outroStart,
-      introOutro?.outroEnd,
-    );
+    const outroSegment = normalizeSegment(introOutro?.outroStart, introOutro?.outroEnd);
     if (!outroSegment) return;
 
     // If end is duration (outroEnd=0), `normalizeSegment` converted.
@@ -2874,72 +2614,60 @@ export function VideoPlayer({
   // ---- Keyboard shortcuts ----
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLSelectElement
-      )
-        return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
       switch (e.key) {
-        case " ":
-        case "k":
+        case ' ':
+        case 'k':
           e.preventDefault();
           togglePlay();
           break;
-        case "f":
+        case 'f':
           e.preventDefault();
           toggleFullscreen();
           break;
-        case "ArrowRight":
+        case 'ArrowRight':
           e.preventDefault();
           skipForward();
           break;
-        case "ArrowLeft":
+        case 'ArrowLeft':
           e.preventDefault();
           skipBackward();
           break;
-        case "ArrowUp":
+        case 'ArrowUp':
           e.preventDefault();
           changeVolume(volume + 0.1);
           break;
-        case "ArrowDown":
+        case 'ArrowDown':
           e.preventDefault();
           changeVolume(volume - 0.1);
           break;
-        case "m":
+        case 'm':
           e.preventDefault();
           toggleMute();
           break;
 
-        case ",":
+        case ',':
           e.preventDefault();
           {
             const idx = PLAYBACK_SPEEDS.indexOf(playbackSpeed);
             if (idx > 0) changeSpeed(PLAYBACK_SPEEDS[idx - 1]);
           }
           break;
-        case ".":
+        case '.':
           e.preventDefault();
           {
             const idx = PLAYBACK_SPEEDS.indexOf(playbackSpeed);
-            if (idx < PLAYBACK_SPEEDS.length - 1)
-              changeSpeed(PLAYBACK_SPEEDS[idx + 1]);
+            if (idx < PLAYBACK_SPEEDS.length - 1) changeSpeed(PLAYBACK_SPEEDS[idx + 1]);
           }
           break;
-        case "Escape":
+        case 'Escape':
           closeMenus();
           break;
       }
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [
-    togglePlay,
-    toggleFullscreen,
-    skipForward,
-    skipBackward,
-    volume,
-    playbackSpeed,
-  ]);
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [togglePlay, toggleFullscreen, skipForward, skipBackward, volume, playbackSpeed]);
 
   const handleMouseMove = useCallback(() => {
     lastInteractionAtRef.current = Date.now();
@@ -2955,18 +2683,18 @@ export function VideoPlayer({
         showControls();
         // Automatically go to landscape on mobile when entering fullscreen
         if (
-          typeof screen !== "undefined" &&
+          typeof screen !== 'undefined' &&
           screen.orientation &&
           (screen.orientation as any).lock
         ) {
-          (screen.orientation as any).lock("landscape").catch(() => {
+          (screen.orientation as any).lock('landscape').catch(() => {
             // Silently ignore if the browser doesn't support locking or if it fails
           });
         }
       } else {
         // Unlock orientation when exiting fullscreen
         if (
-          typeof screen !== "undefined" &&
+          typeof screen !== 'undefined' &&
           screen.orientation &&
           (screen.orientation as any).unlock
         ) {
@@ -2982,9 +2710,8 @@ export function VideoPlayer({
     // initial sync (route-change/auto-next may invoke reset())
     syncFullscreenState();
 
-    document.addEventListener("fullscreenchange", syncFullscreenState);
-    return () =>
-      document.removeEventListener("fullscreenchange", syncFullscreenState);
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, [setFullscreen, showControls]);
 
   useEffect(() => {
@@ -2996,30 +2723,25 @@ export function VideoPlayer({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const bufferProgress = duration > 0 ? (buffered / duration) * 100 : 0;
   const hoverPercent =
-    hoverProgress !== null && duration > 0
-      ? (hoverProgress / duration) * 100
-      : null;
+    hoverProgress !== null && duration > 0 ? (hoverProgress / duration) * 100 : null;
   const subtitleBottomPercent = Math.max(-6, Math.min(35, 100 - subVertical));
   const isMobilePlayerPanelOpen =
-    isTouchDevice &&
-    stream?.type !== "embed" &&
-    settingsPanel !== null &&
-    settingsPanel !== "info";
+    isTouchDevice && stream?.type !== 'embed' && settingsPanel !== null && settingsPanel !== 'info';
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        "player-container nexvid-player group relative bg-black [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]",
-        fullViewport && "full-viewport h-full w-full rounded-none",
-        isFullscreen && "is-fullscreen fixed inset-0 z-50 rounded-none",
-        (controlsVisible || settingsPanel !== null) && "controls-visible",
+        'player-container nexvid-player group relative bg-black [&_svg]:[stroke-linecap:round] [&_svg]:[stroke-linejoin:round]',
+        fullViewport && 'full-viewport h-full w-full rounded-none',
+        isFullscreen && 'is-fullscreen fixed inset-0 z-50 rounded-none',
+        (controlsVisible || settingsPanel !== null) && 'controls-visible',
       )}
       onMouseMove={handleMouseMove}
       onMouseLeave={hideControls}
     >
       {/* Embed iframe or native video */}
-      {stream?.type === "embed" ? (
+      {stream?.type === 'embed' ? (
         (() => {
           // Oblicz URL integracji dla natywnych embedów (vidfast & vidsync)
           let embedUrl = stream.url;
@@ -3029,26 +2751,20 @@ export function VideoPlayer({
           ) {
             try {
               const u = new URL(embedUrl);
-              if (autoPlay) u.searchParams.set("autoPlay", "true");
-              const effectiveThemeHex = getAccentHex(
-                accentColor,
-                customAccentHex,
-              );
+              if (autoPlay) u.searchParams.set('autoPlay', 'true');
+              const effectiveThemeHex = getAccentHex(accentColor, customAccentHex);
               if (effectiveThemeHex) {
-                u.searchParams.set("theme", effectiveThemeHex.replace("#", ""));
+                u.searchParams.set('theme', effectiveThemeHex.replace('#', ''));
               }
               if (autoPlay) {
-                u.searchParams.set("nextButton", "true");
-                u.searchParams.set("autoNext", "true");
+                u.searchParams.set('nextButton', 'true');
+                u.searchParams.set('autoNext', 'true');
               }
               if (initialSeekTime > 0) {
-                u.searchParams.set(
-                  "startAt",
-                  Math.floor(initialSeekTime).toString(),
-                );
+                u.searchParams.set('startAt', Math.floor(initialSeekTime).toString());
               }
-              if (subtitleLanguage && subtitleLanguage !== "off") {
-                u.searchParams.set("sub", subtitleLanguage);
+              if (subtitleLanguage && subtitleLanguage !== 'off') {
+                u.searchParams.set('sub', subtitleLanguage);
               }
               embedUrl = u.toString();
             } catch (e) {}
@@ -3060,21 +2776,18 @@ export function VideoPlayer({
                 src={embedUrl}
                 title="Embedded video player"
                 className={cn(
-                  "h-full w-full border-0",
+                  'h-full w-full border-0',
                   !/cinesrc|vidking|zxcstream/i.test(stream.url) &&
-                    embedLockState !== "unlocked" &&
-                    "pointer-events-none",
+                    embedLockState !== 'unlocked' &&
+                    'pointer-events-none',
                 )}
                 allowFullScreen
                 allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                 referrerPolicy="origin"
-                {...(/videasy|vidlink|vidfast|vidsync|peachify/i.test(
-                  stream.url,
-                )
+                {...(/videasy|vidlink|vidfast|vidsync|peachify/i.test(stream.url)
                   ? {}
                   : {
-                      sandbox:
-                        "allow-scripts allow-same-origin allow-presentation",
+                      sandbox: 'allow-scripts allow-same-origin allow-presentation',
                     })}
               />
             </div>
@@ -3087,21 +2800,21 @@ export function VideoPlayer({
             className="h-full w-full nexvid-video"
             style={{
               objectFit:
-                playerViewMode === "stretch"
-                  ? "fill"
-                  : playerViewMode === "zoom"
-                    ? "cover"
+                playerViewMode === 'stretch'
+                  ? 'fill'
+                  : playerViewMode === 'zoom'
+                    ? 'cover'
                     : playerFillWidth && playerFillHeight
-                      ? "cover"
+                      ? 'cover'
                       : playerFillWidth &&
                           videoNaturalAspectRatio &&
                           videoNaturalAspectRatio < 16 / 9
-                        ? "cover"
+                        ? 'cover'
                         : playerFillHeight &&
                             videoNaturalAspectRatio &&
                             videoNaturalAspectRatio > 16 / 9
-                          ? "cover"
-                          : "contain",
+                          ? 'cover'
+                          : 'contain',
             }}
             playsInline
             onTimeUpdate={handleTimeUpdate}
@@ -3124,9 +2837,7 @@ export function VideoPlayer({
             onLoadedMetadata={(e) => {
               const video = e.currentTarget;
               if (video.videoWidth && video.videoHeight) {
-                setVideoNaturalAspectRatio(
-                  video.videoWidth / video.videoHeight,
-                );
+                setVideoNaturalAspectRatio(video.videoWidth / video.videoHeight);
               }
             }}
             muted={isMuted}
@@ -3137,12 +2848,12 @@ export function VideoPlayer({
           {/* Combined Interaction & Mobile Gesture Layer */}
           <div
             className={cn(
-              "absolute inset-x-0 top-16 bottom-24 z-[20] select-none",
+              'absolute inset-x-0 top-16 bottom-24 z-[20] select-none',
               isDraggingProgress
-                ? "cursor-grabbing"
+                ? 'cursor-grabbing'
                 : controlsVisible || settingsPanel !== null
-                  ? "cursor-pointer"
-                  : "cursor-none",
+                  ? 'cursor-pointer'
+                  : 'cursor-none',
             )}
             onClick={handleInteractionAreaClick}
             onTouchEnd={handleInteractionAreaTouch}
@@ -3158,7 +2869,7 @@ export function VideoPlayer({
                     exit={{ opacity: 0, scale: 0.5 }}
                     className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10"
                   >
-                    {playbackIndicator === "play" ? (
+                    {playbackIndicator === 'play' ? (
                       <Play className="h-8 w-8 fill-white text-white" />
                     ) : (
                       <Pause className="h-8 w-8 fill-white text-white" />
@@ -3170,7 +2881,7 @@ export function VideoPlayer({
 
             {/* Skip Indicators for mobile */}
             <AnimatePresence>
-              {showSkipIndicator === "left" && (
+              {showSkipIndicator === 'left' && (
                 <motion.div
                   key="skip-left"
                   initial={{ opacity: 0, x: -20 }}
@@ -3181,12 +2892,10 @@ export function VideoPlayer({
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <Rewind className="h-8 w-8 fill-white text-white" />
                   </div>
-                  <span className="text-[14px] font-bold text-white shadow-lg">
-                    -10s
-                  </span>
+                  <span className="text-[14px] font-bold text-white shadow-lg">-10s</span>
                 </motion.div>
               )}
-              {showSkipIndicator === "right" && (
+              {showSkipIndicator === 'right' && (
                 <motion.div
                   key="skip-right"
                   initial={{ opacity: 0, x: 20 }}
@@ -3197,9 +2906,7 @@ export function VideoPlayer({
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <FastForward className="h-8 w-8 fill-white text-white" />
                   </div>
-                  <span className="text-[14px] font-bold text-white shadow-lg">
-                    +10s
-                  </span>
+                  <span className="text-[14px] font-bold text-white shadow-lg">+10s</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -3207,7 +2914,7 @@ export function VideoPlayer({
         </>
       )}
 
-      {stream?.type !== "embed" && activeCaption && renderedSubtitle && (
+      {stream?.type !== 'embed' && activeCaption && renderedSubtitle && (
         <div
           className="pointer-events-none absolute inset-x-0 z-[8] flex justify-center px-5"
           style={{ bottom: `${subtitleBottomPercent}%` }}
@@ -3218,8 +2925,8 @@ export function VideoPlayer({
               fontSize: `${subFontSize}px`,
               color: subColor,
               background: subBg,
-              padding: "4px 12px",
-              borderRadius: "14px",
+              padding: '4px 12px',
+              borderRadius: '14px',
             }}
           >
             {renderedSubtitle}
@@ -3227,10 +2934,10 @@ export function VideoPlayer({
         </div>
       )}
 
-      {stream?.type === "embed" &&
-        !/cinesrc|vidking|zxcstream/i.test(stream?.url || "") &&
+      {stream?.type === 'embed' &&
+        !/cinesrc|vidking|zxcstream/i.test(stream?.url || '') &&
         !isEmbedNoticeDismissed &&
-        embedLockState === "locked" && (
+        embedLockState === 'locked' && (
           <div className="absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
             <div className="rounded-[20px] bg-black/85 p-5 backdrop-blur-2xl flex flex-col items-center gap-4 max-w-sm border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)] animate-scale-in">
               <div className="flex flex-col items-center gap-1">
@@ -3238,14 +2945,13 @@ export function VideoPlayer({
                   Embed Interaction Locked
                 </p>
                 <p className="text-center text-[11px] text-white/50 leading-relaxed px-4">
-                  Clicks are restricted to prevent malicious redirects and
-                  popups from the provider.
+                  Clicks are restricted to prevent malicious redirects and popups from the provider.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-2.5 w-full">
                 <button
-                  onClick={() => setEmbedLockState("unlocked")}
+                  onClick={() => setEmbedLockState('unlocked')}
                   className="flex items-center justify-center gap-2 rounded-[12px] bg-accent px-3 py-2.5 text-[11px] text-white font-bold hover:brightness-110 transition-all shadow-lg shadow-accent/25"
                 >
                   <svg
@@ -3265,12 +2971,12 @@ export function VideoPlayer({
                 <button
                   onClick={() => {
                     const firstDirectIndex = safeSourceResults.findIndex(
-                      (r) => r.stream.type !== "embed",
+                      (r) => r.stream.type !== 'embed',
                     );
                     if (firstDirectIndex !== -1 && onSelectSource) {
                       onSelectSource(firstDirectIndex);
                       setSettingsPanel(null);
-                      setEmbedLockState("locked");
+                      setEmbedLockState('locked');
                     } else {
                       window.location.reload();
                     }
@@ -3341,12 +3047,12 @@ export function VideoPlayer({
         )}
 
       {/* Embed unlocked — centered lock button */}
-      {stream?.type === "embed" &&
-        !/cinesrc|vidking|zxcstream/i.test(stream?.url || "") &&
-        embedLockState === "unlocked" && (
+      {stream?.type === 'embed' &&
+        !/cinesrc|vidking|zxcstream/i.test(stream?.url || '') &&
+        embedLockState === 'unlocked' && (
           <div className="absolute inset-x-0 bottom-20 z-30 flex justify-center">
             <button
-              onClick={() => setEmbedLockState("locked")}
+              onClick={() => setEmbedLockState('locked')}
               className="rounded-full bg-black/60 px-4 py-1.5 text-[11px] text-white/60 hover:bg-black/80 hover:text-white/90 backdrop-blur-sm transition-all flex items-center gap-1.5"
             >
               <svg
@@ -3366,20 +3072,20 @@ export function VideoPlayer({
         )}
 
       {/* Loading spinner */}
-      {isLoading && stream?.type !== "embed" && (
+      {isLoading && stream?.type !== 'embed' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
         </div>
       )}
 
       {/* Scrape status overlay */}
-      {scrapeStatus === "loading" && !stream && (
+      {scrapeStatus === 'loading' && !stream && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none z-10">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
           <p className="text-[13px] text-white/60">Finding sources...</p>
         </div>
       )}
-      {scrapeStatus === "error" && !stream && (
+      {scrapeStatus === 'error' && !stream && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 pointer-events-none">
           <svg
             width="40"
@@ -3393,9 +3099,7 @@ export function VideoPlayer({
             <circle cx="12" cy="12" r="10" />
             <path d="M12 8v4M12 16h.01" />
           </svg>
-          <p className="text-[13px] text-white/60">
-            {scrapeErrorTitle || "No sources found"}
-          </p>
+          <p className="text-[13px] text-white/60">{scrapeErrorTitle || 'No sources found'}</p>
           {scrapeErrorDescription && (
             <p className="max-w-[440px] px-4 text-center text-[11px] text-white/50">
               {scrapeErrorDescription}
@@ -3491,7 +3195,7 @@ export function VideoPlayer({
                     onClick={onTokenNoticePermanentDismiss}
                     className="rounded-[8px] bg-red-500/12 px-3 py-1.5 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-colors"
                   >
-                    {tokenNoticePermanentDismissLabel || "Dismiss sitewide"}
+                    {tokenNoticePermanentDismissLabel || 'Dismiss sitewide'}
                   </button>
                 </div>
               )}
@@ -3502,65 +3206,59 @@ export function VideoPlayer({
 
       {/* Skip Intro */}
       <AnimatePresence mode="wait">
-        {stream?.type !== "embed" &&
-          showSkipIntro &&
-          skipIntro &&
-          !showNextPrompt && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={handleSkipIntro}
-              className={cn(
-                "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
-                glassEffect
-                  ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-                  : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
-              )}
-            >
-              <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
-              Skip Intro
-            </motion.button>
-          )}
+        {stream?.type !== 'embed' && showSkipIntro && skipIntro && !showNextPrompt && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={handleSkipIntro}
+            className={cn(
+              'absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group',
+              glassEffect
+                ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]'
+                : 'bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]',
+            )}
+          >
+            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
+            Skip Intro
+          </motion.button>
+        )}
       </AnimatePresence>
 
       {/* Skip Outro */}
       <AnimatePresence mode="wait">
-        {stream?.type !== "embed" &&
-          showSkipOutro &&
-          skipOutro &&
-          !showNextPrompt && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={handleSkipOutro}
-              className={cn(
-                "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
-                glassEffect
-                  ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-                  : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
-              )}
-            >
-              <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
-              Skip Outro
-            </motion.button>
-          )}
+        {stream?.type !== 'embed' && showSkipOutro && skipOutro && !showNextPrompt && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={handleSkipOutro}
+            className={cn(
+              'absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group',
+              glassEffect
+                ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]'
+                : 'bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]',
+            )}
+          >
+            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
+            Skip Outro
+          </motion.button>
+        )}
       </AnimatePresence>
 
       {/* Top Bar - shown for all stream types */}
       <div
         className={cn(
-          "absolute top-0 left-0 right-0 flex items-center gap-3 px-3 sm:px-5 pt-4 pb-12 z-[40]",
-          "bg-gradient-to-b from-black/80 to-transparent",
-          "transition-opacity duration-300",
-          stream?.type === "embed" ||
+          'absolute top-0 left-0 right-0 flex items-center gap-3 px-3 sm:px-5 pt-4 pb-12 z-[40]',
+          'bg-gradient-to-b from-black/80 to-transparent',
+          'transition-opacity duration-300',
+          stream?.type === 'embed' ||
             controlsVisible ||
             settingsPanel !== null ||
-            scrapeStatus === "error" ||
+            scrapeStatus === 'error' ||
             (error && !stream)
-            ? "opacity-100"
-            : "opacity-0 pointer-events-none",
+            ? 'opacity-100'
+            : 'opacity-0 pointer-events-none',
         )}
       >
         {onBack && (
@@ -3575,21 +3273,15 @@ export function VideoPlayer({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            {title && (
-              <p className="text-[13px] font-semibold text-white truncate">
-                {title}
-              </p>
-            )}
+            {title && <p className="text-[13px] font-semibold text-white truncate">{title}</p>}
             {media && (
               <button
-                onClick={() =>
-                  setSettingsPanel(settingsPanel === "info" ? null : "info")
-                }
+                onClick={() => setSettingsPanel(settingsPanel === 'info' ? null : 'info')}
                 className={cn(
-                  "shrink-0 rounded-[8px] p-1.5 transition-colors",
-                  settingsPanel === "info"
-                    ? "text-accent"
-                    : "text-white/70 hover:bg-white/10 hover:text-white",
+                  'shrink-0 rounded-[8px] p-1.5 transition-colors',
+                  settingsPanel === 'info'
+                    ? 'text-accent'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white',
                 )}
                 aria-label="Title info"
                 title="Info"
@@ -3597,18 +3289,14 @@ export function VideoPlayer({
                 <Info className="h-[14px] w-[14px] stroke-[1.9]" />
               </button>
             )}
-            {stream?.type === "embed" && safeSourceResults.length > 1 && (
+            {stream?.type === 'embed' && safeSourceResults.length > 1 && (
               <button
-                onClick={() =>
-                  setSettingsPanel(
-                    settingsPanel === "sources" ? null : "sources",
-                  )
-                }
+                onClick={() => setSettingsPanel(settingsPanel === 'sources' ? null : 'sources')}
                 className={cn(
-                  "shrink-0 rounded-[8px] p-1.5 transition-colors",
-                  settingsPanel === "sources"
-                    ? "text-accent"
-                    : "text-white/70 hover:bg-white/10 hover:text-white",
+                  'shrink-0 rounded-[8px] p-1.5 transition-colors',
+                  settingsPanel === 'sources'
+                    ? 'text-accent'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white',
                 )}
                 aria-label="Change Server"
                 title="Change Server"
@@ -3629,17 +3317,15 @@ export function VideoPlayer({
               </button>
             )}
           </div>
-          {subtitle && (
-            <p className="text-[11px] text-white/60 truncate">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-[11px] text-white/60 truncate">{subtitle}</p>}
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Restore Locked Notice button if hidden */}
-          {stream?.type === "embed" &&
-            !/cinesrc|vidking|zxcstream/i.test(stream?.url || "") &&
+          {stream?.type === 'embed' &&
+            !/cinesrc|vidking|zxcstream/i.test(stream?.url || '') &&
             isEmbedNoticeDismissed &&
-            embedLockState === "locked" && (
+            embedLockState === 'locked' && (
               <button
                 onClick={() => setIsEmbedNoticeDismissed(false)}
                 className="rounded-[8px] p-2 text-amber-400/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
@@ -3649,14 +3335,14 @@ export function VideoPlayer({
               </button>
             )}
 
-          {playbackSpeed !== 1 && stream?.type !== "embed" && (
+          {playbackSpeed !== 1 && stream?.type !== 'embed' && (
             <span className="rounded-[6px] bg-accent/80 px-2 py-0.5 text-[11px] font-bold text-white">
               {playbackSpeed}x
             </span>
           )}
         </div>
       </div>
-      {stream?.type === "embed" ? null : (
+      {stream?.type === 'embed' ? null : (
         <>
           {isMobilePlayerPanelOpen && (
             <div
@@ -3667,12 +3353,12 @@ export function VideoPlayer({
           {/* Bottom Controls */}
           <div
             className={cn(
-              "player-controls",
-              settingsPanel !== null ? "z-[100]" : "z-[40]",
-              "transition-opacity duration-300",
+              'player-controls',
+              settingsPanel !== null ? 'z-[100]' : 'z-[40]',
+              'transition-opacity duration-300',
               controlsVisible || settingsPanel !== null
-                ? "opacity-100"
-                : "opacity-0 pointer-events-none",
+                ? 'opacity-100'
+                : 'opacity-0 pointer-events-none',
             )}
           >
             {/* Progress Bar */}
@@ -3685,10 +3371,7 @@ export function VideoPlayer({
               onMouseMove={handleProgressHover}
               onMouseLeave={() => setHoverProgress(null)}
             >
-              <div
-                className="player-progress-buffer"
-                style={{ width: `${bufferProgress}%` }}
-              />
+              <div className="player-progress-buffer" style={{ width: `${bufferProgress}%` }} />
               {/* Segment markers */}
               {segments && duration > 0 && (
                 <>
@@ -3754,16 +3437,13 @@ export function VideoPlayer({
                   })}
                 </>
               )}
-              <div
-                className="player-progress-fill"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="player-progress-fill" style={{ width: `${progress}%` }} />
               {hoverPercent !== null && (
                 <div
                   className="absolute -top-8 rounded bg-black/80 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm pointer-events-none"
                   style={{
                     left: `${hoverPercent}%`,
-                    transform: "translateX(-50%)",
+                    transform: 'translateX(-50%)',
                   }}
                 >
                   {formatTime(hoverProgress!)}
@@ -3771,7 +3451,7 @@ export function VideoPlayer({
               )}
               <div
                 className="absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-accent shadow-lg shadow-accent/30 opacity-0 transition-opacity group-hover:opacity-100"
-                style={{ left: `${progress}%`, marginLeft: "-7px" }}
+                style={{ left: `${progress}%`, marginLeft: '-7px' }}
               />
             </div>
 
@@ -3781,8 +3461,8 @@ export function VideoPlayer({
                 <button
                   onClick={togglePlay}
                   className="rounded-[10px] p-2 text-white hover:bg-white/10 transition-colors"
-                  title={isPlaying ? "Pause (K)" : "Play (K)"}
-                  aria-label={isPlaying ? "Pause (K)" : "Play (K)"}
+                  title={isPlaying ? 'Pause (K)' : 'Play (K)'}
+                  aria-label={isPlaying ? 'Pause (K)' : 'Play (K)'}
                 >
                   {isPlaying ? (
                     <Pause className="h-5 w-5 fill-current stroke-[1.85]" />
@@ -3844,19 +3524,17 @@ export function VideoPlayer({
                 )}
 
                 {/* Episodes Button (shows only) */}
-                {mediaType === "show" && season && (
+                {mediaType === 'show' && season && (
                   <div className="relative">
                     <button
                       onClick={() =>
-                        setSettingsPanel(
-                          settingsPanel === "episodes" ? null : "episodes",
-                        )
+                        setSettingsPanel(settingsPanel === 'episodes' ? null : 'episodes')
                       }
                       className={cn(
-                        "rounded-[10px] p-2 transition-colors",
-                        settingsPanel === "episodes"
-                          ? "text-accent"
-                          : "text-white/70 hover:bg-white/10 hover:text-white",
+                        'rounded-[10px] p-2 transition-colors',
+                        settingsPanel === 'episodes'
+                          ? 'text-accent'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white',
                       )}
                       aria-label="Episodes"
                       title="Episodes"
@@ -3865,40 +3543,35 @@ export function VideoPlayer({
                     </button>
 
                     {/* Episodes Panel */}
-                    {settingsPanel === "episodes" && (
+                    {settingsPanel === 'episodes' && (
                       <div
                         className={cn(
-                          "mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
+                          'mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]',
                           isTouchDevice
-                            ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
-                            : "absolute bottom-full right-0 z-[50] mb-2 max-h-[60vh]",
+                            ? 'fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]'
+                            : 'absolute bottom-full right-0 z-[50] mb-2 max-h-[60vh]',
                         )}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-[11px] font-semibold text-white/80">
-                            Episodes
-                          </p>
-                          {(media as Show)?.seasons &&
-                            (media as Show).seasons.length > 1 && (
-                              <select
-                                value={episodePanelSeason}
-                                onChange={(e) =>
-                                  loadSeasonEpisodes(parseInt(e.target.value))
-                                }
-                                className="rounded-[8px] bg-white/10 px-2 py-1 text-[11px] text-white border-none outline-none shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)]"
-                              >
-                                {(media as Show).seasons.map((s) => (
-                                  <option
-                                    key={s.seasonNumber}
-                                    value={s.seasonNumber}
-                                    className="bg-[#0a0a0a]"
-                                  >
-                                    Season {s.seasonNumber}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
+                          <p className="text-[11px] font-semibold text-white/80">Episodes</p>
+                          {(media as Show)?.seasons && (media as Show).seasons.length > 1 && (
+                            <select
+                              value={episodePanelSeason}
+                              onChange={(e) => loadSeasonEpisodes(parseInt(e.target.value))}
+                              className="rounded-[8px] bg-white/10 px-2 py-1 text-[11px] text-white border-none outline-none shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)]"
+                            >
+                              {(media as Show).seasons.map((s) => (
+                                <option
+                                  key={s.seasonNumber}
+                                  value={s.seasonNumber}
+                                  className="bg-[#0a0a0a]"
+                                >
+                                  Season {s.seasonNumber}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         <div className="space-y-1.5">
                           {episodePanelLoading && (
@@ -3911,18 +3584,15 @@ export function VideoPlayer({
                               <button
                                 key={ep.episodeNumber}
                                 onClick={() => {
-                                  onNavigateEpisode?.(
-                                    episodePanelSeason,
-                                    ep.episodeNumber,
-                                  );
+                                  onNavigateEpisode?.(episodePanelSeason, ep.episodeNumber);
                                   setSettingsPanel(null);
                                 }}
                                 className={cn(
-                                  "w-full rounded-[12px] p-2 text-left transition-all duration-200",
+                                  'w-full rounded-[12px] p-2 text-left transition-all duration-200',
                                   episodePanelSeason === seasonNum &&
                                     ep.episodeNumber === episodeNum
-                                    ? "bg-accent/15 text-accent shadow-[0_0_0_1px_var(--accent-muted)]"
-                                    : "text-white/70 hover:bg-white/10 hover:text-white",
+                                    ? 'bg-accent/15 text-accent shadow-[0_0_0_1px_var(--accent-muted)]'
+                                    : 'text-white/70 hover:bg-white/10 hover:text-white',
                                 )}
                               >
                                 <div className="flex items-start gap-2.5">
@@ -3930,10 +3600,7 @@ export function VideoPlayer({
                                     {ep.stillPath ? (
                                       <img
                                         src={`https://image.tmdb.org/t/p/w300${ep.stillPath}`}
-                                        alt={
-                                          ep.name ||
-                                          `Episode ${ep.episodeNumber}`
-                                        }
+                                        alt={ep.name || `Episode ${ep.episodeNumber}`}
                                         className="h-full w-full object-cover"
                                         loading="lazy"
                                       />
@@ -3947,8 +3614,7 @@ export function VideoPlayer({
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-start justify-between gap-2">
                                       <p className="truncate text-[12px] font-semibold">
-                                        {ep.name ||
-                                          `Episode ${ep.episodeNumber}`}
+                                        {ep.name || `Episode ${ep.episodeNumber}`}
                                       </p>
                                       {episodePanelSeason === seasonNum &&
                                         ep.episodeNumber === episodeNum && (
@@ -3960,7 +3626,7 @@ export function VideoPlayer({
 
                                     <p className="mt-0.5 text-[10px] font-medium text-white/55">
                                       S{episodePanelSeason}:E{ep.episodeNumber}
-                                      {ep.runtime ? ` • ${ep.runtime} min` : ""}
+                                      {ep.runtime ? ` • ${ep.runtime} min` : ''}
                                     </p>
 
                                     {ep.overview ? (
@@ -3985,15 +3651,12 @@ export function VideoPlayer({
                 {/* Unified Settings Button */}
                 <div className="relative">
                   <button
-                    onClick={() =>
-                      setSettingsPanel(settingsPanel ? null : "main")
-                    }
+                    onClick={() => setSettingsPanel(settingsPanel ? null : 'main')}
                     className={cn(
-                      "rounded-[10px] p-2 transition-colors",
-                      settingsPanel &&
-                        !["info", "episodes"].includes(settingsPanel)
-                        ? "text-accent"
-                        : "text-white/70 hover:bg-white/10 hover:text-white",
+                      'rounded-[10px] p-2 transition-colors',
+                      settingsPanel && !['info', 'episodes'].includes(settingsPanel)
+                        ? 'text-accent'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white',
                     )}
                     aria-label="Settings"
                     title="Settings"
@@ -4002,307 +3665,214 @@ export function VideoPlayer({
                   </button>
 
                   {/* Unified Settings Panel */}
-                  {settingsPanel &&
-                    !["info", "episodes"].includes(settingsPanel) && (
-                      <div
-                        className={cn(
-                          "mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]",
-                          isTouchDevice
-                            ? "fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]"
-                            : "absolute bottom-full right-0 z-[50] mb-2 max-h-[65vh]",
-                        )}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {/* Main Grid */}
-                        {settingsPanel === "main" && (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-3 gap-2">
-                              {/* Quality Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("quality")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-white/80"
-                                >
-                                  <path d="M2 6h4M18 6h4M8 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
-                                  <path d="M12 10v4" />
-                                </svg>
-                                <span className="text-[10px] text-white/60">
-                                  Quality
-                                </span>
-                                <span className="text-[10px] font-semibold text-accent">
-                                  {getQualityLabel(currentQuality)}
-                                </span>
-                              </button>
-
-                              {/* Sources Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("sources")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-white/80"
-                                >
-                                  <rect
-                                    x="2"
-                                    y="2"
-                                    width="20"
-                                    height="8"
-                                    rx="2"
-                                  />
-                                  <rect
-                                    x="2"
-                                    y="14"
-                                    width="20"
-                                    height="8"
-                                    rx="2"
-                                  />
-                                  <line x1="6" y1="6" x2="6" y2="6" />
-                                  <line x1="6" y1="18" x2="6" y2="18" />
-                                </svg>
-                                <span className="text-[10px] text-white/60">
-                                  Sources
-                                </span>
-                                <span className="text-[10px] font-semibold text-accent truncate max-w-full">
-                                  {formatSourceName(
-                                    sourceResults[currentSourceIndex]?.sourceId,
-                                  )}
-                                </span>
-                              </button>
-                              {/* Subtitles Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("subtitles")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-white/80"
-                                >
-                                  <rect
-                                    x="2"
-                                    y="4"
-                                    width="20"
-                                    height="16"
-                                    rx="2"
-                                  />
-                                  <path d="M7 12h4M13 12h4M7 16h10" />
-                                </svg>
-                                <span className="text-[10px] text-white/60">
-                                  Subtitles
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-[10px] font-semibold",
-                                    activeCaption
-                                      ? "text-accent"
-                                      : "text-white/80",
-                                  )}
-                                >
-                                  {activeCaption ? "On" : "Off"}
-                                </span>
-                              </button>
-
-                              {/* Segments Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("segments")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-white/80"
-                                >
-                                  <rect
-                                    x="2"
-                                    y="6"
-                                    width="5"
-                                    height="12"
-                                    rx="1"
-                                  />
-                                  <rect
-                                    x="9"
-                                    y="6"
-                                    width="6"
-                                    height="12"
-                                    rx="1"
-                                  />
-                                  <rect
-                                    x="17"
-                                    y="6"
-                                    width="5"
-                                    height="12"
-                                    rx="1"
-                                  />
-                                </svg>
-                                <span className="text-[10px] text-white/60">
-                                  Segments
-                                </span>
-                                <span className="text-[10px] font-semibold text-white/80">
-                                  {[
-                                    effectiveSegments.intro.length,
-                                    effectiveSegments.recap.length,
-                                    effectiveSegments.credits.length,
-                                    effectiveSegments.preview.length,
-                                  ].reduce((a, b) => a + b, 0)}
-                                </span>
-                              </button>
-
-                              {/* Playback Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("playback")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <Play className="h-5 w-5 fill-current stroke-[1.85] text-white/80" />
-                                <span className="text-[10px] text-white/60">
-                                  Playback
-                                </span>
-                                <span className="text-[10px] font-semibold text-white/80">
-                                  {enabledPlaybackSettingsCount}
-                                </span>
-                              </button>
-
-                              {/* Watch Together Tile */}
-                              <button
-                                onClick={() => setSettingsPanel("watchParty")}
-                                className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
-                              >
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  className="text-white/80"
-                                >
-                                  <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5z" />
-                                  <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11z" />
-                                  <path d="M2 20v-1c0-2.2 2.69-4 6-4" />
-                                  <path d="M22 20v-1c0-2.2-2.69-4-6-4" />
-                                  <path d="M8 20v-1c0-2.2 1.79-4 4-4s4 1.8 4 4v1" />
-                                </svg>
-                                <span className="text-[10px] text-white/60">
-                                  Watch
-                                </span>
-                                <span
-                                  className={cn(
-                                    "text-[10px] font-semibold",
-                                    watchPartyRole
-                                      ? "text-accent"
-                                      : "text-white/80",
-                                  )}
-                                >
-                                  {watchPartyRole ? watchPartyRole : "Off"}
-                                </span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {/* Playback Sub-panel */}
-                        {settingsPanel === "playback" && (
-                          <div>
+                  {settingsPanel && !['info', 'episodes'].includes(settingsPanel) && (
+                    <div
+                      className={cn(
+                        'mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]',
+                        isTouchDevice
+                          ? 'fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]'
+                          : 'absolute bottom-full right-0 z-[50] mb-2 max-h-[65vh]',
+                      )}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Main Grid */}
+                      {settingsPanel === 'main' && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-3 gap-2">
+                            {/* Quality Tile */}
                             <button
-                              onClick={() => setSettingsPanel("main")}
-                              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                              onClick={() => setSettingsPanel('quality')}
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
                             >
-                              <ChevronLeft className="h-[14px] w-[14px] stroke-[1.85]" />
-                              Playback
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="text-white/80"
+                              >
+                                <path d="M2 6h4M18 6h4M8 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+                                <path d="M12 10v4" />
+                              </svg>
+                              <span className="text-[10px] text-white/60">Quality</span>
+                              <span className="text-[10px] font-semibold text-accent">
+                                {getQualityLabel(currentQuality)}
+                              </span>
                             </button>
-                            <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
-                              <PlayerToggle
-                                label="Auto-play"
-                                checked={autoPlay}
-                                onChange={(v) =>
-                                  updateSettings({ autoPlay: v })
-                                }
-                              />
-                              <PlayerToggle
-                                label="Auto-next"
-                                checked={autoNext}
-                                onChange={(v) =>
-                                  updateSettings({ autoNext: v })
-                                }
-                              />
-                              <PlayerToggle
-                                label="Auto-skip segments"
-                                checked={autoSkipSegments}
-                                onChange={(v) =>
-                                  updateSettings({ autoSkipSegments: v })
-                                }
-                              />
-                              <PlayerToggle
-                                label="Auto-switch source"
-                                checked={autoSwitchSource}
-                                onChange={(v) =>
-                                  updateSettings({ autoSwitchSource: v })
-                                }
-                              />
-                              <PlayerToggle
-                                label="Idle pause overlay"
-                                checked={idlePauseOverlay}
-                                onChange={(v) =>
-                                  updateSettings({ idlePauseOverlay: v })
-                                }
-                              />
-                            </div>
 
-                            <hr className="my-3 border-white/[0.06]" />
-
+                            {/* Sources Tile */}
                             <button
-                              onClick={() => setSettingsPanel("speed")}
-                              className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
+                              onClick={() => setSettingsPanel('sources')}
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
                             >
-                              <div className="flex items-center gap-2">
-                                <svg
-                                  width="14"
-                                  height="14"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                >
-                                  <circle cx="12" cy="12" r="10" />
-                                  <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                                Playback Speed
-                              </div>
-                              <span className="text-[11px] text-accent font-medium">
-                                {playbackSpeed === 1
-                                  ? "Normal"
-                                  : `${playbackSpeed}x`}
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="text-white/80"
+                              >
+                                <rect x="2" y="2" width="20" height="8" rx="2" />
+                                <rect x="2" y="14" width="20" height="8" rx="2" />
+                                <line x1="6" y1="6" x2="6" y2="6" />
+                                <line x1="6" y1="18" x2="6" y2="18" />
+                              </svg>
+                              <span className="text-[10px] text-white/60">Sources</span>
+                              <span className="text-[10px] font-semibold text-accent truncate max-w-full">
+                                {formatSourceName(sourceResults[currentSourceIndex]?.sourceId)}
+                              </span>
+                            </button>
+                            {/* Subtitles Tile */}
+                            <button
+                              onClick={() => setSettingsPanel('subtitles')}
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                            >
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="text-white/80"
+                              >
+                                <rect x="2" y="4" width="20" height="16" rx="2" />
+                                <path d="M7 12h4M13 12h4M7 16h10" />
+                              </svg>
+                              <span className="text-[10px] text-white/60">Subtitles</span>
+                              <span
+                                className={cn(
+                                  'text-[10px] font-semibold',
+                                  activeCaption ? 'text-accent' : 'text-white/80',
+                                )}
+                              >
+                                {activeCaption ? 'On' : 'Off'}
+                              </span>
+                            </button>
+
+                            {/* Segments Tile */}
+                            <button
+                              onClick={() => setSettingsPanel('segments')}
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                            >
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="text-white/80"
+                              >
+                                <rect x="2" y="6" width="5" height="12" rx="1" />
+                                <rect x="9" y="6" width="6" height="12" rx="1" />
+                                <rect x="17" y="6" width="5" height="12" rx="1" />
+                              </svg>
+                              <span className="text-[10px] text-white/60">Segments</span>
+                              <span className="text-[10px] font-semibold text-white/80">
+                                {[
+                                  effectiveSegments.intro.length,
+                                  effectiveSegments.recap.length,
+                                  effectiveSegments.credits.length,
+                                  effectiveSegments.preview.length,
+                                ].reduce((a, b) => a + b, 0)}
+                              </span>
+                            </button>
+
+                            {/* Playback Tile */}
+                            <button
+                              onClick={() => setSettingsPanel('playback')}
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                            >
+                              <Play className="h-5 w-5 fill-current stroke-[1.85] text-white/80" />
+                              <span className="text-[10px] text-white/60">Playback</span>
+                              <span className="text-[10px] font-semibold text-white/80">
+                                {enabledPlaybackSettingsCount}
+                              </span>
+                            </button>
+
+                            {/* Watch Together Tile */}
+                            <button
+                              onClick={() => setSettingsPanel('watchParty')}
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                            >
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="text-white/80"
+                              >
+                                <path d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5z" />
+                                <path d="M8 11c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11z" />
+                                <path d="M2 20v-1c0-2.2 2.69-4 6-4" />
+                                <path d="M22 20v-1c0-2.2-2.69-4-6-4" />
+                                <path d="M8 20v-1c0-2.2 1.79-4 4-4s4 1.8 4 4v1" />
+                              </svg>
+                              <span className="text-[10px] text-white/60">Watch</span>
+                              <span
+                                className={cn(
+                                  'text-[10px] font-semibold',
+                                  watchPartyRole ? 'text-accent' : 'text-white/80',
+                                )}
+                              >
+                                {watchPartyRole ? watchPartyRole : 'Off'}
                               </span>
                             </button>
                           </div>
-                        )}
-                        {/* Speed Sub-panel */}
-                        {settingsPanel === "speed" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("playback")}
-                              className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
-                            >
+                        </div>
+                      )}
+                      {/* Playback Sub-panel */}
+                      {settingsPanel === 'playback' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('main')}
+                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <ChevronLeft className="h-[14px] w-[14px] stroke-[1.85]" />
+                            Playback
+                          </button>
+                          <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
+                            <PlayerToggle
+                              label="Auto-play"
+                              checked={autoPlay}
+                              onChange={(v) => updateSettings({ autoPlay: v })}
+                            />
+                            <PlayerToggle
+                              label="Auto-next"
+                              checked={autoNext}
+                              onChange={(v) => updateSettings({ autoNext: v })}
+                            />
+                            <PlayerToggle
+                              label="Auto-skip segments"
+                              checked={autoSkipSegments}
+                              onChange={(v) => updateSettings({ autoSkipSegments: v })}
+                            />
+                            <PlayerToggle
+                              label="Auto-switch source"
+                              checked={autoSwitchSource}
+                              onChange={(v) => updateSettings({ autoSwitchSource: v })}
+                            />
+                            <PlayerToggle
+                              label="Idle pause overlay"
+                              checked={idlePauseOverlay}
+                              onChange={(v) => updateSettings({ idlePauseOverlay: v })}
+                            />
+                          </div>
+
+                          <hr className="my-3 border-white/[0.06]" />
+
+                          <button
+                            onClick={() => setSettingsPanel('speed')}
+                            className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2">
                               <svg
                                 width="14"
                                 height="14"
@@ -4311,292 +3881,259 @@ export function VideoPlayer({
                                 stroke="currentColor"
                                 strokeWidth="2"
                               >
-                                <path d="m15 18-6-6 6-6" />
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
                               </svg>
                               Playback Speed
-                            </button>
-
-                            <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                              {PLAYBACK_SPEEDS.map((speed) => (
-                                <button
-                                  key={speed}
-                                  onClick={() => changeSpeed(speed)}
-                                  className={cn(
-                                    "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between",
-                                    playbackSpeed === speed
-                                      ? "bg-accent/20 text-accent font-bold"
-                                      : "text-white/60 hover:bg-white/10",
-                                  )}
-                                >
-                                  <span>
-                                    {speed === 1 ? "Normal" : `${speed}x`}
-                                  </span>
-                                  {playbackSpeed === speed && (
-                                    <svg
-                                      width="12"
-                                      height="12"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="3"
-                                    >
-                                      <path d="M20 6 9 17l-5-5" />
-                                    </svg>
-                                  )}
-                                </button>
-                              ))}
                             </div>
-                          </div>
-                        )}
-                        {/* Skip Sub-panel */}
-                        {settingsPanel === "skip" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("main")}
-                              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            <span className="text-[11px] text-accent font-medium">
+                              {playbackSpeed === 1 ? 'Normal' : `${playbackSpeed}x`}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                      {/* Speed Sub-panel */}
+                      {settingsPanel === 'speed' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('playback')}
+                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
                             >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="m15 18-6-6 6-6" />
-                              </svg>
-                              Skip
-                            </button>
-                            <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
-                              <PlayerToggle
-                                label="Skip Intro"
-                                checked={skipIntro}
-                                onChange={(v) =>
-                                  updateSettings({ skipIntro: v })
-                                }
-                              />
-                              <PlayerToggle
-                                label="Skip Outro"
-                                checked={skipOutro}
-                                onChange={(v) =>
-                                  updateSettings({ skipOutro: v })
-                                }
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {/* Watch Together Sub-panel */}
-                        {settingsPanel === "watchParty" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("main")}
-                              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="m15 18-6-6 6-6" />
-                              </svg>
-                              Watch Together
-                            </button>
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Playback Speed
+                          </button>
 
-                            <div className="space-y-2 rounded-[12px] bg-white/[0.02] p-2">
-                              {!isLoggedIn && (
-                                <p className="rounded-[8px] bg-white/5 px-2 py-2 text-[11px] text-white/70">
-                                  Sign in to use Watch Together.
-                                </p>
-                              )}
-
-                              {!watchPartyRole ? (
-                                <>
-                                  <button
-                                    onClick={createWatchPartyRoom}
-                                    disabled={watchPartyBusy || !isLoggedIn}
-                                    className="w-full rounded-[10px] bg-gradient-to-r from-accent to-accent-hover px-3 py-2.5 text-[12px] font-semibold text-white shadow-[0_0_18px_var(--accent-glow)] hover:brightness-110 disabled:opacity-50"
+                          <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                            {PLAYBACK_SPEEDS.map((speed) => (
+                              <button
+                                key={speed}
+                                onClick={() => changeSpeed(speed)}
+                                className={cn(
+                                  'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
+                                  playbackSpeed === speed
+                                    ? 'bg-accent/20 text-accent font-bold'
+                                    : 'text-white/60 hover:bg-white/10',
+                                )}
+                              >
+                                <span>{speed === 1 ? 'Normal' : `${speed}x`}</span>
+                                {playbackSpeed === speed && (
+                                  <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
                                   >
-                                    {watchPartyBusy
-                                      ? "Creating..."
-                                      : "Create Room"}
-                                  </button>
-                                  <div className="flex gap-2">
-                                    <input
-                                      value={watchPartyJoinCode}
-                                      onChange={(e) =>
-                                        setWatchPartyJoinCode(
-                                          e.target.value.toUpperCase(),
-                                        )
-                                      }
-                                      placeholder="Room code"
-                                      className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
-                                    />
-                                    <button
-                                      onClick={() => joinWatchPartyRoom()}
-                                      disabled={watchPartyBusy || !isLoggedIn}
-                                      className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20 disabled:opacity-50"
-                                    >
-                                      Join
-                                    </button>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="rounded-[8px] bg-white/5 px-2 py-2">
-                                    <div className="text-[11px] text-white/80">
-                                      Room:{" "}
-                                      <span className="font-semibold text-accent">
-                                        {watchPartyRoomId}
-                                      </span>
-                                    </div>
-                                    <div className="text-[10px] text-white/55">
-                                      Role: {watchPartyRole}
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => {
-                                        if (
-                                          typeof window === "undefined" ||
-                                          !watchPartyRoomId
-                                        )
-                                          return;
-                                        const shareUrl = new URL(
-                                          window.location.href,
-                                        );
-                                        shareUrl.searchParams.set(
-                                          "party",
-                                          watchPartyRoomId,
-                                        );
-                                        navigator.clipboard
-                                          .writeText(shareUrl.toString())
-                                          .then(() => {
-                                            setWatchPartyStatus(
-                                              "Invite link copied",
-                                            );
-                                          })
-                                          .catch(() => {
-                                            setWatchPartyStatus(
-                                              "Could not copy link",
-                                            );
-                                          });
-                                      }}
-                                      className="flex-1 rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20"
-                                    >
-                                      Copy Invite Link
-                                    </button>
-                                    <button
-                                      onClick={leaveWatchPartySession}
-                                      className="rounded-[8px] bg-red-500/20 px-3 py-1.5 text-[11px] text-red-300 hover:bg-red-500/30"
-                                    >
-                                      Leave
-                                    </button>
-                                  </div>
-                                  {watchPartyRole === "guest" && (
-                                    <button
-                                      onClick={forceSyncGuestNow}
-                                      disabled={
-                                        watchPartyForceSyncCooldownSec > 0
-                                      }
-                                      className="w-full rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20 disabled:opacity-50"
-                                    >
-                                      {watchPartyForceSyncCooldownSec > 0
-                                        ? `Force Sync (${watchPartyForceSyncCooldownSec}s)`
-                                        : "Force Sync"}
-                                    </button>
-                                  )}
-                                </>
-                              )}
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Skip Sub-panel */}
+                      {settingsPanel === 'skip' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('main')}
+                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Skip
+                          </button>
+                          <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
+                            <PlayerToggle
+                              label="Skip Intro"
+                              checked={skipIntro}
+                              onChange={(v) => updateSettings({ skipIntro: v })}
+                            />
+                            <PlayerToggle
+                              label="Skip Outro"
+                              checked={skipOutro}
+                              onChange={(v) => updateSettings({ skipOutro: v })}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {/* Watch Together Sub-panel */}
+                      {settingsPanel === 'watchParty' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('main')}
+                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Watch Together
+                          </button>
 
-                              <p className="text-[10px] text-white/55">
-                                {watchPartyStatus}
+                          <div className="space-y-2 rounded-[12px] bg-white/[0.02] p-2">
+                            {!isLoggedIn && (
+                              <p className="rounded-[8px] bg-white/5 px-2 py-2 text-[11px] text-white/70">
+                                Sign in to use Watch Together.
                               </p>
-                            </div>
-                          </div>
-                        )}
-                        {/* Quality Sub-panel */}
-                        {settingsPanel === "quality" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("main")}
-                              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="m15 18-6-6 6-6" />
-                              </svg>
-                              Quality
-                            </button>
-                            <div className="space-y-0.5">
-                              {selectableQualities.length > 0 ? (
-                                selectableQualities.map((q) => (
-                                  <button
-                                    key={q}
-                                    onClick={() => selectQuality(q)}
-                                    className={cn(
-                                      "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors",
-                                      currentQuality === q
-                                        ? "bg-accent/20 text-accent"
-                                        : "text-white/60 hover:bg-white/10",
-                                    )}
-                                  >
-                                    {getQualityLabel(q)}
-                                  </button>
-                                ))
-                              ) : (
-                                <p className="px-3 py-2 text-[11px] text-white/40">
-                                  Single quality stream
-                                </p>
-                              )}
-                            </div>
-                            <hr className="my-2 border-white/[0.06]" />
-                            <button
-                              onClick={() => setSettingsPanel("aspectRatio")}
-                              className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
-                            >
-                              <div className="flex items-center gap-2">
-                                <svg
-                                  width="14"
-                                  height="14"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
+                            )}
+
+                            {!watchPartyRole ? (
+                              <>
+                                <button
+                                  onClick={createWatchPartyRoom}
+                                  disabled={watchPartyBusy || !isLoggedIn}
+                                  className="w-full rounded-[10px] bg-gradient-to-r from-accent to-accent-hover px-3 py-2.5 text-[12px] font-semibold text-white shadow-[0_0_18px_var(--accent-glow)] hover:brightness-110 disabled:opacity-50"
                                 >
-                                  <rect
-                                    x="3"
-                                    y="3"
-                                    width="18"
-                                    height="18"
-                                    rx="2"
-                                    ry="2"
+                                  {watchPartyBusy ? 'Creating...' : 'Create Room'}
+                                </button>
+                                <div className="flex gap-2">
+                                  <input
+                                    value={watchPartyJoinCode}
+                                    onChange={(e) =>
+                                      setWatchPartyJoinCode(e.target.value.toUpperCase())
+                                    }
+                                    placeholder="Room code"
+                                    className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
                                   />
-                                  <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-                                </svg>
-                                Aspect Ratio
-                              </div>
-                              <span className="text-[11px] text-accent font-medium capitalize">
-                                {playerViewMode}
-                              </span>
-                            </button>
+                                  <button
+                                    onClick={() => joinWatchPartyRoom()}
+                                    disabled={watchPartyBusy || !isLoggedIn}
+                                    className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20 disabled:opacity-50"
+                                  >
+                                    Join
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="rounded-[8px] bg-white/5 px-2 py-2">
+                                  <div className="text-[11px] text-white/80">
+                                    Room:{' '}
+                                    <span className="font-semibold text-accent">
+                                      {watchPartyRoomId}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-white/55">
+                                    Role: {watchPartyRole}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      if (typeof window === 'undefined' || !watchPartyRoomId)
+                                        return;
+                                      const shareUrl = new URL(window.location.href);
+                                      shareUrl.searchParams.set('party', watchPartyRoomId);
+                                      navigator.clipboard
+                                        .writeText(shareUrl.toString())
+                                        .then(() => {
+                                          setWatchPartyStatus('Invite link copied');
+                                        })
+                                        .catch(() => {
+                                          setWatchPartyStatus('Could not copy link');
+                                        });
+                                    }}
+                                    className="flex-1 rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20"
+                                  >
+                                    Copy Invite Link
+                                  </button>
+                                  <button
+                                    onClick={leaveWatchPartySession}
+                                    className="rounded-[8px] bg-red-500/20 px-3 py-1.5 text-[11px] text-red-300 hover:bg-red-500/30"
+                                  >
+                                    Leave
+                                  </button>
+                                </div>
+                                {watchPartyRole === 'guest' && (
+                                  <button
+                                    onClick={forceSyncGuestNow}
+                                    disabled={watchPartyForceSyncCooldownSec > 0}
+                                    className="w-full rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20 disabled:opacity-50"
+                                  >
+                                    {watchPartyForceSyncCooldownSec > 0
+                                      ? `Force Sync (${watchPartyForceSyncCooldownSec}s)`
+                                      : 'Force Sync'}
+                                  </button>
+                                )}
+                              </>
+                            )}
+
+                            <p className="text-[10px] text-white/55">{watchPartyStatus}</p>
                           </div>
-                        )}
-                        {/* Aspect Ratio Sub-panel */}
-                        {settingsPanel === "aspectRatio" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("quality")}
-                              className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                        </div>
+                      )}
+                      {/* Quality Sub-panel */}
+                      {settingsPanel === 'quality' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('main')}
+                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
                             >
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Quality
+                          </button>
+                          <div className="space-y-0.5">
+                            {selectableQualities.length > 0 ? (
+                              selectableQualities.map((q) => (
+                                <button
+                                  key={q}
+                                  onClick={() => selectQuality(q)}
+                                  className={cn(
+                                    'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
+                                    currentQuality === q
+                                      ? 'bg-accent/20 text-accent'
+                                      : 'text-white/60 hover:bg-white/10',
+                                  )}
+                                >
+                                  {getQualityLabel(q)}
+                                </button>
+                              ))
+                            ) : (
+                              <p className="px-3 py-2 text-[11px] text-white/40">
+                                Single quality stream
+                              </p>
+                            )}
+                          </div>
+                          <hr className="my-2 border-white/[0.06]" />
+                          <button
+                            onClick={() => setSettingsPanel('aspectRatio')}
+                            className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2">
                               <svg
                                 width="14"
                                 height="14"
@@ -4605,540 +4142,380 @@ export function VideoPlayer({
                                 stroke="currentColor"
                                 strokeWidth="2"
                               >
-                                <path d="m15 18-6-6 6-6" />
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
                               </svg>
                               Aspect Ratio
-                            </button>
-
-                            <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                              {(["original", "stretch", "zoom"] as const).map(
-                                (mode) => (
-                                  <button
-                                    key={mode}
-                                    onClick={() =>
-                                      updateSettings({ playerViewMode: mode })
-                                    }
-                                    className={cn(
-                                      "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between",
-                                      playerViewMode === mode
-                                        ? "bg-accent/20 text-accent font-bold"
-                                        : "text-white/60 hover:bg-white/10",
-                                    )}
-                                  >
-                                    <span className="capitalize">
-                                      {mode === "original"
-                                        ? "Original (Fit)"
-                                        : mode === "stretch"
-                                          ? "Stretch (Fill)"
-                                          : "Zoom (Crop)"}
-                                    </span>
-                                    {playerViewMode === mode && (
-                                      <svg
-                                        width="12"
-                                        height="12"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="3"
-                                      >
-                                        <path d="M20 6 9 17l-5-5" />
-                                      </svg>
-                                    )}
-                                  </button>
-                                ),
-                              )}
                             </div>
-
-                            <hr className="my-3 border-white/[0.06]" />
-
-                            <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
-                              <PlayerToggle
-                                label="No side bars"
-                                checked={playerFillWidth}
-                                onChange={(v) =>
-                                  updateSettings({ playerFillWidth: v })
-                                }
-                              />
-                              <PlayerToggle
-                                label="No top/bottom bars"
-                                checked={playerFillHeight}
-                                onChange={(v) =>
-                                  updateSettings({ playerFillHeight: v })
-                                }
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {/* Sources Sub-panel */}
-                        {settingsPanel === "sources" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("main")}
-                              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            <span className="text-[11px] text-accent font-medium capitalize">
+                              {playerViewMode}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                      {/* Aspect Ratio Sub-panel */}
+                      {settingsPanel === 'aspectRatio' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('quality')}
+                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
                             >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="m15 18-6-6 6-6" />
-                              </svg>
-                              Sources
-                            </button>
-                            <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
-                              {sourceResults.map((res) => {
-                                const isSelected =
-                                  currentSourceIndex ===
-                                  sourceResults.indexOf(res);
-                                const isDangerous = [
-                                  "vidlink",
-                                  "vidsync",
-                                ].includes(res.sourceId);
-                                const isUnsafe = [
-                                  "videasy",
-                                  "vidfast",
-                                  "peachify",
-                                ].includes(res.sourceId);
-                                const isBest = ["febbox", "pobreflix"].includes(
-                                  res.sourceId,
-                                );
-                                const isGood = [
-                                  "cinesrc",
-                                  "vidking",
-                                  "zxcstream",
-                                ].includes(res.sourceId);
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Aspect Ratio
+                          </button>
 
-                                return (
-                                  <button
-                                    key={res.sourceId}
-                                    onClick={() => {
-                                      onSelectSource?.(
-                                        sourceResults.indexOf(res),
-                                      );
-                                      setSettingsPanel(null);
-                                    }}
-                                    className={cn(
-                                      "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none",
-                                      isSelected
-                                        ? "bg-accent/20 text-accent"
-                                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white",
-                                    )}
+                          <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                            {(['original', 'stretch', 'zoom'] as const).map((mode) => (
+                              <button
+                                key={mode}
+                                onClick={() => updateSettings({ playerViewMode: mode })}
+                                className={cn(
+                                  'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
+                                  playerViewMode === mode
+                                    ? 'bg-accent/20 text-accent font-bold'
+                                    : 'text-white/60 hover:bg-white/10',
+                                )}
+                              >
+                                <span className="capitalize">
+                                  {mode === 'original'
+                                    ? 'Original (Fit)'
+                                    : mode === 'stretch'
+                                      ? 'Stretch (Fill)'
+                                      : 'Zoom (Crop)'}
+                                </span>
+                                {playerViewMode === mode && (
+                                  <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
                                   >
-                                    <div className="flex items-center gap-2.5 min-w-0">
-                                      <div
-                                        className={cn(
-                                          "flex items-center justify-center transition-all duration-500",
-                                          isSelected
-                                            ? "text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110"
-                                            : "text-white/40 scale-100",
-                                        )}
-                                      >
-                                        {getSourceIcon(res.sourceId)}
-                                      </div>
-                                      <p
-                                        className={cn(
-                                          "text-[12px] font-semibold truncate",
-                                          isSelected
-                                            ? "text-accent"
-                                            : "text-white",
-                                        )}
-                                      >
-                                        {formatSourceName(res.sourceId)}
-                                      </p>
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+
+                          <hr className="my-3 border-white/[0.06]" />
+
+                          <div className="space-y-1 rounded-[12px] bg-white/[0.02] p-2">
+                            <PlayerToggle
+                              label="No side bars"
+                              checked={playerFillWidth}
+                              onChange={(v) => updateSettings({ playerFillWidth: v })}
+                            />
+                            <PlayerToggle
+                              label="No top/bottom bars"
+                              checked={playerFillHeight}
+                              onChange={(v) => updateSettings({ playerFillHeight: v })}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {/* Sources Sub-panel */}
+                      {settingsPanel === 'sources' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('main')}
+                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Sources
+                          </button>
+                          <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
+                            {sourceResults.map((res) => {
+                              const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                              const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
+                              const isUnsafe = ['videasy', 'vidfast', 'peachify'].includes(
+                                res.sourceId,
+                              );
+                              const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                              const isGood = ['cinesrc', 'vidking', 'zxcstream'].includes(
+                                res.sourceId,
+                              );
+
+                              return (
+                                <button
+                                  key={res.sourceId}
+                                  onClick={() => {
+                                    onSelectSource?.(sourceResults.indexOf(res));
+                                    setSettingsPanel(null);
+                                  }}
+                                  className={cn(
+                                    'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none',
+                                    isSelected
+                                      ? 'bg-accent/20 text-accent'
+                                      : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div
+                                      className={cn(
+                                        'flex items-center justify-center transition-all duration-500',
+                                        isSelected
+                                          ? 'text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110'
+                                          : 'text-white/40 scale-100',
+                                      )}
+                                    >
+                                      {getSourceIcon(res.sourceId)}
                                     </div>
-                                    {isDangerous ? (
-                                      <div className="flex items-center gap-1.5 hover:opacity-90">
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-red-500/20 text-red-500"
-                                              : "bg-red-500/10 text-red-500/50",
-                                          )}
-                                        >
-                                          Dangerous
-                                        </span>
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-accent/20 text-accent"
-                                              : "bg-white/5 text-white/30",
-                                          )}
-                                        >
-                                          Embed
-                                        </span>
-                                      </div>
-                                    ) : isUnsafe ? (
-                                      <div className="flex items-center gap-1.5 hover:opacity-90">
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-amber-500/20 text-amber-500"
-                                              : "bg-amber-500/10 text-amber-500/50",
-                                          )}
-                                        >
-                                          Unsafe
-                                        </span>
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-accent/20 text-accent"
-                                              : "bg-white/5 text-white/30",
-                                          )}
-                                        >
-                                          Embed
-                                        </span>
-                                      </div>
-                                    ) : isBest ? (
-                                      <div className="flex items-center gap-1.5 hover:opacity-90">
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-blue-500/20 text-blue-500"
-                                              : "bg-blue-500/10 text-blue-500/80",
-                                          )}
-                                        >
-                                          Best
-                                        </span>
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-accent/20 text-accent"
-                                              : "bg-white/5 text-white/30",
-                                          )}
-                                        >
-                                          Direct
-                                        </span>
-                                      </div>
-                                    ) : isGood ? (
-                                      <div className="flex items-center gap-1.5 hover:opacity-90">
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-emerald-500/20 text-emerald-500"
-                                              : "bg-emerald-500/10 text-emerald-500/80",
-                                          )}
-                                        >
-                                          Safe
-                                        </span>
-                                        <span
-                                          className={cn(
-                                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                                            isSelected
-                                              ? "bg-accent/20 text-accent"
-                                              : "bg-white/5 text-white/30",
-                                          )}
-                                        >
-                                          Embed
-                                        </span>
-                                      </div>
-                                    ) : (
+                                    <p
+                                      className={cn(
+                                        'text-[12px] font-semibold truncate',
+                                        isSelected ? 'text-accent' : 'text-white',
+                                      )}
+                                    >
+                                      {formatSourceName(res.sourceId)}
+                                    </p>
+                                  </div>
+                                  {isDangerous ? (
+                                    <div className="flex items-center gap-1.5 hover:opacity-90">
                                       <span
                                         className={cn(
-                                          "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
                                           isSelected
-                                            ? "bg-accent/20 text-accent"
-                                            : "bg-white/5 text-white/30",
+                                            ? 'bg-red-500/20 text-red-500'
+                                            : 'bg-red-500/10 text-red-500/50',
+                                        )}
+                                      >
+                                        Dangerous
+                                      </span>
+                                      <span
+                                        className={cn(
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          isSelected
+                                            ? 'bg-accent/20 text-accent'
+                                            : 'bg-white/5 text-white/30',
+                                        )}
+                                      >
+                                        Embed
+                                      </span>
+                                    </div>
+                                  ) : isUnsafe ? (
+                                    <div className="flex items-center gap-1.5 hover:opacity-90">
+                                      <span
+                                        className={cn(
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          isSelected
+                                            ? 'bg-amber-500/20 text-amber-500'
+                                            : 'bg-amber-500/10 text-amber-500/50',
+                                        )}
+                                      >
+                                        Unsafe
+                                      </span>
+                                      <span
+                                        className={cn(
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          isSelected
+                                            ? 'bg-accent/20 text-accent'
+                                            : 'bg-white/5 text-white/30',
+                                        )}
+                                      >
+                                        Embed
+                                      </span>
+                                    </div>
+                                  ) : isBest ? (
+                                    <div className="flex items-center gap-1.5 hover:opacity-90">
+                                      <span
+                                        className={cn(
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          isSelected
+                                            ? 'bg-blue-500/20 text-blue-500'
+                                            : 'bg-blue-500/10 text-blue-500/80',
+                                        )}
+                                      >
+                                        Best
+                                      </span>
+                                      <span
+                                        className={cn(
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          isSelected
+                                            ? 'bg-accent/20 text-accent'
+                                            : 'bg-white/5 text-white/30',
                                         )}
                                       >
                                         Direct
                                       </span>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        {/* Subtitles Sub-panel */}
-                        {settingsPanel === "subtitles" &&
-                          (() => {
-                            // Group captions by language group (collapses variants like zh/zhs/zht)
-                            const captionsByLang: Record<
-                              string,
-                              typeof captions
-                            > = {};
-                            for (const cap of captions) {
-                              const group = getLanguageGroup(
-                                (cap.language || "").toLowerCase(),
-                              );
-                              if (!captionsByLang[group])
-                                captionsByLang[group] = [];
-                              captionsByLang[group].push(cap);
-                            }
-                            const langKeys = Object.keys(captionsByLang);
-
-                            return (
-                              <div>
-                                <button
-                                  onClick={() => setSettingsPanel("main")}
-                                  className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
-                                >
-                                  <svg
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  >
-                                    <path d="m15 18-6-6 6-6" />
-                                  </svg>
-                                  Subtitles
-                                </button>
-                                <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
-                                  <button
-                                    onClick={() => {
-                                      setCaptionTouchedByUser(true);
-                                      setActiveCaption(null);
-                                      setRenderedSubtitle("");
-                                      setSettingsPanel("main");
-                                    }}
-                                    className={cn(
-                                      "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors",
-                                      !activeCaption
-                                        ? "bg-accent/20 text-accent font-bold"
-                                        : "text-white/60 hover:bg-white/10",
-                                    )}
-                                  >
-                                    Off
-                                  </button>
-
-                                  {langKeys.map((lang) => {
-                                    const caps = captionsByLang[lang];
-                                    const firstCap = caps[0];
-                                    const isActive = caps.some(
-                                      (c) => c.id === activeCaption,
-                                    );
-                                    const multipleOptions = caps.length > 1;
-                                    const allHI = caps.every(
-                                      (c) => c.isHearingImpaired,
-                                    );
-
-                                    return (
-                                      <button
-                                        key={lang}
-                                        onClick={() => {
-                                          if (multipleOptions) {
-                                            setSubtitlePickerLanguage(lang);
-                                            setSettingsPanel("subtitlesPicker");
-                                          } else {
-                                            setCaptionTouchedByUser(true);
-                                            setActiveCaption(firstCap.id);
-                                            setSettingsPanel("main");
-                                          }
-                                        }}
+                                    </div>
+                                  ) : isGood ? (
+                                    <div className="flex items-center gap-1.5 hover:opacity-90">
+                                      <span
                                         className={cn(
-                                          "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between",
-                                          isActive
-                                            ? "bg-accent/20 text-accent font-bold"
-                                            : "text-white/60 hover:bg-white/10",
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          isSelected
+                                            ? 'bg-emerald-500/20 text-emerald-500'
+                                            : 'bg-emerald-500/10 text-emerald-500/80',
                                         )}
                                       >
-                                        <div className="flex items-center gap-2">
-                                          {(() => {
-                                            const fUrl = resolveFlagUrl(
-                                              firstCap.language,
-                                              firstCap.flagUrl,
-                                            );
-                                            return fUrl ? (
-                                              <img
-                                                src={fUrl}
-                                                alt={lang}
-                                                className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
-                                              />
-                                            ) : (
-                                              <img
-                                                src={`https://flagsapi.com/${firstCap.language.toUpperCase()}/flat/64.png`}
-                                                alt={lang}
-                                                className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
-                                              />
-                                            );
-                                          })()}
-                                          <span>
-                                            {LANGUAGE_GROUP_LABELS[lang] ||
-                                              firstCap.label ||
-                                              lang.toUpperCase()}
-                                          </span>
-                                          {multipleOptions && allHI && (
-                                            <FaEarDeaf
-                                              className="shrink-0 text-yellow-400"
-                                              title="Hearing Impaired"
-                                              size={13}
-                                            />
-                                          )}
-                                        </div>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          {!multipleOptions && allHI && (
-                                            <FaEarDeaf
-                                              className="shrink-0 text-yellow-400"
-                                              title="Hearing Impaired"
-                                              size={13}
-                                            />
-                                          )}
-                                          {isActive && !multipleOptions && (
-                                            <svg
-                                              width="12"
-                                              height="12"
-                                              viewBox="0 0 24 24"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="3"
-                                            >
-                                              <path d="M20 6 9 17l-5-5" />
-                                            </svg>
-                                          )}
-                                          {multipleOptions && (
-                                            <div className="flex items-center gap-1">
-                                              <span className="text-[10px] opacity-50">
-                                                {caps.length}
-                                              </span>
-                                              <svg
-                                                width="12"
-                                                height="12"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                              >
-                                                <path d="m9 18 6-6-6-6" />
-                                              </svg>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-
-                                  {captions.length === 0 && (
-                                    <p className="px-3 py-2 text-[11px] text-white/40 italic">
-                                      No external subtitles found
-                                    </p>
+                                        Safe
+                                      </span>
+                                      <span
+                                        className={cn(
+                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          isSelected
+                                            ? 'bg-accent/20 text-accent'
+                                            : 'bg-white/5 text-white/30',
+                                        )}
+                                      >
+                                        Embed
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span
+                                      className={cn(
+                                        'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                        isSelected
+                                          ? 'bg-accent/20 text-accent'
+                                          : 'bg-white/5 text-white/30',
+                                      )}
+                                    >
+                                      Direct
+                                    </span>
                                   )}
-                                </div>
-                                <hr className="my-2 border-white/[0.06]" />
-                                <button
-                                  onClick={() =>
-                                    setSettingsPanel("subAppearance")
-                                  }
-                                  className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
-                                >
-                                  <svg
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  >
-                                    <path d="M4 7V4h16v3M9 20h6M12 4v16" />
-                                  </svg>
-                                  Subtitle Appearance
                                 </button>
-                              </div>
-                            );
-                          })()}
-                        {/* Subtitles Picker Sub-panel (multiple captions for same language) */}
-                        {settingsPanel === "subtitlesPicker" &&
-                          subtitlePickerLanguage &&
-                          (() => {
-                            const caps = captions.filter(
-                              (c) =>
-                                getLanguageGroup(
-                                  (c.language || "").toLowerCase(),
-                                ) === subtitlePickerLanguage,
-                            );
-                            const firstCap = caps[0];
-                            const langLabel =
-                              LANGUAGE_GROUP_LABELS[subtitlePickerLanguage] ||
-                              firstCap?.label ||
-                              subtitlePickerLanguage.toUpperCase();
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {/* Subtitles Sub-panel */}
+                      {settingsPanel === 'subtitles' &&
+                        (() => {
+                          // Group captions by language group (collapses variants like zh/zhs/zht)
+                          const captionsByLang: Record<string, typeof captions> = {};
+                          for (const cap of captions) {
+                            const group = getLanguageGroup((cap.language || '').toLowerCase());
+                            if (!captionsByLang[group]) captionsByLang[group] = [];
+                            captionsByLang[group].push(cap);
+                          }
+                          const langKeys = Object.keys(captionsByLang);
 
-                            return (
-                              <div>
-                                <button
-                                  onClick={() => setSettingsPanel("subtitles")}
-                                  className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                          return (
+                            <div>
+                              <button
+                                onClick={() => setSettingsPanel('main')}
+                                className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                              >
+                                <svg
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
                                 >
-                                  <svg
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  >
-                                    <path d="m15 18-6-6 6-6" />
-                                  </svg>
-                                  {langLabel}
+                                  <path d="m15 18-6-6 6-6" />
+                                </svg>
+                                Subtitles
+                              </button>
+                              <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                                <button
+                                  onClick={() => {
+                                    setCaptionTouchedByUser(true);
+                                    setActiveCaption(null);
+                                    setRenderedSubtitle('');
+                                    setSettingsPanel('main');
+                                  }}
+                                  className={cn(
+                                    'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
+                                    !activeCaption
+                                      ? 'bg-accent/20 text-accent font-bold'
+                                      : 'text-white/60 hover:bg-white/10',
+                                  )}
+                                >
+                                  Off
                                 </button>
-                                <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
-                                  {caps.map((cap) => (
+
+                                {langKeys.map((lang) => {
+                                  const caps = captionsByLang[lang];
+                                  const firstCap = caps[0];
+                                  const isActive = caps.some((c) => c.id === activeCaption);
+                                  const multipleOptions = caps.length > 1;
+                                  const allHI = caps.every((c) => c.isHearingImpaired);
+
+                                  return (
                                     <button
-                                      key={cap.id}
+                                      key={lang}
                                       onClick={() => {
-                                        setCaptionTouchedByUser(true);
-                                        setActiveCaption(cap.id);
-                                        setSettingsPanel("main");
+                                        if (multipleOptions) {
+                                          setSubtitlePickerLanguage(lang);
+                                          setSettingsPanel('subtitlesPicker');
+                                        } else {
+                                          setCaptionTouchedByUser(true);
+                                          setActiveCaption(firstCap.id);
+                                          setSettingsPanel('main');
+                                        }
                                       }}
                                       className={cn(
-                                        "w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between gap-2",
-                                        activeCaption === cap.id
-                                          ? "bg-accent/20 text-accent font-bold"
-                                          : "text-white/60 hover:bg-white/10",
+                                        'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
+                                        isActive
+                                          ? 'bg-accent/20 text-accent font-bold'
+                                          : 'text-white/60 hover:bg-white/10',
                                       )}
                                     >
                                       <div className="flex items-center gap-2">
                                         {(() => {
                                           const fUrl = resolveFlagUrl(
-                                            cap.language,
-                                            cap.flagUrl,
+                                            firstCap.language,
+                                            firstCap.flagUrl,
                                           );
                                           return fUrl ? (
                                             <img
                                               src={fUrl}
-                                              alt={cap.language}
+                                              alt={lang}
                                               className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
                                             />
                                           ) : (
                                             <img
-                                              src={`https://flagsapi.com/${cap.language.toUpperCase()}/flat/64.png`}
-                                              alt={cap.language}
+                                              src={`https://flagsapi.com/${firstCap.language.toUpperCase()}/flat/64.png`}
+                                              alt={lang}
                                               className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
                                             />
                                           );
                                         })()}
                                         <span>
-                                          {cap.label ||
-                                            cap.language.toUpperCase()}
+                                          {LANGUAGE_GROUP_LABELS[lang] ||
+                                            firstCap.label ||
+                                            lang.toUpperCase()}
                                         </span>
-                                      </div>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {cap.isHearingImpaired && (
+                                        {multipleOptions && allHI && (
                                           <FaEarDeaf
                                             className="shrink-0 text-yellow-400"
                                             title="Hearing Impaired"
                                             size={13}
                                           />
                                         )}
-                                        {cap.downloadCount != null &&
-                                          cap.downloadCount > 0 && (
-                                            <span className="text-[10px] opacity-40">
-                                              {cap.downloadCount >= 1000
-                                                ? `${Math.round(cap.downloadCount / 1000)}k`
-                                                : cap.downloadCount}
-                                            </span>
-                                          )}
-                                        {activeCaption === cap.id && (
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {!multipleOptions && allHI && (
+                                          <FaEarDeaf
+                                            className="shrink-0 text-yellow-400"
+                                            title="Hearing Impaired"
+                                            size={13}
+                                          />
+                                        )}
+                                        {isActive && !multipleOptions && (
                                           <svg
                                             width="12"
                                             height="12"
@@ -5150,406 +4527,501 @@ export function VideoPlayer({
                                             <path d="M20 6 9 17l-5-5" />
                                           </svg>
                                         )}
+                                        {multipleOptions && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-[10px] opacity-50">
+                                              {caps.length}
+                                            </span>
+                                            <svg
+                                              width="12"
+                                              height="12"
+                                              viewBox="0 0 24 24"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              strokeWidth="2"
+                                            >
+                                              <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                          </div>
+                                        )}
                                       </div>
                                     </button>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })()}{" "}
-                        {/* Subtitle Appearance Sub-panel */}
-                        {settingsPanel === "subAppearance" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("subtitles")}
-                              className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="m15 18-6-6 6-6" />
-                              </svg>
-                              Subtitle Appearance
-                            </button>
+                                  );
+                                })}
 
-                            {/* Font Size */}
-                            <div className="mb-3">
-                              <p className="text-[11px] text-white/50 mb-1.5">
-                                Font Size
-                              </p>
-                              <div className="flex gap-1.5">
-                                {[
-                                  { label: "S", val: 14 },
-                                  { label: "M", val: 20 },
-                                  { label: "L", val: 28 },
-                                  { label: "XL", val: 36 },
-                                ].map((s) => (
-                                  <button
-                                    key={s.val}
-                                    onClick={() => setSubFontSize(s.val)}
-                                    className={cn(
-                                      "flex-1 rounded-[8px] py-1.5 text-[11px] font-medium transition-colors",
-                                      subFontSize === s.val
-                                        ? "bg-accent/20 text-accent"
-                                        : "bg-white/5 text-white/50 hover:bg-white/10",
-                                    )}
-                                  >
-                                    {s.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Text Color */}
-                            <div className="mb-3">
-                              <p className="text-[11px] text-white/50 mb-1.5">
-                                Text Color
-                              </p>
-                              <div className="flex gap-1.5">
-                                {[
-                                  { label: "White", val: "#ffffff" },
-                                  { label: "Yellow", val: "#ffd700" },
-                                  { label: "Cyan", val: "#00ffff" },
-                                  { label: "Green", val: "#00ff00" },
-                                ].map((c) => (
-                                  <button
-                                    key={c.val}
-                                    onClick={() => setSubColor(c.val)}
-                                    className={cn(
-                                      "flex-1 rounded-[8px] py-1.5 text-[11px] font-medium transition-colors",
-                                      subColor === c.val
-                                        ? "ring-1 ring-accent"
-                                        : "bg-white/5 hover:bg-white/10",
-                                    )}
-                                    style={{ color: c.val }}
-                                  >
-                                    {c.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Background */}
-                            <div>
-                              <p className="text-[11px] text-white/50 mb-1.5">
-                                Background
-                              </p>
-                              <div className="flex gap-1.5">
-                                {[
-                                  { label: "Dark", val: "rgba(0,0,0,0.75)" },
-                                  { label: "Semi", val: "rgba(0,0,0,0.4)" },
-                                  { label: "None", val: "transparent" },
-                                ].map((b) => (
-                                  <button
-                                    key={b.val}
-                                    onClick={() => setSubBg(b.val)}
-                                    className={cn(
-                                      "flex-1 rounded-[8px] py-1.5 text-[11px] font-medium transition-colors",
-                                      subBg === b.val
-                                        ? "bg-accent/20 text-accent"
-                                        : "bg-white/5 text-white/50 hover:bg-white/10",
-                                    )}
-                                  >
-                                    {b.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="mt-3">
-                              <p className="text-[11px] text-white/50 mb-1.5">
-                                Vertical Position
-                              </p>
-                              <input
-                                type="range"
-                                min="65"
-                                max="106"
-                                step="1"
-                                value={subVertical}
-                                onChange={(e) =>
-                                  setSubVertical(Number(e.target.value))
-                                }
-                                className="w-full accent-accent h-1"
-                              />
-                              <div className="mt-1 flex justify-between text-[10px] text-white/35">
-                                <span>Higher</span>
-                                <span>Lower</span>
-                              </div>
-                            </div>
-
-                            <div className="mt-3">
-                              <p className="text-[11px] text-white/50 mb-1.5">
-                                Subtitle Delay
-                              </p>
-                              <input
-                                type="range"
-                                min={String(SUB_DELAY_MIN_MS)}
-                                max={String(SUB_DELAY_MAX_MS)}
-                                step="100"
-                                value={subDelayMs}
-                                onChange={(e) =>
-                                  setSubDelayMs(Number(e.target.value))
-                                }
-                                className="w-full accent-accent h-1"
-                              />
-                              <div className="mt-1 flex items-center justify-between text-[10px] text-white/40">
-                                <span>−10.0s</span>
-                                <span>{(subDelayMs / 1000).toFixed(1)}s</span>
-                                <span>+10.0s</span>
-                              </div>
-                              <div className="mt-2 flex items-center gap-2">
-                                <button
-                                  onClick={() =>
-                                    setSubDelayMs((v) =>
-                                      Math.max(SUB_DELAY_MIN_MS, v - 500),
-                                    )
-                                  }
-                                  className="rounded-[6px] bg-white/10 px-2 py-1 text-[11px] text-white/70 hover:bg-white/20"
-                                >
-                                  -500ms
-                                </button>
-                                <button
-                                  onClick={() => setSubDelayMs(0)}
-                                  className="rounded-[6px] bg-white/10 px-2 py-1 text-[11px] text-white/70 hover:bg-white/20"
-                                >
-                                  Reset
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setSubDelayMs((v) =>
-                                      Math.min(SUB_DELAY_MAX_MS, v + 500),
-                                    )
-                                  }
-                                  className="rounded-[6px] bg-white/10 px-2 py-1 text-[11px] text-white/70 hover:bg-white/20"
-                                >
-                                  +500ms
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Preview */}
-                            <div className="mt-3 rounded-[8px] bg-black/50 p-3 flex items-center justify-center">
-                              <span
-                                style={{
-                                  fontSize: `${subFontSize}px`,
-                                  color: subColor,
-                                  background: subBg,
-                                  padding: "2px 8px",
-                                  borderRadius: "10px",
-                                }}
-                              >
-                                Preview text
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        {/* Segments Sub-panel (TIDB) */}
-                        {settingsPanel === "segments" && (
-                          <div>
-                            <button
-                              onClick={() => setSettingsPanel("main")}
-                              className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
-                            >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="m15 18-6-6 6-6" />
-                              </svg>
-                              Segments
-                            </button>
-
-                            {/* Existing segments */}
-                            <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
-                              {[
-                                ...effectiveSegments.intro.map((s, i) => ({
-                                  ...s,
-                                  type: "Intro" as const,
-                                  color: "text-yellow-400",
-                                  key: `i${i}`,
-                                })),
-                                ...effectiveSegments.recap.map((s, i) => ({
-                                  ...s,
-                                  type: "Recap" as const,
-                                  color: "text-blue-400",
-                                  key: `r${i}`,
-                                })),
-                                ...effectiveSegments.credits.map((s, i) => ({
-                                  ...s,
-                                  type: "Credits" as const,
-                                  color: "text-gray-400",
-                                  key: `c${i}`,
-                                })),
-                                ...effectiveSegments.preview.map((s, i) => ({
-                                  ...s,
-                                  type: "Preview" as const,
-                                  color: "text-green-400",
-                                  key: `p${i}`,
-                                })),
-                              ].map((seg) => (
-                                <div
-                                  key={seg.key}
-                                  className="flex items-center justify-between rounded-[8px] bg-white/5 px-3 py-1.5"
-                                >
-                                  <span
-                                    className={cn(
-                                      "text-[11px] font-medium",
-                                      seg.color,
-                                    )}
-                                  >
-                                    {seg.type}
-                                  </span>
-                                  <span className="text-[10px] text-white/50 tabular-nums">
-                                    {formatTime(seg.startMs / 1000)} –{" "}
-                                    {formatTime(seg.endMs / 1000)}
-                                  </span>
-                                </div>
-                              ))}
-                              {effectiveSegments.intro.length === 0 &&
-                                effectiveSegments.recap.length === 0 &&
-                                effectiveSegments.credits.length === 0 &&
-                                effectiveSegments.preview.length === 0 && (
-                                  <p className="text-[11px] text-white/40 text-center py-2">
-                                    No segments found
+                                {captions.length === 0 && (
+                                  <p className="px-3 py-2 text-[11px] text-white/40 italic">
+                                    No external subtitles found
                                   </p>
                                 )}
-                            </div>
-
-                            {/* Submit new segment */}
-                            <hr className="my-2 border-white/[0.06]" />
-                            <p className="text-[11px] text-white/50 mb-2">
-                              Submit a segment
-                            </p>
-                            <div className="space-y-2">
-                              <select
-                                value={submitType}
-                                onChange={(e) =>
-                                  setSubmitType(e.target.value as any)
-                                }
-                                className="w-full rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white border-none outline-none"
-                              >
-                                <option value="intro" className="bg-[#0a0a0f]">
-                                  Intro
-                                </option>
-                                <option value="recap" className="bg-[#0a0a0f]">
-                                  Recap
-                                </option>
-                                <option
-                                  value="credits"
-                                  className="bg-[#0a0a0f]"
-                                >
-                                  Credits
-                                </option>
-                                <option
-                                  value="preview"
-                                  className="bg-[#0a0a0f]"
-                                >
-                                  Preview
-                                </option>
-                              </select>
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={submitStart}
-                                  onChange={(e) =>
-                                    setSubmitStart(e.target.value)
-                                  }
-                                  placeholder="Start (sec)"
-                                  className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
-                                />
-                                <button
-                                  onClick={() =>
-                                    setSubmitStart(
-                                      String(Math.floor(currentTime)),
-                                    )
-                                  }
-                                  className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
-                                  title="Use current time"
-                                >
-                                  Now
-                                </button>
                               </div>
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={submitEnd}
-                                  onChange={(e) => setSubmitEnd(e.target.value)}
-                                  placeholder="End (sec)"
-                                  className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
-                                />
-                                <button
-                                  onClick={() =>
-                                    setSubmitEnd(
-                                      String(Math.floor(currentTime)),
-                                    )
-                                  }
-                                  className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
-                                  title="Use current time"
-                                >
-                                  Now
-                                </button>
-                              </div>
+                              <hr className="my-2 border-white/[0.06]" />
                               <button
-                                disabled={
-                                  !introDbApiKey ||
-                                  submitStatus === "sending" ||
-                                  !submitStart ||
-                                  !submitEnd
-                                }
-                                onClick={async () => {
-                                  if (!introDbApiKey || !tmdbId) return;
-                                  setSubmitStatus("sending");
-                                  const res = await submitSegment({
-                                    apiKey: introDbApiKey,
-                                    tmdbId,
-                                    type:
-                                      mediaType === "movie" ? "movie" : "show",
-                                    segment: submitType,
-                                    startSec: parseFloat(submitStart),
-                                    endSec: parseFloat(submitEnd),
-                                    season: seasonNum,
-                                    episode: episodeNum,
-                                    sessionToken: sessionToken || undefined,
-                                  });
-                                  setSubmitStatus(res.ok ? "ok" : "error");
-                                  setTimeout(
-                                    () => setSubmitStatus("idle"),
-                                    2000,
-                                  );
-                                }}
-                                className={cn(
-                                  "w-full rounded-[8px] px-3 py-2 text-[11px] font-medium transition-colors",
-                                  submitStatus === "ok"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : submitStatus === "error"
-                                      ? "bg-red-500/20 text-red-400"
-                                      : "bg-accent/20 text-accent hover:bg-accent/30 disabled:opacity-40 disabled:cursor-not-allowed",
-                                )}
+                                onClick={() => setSettingsPanel('subAppearance')}
+                                className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
                               >
-                                {submitStatus === "sending"
-                                  ? "Submitting..."
-                                  : submitStatus === "ok"
-                                    ? "Submitted!"
-                                    : submitStatus === "error"
-                                      ? "Failed"
-                                      : !introDbApiKey
-                                        ? "Add API key in Settings"
-                                        : "Submit"}
+                                <svg
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                >
+                                  <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                                </svg>
+                                Subtitle Appearance
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      {/* Subtitles Picker Sub-panel (multiple captions for same language) */}
+                      {settingsPanel === 'subtitlesPicker' &&
+                        subtitlePickerLanguage &&
+                        (() => {
+                          const caps = captions.filter(
+                            (c) =>
+                              getLanguageGroup((c.language || '').toLowerCase()) ===
+                              subtitlePickerLanguage,
+                          );
+                          const firstCap = caps[0];
+                          const langLabel =
+                            LANGUAGE_GROUP_LABELS[subtitlePickerLanguage] ||
+                            firstCap?.label ||
+                            subtitlePickerLanguage.toUpperCase();
+
+                          return (
+                            <div>
+                              <button
+                                onClick={() => setSettingsPanel('subtitles')}
+                                className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                              >
+                                <svg
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                >
+                                  <path d="m15 18-6-6 6-6" />
+                                </svg>
+                                {langLabel}
+                              </button>
+                              <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                                {caps.map((cap) => (
+                                  <button
+                                    key={cap.id}
+                                    onClick={() => {
+                                      setCaptionTouchedByUser(true);
+                                      setActiveCaption(cap.id);
+                                      setSettingsPanel('main');
+                                    }}
+                                    className={cn(
+                                      'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between gap-2',
+                                      activeCaption === cap.id
+                                        ? 'bg-accent/20 text-accent font-bold'
+                                        : 'text-white/60 hover:bg-white/10',
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {(() => {
+                                        const fUrl = resolveFlagUrl(cap.language, cap.flagUrl);
+                                        return fUrl ? (
+                                          <img
+                                            src={fUrl}
+                                            alt={cap.language}
+                                            className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                          />
+                                        ) : (
+                                          <img
+                                            src={`https://flagsapi.com/${cap.language.toUpperCase()}/flat/64.png`}
+                                            alt={cap.language}
+                                            className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                          />
+                                        );
+                                      })()}
+                                      <span>{cap.label || cap.language.toUpperCase()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {cap.isHearingImpaired && (
+                                        <FaEarDeaf
+                                          className="shrink-0 text-yellow-400"
+                                          title="Hearing Impaired"
+                                          size={13}
+                                        />
+                                      )}
+                                      {cap.downloadCount != null && cap.downloadCount > 0 && (
+                                        <span className="text-[10px] opacity-40">
+                                          {cap.downloadCount >= 1000
+                                            ? `${Math.round(cap.downloadCount / 1000)}k`
+                                            : cap.downloadCount}
+                                        </span>
+                                      )}
+                                      {activeCaption === cap.id && (
+                                        <svg
+                                          width="12"
+                                          height="12"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="3"
+                                        >
+                                          <path d="M20 6 9 17l-5-5" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}{' '}
+                      {/* Subtitle Appearance Sub-panel */}
+                      {settingsPanel === 'subAppearance' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('subtitles')}
+                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Subtitle Appearance
+                          </button>
+
+                          {/* Font Size */}
+                          <div className="mb-3">
+                            <p className="text-[11px] text-white/50 mb-1.5">Font Size</p>
+                            <div className="flex gap-1.5">
+                              {[
+                                { label: 'S', val: 14 },
+                                { label: 'M', val: 20 },
+                                { label: 'L', val: 28 },
+                                { label: 'XL', val: 36 },
+                              ].map((s) => (
+                                <button
+                                  key={s.val}
+                                  onClick={() => setSubFontSize(s.val)}
+                                  className={cn(
+                                    'flex-1 rounded-[8px] py-1.5 text-[11px] font-medium transition-colors',
+                                    subFontSize === s.val
+                                      ? 'bg-accent/20 text-accent'
+                                      : 'bg-white/5 text-white/50 hover:bg-white/10',
+                                  )}
+                                >
+                                  {s.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Text Color */}
+                          <div className="mb-3">
+                            <p className="text-[11px] text-white/50 mb-1.5">Text Color</p>
+                            <div className="flex gap-1.5">
+                              {[
+                                { label: 'White', val: '#ffffff' },
+                                { label: 'Yellow', val: '#ffd700' },
+                                { label: 'Cyan', val: '#00ffff' },
+                                { label: 'Green', val: '#00ff00' },
+                              ].map((c) => (
+                                <button
+                                  key={c.val}
+                                  onClick={() => setSubColor(c.val)}
+                                  className={cn(
+                                    'flex-1 rounded-[8px] py-1.5 text-[11px] font-medium transition-colors',
+                                    subColor === c.val
+                                      ? 'ring-1 ring-accent'
+                                      : 'bg-white/5 hover:bg-white/10',
+                                  )}
+                                  style={{ color: c.val }}
+                                >
+                                  {c.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Background */}
+                          <div>
+                            <p className="text-[11px] text-white/50 mb-1.5">Background</p>
+                            <div className="flex gap-1.5">
+                              {[
+                                { label: 'Dark', val: 'rgba(0,0,0,0.75)' },
+                                { label: 'Semi', val: 'rgba(0,0,0,0.4)' },
+                                { label: 'None', val: 'transparent' },
+                              ].map((b) => (
+                                <button
+                                  key={b.val}
+                                  onClick={() => setSubBg(b.val)}
+                                  className={cn(
+                                    'flex-1 rounded-[8px] py-1.5 text-[11px] font-medium transition-colors',
+                                    subBg === b.val
+                                      ? 'bg-accent/20 text-accent'
+                                      : 'bg-white/5 text-white/50 hover:bg-white/10',
+                                  )}
+                                >
+                                  {b.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="mt-3">
+                            <p className="text-[11px] text-white/50 mb-1.5">Vertical Position</p>
+                            <input
+                              type="range"
+                              min="65"
+                              max="106"
+                              step="1"
+                              value={subVertical}
+                              onChange={(e) => setSubVertical(Number(e.target.value))}
+                              className="w-full accent-accent h-1"
+                            />
+                            <div className="mt-1 flex justify-between text-[10px] text-white/35">
+                              <span>Higher</span>
+                              <span>Lower</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-3">
+                            <p className="text-[11px] text-white/50 mb-1.5">Subtitle Delay</p>
+                            <input
+                              type="range"
+                              min={String(SUB_DELAY_MIN_MS)}
+                              max={String(SUB_DELAY_MAX_MS)}
+                              step="100"
+                              value={subDelayMs}
+                              onChange={(e) => setSubDelayMs(Number(e.target.value))}
+                              className="w-full accent-accent h-1"
+                            />
+                            <div className="mt-1 flex items-center justify-between text-[10px] text-white/40">
+                              <span>−10.0s</span>
+                              <span>{(subDelayMs / 1000).toFixed(1)}s</span>
+                              <span>+10.0s</span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  setSubDelayMs((v) => Math.max(SUB_DELAY_MIN_MS, v - 500))
+                                }
+                                className="rounded-[6px] bg-white/10 px-2 py-1 text-[11px] text-white/70 hover:bg-white/20"
+                              >
+                                -500ms
+                              </button>
+                              <button
+                                onClick={() => setSubDelayMs(0)}
+                                className="rounded-[6px] bg-white/10 px-2 py-1 text-[11px] text-white/70 hover:bg-white/20"
+                              >
+                                Reset
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setSubDelayMs((v) => Math.min(SUB_DELAY_MAX_MS, v + 500))
+                                }
+                                className="rounded-[6px] bg-white/10 px-2 py-1 text-[11px] text-white/70 hover:bg-white/20"
+                              >
+                                +500ms
                               </button>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+
+                          {/* Preview */}
+                          <div className="mt-3 rounded-[8px] bg-black/50 p-3 flex items-center justify-center">
+                            <span
+                              style={{
+                                fontSize: `${subFontSize}px`,
+                                color: subColor,
+                                background: subBg,
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                              }}
+                            >
+                              Preview text
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Segments Sub-panel (TIDB) */}
+                      {settingsPanel === 'segments' && (
+                        <div>
+                          <button
+                            onClick={() => setSettingsPanel('main')}
+                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                          >
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="m15 18-6-6 6-6" />
+                            </svg>
+                            Segments
+                          </button>
+
+                          {/* Existing segments */}
+                          <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
+                            {[
+                              ...effectiveSegments.intro.map((s, i) => ({
+                                ...s,
+                                type: 'Intro' as const,
+                                color: 'text-yellow-400',
+                                key: `i${i}`,
+                              })),
+                              ...effectiveSegments.recap.map((s, i) => ({
+                                ...s,
+                                type: 'Recap' as const,
+                                color: 'text-blue-400',
+                                key: `r${i}`,
+                              })),
+                              ...effectiveSegments.credits.map((s, i) => ({
+                                ...s,
+                                type: 'Credits' as const,
+                                color: 'text-gray-400',
+                                key: `c${i}`,
+                              })),
+                              ...effectiveSegments.preview.map((s, i) => ({
+                                ...s,
+                                type: 'Preview' as const,
+                                color: 'text-green-400',
+                                key: `p${i}`,
+                              })),
+                            ].map((seg) => (
+                              <div
+                                key={seg.key}
+                                className="flex items-center justify-between rounded-[8px] bg-white/5 px-3 py-1.5"
+                              >
+                                <span className={cn('text-[11px] font-medium', seg.color)}>
+                                  {seg.type}
+                                </span>
+                                <span className="text-[10px] text-white/50 tabular-nums">
+                                  {formatTime(seg.startMs / 1000)} – {formatTime(seg.endMs / 1000)}
+                                </span>
+                              </div>
+                            ))}
+                            {effectiveSegments.intro.length === 0 &&
+                              effectiveSegments.recap.length === 0 &&
+                              effectiveSegments.credits.length === 0 &&
+                              effectiveSegments.preview.length === 0 && (
+                                <p className="text-[11px] text-white/40 text-center py-2">
+                                  No segments found
+                                </p>
+                              )}
+                          </div>
+
+                          {/* Submit new segment */}
+                          <hr className="my-2 border-white/[0.06]" />
+                          <p className="text-[11px] text-white/50 mb-2">Submit a segment</p>
+                          <div className="space-y-2">
+                            <select
+                              value={submitType}
+                              onChange={(e) => setSubmitType(e.target.value as any)}
+                              className="w-full rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white border-none outline-none"
+                            >
+                              <option value="intro" className="bg-[#0a0a0f]">
+                                Intro
+                              </option>
+                              <option value="recap" className="bg-[#0a0a0f]">
+                                Recap
+                              </option>
+                              <option value="credits" className="bg-[#0a0a0f]">
+                                Credits
+                              </option>
+                              <option value="preview" className="bg-[#0a0a0f]">
+                                Preview
+                              </option>
+                            </select>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={submitStart}
+                                onChange={(e) => setSubmitStart(e.target.value)}
+                                placeholder="Start (sec)"
+                                className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
+                              />
+                              <button
+                                onClick={() => setSubmitStart(String(Math.floor(currentTime)))}
+                                className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
+                                title="Use current time"
+                              >
+                                Now
+                              </button>
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={submitEnd}
+                                onChange={(e) => setSubmitEnd(e.target.value)}
+                                placeholder="End (sec)"
+                                className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
+                              />
+                              <button
+                                onClick={() => setSubmitEnd(String(Math.floor(currentTime)))}
+                                className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
+                                title="Use current time"
+                              >
+                                Now
+                              </button>
+                            </div>
+                            <button
+                              disabled={
+                                !introDbApiKey ||
+                                submitStatus === 'sending' ||
+                                !submitStart ||
+                                !submitEnd
+                              }
+                              onClick={async () => {
+                                if (!introDbApiKey || !tmdbId) return;
+                                setSubmitStatus('sending');
+                                const res = await submitSegment({
+                                  apiKey: introDbApiKey,
+                                  tmdbId,
+                                  type: mediaType === 'movie' ? 'movie' : 'show',
+                                  segment: submitType,
+                                  startSec: parseFloat(submitStart),
+                                  endSec: parseFloat(submitEnd),
+                                  season: seasonNum,
+                                  episode: episodeNum,
+                                  sessionToken: sessionToken || undefined,
+                                });
+                                setSubmitStatus(res.ok ? 'ok' : 'error');
+                                setTimeout(() => setSubmitStatus('idle'), 2000);
+                              }}
+                              className={cn(
+                                'w-full rounded-[8px] px-3 py-2 text-[11px] font-medium transition-colors',
+                                submitStatus === 'ok'
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : submitStatus === 'error'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-accent/20 text-accent hover:bg-accent/30 disabled:opacity-40 disabled:cursor-not-allowed',
+                              )}
+                            >
+                              {submitStatus === 'sending'
+                                ? 'Submitting...'
+                                : submitStatus === 'ok'
+                                  ? 'Submitted!'
+                                  : submitStatus === 'error'
+                                    ? 'Failed'
+                                    : !introDbApiKey
+                                      ? 'Add API key in Settings'
+                                      : 'Submit'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Fullscreen */}
@@ -5587,95 +5059,90 @@ export function VideoPlayer({
           </div>
 
           <AnimatePresence>
-            {showNextPrompt &&
-              (isShowWithEpisodes || mediaType === "movie") && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
-                  animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-                  exit={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className={cn(
-                    "absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
-                    glassEffect
-                      ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-                      : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
-                  )}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
-                      <FastForward className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[12px] font-bold text-white truncate">
-                        {mediaType === "movie"
-                          ? "Movie finishing"
-                          : `Next: S${getNextEpisodeTarget()?.season} E${getNextEpisodeTarget()?.episode}`}
-                      </p>
-                      <p className="text-[10px] font-medium text-white/50">
-                        {isEpisodeNavigating
-                          ? "Loading..."
-                          : autoNext
-                            ? mediaType === "movie"
-                              ? `Finishing in ${nextCountdown}s`
-                              : `Auto-Next in ${nextCountdown}s`
-                            : mediaType === "movie"
-                              ? "About to finish"
-                              : "Ready to play"}
-                      </p>
-                    </div>
+            {showNextPrompt && (isShowWithEpisodes || mediaType === 'movie') && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.96, x: '-50%' }}
+                animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+                exit={{ opacity: 0, y: 20, scale: 0.96, x: '-50%' }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className={cn(
+                  'absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10',
+                  glassEffect
+                    ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]'
+                    : 'bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]',
+                )}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                    <FastForward className="h-4 w-4" />
                   </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-bold text-white truncate">
+                      {mediaType === 'movie'
+                        ? 'Movie finishing'
+                        : `Next: S${getNextEpisodeTarget()?.season} E${getNextEpisodeTarget()?.episode}`}
+                    </p>
+                    <p className="text-[10px] font-medium text-white/50">
+                      {isEpisodeNavigating
+                        ? 'Loading...'
+                        : autoNext
+                          ? mediaType === 'movie'
+                            ? `Finishing in ${nextCountdown}s`
+                            : `Auto-Next in ${nextCountdown}s`
+                          : mediaType === 'movie'
+                            ? 'About to finish'
+                            : 'Ready to play'}
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex items-center gap-2 ml-auto shrink-0">
+                <div className="flex items-center gap-2 ml-auto shrink-0">
+                  <button
+                    onClick={() => {
+                      nextPromptHandledForRef.current = promptKey;
+                      if (mediaType === 'movie') {
+                        setIsFinished(true);
+                        setPlaying(false);
+                        setAutoNextLocked(true);
+                        setShowNextPrompt(false);
+                      } else {
+                        navigateNextEpisode();
+                      }
+                    }}
+                    disabled={isEpisodeNavigating}
+                    className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                  >
+                    {isEpisodeNavigating ? '...' : mediaType === 'movie' ? 'Finish' : 'Play Now'}
+                  </button>
+                  {autoNext && (
                     <button
                       onClick={() => {
-                        nextPromptHandledForRef.current = promptKey;
-                        if (mediaType === "movie") {
-                          setIsFinished(true);
-                          setPlaying(false);
-                          setAutoNextLocked(true);
-                          setShowNextPrompt(false);
-                        } else {
-                          navigateNextEpisode();
-                        }
+                        nextPromptDismissedForRef.current = promptKey;
+                        setShowNextPrompt(false);
+                        setNextCountdown(8);
                       }}
-                      disabled={isEpisodeNavigating}
-                      className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                      className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
                     >
-                      {isEpisodeNavigating
-                        ? "..."
-                        : mediaType === "movie"
-                          ? "Finish"
-                          : "Play Now"}
+                      <X className="w-3.5 h-3.5" />
                     </button>
-                    {autoNext && (
-                      <button
-                        onClick={() => {
-                          nextPromptDismissedForRef.current = promptKey;
-                          setShowNextPrompt(false);
-                          setNextCountdown(8);
-                        }}
-                        className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Minimal Progress Bar */}
-                  {autoNext && !isEpisodeNavigating && (
-                    <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/5">
-                      <motion.div
-                        initial={{ width: "0%" }}
-                        animate={{
-                          width: `${((8 - nextCountdown) / 8) * 100}%`,
-                        }}
-                        className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
-                        transition={{ duration: 1, ease: "linear" }}
-                      />
-                    </div>
                   )}
-                </motion.div>
-              )}
+                </div>
+
+                {/* Minimal Progress Bar */}
+                {autoNext && !isEpisodeNavigating && (
+                  <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/5">
+                    <motion.div
+                      initial={{ width: '0%' }}
+                      animate={{
+                        width: `${((8 - nextCountdown) / 8) * 100}%`,
+                      }}
+                      className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
+                      transition={{ duration: 1, ease: 'linear' }}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
 
           {/* End Screen / Finished Overlay */}
@@ -5701,13 +5168,13 @@ export function VideoPlayer({
                   Finished
                 </h2>
                 <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
-                  {mediaType === "show"
+                  {mediaType === 'show'
                     ? `Completed S${seasonNum}:E${episodeNum}`
-                    : "Movie finished"}
+                    : 'Movie finished'}
                 </p>
 
                 <div className="flex justify-center items-center gap-3 w-full mb-2">
-                  {mediaType === "show" && Boolean(getNextEpisodeTarget()) && (
+                  {mediaType === 'show' && Boolean(getNextEpisodeTarget()) && (
                     <button
                       onClick={() => {
                         setAutoNextLocked(false);
@@ -5717,7 +5184,7 @@ export function VideoPlayer({
                       disabled={isEpisodeNavigating}
                       className="btn-accent min-w-[140px] justify-center"
                     >
-                      {isEpisodeNavigating ? "Loading…" : "Next Episode"}
+                      {isEpisodeNavigating ? 'Loading…' : 'Next Episode'}
                     </button>
                   )}
 
@@ -5729,8 +5196,8 @@ export function VideoPlayer({
                       videoRef.current?.play().catch(() => {});
                     }}
                     className={cn(
-                      "min-w-[140px] justify-center",
-                      mediaType === "show" ? "btn-glass" : "btn-accent",
+                      'min-w-[140px] justify-center',
+                      mediaType === 'show' ? 'btn-glass' : 'btn-accent',
                     )}
                   >
                     Rewatch
@@ -5764,7 +5231,7 @@ export function VideoPlayer({
                     className="absolute inset-0 bg-cover bg-center"
                     style={{
                       backgroundImage: `url(${idleSnapshot})`,
-                      filter: "blur(6px) brightness(0.45) contrast(0.85)",
+                      filter: 'blur(6px) brightness(0.45) contrast(0.85)',
                     }}
                   />
                 ) : (
@@ -5781,14 +5248,12 @@ export function VideoPlayer({
                   Now Watching
                 </p>
                 <h1 className="mt-2 text-5xl font-extrabold text-white leading-tight">
-                  {title || media?.title || "Now playing"}
+                  {title || media?.title || 'Now playing'}
                 </h1>
 
-                {mediaType === "show" && (
+                {mediaType === 'show' && (
                   <div className="mt-2 flex items-center gap-4">
-                    <p className="text-[15px] font-semibold text-white/70">
-                      Season {seasonNum}
-                    </p>
+                    <p className="text-[15px] font-semibold text-white/70">Season {seasonNum}</p>
                     <p className="text-[15px] text-white/80">
                       {currentEpisodeInfo?.name
                         ? `${currentEpisodeInfo.name}`
@@ -5797,9 +5262,7 @@ export function VideoPlayer({
                   </div>
                 )}
 
-                {subtitle && (
-                  <p className="mt-3 text-[13px] text-white/65">{subtitle}</p>
-                )}
+                {subtitle && <p className="mt-3 text-[13px] text-white/65">{subtitle}</p>}
 
                 {infoSummaryText && (
                   <p className="mt-4 max-w-[60%] line-clamp-3 text-[14px] text-white/70">
@@ -5808,9 +5271,7 @@ export function VideoPlayer({
                 )}
               </div>
 
-              <div className="absolute right-6 bottom-6 text-[12px] text-white/70">
-                Paused
-              </div>
+              <div className="absolute right-6 bottom-6 text-[12px] text-white/70">Paused</div>
             </div>
           )}
 
@@ -5825,7 +5286,7 @@ export function VideoPlayer({
       )}
 
       {/* Global Modals */}
-      {settingsPanel === "info" && media && (
+      {settingsPanel === 'info' && media && (
         <div
           className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-[4px] px-4"
           onClick={() => setSettingsPanel(null)}
@@ -5871,21 +5332,15 @@ export function VideoPlayer({
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-[18px] font-semibold text-white">
-                    {media.title}
-                  </p>
-                  {mediaType === "show" ? (
+                  <p className="text-[18px] font-semibold text-white">{media.title}</p>
+                  {mediaType === 'show' ? (
                     <p className="mt-1 text-[13px] text-white/65">
                       {`Season ${seasonNum} • Episode ${episodeNum}`}
-                      {currentEpisodeInfo?.name
-                        ? ` • ${currentEpisodeInfo.name}`
-                        : ""}
+                      {currentEpisodeInfo?.name ? ` • ${currentEpisodeInfo.name}` : ''}
                     </p>
                   ) : (
                     media.tagline && (
-                      <p className="mt-1 text-[13px] text-white/65">
-                        {media.tagline}
-                      </p>
+                      <p className="mt-1 text-[13px] text-white/65">{media.tagline}</p>
                     )
                   )}
 
@@ -5900,24 +5355,19 @@ export function VideoPlayer({
                         {media.certification}
                       </span>
                     )}
-                    {mediaType === "show" && currentEpisodeInfo?.airDate && (
+                    {mediaType === 'show' && currentEpisodeInfo?.airDate && (
                       <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
                         {currentEpisodeInfo.airDate}
                       </span>
                     )}
-                    {mediaType === "show" && currentEpisodeInfo?.runtime && (
+                    {mediaType === 'show' && currentEpisodeInfo?.runtime && (
                       <span className="rounded-full bg-white/5 px-2 py-0.5 text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
                         {currentEpisodeInfo.runtime} min
                       </span>
                     )}
                     {media.rating && (
                       <span className="flex items-center gap-1 rounded-full bg-yellow-400/10 px-2 py-0.5 text-yellow-300 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
                         </svg>
                         {media.rating.toFixed(1)}
@@ -5941,13 +5391,10 @@ export function VideoPlayer({
                   <div className="mt-3 flex flex-wrap gap-2">
                     <div className="relative">
                       <button
-                        onClick={() =>
-                          setShowInfoWatchlistMenu((value) => !value)
-                        }
+                        onClick={() => setShowInfoWatchlistMenu((value) => !value)}
                         className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
                       >
-                        {infoWatchlistItem &&
-                        infoWatchlistItem.status !== "none" ? (
+                        {infoWatchlistItem && infoWatchlistItem.status !== 'none' ? (
                           <>
                             <svg
                               width="12"
@@ -5981,7 +5428,7 @@ export function VideoPlayer({
 
                     {tmdbId && (
                       <a
-                        href={`https://www.themoviedb.org/${mediaType === "show" ? "tv" : "movie"}/${tmdbId}`}
+                        href={`https://www.themoviedb.org/${mediaType === 'show' ? 'tv' : 'movie'}/${tmdbId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-[10px] bg-teal-500/15 px-3 py-1.5 text-[11px] font-semibold text-teal-300 hover:bg-teal-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
@@ -6001,12 +5448,12 @@ export function VideoPlayer({
                       </a>
                     )}
 
-                    {tmdbId && mediaType === "show" && media?.title && (
+                    {tmdbId && mediaType === 'show' && media?.title && (
                       <a
                         href={`https://seriesgraph.com/show/${tmdbId}-${media.title
                           .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/^-|-$/g, "")}`}
+                          .replace(/[^a-z0-9]+/g, '-')
+                          .replace(/^-|-$/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-500/15 px-3 py-1.5 text-[11px] font-semibold text-violet-300 hover:bg-violet-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
@@ -6031,9 +5478,7 @@ export function VideoPlayer({
 
               {infoSummaryText && (
                 <div className="mt-4 rounded-[12px] bg-white/[0.03] p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
-                  <p className="text-[13px] leading-relaxed text-white/75">
-                    {infoSummaryText}
-                  </p>
+                  <p className="text-[13px] leading-relaxed text-white/75">{infoSummaryText}</p>
                 </div>
               )}
             </div>
@@ -6047,30 +5492,22 @@ export function VideoPlayer({
                   className="w-full max-w-xs rounded-[14px] bg-black/90 p-2.5 shadow-[0_16px_50px_rgba(0,0,0,0.75)]"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <p className="px-2 pb-1.5 text-[11px] font-semibold text-white/70">
-                    Add to List
-                  </p>
+                  <p className="px-2 pb-1.5 text-[11px] font-semibold text-white/70">Add to List</p>
                   {(
-                    [
-                      "Planned",
-                      "Watching",
-                      "Completed",
-                      "Dropped",
-                      "On-Hold",
-                    ] as WatchlistStatus[]
+                    ['Planned', 'Watching', 'Completed', 'Dropped', 'On-Hold'] as WatchlistStatus[]
                   ).map((status) => (
                     <button
                       key={status}
                       onClick={() => handleInfoWatchlistAction(status)}
                       className={cn(
-                        "w-full flex items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors",
+                        'w-full flex items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
                         infoWatchlistItem?.status === status
-                          ? "bg-accent/20 text-accent"
-                          : "text-white/80 hover:bg-white/10",
+                          ? 'bg-accent/20 text-accent'
+                          : 'text-white/80 hover:bg-white/10',
                       )}
                     >
                       <StatusIcon status={status} />
-                      <span>{status.replace("-", " ")}</span>
+                      <span>{status.replace('-', ' ')}</span>
                     </button>
                   ))}
                 </div>
@@ -6080,7 +5517,7 @@ export function VideoPlayer({
         </div>
       )}
 
-      {stream?.type === "embed" && settingsPanel === "sources" && (
+      {stream?.type === 'embed' && settingsPanel === 'sources' && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8"
           onClick={() => setSettingsPanel(null)}
@@ -6107,11 +5544,10 @@ export function VideoPlayer({
             </div>
             <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
               {sourceResults
-                .filter((r) => r.stream.type !== "embed")
+                .filter((r) => r.stream.type !== 'embed')
                 .map((res) => {
-                  const isSelected =
-                    currentSourceIndex === sourceResults.indexOf(res);
-                  const isBest = ["febbox", "pobreflix"].includes(res.sourceId);
+                  const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                  const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
                   return (
                     <button
                       key={res.sourceId}
@@ -6120,27 +5556,27 @@ export function VideoPlayer({
                         setSettingsPanel(null);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none",
+                        'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none',
                         isSelected
-                          ? "bg-accent/20 text-accent"
-                          : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white",
+                          ? 'bg-accent/20 text-accent'
+                          : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
                           className={cn(
-                            "flex items-center justify-center transition-all duration-500",
+                            'flex items-center justify-center transition-all duration-500',
                             isSelected
-                              ? "text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110"
-                              : "text-white/40 scale-100",
+                              ? 'text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110'
+                              : 'text-white/40 scale-100',
                           )}
                         >
                           {getSourceIcon(res.sourceId)}
                         </div>
                         <p
                           className={cn(
-                            "text-[12px] font-semibold truncate",
-                            isSelected ? "text-accent" : "text-white",
+                            'text-[12px] font-semibold truncate',
+                            isSelected ? 'text-accent' : 'text-white',
                           )}
                         >
                           {formatSourceName(res.sourceId)}
@@ -6150,20 +5586,18 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
                               isSelected
-                                ? "bg-blue-500/20 text-blue-500"
-                                : "bg-blue-500/10 text-blue-500/80",
+                                ? 'bg-blue-500/20 text-blue-500'
+                                : 'bg-blue-500/10 text-blue-500/80',
                             )}
                           >
                             Best
                           </span>
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                              isSelected
-                                ? "bg-accent/20 text-accent"
-                                : "bg-white/5 text-white/30",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
                             )}
                           >
                             Direct
@@ -6172,10 +5606,8 @@ export function VideoPlayer({
                       ) : (
                         <span
                           className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                            isSelected
-                              ? "bg-accent/20 text-accent"
-                              : "bg-white/5 text-white/30",
+                            'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                            isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
                           )}
                         >
                           Direct
@@ -6185,20 +5617,13 @@ export function VideoPlayer({
                   );
                 })}
               {sourceResults
-                .filter((r) => r.stream.type === "embed")
+                .filter((r) => r.stream.type === 'embed')
                 .map((res) => {
-                  const isSelected =
-                    currentSourceIndex === sourceResults.indexOf(res);
-                  const isDangerous = ["vidlink", "vidsync"].includes(
-                    res.sourceId,
-                  );
-                  const isUnsafe = ["videasy", "vidfast", "peachify"].includes(
-                    res.sourceId,
-                  );
-                  const isBest = ["febbox", "pobreflix"].includes(res.sourceId);
-                  const isGood = ["cinesrc", "vidking", "zxcstream"].includes(
-                    res.sourceId,
-                  );
+                  const isSelected = currentSourceIndex === sourceResults.indexOf(res);
+                  const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
+                  const isUnsafe = ['videasy', 'vidfast', 'peachify'].includes(res.sourceId);
+                  const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                  const isGood = ['cinesrc', 'vidking', 'zxcstream'].includes(res.sourceId);
                   return (
                     <button
                       key={res.sourceId}
@@ -6207,27 +5632,27 @@ export function VideoPlayer({
                         setSettingsPanel(null);
                       }}
                       className={cn(
-                        "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none",
+                        'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none',
                         isSelected
-                          ? "bg-accent/20 text-accent"
-                          : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white",
+                          ? 'bg-accent/20 text-accent'
+                          : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
                           className={cn(
-                            "flex items-center justify-center transition-all duration-500",
+                            'flex items-center justify-center transition-all duration-500',
                             isSelected
-                              ? "text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110"
-                              : "text-white/40 scale-100",
+                              ? 'text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110'
+                              : 'text-white/40 scale-100',
                           )}
                         >
                           {getSourceIcon(res.sourceId)}
                         </div>
                         <p
                           className={cn(
-                            "text-[12px] font-semibold truncate",
-                            isSelected ? "text-accent" : "text-white",
+                            'text-[12px] font-semibold truncate',
+                            isSelected ? 'text-accent' : 'text-white',
                           )}
                         >
                           {formatSourceName(res.sourceId)}
@@ -6237,20 +5662,18 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
                               isSelected
-                                ? "bg-red-500/20 text-red-500"
-                                : "bg-red-500/10 text-red-500/50",
+                                ? 'bg-red-500/20 text-red-500'
+                                : 'bg-red-500/10 text-red-500/50',
                             )}
                           >
                             Dangerous
                           </span>
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                              isSelected
-                                ? "bg-accent/20 text-accent"
-                                : "bg-white/5 text-white/30",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
                             )}
                           >
                             Embed
@@ -6260,20 +5683,18 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
                               isSelected
-                                ? "bg-amber-500/20 text-amber-500"
-                                : "bg-amber-500/10 text-amber-500/50",
+                                ? 'bg-amber-500/20 text-amber-500'
+                                : 'bg-amber-500/10 text-amber-500/50',
                             )}
                           >
                             Unsafe
                           </span>
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                              isSelected
-                                ? "bg-accent/20 text-accent"
-                                : "bg-white/5 text-white/30",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
                             )}
                           >
                             Embed
@@ -6283,20 +5704,18 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
                               isSelected
-                                ? "bg-blue-500/20 text-blue-500"
-                                : "bg-blue-500/10 text-blue-500/80",
+                                ? 'bg-blue-500/20 text-blue-500'
+                                : 'bg-blue-500/10 text-blue-500/80',
                             )}
                           >
                             Best
                           </span>
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                              isSelected
-                                ? "bg-accent/20 text-accent"
-                                : "bg-white/5 text-white/30",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
                             )}
                           >
                             Direct
@@ -6306,20 +5725,18 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
                               isSelected
-                                ? "bg-emerald-500/20 text-emerald-500"
-                                : "bg-emerald-500/10 text-emerald-500/80",
+                                ? 'bg-emerald-500/20 text-emerald-500'
+                                : 'bg-emerald-500/10 text-emerald-500/80',
                             )}
                           >
                             Safe
                           </span>
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                              isSelected
-                                ? "bg-accent/20 text-accent"
-                                : "bg-white/5 text-white/30",
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
                             )}
                           >
                             Embed
@@ -6328,10 +5745,8 @@ export function VideoPlayer({
                       ) : (
                         <span
                           className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase",
-                            isSelected
-                              ? "bg-accent/20 text-accent"
-                              : "bg-white/5 text-white/30",
+                            'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                            isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
                           )}
                         >
                           Embed
@@ -6366,14 +5781,14 @@ function PlayerToggle({
       <span className="text-[11px] text-white/60">{label}</span>
       <div
         className={cn(
-          "relative w-7 h-4 rounded-full transition-colors",
-          checked ? "bg-accent" : "bg-white/15",
+          'relative w-7 h-4 rounded-full transition-colors',
+          checked ? 'bg-accent' : 'bg-white/15',
         )}
       >
         <div
           className={cn(
-            "absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-3.5" : "translate-x-0.5",
+            'absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform',
+            checked ? 'translate-x-3.5' : 'translate-x-0.5',
           )}
         />
       </div>

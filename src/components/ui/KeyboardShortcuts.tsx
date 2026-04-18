@@ -3,43 +3,43 @@
    Press ? to toggle
    ============================================ */
 
-"use client";
+'use client';
 
-import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useState } from "react";
+import { cn } from '@/lib/utils';
+import { useCallback, useEffect, useState } from 'react';
 
 const SHORTCUTS = [
   {
-    category: "Playback",
+    category: 'Playback',
     shortcuts: [
-      { keys: ["Space", "K"], action: "Play / Pause" },
-      { keys: ["F"], action: "Toggle Fullscreen" },
-      { keys: ["M"], action: "Mute / Unmute" },
-      { keys: ["P"], action: "Picture-in-Picture" },
-      { keys: ["T"], action: "Theater Mode" },
+      { keys: ['Space', 'K'], action: 'Play / Pause' },
+      { keys: ['F'], action: 'Toggle Fullscreen' },
+      { keys: ['M'], action: 'Mute / Unmute' },
+      { keys: ['P'], action: 'Picture-in-Picture' },
+      { keys: ['T'], action: 'Theater Mode' },
     ],
   },
   {
-    category: "Navigation",
+    category: 'Navigation',
     shortcuts: [
-      { keys: ["\u2190"], action: "Rewind 10s" },
-      { keys: ["\u2192"], action: "Forward 10s" },
-      { keys: ["\u2191"], action: "Volume Up" },
-      { keys: ["\u2193"], action: "Volume Down" },
+      { keys: ['\u2190'], action: 'Rewind 10s' },
+      { keys: ['\u2192'], action: 'Forward 10s' },
+      { keys: ['\u2191'], action: 'Volume Up' },
+      { keys: ['\u2193'], action: 'Volume Down' },
     ],
   },
   {
-    category: "Speed",
+    category: 'Speed',
     shortcuts: [
-      { keys: [","], action: "Decrease Speed" },
-      { keys: ["."], action: "Increase Speed" },
+      { keys: [','], action: 'Decrease Speed' },
+      { keys: ['.'], action: 'Increase Speed' },
     ],
   },
   {
-    category: "General",
+    category: 'General',
     shortcuts: [
-      { keys: ["Esc"], action: "Close Menus" },
-      { keys: ["?"], action: "Toggle This Modal" },
+      { keys: ['Esc'], action: 'Close Menus' },
+      { keys: ['?'], action: 'Toggle This Modal' },
     ],
   },
 ];
@@ -51,21 +51,17 @@ export function KeyboardShortcuts() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      )
-        return;
-      if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
         e.preventDefault();
         toggle();
       }
-      if (e.key === "Escape" && isOpen) {
+      if (e.key === 'Escape' && isOpen) {
         setIsOpen(false);
       }
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, toggle]);
 
   if (!isOpen) return null;
@@ -123,17 +119,15 @@ export function KeyboardShortcuts() {
                     key={shortcut.action}
                     className="flex items-center justify-between rounded-[8px] px-3 py-1.5 hover:bg-black/40"
                   >
-                    <span className="text-[13px] text-text-secondary">
-                      {shortcut.action}
-                    </span>
+                    <span className="text-[13px] text-text-secondary">{shortcut.action}</span>
                     <div className="flex gap-1">
                       {shortcut.keys.map((key) => (
                         <kbd
                           key={key}
                           className={cn(
-                            "inline-flex items-center justify-center rounded-[6px]",
-                            "bg-black/50 px-2 py-0.5 text-[11px] font-mono text-text-primary",
-                            "min-w-[28px]",
+                            'inline-flex items-center justify-center rounded-[6px]',
+                            'bg-black/50 px-2 py-0.5 text-[11px] font-mono text-text-primary',
+                            'min-w-[28px]',
                           )}
                         >
                           {key}
@@ -148,10 +142,10 @@ export function KeyboardShortcuts() {
         </div>
 
         <p className="mt-5 text-center text-[11px] text-text-muted">
-          Press{" "}
+          Press{' '}
           <kbd className="mx-0.5 rounded-[4px] bg-black/50 px-1.5 py-0.5 text-[10px] font-mono">
             ?
-          </kbd>{" "}
+          </kbd>{' '}
           to toggle this overlay
         </p>
       </div>

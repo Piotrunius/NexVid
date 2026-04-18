@@ -14,7 +14,7 @@ import type {
   SourceResult,
   StreamFile,
   StreamQuality,
-} from "@/types";
+} from '@/types';
 
 interface ProviderConfig {
   proxyUrl?: string;
@@ -27,40 +27,40 @@ export function configureProviders(newConfig: ProviderConfig) {
 }
 
 export const SOURCES: SourceMeta[] = [
-  { id: "febbox", name: "Alpha", rank: 1000, type: "source" },
-  { id: "pobreflix", name: "Beta", rank: 950, type: "source" },
-  { id: "zxcstream", name: "Gamma", rank: 900, type: "embed" },
-  { id: "cinesrc", name: "Delta", rank: 850, type: "embed" },
-  { id: "vidking", name: "Epsilon", rank: 800, type: "embed" },
-  { id: "peachify", name: "Sigma", rank: 110, type: "embed" },
-  { id: "vidfast", name: "Zeta", rank: 104, type: "embed" },
-  { id: "videasy", name: "Theta", rank: 103, type: "embed" },
-  { id: "vidsync", name: "Kappa", rank: 102, type: "embed" },
-  { id: "vidlink", name: "Omega", rank: 101, type: "embed" },
+  { id: 'febbox', name: 'Alpha', rank: 1000, type: 'source' },
+  { id: 'pobreflix', name: 'Beta', rank: 950, type: 'source' },
+  { id: 'zxcstream', name: 'Gamma', rank: 900, type: 'embed' },
+  { id: 'cinesrc', name: 'Delta', rank: 850, type: 'embed' },
+  { id: 'vidking', name: 'Epsilon', rank: 800, type: 'embed' },
+  { id: 'peachify', name: 'Sigma', rank: 110, type: 'embed' },
+  { id: 'vidfast', name: 'Zeta', rank: 104, type: 'embed' },
+  { id: 'videasy', name: 'Theta', rank: 103, type: 'embed' },
+  { id: 'vidsync', name: 'Kappa', rank: 102, type: 'embed' },
+  { id: 'vidlink', name: 'Omega', rank: 101, type: 'embed' },
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
-  febbox: "Alpha",
-  pobreflix: "Beta",
-  zxcstream: "Gamma",
-  cinesrc: "Delta",
-  vidking: "Epsilon",
-  vidfast: "Zeta",
-  videasy: "Theta",
-  vidsync: "Kappa",
-  vidlink: "Omega",
-  peachify: "Sigma",
+  febbox: 'Alpha',
+  pobreflix: 'Beta',
+  zxcstream: 'Gamma',
+  cinesrc: 'Delta',
+  vidking: 'Epsilon',
+  vidfast: 'Zeta',
+  videasy: 'Theta',
+  vidsync: 'Kappa',
+  vidlink: 'Omega',
+  peachify: 'Sigma',
 };
 
 export function mapQuality(raw: string): StreamQuality {
-  const q = String(raw || "").toLowerCase();
-  if (q.includes("4k") || q.includes("2160")) return "4k";
-  if (q.includes("2k") || q.includes("1440")) return "2k";
-  if (q.includes("1080")) return "1080";
-  if (q.includes("720")) return "720";
-  if (q.includes("480")) return "480";
-  if (q.includes("360")) return "360";
-  return "unknown";
+  const q = String(raw || '').toLowerCase();
+  if (q.includes('4k') || q.includes('2160')) return '4k';
+  if (q.includes('2k') || q.includes('1440')) return '2k';
+  if (q.includes('1080')) return '1080';
+  if (q.includes('720')) return '720';
+  if (q.includes('480')) return '480';
+  if (q.includes('360')) return '360';
+  return 'unknown';
 }
 
 export interface ScrapeOptions {
@@ -82,12 +82,7 @@ export interface ScrapeOptions {
   episodeCount?: number;
   onProgress?: (progress: ScrapeProgress) => void;
   onSourceFound?: (result: SourceResult) => void;
-  onDebugLog?: (entry: {
-    step: string;
-    source?: string;
-    message: string;
-    data?: any;
-  }) => void;
+  onDebugLog?: (entry: { step: string; source?: string; message: string; data?: any }) => void;
   autoPlay?: boolean;
   autoNext?: boolean;
   autoSkipSegments?: boolean;
@@ -115,57 +110,42 @@ async function scrapeSource(
     });
 
     // Videasy is a simple embed, can stay on client
-    if (sourceId === "videasy") {
-      options.onProgress?.({ id: sourceId, percentage: 50, status: "pending" });
-      const baseUrl = "https://player.videasy.net";
-      let embedUrl = "";
-      if (options.mediaType === "movie") {
+    if (sourceId === 'videasy') {
+      options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
+      const baseUrl = 'https://player.videasy.net';
+      let embedUrl = '';
+      if (options.mediaType === 'movie') {
         embedUrl = `${baseUrl}/movie/${options.tmdbId}`;
       } else {
         embedUrl = `${baseUrl}/tv/${options.tmdbId}/${options.season || 1}/${options.episode || 1}`;
       }
 
       const url = new URL(embedUrl);
-      const color = (options.accentColor || "6366f1").replace("#", "");
-      url.searchParams.set("color", color);
-      url.searchParams.set(
-        "nextEpisode",
-        (options.nextButton ?? true) ? "true" : "false",
-      );
-      url.searchParams.set(
-        "autoPlay",
-        (options.autoPlay ?? true) ? "true" : "false",
-      );
-      url.searchParams.set(
-        "autoplayNextEpisode",
-        (options.autoNext ?? true) ? "true" : "false",
-      );
-      url.searchParams.set(
-        "episodeSelector",
-        (options.episodeSelector ?? true) ? "true" : "false",
-      );
+      const color = (options.accentColor || '6366f1').replace('#', '');
+      url.searchParams.set('color', color);
+      url.searchParams.set('nextEpisode', (options.nextButton ?? true) ? 'true' : 'false');
+      url.searchParams.set('autoPlay', (options.autoPlay ?? true) ? 'true' : 'false');
+      url.searchParams.set('autoplayNextEpisode', (options.autoNext ?? true) ? 'true' : 'false');
+      url.searchParams.set('episodeSelector', (options.episodeSelector ?? true) ? 'true' : 'false');
       if (options.startAt && options.startAt > 0)
-        url.searchParams.set(
-          "progress",
-          Math.floor(options.startAt).toString(),
-        );
-      if (options.idlePauseOverlay) url.searchParams.set("overlay", "true");
+        url.searchParams.set('progress', Math.floor(options.startAt).toString());
+      if (options.idlePauseOverlay) url.searchParams.set('overlay', 'true');
 
-      const stream: EmbedStream = { type: "embed", url: url.toString() };
+      const stream: EmbedStream = { type: 'embed', url: url.toString() };
       options.onProgress?.({
         id: sourceId,
         percentage: 100,
-        status: "success",
+        status: 'success',
       });
       return { sourceId, stream };
     }
 
     // Vidlink is also a simple embed
-    if (sourceId === "vidlink") {
-      options.onProgress?.({ id: sourceId, percentage: 50, status: "pending" });
-      const baseUrl = "https://vidlink.pro";
-      let embedUrl = "";
-      if (options.mediaType === "movie") {
+    if (sourceId === 'vidlink') {
+      options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
+      const baseUrl = 'https://vidlink.pro';
+      let embedUrl = '';
+      if (options.mediaType === 'movie') {
         embedUrl = `${baseUrl}/movie/${options.tmdbId}`;
       } else {
         embedUrl = `${baseUrl}/tv/${options.tmdbId}/${options.season || 1}/${options.episode || 1}`;
@@ -176,197 +156,154 @@ async function scrapeSource(
       const color =
         options.accentColor && /^[0-9a-fA-F]{3,6}$/.test(options.accentColor)
           ? options.accentColor
-          : "6366f1";
+          : '6366f1';
 
-      url.searchParams.set("primaryColor", color);
-      url.searchParams.set("secondaryColor", "000000");
-      url.searchParams.set(
-        "nextbutton",
-        (options.nextButton ?? true) ? "true" : "false",
-      );
-      url.searchParams.set(
-        "autoplay",
-        (options.autoPlay ?? true) ? "true" : "false",
-      );
+      url.searchParams.set('primaryColor', color);
+      url.searchParams.set('secondaryColor', '000000');
+      url.searchParams.set('nextbutton', (options.nextButton ?? true) ? 'true' : 'false');
+      url.searchParams.set('autoplay', (options.autoPlay ?? true) ? 'true' : 'false');
       if (options.startAt && options.startAt > 0)
-        url.searchParams.set("startAt", Math.floor(options.startAt).toString());
+        url.searchParams.set('startAt', Math.floor(options.startAt).toString());
 
-      const stream: EmbedStream = { type: "embed", url: url.toString() };
+      const stream: EmbedStream = { type: 'embed', url: url.toString() };
       options.onProgress?.({
         id: sourceId,
         percentage: 100,
-        status: "success",
+        status: 'success',
       });
       return { sourceId, stream };
     }
 
     const isGenericEmbed = [
-      "vidfast",
-      "vidsync",
-      "vidking",
-      "zxcstream",
-      "cinesrc",
-      "peachify",
+      'vidfast',
+      'vidsync',
+      'vidking',
+      'zxcstream',
+      'cinesrc',
+      'peachify',
     ].includes(sourceId);
     if (isGenericEmbed) {
-      options.onProgress?.({ id: sourceId, percentage: 50, status: "pending" });
-      let embedUrl = "";
+      options.onProgress?.({ id: sourceId, percentage: 50, status: 'pending' });
+      let embedUrl = '';
 
       const mType = options.mediaType;
       const tId = options.tmdbId;
       const sNum = options.season || 1;
       const eNum = options.episode || 1;
-      const accent = (options.accentColor || "6366f1")
-        .replace("#", "")
-        .toUpperCase();
+      const accent = (options.accentColor || '6366f1').replace('#', '').toUpperCase();
 
       const effId = options.tmdbId;
 
       switch (sourceId) {
-        case "vidfast": {
+        case 'vidfast': {
           const baseUrl =
-            mType === "movie"
+            mType === 'movie'
               ? `https://vidfast.pro/movie/${effId}`
               : `https://vidfast.pro/tv/${effId}/${sNum}/${eNum}`;
           const params = new URLSearchParams();
-          params.set("autoPlay", (options.autoPlay ?? true) ? "true" : "false");
-          if (mType === "show") {
-            params.set(
-              "nextButton",
-              (options.nextButton ?? true) ? "true" : "false",
-            );
-            params.set(
-              "autoNext",
-              (options.autoNext ?? true) ? "true" : "false",
-            );
+          params.set('autoPlay', (options.autoPlay ?? true) ? 'true' : 'false');
+          if (mType === 'show') {
+            params.set('nextButton', (options.nextButton ?? true) ? 'true' : 'false');
+            params.set('autoNext', (options.autoNext ?? true) ? 'true' : 'false');
           }
           if (options.startAt && options.startAt > 0)
-            params.set("startAt", Math.floor(options.startAt).toString());
-          params.set("title", "true");
-          params.set("poster", "true");
-          params.set("color", accent);
-          params.set("primaryColor", accent);
+            params.set('startAt', Math.floor(options.startAt).toString());
+          params.set('title', 'true');
+          params.set('poster', 'true');
+          params.set('color', accent);
+          params.set('primaryColor', accent);
 
           embedUrl = `${baseUrl}?theme=${accent}&${params.toString()}`;
           break;
         }
-        case "vidsync": {
+        case 'vidsync': {
           const u = new URL(
-            mType === "movie"
+            mType === 'movie'
               ? `https://vidsync.xyz/embed/movie/${tId}`
               : `https://vidsync.xyz/embed/tv/${tId}/${sNum}/${eNum}`,
           );
-          u.searchParams.set(
-            "autoPlay",
-            (options.autoPlay ?? true) ? "true" : "false",
-          );
-          u.searchParams.set("theme", accent);
-          if (mType === "show") {
-            u.searchParams.set(
-              "nextButton",
-              (options.nextButton ?? true) ? "true" : "false",
-            );
-            u.searchParams.set(
-              "autoNext",
-              (options.autoNext ?? true) ? "true" : "false",
-            );
+          u.searchParams.set('autoPlay', (options.autoPlay ?? true) ? 'true' : 'false');
+          u.searchParams.set('theme', accent);
+          if (mType === 'show') {
+            u.searchParams.set('nextButton', (options.nextButton ?? true) ? 'true' : 'false');
+            u.searchParams.set('autoNext', (options.autoNext ?? true) ? 'true' : 'false');
           }
           embedUrl = u.toString();
           break;
         }
-        case "vidking": {
+        case 'vidking': {
           const u = new URL(
-            mType === "movie"
+            mType === 'movie'
               ? `https://www.vidking.net/embed/movie/${tId}`
               : `https://www.vidking.net/embed/tv/${tId}/${sNum}/${eNum}`,
           );
-          u.searchParams.set("color", accent);
-          u.searchParams.set(
-            "autoPlay",
-            (options.autoPlay ?? true) ? "true" : "false",
-          );
-          if (mType === "show") {
+          u.searchParams.set('color', accent);
+          u.searchParams.set('autoPlay', (options.autoPlay ?? true) ? 'true' : 'false');
+          if (mType === 'show') {
+            u.searchParams.set('nextEpisode', (options.nextButton ?? true) ? 'true' : 'false');
             u.searchParams.set(
-              "nextEpisode",
-              (options.nextButton ?? true) ? "true" : "false",
-            );
-            u.searchParams.set(
-              "episodeSelector",
-              (options.episodeSelector ?? true) ? "true" : "false",
+              'episodeSelector',
+              (options.episodeSelector ?? true) ? 'true' : 'false',
             );
           }
           if (options.startAt && options.startAt > 0)
-            u.searchParams.set(
-              "progress",
-              Math.floor(options.startAt).toString(),
-            );
+            u.searchParams.set('progress', Math.floor(options.startAt).toString());
           embedUrl = u.toString();
           break;
         }
-        case "cinesrc": {
+        case 'cinesrc': {
           const u = new URL(
-            mType === "movie"
+            mType === 'movie'
               ? `https://cinesrc.st/embed/movie/${tId}`
               : `https://cinesrc.st/embed/tv/${tId}`,
           );
-          if (mType === "show") {
-            u.searchParams.set("s", sNum.toString());
-            u.searchParams.set("e", eNum.toString());
+          if (mType === 'show') {
+            u.searchParams.set('s', sNum.toString());
+            u.searchParams.set('e', eNum.toString());
           }
           // color should be like #e50914, URL object will encode # to %23
-          const color = options.accentColor?.startsWith("#")
+          const color = options.accentColor?.startsWith('#')
             ? options.accentColor
-            : `#${options.accentColor || "6366f1"}`;
-          u.searchParams.set("color", color);
-          u.searchParams.set(
-            "autoplay",
-            (options.autoPlay ?? true) ? "true" : "false",
-          );
-          u.searchParams.set(
-            "autonext",
-            (options.autoNext ?? true) ? "true" : "false",
-          );
-          u.searchParams.set(
-            "autoskip",
-            (options.autoSkipSegments ?? false) ? "true" : "false",
-          );
-          u.searchParams.set("back", "close");
+            : `#${options.accentColor || '6366f1'}`;
+          u.searchParams.set('color', color);
+          u.searchParams.set('autoplay', (options.autoPlay ?? true) ? 'true' : 'false');
+          u.searchParams.set('autonext', (options.autoNext ?? true) ? 'true' : 'false');
+          u.searchParams.set('autoskip', (options.autoSkipSegments ?? false) ? 'true' : 'false');
+          u.searchParams.set('back', 'close');
           if (options.startAt && options.startAt > 0)
-            u.searchParams.set("t", Math.floor(options.startAt).toString());
+            u.searchParams.set('t', Math.floor(options.startAt).toString());
           embedUrl = u.toString();
           break;
         }
-        case "zxcstream":
+        case 'zxcstream':
           embedUrl =
-            mType === "movie"
-              ? `https://zxcstream.xyz/player/movie/${tId}?domainAd=nexvid.online&color=${accent}&autoplay=${(options.autoPlay ?? true) ? "true" : "false"}`
-              : `https://zxcstream.xyz/player/tv/${tId}/${sNum}/${eNum}?domainAd=nexvid.online&color=${accent}&autoplay=${(options.autoPlay ?? true) ? "true" : "false"}`;
+            mType === 'movie'
+              ? `https://zxcstream.xyz/player/movie/${tId}?domainAd=nexvid.online&color=${accent}&autoplay=${(options.autoPlay ?? true) ? 'true' : 'false'}`
+              : `https://zxcstream.xyz/player/tv/${tId}/${sNum}/${eNum}?domainAd=nexvid.online&color=${accent}&autoplay=${(options.autoPlay ?? true) ? 'true' : 'false'}`;
           break;
-        case "peachify": {
-          const baseUrl = "https://peachify.top";
+        case 'peachify': {
+          const baseUrl = 'https://peachify.top';
           const path =
-            mType === "movie"
-              ? `/embed/movie/${tId}`
-              : `/embed/tv/${tId}/${sNum}/${eNum}`;
+            mType === 'movie' ? `/embed/movie/${tId}` : `/embed/tv/${tId}/${sNum}/${eNum}`;
           const url = new URL(`${baseUrl}${path}`);
-          url.searchParams.set("accent", accent);
+          url.searchParams.set('accent', accent);
           if (options.startAt && options.startAt > 0) {
-            url.searchParams.set("startAt", Math.floor(options.startAt).toString());
+            url.searchParams.set('startAt', Math.floor(options.startAt).toString());
           }
           // UI Toggles - Hide internal UI to use NexVid's overlay
-          url.searchParams.set("pip", "hide");
-          url.searchParams.set("cast", "hide");
+          url.searchParams.set('pip', 'hide');
+          url.searchParams.set('cast', 'hide');
 
           embedUrl = url.toString();
           break;
         }
       }
 
-      const stream: EmbedStream = { type: "embed", url: embedUrl };
+      const stream: EmbedStream = { type: 'embed', url: embedUrl };
       options.onProgress?.({
         id: sourceId,
         percentage: 100,
-        status: "success",
+        status: 'success',
       });
       return { sourceId, stream };
     }
@@ -379,24 +316,20 @@ async function scrapeSource(
       year: String(options.releaseYear),
     });
 
-    if (options.mediaType === "show") {
-      params.set("season", String(options.season || 1));
-      params.set("episode", String(options.episode || 1));
+    if (options.mediaType === 'show') {
+      params.set('season', String(options.season || 1));
+      params.set('episode', String(options.episode || 1));
     }
 
-    if (options.febboxCookie) params.set("febboxToken", options.febboxCookie);
-    params.set("source", sourceId);
+    if (options.febboxCookie) params.set('febboxToken', options.febboxCookie);
+    params.set('source', sourceId);
 
-    options.onProgress?.({ id: sourceId, percentage: 30, status: "pending" });
+    options.onProgress?.({ id: sourceId, percentage: 30, status: 'pending' });
 
     const response = await fetch(`/api/stream?${params.toString()}`, {
       headers: {
-        ...(options.febboxCookie
-          ? { "x-febbox-cookie": options.febboxCookie }
-          : {}),
-        ...(options.sessionToken
-          ? { Authorization: `Bearer ${options.sessionToken}` }
-          : {}),
+        ...(options.febboxCookie ? { 'x-febbox-cookie': options.febboxCookie } : {}),
+        ...(options.sessionToken ? { Authorization: `Bearer ${options.sessionToken}` } : {}),
       },
       signal: AbortSignal.timeout(25000),
     });
@@ -405,19 +338,19 @@ async function scrapeSource(
       options.onProgress?.({
         id: sourceId,
         percentage: 100,
-        status: "notfound",
+        status: 'notfound',
       });
       return null;
     }
 
     const data = await response.json();
-    options.onProgress?.({ id: sourceId, percentage: 80, status: "pending" });
+    options.onProgress?.({ id: sourceId, percentage: 80, status: 'pending' });
 
     if (!data.success || !data.data) {
       options.onProgress?.({
         id: sourceId,
         percentage: 100,
-        status: "notfound",
+        status: 'notfound',
       });
       return null;
     }
@@ -426,17 +359,15 @@ async function scrapeSource(
     const captions = Array.isArray(streamData.captions || streamData.subtitles)
       ? (streamData.captions || streamData.subtitles)
           .map((subtitle: any) => {
-            const url = String(subtitle?.url || "");
+            const url = String(subtitle?.url || '');
             if (!url) return null;
-            const language = String(
-              subtitle?.language || subtitle?.label || "en",
-            ).toLowerCase();
+            const language = String(subtitle?.language || subtitle?.label || 'en').toLowerCase();
             const label = String(subtitle?.label || language.toUpperCase());
-            const type = String(subtitle?.type || subtitle?.format || "")
+            const type = String(subtitle?.type || subtitle?.format || '')
               .toLowerCase()
-              .includes("vtt")
-              ? "vtt"
-              : "srt";
+              .includes('vtt')
+              ? 'vtt'
+              : 'srt';
             return {
               id: `sb-${language}-${label}-${Math.random().toString(36).slice(2, 6)}`,
               language,
@@ -449,23 +380,20 @@ async function scrapeSource(
       : [];
 
     if (
-      String(streamData.type || streamData.kind || "").toLowerCase() ===
-        "hls" ||
+      String(streamData.type || streamData.kind || '').toLowerCase() === 'hls' ||
       streamData.playlist
     ) {
-      const streamUrl = String(
-        streamData.playlist || streamData.url || "",
-      ).trim();
+      const streamUrl = String(streamData.playlist || streamData.url || '').trim();
       if (!streamUrl) {
         options.onProgress?.({
           id: sourceId,
           percentage: 100,
-          status: "notfound",
+          status: 'notfound',
         });
         return null;
       }
       const stream: HlsBasedStream = {
-        type: "hls",
+        type: 'hls',
         id: `${sourceId}-hls-stream`,
         flags: [],
         captions,
@@ -475,28 +403,28 @@ async function scrapeSource(
       options.onProgress?.({
         id: sourceId,
         percentage: 100,
-        status: "success",
+        status: 'success',
       });
       return { sourceId, stream };
     }
 
-    if (streamData.qualities && typeof streamData.qualities === "object") {
+    if (streamData.qualities && typeof streamData.qualities === 'object') {
       const qualities: Partial<Record<StreamQuality, StreamFile>> = {};
 
       if (Array.isArray(streamData.qualities)) {
         for (const q of streamData.qualities) {
-          const mapped = mapQuality(q.quality || q.label || "");
-          qualities[mapped] = { type: "mp4", url: q.url };
+          const mapped = mapQuality(q.quality || q.label || '');
+          qualities[mapped] = { type: 'mp4', url: q.url };
         }
       } else {
         for (const [key, val] of Object.entries(streamData.qualities)) {
           const mapped = mapQuality(key);
-          qualities[mapped] = { type: "mp4", url: (val as any).url || val };
+          qualities[mapped] = { type: 'mp4', url: (val as any).url || val };
         }
       }
 
       const stream: FileBasedStream = {
-        type: "file",
+        type: 'file',
         id: `${sourceId}-stream`,
         flags: [],
         captions,
@@ -506,29 +434,27 @@ async function scrapeSource(
       options.onProgress?.({
         id: sourceId,
         percentage: 100,
-        status: "success",
+        status: 'success',
       });
       return { sourceId, stream };
     }
 
-    options.onProgress?.({ id: sourceId, percentage: 100, status: "notfound" });
+    options.onProgress?.({ id: sourceId, percentage: 100, status: 'notfound' });
     return null;
   } catch (error: any) {
     console.error(`[scrapeSource] ${sourceId} error:`, error);
-    options.onProgress?.({ id: sourceId, percentage: 100, status: "failure" });
+    options.onProgress?.({ id: sourceId, percentage: 100, status: 'failure' });
     return null;
   }
 }
 
-export async function scrapeAllSources(
-  options: ScrapeOptions,
-): Promise<SourceResult[]> {
+export async function scrapeAllSources(options: ScrapeOptions): Promise<SourceResult[]> {
   const results: SourceResult[] = [];
 
   for (const source of SOURCES) {
     if (options.excludeSources?.includes(source.id)) continue;
 
-    if (source.id === "febbox" && !options.febboxCookie) {
+    if (source.id === 'febbox' && !options.febboxCookie) {
       continue;
     }
 
@@ -536,11 +462,11 @@ export async function scrapeAllSources(
     if (result) {
       results.push(result);
       options.onSourceFound?.(result);
-    } else if (source.id === "febbox") {
+    } else if (source.id === 'febbox') {
       const placeholder: SourceResult = {
         sourceId: source.id,
         stream: {
-          type: "file",
+          type: 'file',
           id: `${source.id}-placeholder`,
           flags: [],
           qualities: {},

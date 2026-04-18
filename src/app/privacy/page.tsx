@@ -2,30 +2,25 @@
    Privacy Policy
    ============================================ */
 
-export const metadata = { title: "Privacy Policy - NexVid" };
+export const metadata = { title: 'Privacy Policy - NexVid' };
 
 const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_URL;
 
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-24">
-      <h1 className="text-[28px] font-bold text-text-primary tracking-tight">
-        Privacy Policy
-      </h1>
+      <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Privacy Policy</h1>
       <p className="mt-2 text-[13px] text-text-muted">
         Last updated: {new Date().toLocaleDateString()}
       </p>
 
       <div className="mt-8 space-y-6 text-text-secondary text-[13px] leading-relaxed">
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
-            1. Overview
-          </h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">1. Overview</h2>
           <p>
-            NexVid is designed to work primarily with data stored locally in
-            your browser. If backend login/cloud sync is enabled for this
-            deployment, selected account data is also processed by the
-            configured backend API.
+            NexVid is designed to work primarily with data stored locally in your browser. If
+            backend login/cloud sync is enabled for this deployment, selected account data is also
+            processed by the configured backend API.
           </p>
         </section>
 
@@ -36,26 +31,20 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
-            2. Data We Process
-          </h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">2. Data We Process</h2>
           <p>
-            By default, data is stored in your browser&apos;s{" "}
-            <code className="text-accent">localStorage</code>. If cloud auth is
-            enabled, the backend stores only data necessary to run account,
-            security, and moderation features.
+            By default, data is stored in your browser&apos;s{' '}
+            <code className="text-accent">localStorage</code>. If cloud auth is enabled, the backend
+            stores only data necessary to run account, security, and moderation features.
           </p>
           <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
-            <li>
-              Account data: nickname, password hash, account creation date
-            </li>
+            <li>Account data: nickname, password hash, account creation date</li>
             <li>Session data: authentication tokens and session expiry</li>
             <li>App data: settings, watchlist, playback-related preferences</li>
             <li>Moderation data: account bans, audit logs, and timestamps</li>
           </ul>
           <p className="mt-2">
-            We do not require email verification to use accounts in the current
-            deployment.
+            We do not require email verification to use accounts in the current deployment.
           </p>
         </section>
 
@@ -64,24 +53,23 @@ export default function PrivacyPage() {
             3. Purposes and Legal Basis (GDPR)
           </h2>
           <p>
-            We process data for: (a) account login/session handling, (b) app
-            functionality and optional sync, and (c) security and abuse
-            prevention.
+            We process data for: (a) account login/session handling, (b) app functionality and
+            optional sync, and (c) security and abuse prevention.
           </p>
           <p className="mt-2">The legal basis is generally:</p>
           <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
             <li>
-              <strong>Article 6(1)(b) GDPR</strong> (performance of a contract)
-              for account/service operation
+              <strong>Article 6(1)(b) GDPR</strong> (performance of a contract) for account/service
+              operation
             </li>
             <li>
-              <strong>Article 6(1)(f) GDPR</strong> (legitimate interest) for
-              service security and moderation
+              <strong>Article 6(1)(f) GDPR</strong> (legitimate interest) for service security and
+              moderation
             </li>
           </ul>
           <p className="mt-2">
-            Where local browser storage is strictly necessary for requested
-            functionality, it is used on that basis.
+            Where local browser storage is strictly necessary for requested functionality, it is
+            used on that basis.
           </p>
         </section>
 
@@ -89,40 +77,32 @@ export default function PrivacyPage() {
           <h2 className="text-[15px] font-semibold text-text-primary mb-2">
             4. Third-Party Services
           </h2>
-          <p>
-            NexVid may connect to external services needed to render content and
-            metadata:
-          </p>
+          <p>NexVid may connect to external services needed to render content and metadata:</p>
           <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
             <li>
-              <strong>TMDB API</strong> &mdash; movie/show metadata, posters,
-              and search data
+              <strong>TMDB API</strong> &mdash; movie/show metadata, posters, and search data
             </li>
             <li>
-              <strong>OMDb API</strong> &mdash; external ratings and additional
-              title metadata
+              <strong>OMDb API</strong> &mdash; external ratings and additional title metadata
             </li>
             <li>
-              <strong>FebBox</strong> &mdash; streaming source/provider
-              integration used by resolver flows
+              <strong>FebBox</strong> &mdash; streaming source/provider integration used by resolver
+              flows
             </li>
             <li>
-              <strong>TheIntroDB</strong> &mdash; optional intro/outro segment
-              metadata
+              <strong>TheIntroDB</strong> &mdash; optional intro/outro segment metadata
             </li>
             <li>
-              <strong>Wyzie Subs</strong> &mdash; Multi-language subtitles and
-              translations.
+              <strong>Wyzie Subs</strong> &mdash; Multi-language subtitles and translations.
             </li>
             <li>
-              <strong>Groq</strong> &mdash; inference platform used by the AI
-              Assistant.
+              <strong>Groq</strong> &mdash; inference platform used by the AI Assistant.
             </li>
           </ul>
           <p className="mt-2">
-            These services operate under their own privacy policies and terms.
-            We recommend reviewing the policies for TMDB, OMDb, FebBox,
-            TheIntroDB, and Groq directly if you use features that rely on them.
+            These services operate under their own privacy policies and terms. We recommend
+            reviewing the policies for TMDB, OMDb, FebBox, TheIntroDB, and Groq directly if you use
+            features that rely on them.
           </p>
         </section>
 
@@ -131,44 +111,36 @@ export default function PrivacyPage() {
             5. Cookies and Local Storage
           </h2>
           <p>
-            NexVid uses technically necessary client-side storage (like{" "}
-            <code className="text-accent">localStorage</code>) for user
-            interface preferences and session authentication. We do not use
-            advertising or tracking cookies.
+            NexVid uses technically necessary client-side storage (like{' '}
+            <code className="text-accent">localStorage</code>) for user interface preferences and
+            session authentication. We do not use advertising or tracking cookies.
           </p>
           <p className="mt-2">
-            To provide real-time occupancy statistics (Active Guests) without
-            tracking IP addresses, the application uses an anonymous, randomly
-            generated Client ID stored in your browser. This ID is not linked to
-            your personal data.
+            To provide real-time occupancy statistics (Active Guests) without tracking IP addresses,
+            the application uses an anonymous, randomly generated Client ID stored in your browser.
+            This ID is not linked to your personal data.
           </p>
           <p className="mt-2">
-            If non-essential analytics or marketing cookies are introduced in a
-            future release, this policy and consent flow will be updated
-            accordingly.
+            If non-essential analytics or marketing cookies are introduced in a future release, this
+            policy and consent flow will be updated accordingly.
           </p>
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
-            6. Retention
-          </h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">6. Retention</h2>
           <p>
-            We keep data only as long as needed for account operation, service
-            reliability, and abuse prevention. Retention may vary by data type
-            (e.g., session records vs. moderation logs) and may be adjusted
-            where required by law or security obligations.
+            We keep data only as long as needed for account operation, service reliability, and
+            abuse prevention. Retention may vary by data type (e.g., session records vs. moderation
+            logs) and may be adjusted where required by law or security obligations.
           </p>
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
-            7. Analytics
-          </h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">7. Analytics</h2>
           <p>
-            This deployment does not use behavioral advertising trackers. If
-            operational telemetry is enabled by the infrastructure provider, it
-            is used for reliability/security, not ad profiling.
+            This deployment does not use behavioral advertising trackers. If operational telemetry
+            is enabled by the infrastructure provider, it is used for reliability/security, not ad
+            profiling.
           </p>
         </section>
 
@@ -177,37 +149,29 @@ export default function PrivacyPage() {
             8. Your Rights (EU/EEA)
           </h2>
           <p>
-            Subject to applicable law, you may request access, rectification,
-            erasure, restriction, objection, and data portability where
-            relevant. You may also object to processing based on legitimate
-            interest.
+            Subject to applicable law, you may request access, rectification, erasure, restriction,
+            objection, and data portability where relevant. You may also object to processing based
+            on legitimate interest.
           </p>
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
-            9. Your Control
-          </h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">9. Your Control</h2>
           <p>
-            You can delete all stored data at any time by clearing your
-            browser&apos;s localStorage, or by using the &ldquo;Clear
-            Everything&rdquo; option in the Settings page.
+            You can delete all stored data at any time by clearing your browser&apos;s localStorage,
+            or by using the &ldquo;Clear Everything&rdquo; option in the Settings page.
           </p>
           <p className="mt-2">
-            For this deployment, data stored on our backend (Cloudflare D1) is
-            deleted only when you use &ldquo;Clear Everything&rdquo; while
-            logged into your account.
+            For this deployment, data stored on our backend (Cloudflare D1) is deleted only when you
+            use &ldquo;Clear Everything&rdquo; while logged into your account.
           </p>
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
-            10. Contact
-          </h2>
+          <h2 className="text-[15px] font-semibold text-text-primary mb-2">10. Contact</h2>
           <p className="mb-2">
-            For privacy requests related to this deployment (including account
-            deletion, access requests, or security concerns), please contact our
-            security team:
+            For privacy requests related to this deployment (including account deletion, access
+            requests, or security concerns), please contact our security team:
           </p>
           <a
             href="mailto:security@nexvid.online"

@@ -1,34 +1,27 @@
-"use client";
+'use client';
 
-import { getRecommendations } from "@/lib/tmdb";
-import { normalizeMediaType, toTmdbMediaType } from "@/lib/mediaType";
-import { cn } from "@/lib/utils";
-import { useBlockedContentStore } from "@/stores/blockedContent";
-import { useWatchlistStore } from "@/stores/watchlist";
-import type { MediaItem } from "@/types";
-import { useEffect, useMemo, useState } from "react";
-import { MediaRow, MediaRowSkeleton } from "./MediaCard";
+import { getRecommendations } from '@/lib/tmdb';
+import { normalizeMediaType, toTmdbMediaType } from '@/lib/mediaType';
+import { cn } from '@/lib/utils';
+import { useBlockedContentStore } from '@/stores/blockedContent';
+import { useWatchlistStore } from '@/stores/watchlist';
+import type { MediaItem } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import { MediaRow, MediaRowSkeleton } from './MediaCard';
 
 export function RecommendationRows() {
   const { items } = useWatchlistStore();
 
   const eligibleItems = useMemo(() => {
     return items
-      .filter(
-        (i) => (i.progress?.percentage || 0) > 10 || i.status === "Completed",
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      )
+      .filter((i) => (i.progress?.percentage || 0) > 10 || i.status === 'Completed')
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5);
   }, [items]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<MediaItem[]>([]);
-  const [activeRecommendations, setActiveRecommendations] = useState<
-    MediaItem[]
-  >([]);
+  const [activeRecommendations, setActiveRecommendations] = useState<MediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const { blockedItems, isBlocked } = useBlockedContentStore();
@@ -66,10 +59,7 @@ export function RecommendationRows() {
         );
         setRecommendations(filteredRecs.slice(0, 20));
       } catch (err) {
-        console.error(
-          `Failed to load recommendations for ${selectedItem?.title}:`,
-          err,
-        );
+        console.error(`Failed to load recommendations for ${selectedItem?.title}:`, err);
       } finally {
         setIsLoading(false);
         setIsInitialLoad(false);
@@ -84,8 +74,7 @@ export function RecommendationRows() {
   const header = (
     <div className="flex flex-col gap-3 overflow-hidden">
       <h2 className="text-[20px] font-semibold text-white tracking-tight break-words break-all">
-        Because you watched{" "}
-        <span className="text-accent">{selectedItem?.title}</span>
+        Because you watched <span className="text-accent">{selectedItem?.title}</span>
       </h2>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
@@ -93,7 +82,7 @@ export function RecommendationRows() {
           <button
             key={item.id}
             onClick={() => setSelectedId(item.id)}
-            className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${selectedId === item.id ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+            className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${selectedId === item.id ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
           >
             {item.title}
           </button>
@@ -119,13 +108,9 @@ export function RecommendationRows() {
         />
       ) : selectedItem ? (
         <div className="space-y-4 py-4">
-          <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-            {header}
-          </div>
+          <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">{header}</div>
           <div className="mx-4 sm:mx-6 lg:mx-10 xl:mx-14 2xl:mx-16 h-32 flex items-center justify-center rounded-[24px] bg-white/[0.02] border border-white/5 border-dashed">
-            <p className="text-white/30 text-[13px]">
-              No recommendations found for this title
-            </p>
+            <p className="text-white/30 text-[13px]">No recommendations found for this title</p>
           </div>
         </div>
       ) : null}

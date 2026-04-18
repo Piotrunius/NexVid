@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { scrapeAllSources } from "@/lib/providers";
-import { useAuthStore } from "@/stores/auth";
-import { useSettingsStore } from "@/stores/settings";
-import type { MediaType, SourceResult } from "@/types";
-import { useEffect, useMemo, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "framer-motion";
-import { Download, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { scrapeAllSources } from '@/lib/providers';
+import { useAuthStore } from '@/stores/auth';
+import { useSettingsStore } from '@/stores/settings';
+import type { MediaType, SourceResult } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Download, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -45,22 +45,22 @@ export function DownloadModal({
   const { authToken: sessionToken } = useAuthStore();
 
   const resolvedAccentHex = useMemo(() => {
-    if (accentColor === "custom") return customAccentHex || "#6366f1";
+    if (accentColor === 'custom') return customAccentHex || '#6366f1';
     const mapping: Record<string, string> = {
-      indigo: "#6366f1",
-      violet: "#8b5cf6",
-      rose: "#f43f5e",
-      emerald: "#10b981",
-      amber: "#f59e0b",
-      cyan: "#06b6d4",
-      sky: "#0ea5e9",
-      lime: "#84cc16",
-      orange: "#f97316",
-      fuchsia: "#d946ef",
-      teal: "#14b8a6",
-      red: "#ef4444",
+      indigo: '#6366f1',
+      violet: '#8b5cf6',
+      rose: '#f43f5e',
+      emerald: '#10b981',
+      amber: '#f59e0b',
+      cyan: '#06b6d4',
+      sky: '#0ea5e9',
+      lime: '#84cc16',
+      orange: '#f97316',
+      fuchsia: '#d946ef',
+      teal: '#14b8a6',
+      red: '#ef4444',
     };
-    return mapping[accentColor] || "#6366f1";
+    return mapping[accentColor] || '#6366f1';
   }, [accentColor, customAccentHex]);
 
   const fetchLinks = async () => {
@@ -73,21 +73,21 @@ export function DownloadModal({
         title,
         releaseYear,
         mediaType,
-        season: mediaType === "show" ? season : undefined,
-        episode: mediaType === "show" ? episode : undefined,
+        season: mediaType === 'show' ? season : undefined,
+        episode: mediaType === 'show' ? episode : undefined,
         febboxCookie: febboxApiKey,
         sessionToken,
         accentColor: resolvedAccentHex,
-        excludeSources: ["pobreflix"],
+        excludeSources: ['pobreflix'],
       });
 
       if (scrapeResults.length === 0) {
-        setError("No sources found for this selection.");
+        setError('No sources found for this selection.');
       } else {
         setResults(scrapeResults);
       }
     } catch (err) {
-      setError("Failed to fetch sources.");
+      setError('Failed to fetch sources.');
     } finally {
       setIsLoading(false);
     }
@@ -100,9 +100,7 @@ export function DownloadModal({
   }, [isOpen, season, episode]);
 
   const currentSeasonData = seasons.find((s) => s.seasonNumber === season);
-  const directLinks = results.filter(
-    (r) => r.stream.type === "file" || r.stream.type === "hls",
-  );
+  const directLinks = results.filter((r) => r.stream.type === 'file' || r.stream.type === 'hls');
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
@@ -120,18 +118,18 @@ export function DownloadModal({
 
             <Dialog.Content asChild>
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
-                animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
+                initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
+                animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="fixed left-1/2 top-1/2 z-[100] w-full max-w-xl p-3 sm:p-4 outline-none"
               >
                 <div
                   className={cn(
-                    "relative flex w-full max-h-[95vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all",
+                    'relative flex w-full max-h-[95vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
                     glassEffect
-                      ? "bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl"
-                      : "bg-[#050608]/95",
+                      ? 'bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl'
+                      : 'bg-[#050608]/95',
                   )}
                 >
                   <div className="relative z-10 flex shrink-0 items-center justify-between bg-black/25 px-5 py-4 sm:px-6">
@@ -140,9 +138,7 @@ export function DownloadModal({
                         <Download className="w-5 h-5 text-accent" />
                         Media Downloader
                       </Dialog.Title>
-                      <p className="mt-0.5 text-[11px] text-white/45">
-                        {title}
-                      </p>
+                      <p className="mt-0.5 text-[11px] text-white/45">{title}</p>
                     </div>
                     <button
                       onClick={onClose}
@@ -153,7 +149,7 @@ export function DownloadModal({
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6">
-                    {mediaType === "show" && (
+                    {mediaType === 'show' && (
                       <div className="grid grid-cols-2 gap-4 mb-6">
                         <div>
                           <label className="block text-[11px] font-bold text-white/30 uppercase tracking-widest mb-2">
@@ -168,7 +164,11 @@ export function DownloadModal({
                             className="w-full appearance-none rounded-xl border border-transparent bg-white/5 px-4 py-2 text-sm text-white shadow-inner outline-none transition-all focus:border-accent/45 focus:ring-0"
                           >
                             {seasons.map((s) => (
-                              <option key={s.seasonNumber} value={s.seasonNumber} className="bg-[#0a0a0a]">
+                              <option
+                                key={s.seasonNumber}
+                                value={s.seasonNumber}
+                                className="bg-[#0a0a0a]"
+                              >
                                 Season {s.seasonNumber}
                               </option>
                             ))}
@@ -223,7 +223,7 @@ export function DownloadModal({
                               <div className="space-y-2">
                                 {directLinks.map((res, i) => {
                                   const stream = res.stream;
-                                  if (stream.type === "file") {
+                                  if (stream.type === 'file') {
                                     return Object.entries(stream.qualities).map(
                                       ([quality, file]) => (
                                         <a
@@ -257,7 +257,7 @@ export function DownloadModal({
                                       ),
                                     );
                                   }
-                                  if (stream.type === "hls") {
+                                  if (stream.type === 'hls') {
                                     return (
                                       <a
                                         key={res.sourceId}

@@ -2,24 +2,24 @@
    Settings Page – macOS System Settings
    ============================================ */
 
-"use client";
+'use client';
 
-import { toast } from "@/components/ui/Toaster";
-import { clearCloudEverything, hasCloudBackend } from "@/lib/cloudSync";
-import { normalizeFebboxTokenForStorage } from "@/lib/febbox";
-import { SOURCES } from "@/lib/providers";
-import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from "@/lib/tidb";
-import { cn, getQualityLabel } from "@/lib/utils";
-import { LIMITS } from "@/lib/validation";
-import { useAuthStore } from "@/stores/auth";
-import { usePlayerStore } from "@/stores/player";
+import { toast } from '@/components/ui/Toaster';
+import { clearCloudEverything, hasCloudBackend } from '@/lib/cloudSync';
+import { normalizeFebboxTokenForStorage } from '@/lib/febbox';
+import { SOURCES } from '@/lib/providers';
+import { isPublicTidbKey, PUBLIC_TIDB_API_KEY_PLACEHOLDER } from '@/lib/tidb';
+import { cn, getQualityLabel } from '@/lib/utils';
+import { LIMITS } from '@/lib/validation';
+import { useAuthStore } from '@/stores/auth';
+import { usePlayerStore } from '@/stores/player';
 import {
   PUBLIC_GROQ_API_KEY_PLACEHOLDER,
   PUBLIC_OMDB_API_KEY_PLACEHOLDER,
   useSettingsStore,
-} from "@/stores/settings";
-import { useWatchlistStore } from "@/stores/watchlist";
-import type { AccentColor } from "@/types";
+} from '@/stores/settings';
+import { useWatchlistStore } from '@/stores/watchlist';
+import type { AccentColor } from '@/types';
 import {
   Award,
   Compass,
@@ -31,8 +31,8 @@ import {
   Server,
   Sparkles,
   Zap,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function SettingsPage() {
   const store = useSettingsStore();
@@ -47,24 +47,22 @@ export default function SettingsPage() {
   } = useAuthStore();
   const watchlistItems = useWatchlistStore((state) => state.items);
   const { exportItems, importItems, clearAll } = useWatchlistStore();
-  const [newUsername, setNewUsername] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [newUsername, setNewUsername] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   const normalizedCustomAccentHex = useMemo(() => {
-    const raw = String(settings.customAccentHex || "").trim();
+    const raw = String(settings.customAccentHex || '').trim();
     if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
     if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
-      const chars = raw.slice(1).split("");
-      return `#${chars.map((char) => `${char}${char}`).join("")}`.toLowerCase();
+      const chars = raw.slice(1).split('');
+      return `#${chars.map((char) => `${char}${char}`).join('')}`.toLowerCase();
     }
-    return "#6366f1";
+    return '#6366f1';
   }, [settings.customAccentHex]);
 
-  const isPublicGroqKeyRaw =
-    settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER;
-  const isPublicOmdbKeyRaw =
-    settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER;
+  const isPublicGroqKeyRaw = settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER;
+  const isPublicOmdbKeyRaw = settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER;
   const isPublicTidbKeyRaw = isPublicTidbKey(settings.introDbApiKey);
 
   const isPublicGroqKey = isLoggedIn && isPublicGroqKeyRaw;
@@ -73,51 +71,47 @@ export default function SettingsPage() {
 
   const groqInputValue = isLoggedIn
     ? isPublicGroqKeyRaw
-      ? "PUBLIC_KEY_ACTIVE"
-      : settings.groqApiKey || ""
+      ? 'PUBLIC_KEY_ACTIVE'
+      : settings.groqApiKey || ''
     : isPublicGroqKeyRaw
-      ? ""
-      : settings.groqApiKey || "";
+      ? ''
+      : settings.groqApiKey || '';
   const omdbInputValue = isLoggedIn
     ? isPublicOmdbKeyRaw
-      ? "PUBLIC_KEY_ACTIVE"
-      : settings.omdbApiKey || ""
+      ? 'PUBLIC_KEY_ACTIVE'
+      : settings.omdbApiKey || ''
     : isPublicOmdbKeyRaw
-      ? ""
-      : settings.omdbApiKey || "";
+      ? ''
+      : settings.omdbApiKey || '';
   const tidbInputValue = isLoggedIn
     ? isPublicTidbKeyRaw
-      ? "PUBLIC_KEY_ACTIVE"
-      : settings.introDbApiKey || ""
+      ? 'PUBLIC_KEY_ACTIVE'
+      : settings.introDbApiKey || ''
     : isPublicTidbKeyRaw
-      ? ""
-      : settings.introDbApiKey || "";
+      ? ''
+      : settings.introDbApiKey || '';
 
   const groqPlaceholder =
-    isLoggedIn && isPublicGroqKeyRaw ? "Public key active (hidden)" : "gsk_...";
+    isLoggedIn && isPublicGroqKeyRaw ? 'Public key active (hidden)' : 'gsk_...';
   const omdbPlaceholder =
-    isLoggedIn && isPublicOmdbKeyRaw
-      ? "Public key active (hidden)"
-      : "8 digits, e.g. abcdef12";
+    isLoggedIn && isPublicOmdbKeyRaw ? 'Public key active (hidden)' : '8 digits, e.g. abcdef12';
   const tidbPlaceholder =
-    isLoggedIn && isPublicTidbKeyRaw
-      ? "Public key active (hidden)"
-      : "theintrodb:user_...";
+    isLoggedIn && isPublicTidbKeyRaw ? 'Public key active (hidden)' : 'theintrodb:user_...';
 
   const accentColors: { key: AccentColor; label: string; color: string }[] = [
-    { key: "indigo", label: "indigo", color: "#6366f1" },
-    { key: "violet", label: "violet", color: "#8b5cf6" },
-    { key: "rose", label: "rose", color: "#f43f5e" },
-    { key: "emerald", label: "emerald", color: "#10b981" },
-    { key: "amber", label: "amber", color: "#f59e0b" },
-    { key: "cyan", label: "cyan", color: "#06b6d4" },
-    { key: "sky", label: "sky", color: "#0ea5e9" },
-    { key: "lime", label: "lime", color: "#84cc16" },
-    { key: "orange", label: "orange", color: "#f97316" },
-    { key: "fuchsia", label: "fuchsia", color: "#d946ef" },
-    { key: "teal", label: "teal", color: "#14b8a6" },
-    { key: "red", label: "red", color: "#ef4444" },
-    { key: "custom", label: "custom", color: normalizedCustomAccentHex },
+    { key: 'indigo', label: 'indigo', color: '#6366f1' },
+    { key: 'violet', label: 'violet', color: '#8b5cf6' },
+    { key: 'rose', label: 'rose', color: '#f43f5e' },
+    { key: 'emerald', label: 'emerald', color: '#10b981' },
+    { key: 'amber', label: 'amber', color: '#f59e0b' },
+    { key: 'cyan', label: 'cyan', color: '#06b6d4' },
+    { key: 'sky', label: 'sky', color: '#0ea5e9' },
+    { key: 'lime', label: 'lime', color: '#84cc16' },
+    { key: 'orange', label: 'orange', color: '#f97316' },
+    { key: 'fuchsia', label: 'fuchsia', color: '#d946ef' },
+    { key: 'teal', label: 'teal', color: '#14b8a6' },
+    { key: 'red', label: 'red', color: '#ef4444' },
+    { key: 'custom', label: 'custom', color: normalizedCustomAccentHex },
   ];
 
   const accountCreatedDate = useMemo(() => {
@@ -135,11 +129,9 @@ export default function SettingsPage() {
 
   const profileStats = useMemo(() => {
     const myListItems = watchlistItems.filter(
-      (item) => item.status !== "none" && !item.hidden,
+      (item) => item.status !== 'none' && !item.hidden,
     ).length;
-    const completed = watchlistItems.filter(
-      (item) => item.status === "Completed",
-    ).length;
+    const completed = watchlistItems.filter((item) => item.status === 'Completed').length;
     const watchTimeMinutes = watchlistItems.reduce((acc, item) => {
       return acc + (item.totalWatchedMinutes ?? 0);
     }, 0);
@@ -153,12 +145,11 @@ export default function SettingsPage() {
 
   function formatWatchTime(totalMinutes: number): string {
     const mins = Math.floor(totalMinutes);
-    if (mins < 1) return "< 1m";
+    if (mins < 1) return '< 1m';
     if (mins < 60) return `${mins}m`;
     const hours = Math.floor(mins / 60);
     const remainingMins = mins % 60;
-    if (hours < 24)
-      return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+    if (hours < 24) return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
     const days = Math.floor(hours / 24);
     const remainingHours = hours % 24;
     return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
@@ -166,65 +157,65 @@ export default function SettingsPage() {
 
   const accountCreatedLabel = accountCreatedDate
     ? accountCreatedDate.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
       })
-    : "Unknown";
+    : 'Unknown';
 
   useEffect(() => {
-    const currentAccent = String(settings.accentColor || "");
-    if (currentAccent === "blue") {
-      store.updateSettings({ accentColor: "sky" });
+    const currentAccent = String(settings.accentColor || '');
+    if (currentAccent === 'blue') {
+      store.updateSettings({ accentColor: 'sky' });
     }
-    if (currentAccent === "pink") {
-      store.updateSettings({ accentColor: "rose" });
+    if (currentAccent === 'pink') {
+      store.updateSettings({ accentColor: 'rose' });
     }
   }, [settings.accentColor, store]);
 
   const subtitleLanguageOptions = [
-    { value: "off", label: "Off" },
-    { value: "en", label: "English" },
-    { value: "es", label: "Español" },
-    { value: "fr", label: "Français" },
-    { value: "de", label: "Deutsch" },
-    { value: "it", label: "Italiano" },
-    { value: "pl", label: "Polski" },
-    { value: "pt", label: "Português" },
-    { value: "el", label: "Ελληνικά" },
-    { value: "fa", label: "فارسی" },
-    { value: "he", label: "עברית" },
-    { value: "ru", label: "Русский" },
-    { value: "uk", label: "Українська" },
-    { value: "tr", label: "Türkçe" },
+    { value: 'off', label: 'Off' },
+    { value: 'en', label: 'English' },
+    { value: 'es', label: 'Español' },
+    { value: 'fr', label: 'Français' },
+    { value: 'de', label: 'Deutsch' },
+    { value: 'it', label: 'Italiano' },
+    { value: 'pl', label: 'Polski' },
+    { value: 'pt', label: 'Português' },
+    { value: 'el', label: 'Ελληνικά' },
+    { value: 'fa', label: 'فارسی' },
+    { value: 'he', label: 'עברית' },
+    { value: 'ru', label: 'Русский' },
+    { value: 'uk', label: 'Українська' },
+    { value: 'tr', label: 'Türkçe' },
   ];
 
   const handleExportWatchlist = () => {
     const data = exportItems();
     const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `nexvid-watchlist-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast("Watchlist exported!", "success");
+    toast('Watchlist exported!', 'success');
   };
 
   const handleImportWatchlist = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       try {
         const text = await file.text();
         importItems(JSON.parse(text));
-        toast("Watchlist imported!", "success");
+        toast('Watchlist imported!', 'success');
       } catch {
-        toast("Failed to import watchlist", "error");
+        toast('Failed to import watchlist', 'error');
       }
     };
     input.click();
@@ -232,21 +223,15 @@ export default function SettingsPage() {
 
   const handlePasswordReset = async () => {
     if (!currentPassword || !newPassword) {
-      toast("Fill in both password fields", "error");
+      toast('Fill in both password fields', 'error');
       return;
     }
     if (newPassword.length < LIMITS.PASSWORD_MIN) {
-      toast(
-        `Password must be at least ${LIMITS.PASSWORD_MIN} characters`,
-        "error",
-      );
+      toast(`Password must be at least ${LIMITS.PASSWORD_MIN} characters`, 'error');
       return;
     }
     if (newPassword.length > LIMITS.PASSWORD_MAX) {
-      toast(
-        `Password cannot exceed ${LIMITS.PASSWORD_MAX} characters`,
-        "error",
-      );
+      toast(`Password cannot exceed ${LIMITS.PASSWORD_MAX} characters`, 'error');
       return;
     }
 
@@ -254,113 +239,106 @@ export default function SettingsPage() {
       if (hasCloudBackend()) {
         await changePasswordWithBackend(currentPassword, newPassword);
       }
-      setCurrentPassword("");
-      setNewPassword("");
-      toast("Password updated", "success");
+      setCurrentPassword('');
+      setNewPassword('');
+      toast('Password updated', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to update password", "error");
+      toast(error?.message || 'Failed to update password', 'error');
     }
   };
 
   const handleNicknameChange = async () => {
     const candidate = newUsername.trim();
     const trimmed = candidate.trim();
-    if (
-      trimmed.length < LIMITS.USERNAME_MIN ||
-      trimmed.length > LIMITS.USERNAME_MAX
-    ) {
+    if (trimmed.length < LIMITS.USERNAME_MIN || trimmed.length > LIMITS.USERNAME_MAX) {
       toast(
         `Nickname must be between ${LIMITS.USERNAME_MIN} and ${LIMITS.USERNAME_MAX} characters`,
-        "error",
+        'error',
       );
       return;
     }
     if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) {
-      toast(
-        "Nickname can only contain letters, numbers, dot, underscore, dash",
-        "error",
-      );
+      toast('Nickname can only contain letters, numbers, dot, underscore, dash', 'error');
       return;
     }
     try {
       if (hasCloudBackend()) await updateNicknameWithBackend(candidate);
       else updateProfile?.({ username: candidate });
-      setNewUsername("");
-      toast("Nickname updated", "success");
+      setNewUsername('');
+      toast('Nickname updated', 'success');
     } catch (error: any) {
-      toast(error?.message || "Could not update nickname", "error");
+      toast(error?.message || 'Could not update nickname', 'error');
     }
   };
 
   const handleClearEverything = async () => {
-    if (!confirm("Are you sure? This cannot be undone.")) return;
+    if (!confirm('Are you sure? This cannot be undone.')) return;
     let cloudError: string | null = null;
     try {
       if (hasCloudBackend()) {
         try {
           await clearCloudEverything();
         } catch (error: any) {
-          cloudError = error?.message || "Cloud cleanup failed";
+          cloudError = error?.message || 'Cloud cleanup failed';
         }
       }
       usePlayerStore.getState().reset();
       clearAll();
       store.resetSettings();
       logout();
-      if (typeof window !== "undefined") {
+      if (typeof window !== 'undefined') {
         const keysToRemove: string[] = [];
         for (let index = 0; index < localStorage.length; index += 1) {
           const key = localStorage.key(index);
-          if (key?.startsWith("nexvid-")) keysToRemove.push(key);
+          if (key?.startsWith('nexvid-')) keysToRemove.push(key);
         }
         keysToRemove.forEach((key) => localStorage.removeItem(key));
         const sessionKeysToRemove: string[] = [];
         for (let index = 0; index < sessionStorage.length; index += 1) {
           const key = sessionStorage.key(index);
-          if (key?.startsWith("nexvid-")) sessionKeysToRemove.push(key);
+          if (key?.startsWith('nexvid-')) sessionKeysToRemove.push(key);
         }
         sessionKeysToRemove.forEach((key) => sessionStorage.removeItem(key));
       }
-      if (cloudError) toast(`Local data cleared. ${cloudError}`, "info");
-      else toast("All local and cloud data has been deleted", "info");
-      window.location.href = "/login";
+      if (cloudError) toast(`Local data cleared. ${cloudError}`, 'info');
+      else toast('All local and cloud data has been deleted', 'info');
+      window.location.href = '/login';
     } catch (error: any) {
-      toast(error?.message || "Failed to clear all data", "error");
+      toast(error?.message || 'Failed to clear all data', 'error');
     }
   };
 
   const handleLogoutOthers = async () => {
-    if (!confirm("Are you sure? This will log you out from all other devices."))
-      return;
+    if (!confirm('Are you sure? This will log you out from all other devices.')) return;
     try {
       const { logoutOthersWithBackend } = useAuthStore.getState();
       await logoutOthersWithBackend();
-      toast("Logged out from all other sessions", "success");
+      toast('Logged out from all other sessions', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to logout from other sessions", "error");
+      toast(error?.message || 'Failed to logout from other sessions', 'error');
     }
   };
 
   const getSourceIcon = (sourceId?: string) => {
     switch (sourceId) {
-      case "febbox":
+      case 'febbox':
         return <Crown className="w-3.5 h-3.5" />;
-      case "pobreflix":
+      case 'pobreflix':
         return <Gem className="w-3.5 h-3.5" />;
-      case "gamma":
-      case "zxcstream":
+      case 'gamma':
+      case 'zxcstream':
         return <Zap className="w-3.5 h-3.5" />;
-      case "cinesrc":
+      case 'cinesrc':
         return <Sparkles className="w-3.5 h-3.5" />;
-      case "vidking":
+      case 'vidking':
         return <Award className="w-3.5 h-3.5" />;
-      case "vidfast":
+      case 'vidfast':
         return <Rocket className="w-3.5 h-3.5" />;
-      case "videasy":
+      case 'videasy':
         return <Compass className="w-3.5 h-3.5" />;
-      case "vidsync":
+      case 'vidsync':
         return <Link className="w-3.5 h-3.5" />;
-      case "vidlink":
+      case 'vidlink':
         return <InfinityIcon className="w-3.5 h-3.5" />;
       default:
         return <Server className="w-3.5 h-3.5" />;
@@ -369,11 +347,11 @@ export default function SettingsPage() {
 
   const availableSources = useMemo(() => {
     return SOURCES.filter((s) => {
-      if (s.id === "febbox" && !settings.febboxApiKey) return false;
+      if (s.id === 'febbox' && !settings.febboxApiKey) return false;
       if (
         !settings.enableUnsafeEmbeds &&
-        s.type === "embed" &&
-        !["cinesrc", "vidking", "zxcstream"].includes(s.id)
+        s.type === 'embed' &&
+        !['cinesrc', 'vidking', 'zxcstream'].includes(s.id)
       )
         return false;
       return true;
@@ -385,12 +363,8 @@ export default function SettingsPage() {
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         {/* Page header */}
         <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
-          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">
-            Settings
-          </h1>
-          <p className="mt-1 text-[13px] text-text-muted">
-            Manage your preferences and account
-          </p>
+          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Settings</h1>
+          <p className="mt-1 text-[13px] text-text-muted">Manage your preferences and account</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
@@ -417,12 +391,10 @@ export default function SettingsPage() {
             >
               <div className="flex items-center gap-4 mb-5">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-hover text-lg font-bold text-white shadow-[0_2px_12px_var(--accent-glow)]">
-                  {user?.username?.[0]?.toUpperCase() || "U"}
+                  {user?.username?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <div>
-                  <p className="text-[15px] font-semibold text-text-primary">
-                    {user?.username}
-                  </p>
+                  <p className="text-[15px] font-semibold text-text-primary">{user?.username}</p>
                   <p className="text-[12px] text-text-muted">Logged in</p>
                 </div>
               </div>
@@ -461,10 +433,7 @@ export default function SettingsPage() {
                       minLength={LIMITS.USERNAME_MIN}
                       maxLength={LIMITS.USERNAME_MAX}
                     />
-                    <button
-                      onClick={handleNicknameChange}
-                      className="btn-glass whitespace-nowrap"
-                    >
+                    <button onClick={handleNicknameChange} className="btn-glass whitespace-nowrap">
                       Update
                     </button>
                   </div>
@@ -487,10 +456,7 @@ export default function SettingsPage() {
                       minLength={LIMITS.PASSWORD_MIN}
                       maxLength={LIMITS.PASSWORD_MAX}
                     />
-                    <button
-                      onClick={handlePasswordReset}
-                      className="btn-glass whitespace-nowrap"
-                    >
+                    <button onClick={handlePasswordReset} className="btn-glass whitespace-nowrap">
                       Reset
                     </button>
                   </div>
@@ -502,7 +468,7 @@ export default function SettingsPage() {
           {/* ── Appearance ── */}
           <SettingsCard
             title="Appearance"
-            className={cn("xl:col-span-8", !isLoggedIn && "xl:col-span-12")}
+            className={cn('xl:col-span-8', !isLoggedIn && 'xl:col-span-12')}
             icon={
               <svg
                 width="16"
@@ -525,10 +491,8 @@ export default function SettingsPage() {
                   {accentColors.map((c) => (
                     <button
                       key={c.key}
-                      onClick={() =>
-                        store.updateSettings({ accentColor: c.key })
-                      }
-                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${settings.accentColor === c.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                      onClick={() => store.updateSettings({ accentColor: c.key })}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${settings.accentColor === c.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
                     >
                       <div
                         className="h-3 w-3 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
@@ -557,29 +521,27 @@ export default function SettingsPage() {
                       Enable unsafe embeds
                     </p>
                     <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2 sm:line-clamp-none">
-                      Enables sources that are potentially unsafe. By default,
-                      only safe embeds and direct streams are available.
+                      Enables sources that are potentially unsafe. By default, only safe embeds and
+                      direct streams are available.
                     </p>
                   </div>
                   <div
                     className={cn(
-                      "relative shrink-0 w-11 h-[24px] rounded-full transition-colors duration-200",
-                      settings.enableUnsafeEmbeds ? "bg-accent" : "bg-white/10",
+                      'relative shrink-0 w-11 h-[24px] rounded-full transition-colors duration-200',
+                      settings.enableUnsafeEmbeds ? 'bg-accent' : 'bg-white/10',
                     )}
                   >
                     <div
                       className={cn(
-                        "absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200",
-                        settings.enableUnsafeEmbeds
-                          ? "translate-x-[22px]"
-                          : "translate-x-[2px]",
+                        'absolute top-[2px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200',
+                        settings.enableUnsafeEmbeds ? 'translate-x-[22px]' : 'translate-x-[2px]',
                       )}
                     />
                   </div>
                 </button>
               </SettingsRow>
 
-              {settings.accentColor === "custom" && (
+              {settings.accentColor === 'custom' && (
                 <SettingsRow label="Custom Accent Color">
                   <div className="flex items-center gap-2">
                     <input
@@ -588,7 +550,7 @@ export default function SettingsPage() {
                       onChange={(e) =>
                         store.updateSettings({
                           customAccentHex: e.target.value,
-                          accentColor: "custom",
+                          accentColor: 'custom',
                         })
                       }
                       className="h-10 w-12 cursor-pointer rounded-[10px] border border-white/10 bg-transparent p-1"
@@ -596,11 +558,11 @@ export default function SettingsPage() {
                     />
                     <input
                       type="text"
-                      value={settings.customAccentHex || ""}
+                      value={settings.customAccentHex || ''}
                       onChange={(e) =>
                         store.updateSettings({
                           customAccentHex: e.target.value,
-                          accentColor: "custom",
+                          accentColor: 'custom',
                         })
                       }
                       placeholder="#6366f1"
@@ -615,10 +577,8 @@ export default function SettingsPage() {
 
               <SettingsRow label="Subtitle Language">
                 <select
-                  value={settings.subtitleLanguage || "en"}
-                  onChange={(e) =>
-                    store.updateSettings({ subtitleLanguage: e.target.value })
-                  }
+                  value={settings.subtitleLanguage || 'en'}
+                  onChange={(e) => store.updateSettings({ subtitleLanguage: e.target.value })}
                   className="input w-full"
                 >
                   {subtitleLanguageOptions.map((option) => (
@@ -628,8 +588,7 @@ export default function SettingsPage() {
                   ))}
                 </select>
                 <p className="mt-1.5 text-[11px] text-text-muted">
-                  Default subtitle selection in player. Can be changed per
-                  video.
+                  Default subtitle selection in player. Can be changed per video.
                 </p>
               </SettingsRow>
 
@@ -643,25 +602,22 @@ export default function SettingsPage() {
                   }
                   className="input w-full"
                 >
-                  <option value="4k">{getQualityLabel("4k")}</option>
-                  <option value="2k">{getQualityLabel("2k")}</option>
-                  <option value="1080">{getQualityLabel("1080")}</option>
-                  <option value="720">{getQualityLabel("720")}</option>
-                  <option value="480">{getQualityLabel("480")}</option>
-                  <option value="360">{getQualityLabel("360")}</option>
+                  <option value="4k">{getQualityLabel('4k')}</option>
+                  <option value="2k">{getQualityLabel('2k')}</option>
+                  <option value="1080">{getQualityLabel('1080')}</option>
+                  <option value="720">{getQualityLabel('720')}</option>
+                  <option value="480">{getQualityLabel('480')}</option>
+                  <option value="360">{getQualityLabel('360')}</option>
                 </select>
                 <p className="mt-1.5 text-[11px] text-text-muted">
-                  Default video quality preference when multiple streams are
-                  available.
+                  Default video quality preference when multiple streams are available.
                 </p>
               </SettingsRow>
 
               <SettingsRow label="Default Source">
                 <select
                   value={settings.defaultSource}
-                  onChange={(e) =>
-                    store.updateSettings({ defaultSource: e.target.value })
-                  }
+                  onChange={(e) => store.updateSettings({ defaultSource: e.target.value })}
                   className="input w-full"
                 >
                   {availableSources.map((source) => (
@@ -671,8 +627,8 @@ export default function SettingsPage() {
                   ))}
                 </select>
                 <p className="mt-1.5 text-[11px] text-text-muted">
-                  Pick the source that launches first. Dynamic filters applied
-                  based on your security settings and FebBox key.
+                  Pick the source that launches first. Dynamic filters applied based on your
+                  security settings and FebBox key.
                 </p>
               </SettingsRow>
             </div>
@@ -703,7 +659,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <SettingsRow label="Groq AI API Key">
                 <p className="text-[11px] text-text-muted mb-1.5">
-                  Powers the AI Assistant. Get your own at{" "}
+                  Powers the AI Assistant. Get your own at{' '}
                   <a
                     href="https://console.groq.com/keys"
                     target="_blank"
@@ -720,9 +676,7 @@ export default function SettingsPage() {
                     const val = e.target.value;
                     store.updateSettings({
                       groqApiKey:
-                        val === "PUBLIC_KEY_ACTIVE"
-                          ? PUBLIC_GROQ_API_KEY_PLACEHOLDER
-                          : val,
+                        val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_GROQ_API_KEY_PLACEHOLDER : val,
                     });
                   }}
                   placeholder={groqPlaceholder}
@@ -733,39 +687,36 @@ export default function SettingsPage() {
                   <p className="text-[11px] text-text-muted leading-relaxed">
                     Public Groq key is available only for signed-in users.
                   </p>
-                  {isLoggedIn &&
-                    settings.groqApiKey !== PUBLIC_GROQ_API_KEY_PLACEHOLDER && (
-                      <button
-                        onClick={() => {
-                          store.updateSettings({
-                            groqApiKey: PUBLIC_GROQ_API_KEY_PLACEHOLDER,
-                          });
-                          toast("Public Groq key enabled", "info");
-                        }}
-                        className="btn-glass mt-2 w-full text-[12px]"
-                      >
-                        Use public Groq key
-                      </button>
-                    )}
-                  {isLoggedIn &&
-                    settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER && (
-                      <button
-                        onClick={() => {
-                          store.updateSettings({ groqApiKey: "" });
-                          toast("Public key cleared", "info");
-                        }}
-                        className="btn-glass mt-2 w-full text-[12px]"
-                      >
-                        Clear public key
-                      </button>
-                    )}
+                  {isLoggedIn && settings.groqApiKey !== PUBLIC_GROQ_API_KEY_PLACEHOLDER && (
+                    <button
+                      onClick={() => {
+                        store.updateSettings({
+                          groqApiKey: PUBLIC_GROQ_API_KEY_PLACEHOLDER,
+                        });
+                        toast('Public Groq key enabled', 'info');
+                      }}
+                      className="btn-glass mt-2 w-full text-[12px]"
+                    >
+                      Use public Groq key
+                    </button>
+                  )}
+                  {isLoggedIn && settings.groqApiKey === PUBLIC_GROQ_API_KEY_PLACEHOLDER && (
+                    <button
+                      onClick={() => {
+                        store.updateSettings({ groqApiKey: '' });
+                        toast('Public key cleared', 'info');
+                      }}
+                      className="btn-glass mt-2 w-full text-[12px]"
+                    >
+                      Clear public key
+                    </button>
+                  )}
                 </div>
               </SettingsRow>
 
               <SettingsRow label="OMDb API Key">
                 <p className="text-[11px] text-text-muted mb-1.5">
-                  Used for external ratings (IMDb, Rotten Tomatoes, Metacritic).
-                  Get your own at{" "}
+                  Used for external ratings (IMDb, Rotten Tomatoes, Metacritic). Get your own at{' '}
                   <a
                     href="https://www.omdbapi.com/apikey.aspx"
                     target="_blank"
@@ -782,9 +733,7 @@ export default function SettingsPage() {
                     const val = e.target.value;
                     store.updateSettings({
                       omdbApiKey:
-                        val === "PUBLIC_KEY_ACTIVE"
-                          ? PUBLIC_OMDB_API_KEY_PLACEHOLDER
-                          : val,
+                        val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_OMDB_API_KEY_PLACEHOLDER : val,
                     });
                   }}
                   placeholder={omdbPlaceholder}
@@ -795,38 +744,36 @@ export default function SettingsPage() {
                   <p className="text-[11px] text-text-muted leading-relaxed">
                     Public OMDb key is available only for signed-in users.
                   </p>
-                  {isLoggedIn &&
-                    settings.omdbApiKey !== PUBLIC_OMDB_API_KEY_PLACEHOLDER && (
-                      <button
-                        onClick={() => {
-                          store.updateSettings({
-                            omdbApiKey: PUBLIC_OMDB_API_KEY_PLACEHOLDER,
-                          });
-                          toast("Public OMDb key enabled", "info");
-                        }}
-                        className="btn-glass mt-2 w-full text-[12px]"
-                      >
-                        Use public OMDb key
-                      </button>
-                    )}
-                  {isLoggedIn &&
-                    settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER && (
-                      <button
-                        onClick={() => {
-                          store.updateSettings({ omdbApiKey: "" });
-                          toast("Public key cleared", "info");
-                        }}
-                        className="btn-glass mt-2 w-full text-[12px]"
-                      >
-                        Clear public key
-                      </button>
-                    )}
+                  {isLoggedIn && settings.omdbApiKey !== PUBLIC_OMDB_API_KEY_PLACEHOLDER && (
+                    <button
+                      onClick={() => {
+                        store.updateSettings({
+                          omdbApiKey: PUBLIC_OMDB_API_KEY_PLACEHOLDER,
+                        });
+                        toast('Public OMDb key enabled', 'info');
+                      }}
+                      className="btn-glass mt-2 w-full text-[12px]"
+                    >
+                      Use public OMDb key
+                    </button>
+                  )}
+                  {isLoggedIn && settings.omdbApiKey === PUBLIC_OMDB_API_KEY_PLACEHOLDER && (
+                    <button
+                      onClick={() => {
+                        store.updateSettings({ omdbApiKey: '' });
+                        toast('Public key cleared', 'info');
+                      }}
+                      className="btn-glass mt-2 w-full text-[12px]"
+                    >
+                      Clear public key
+                    </button>
+                  )}
                 </div>
               </SettingsRow>
 
               <SettingsRow label="TheIntroDB">
                 <p className="text-[11px] text-text-muted mb-1.5">
-                  Required to submit timestamps. Get your own at{" "}
+                  Required to submit timestamps. Get your own at{' '}
                   <a
                     href="https://theintrodb.org"
                     target="_blank"
@@ -843,9 +790,7 @@ export default function SettingsPage() {
                     const val = e.target.value;
                     store.updateSettings({
                       introDbApiKey:
-                        val === "PUBLIC_KEY_ACTIVE"
-                          ? PUBLIC_TIDB_API_KEY_PLACEHOLDER
-                          : val,
+                        val === 'PUBLIC_KEY_ACTIVE' ? PUBLIC_TIDB_API_KEY_PLACEHOLDER : val,
                     });
                   }}
                   placeholder={tidbPlaceholder}
@@ -862,7 +807,7 @@ export default function SettingsPage() {
                         store.updateSettings({
                           introDbApiKey: PUBLIC_TIDB_API_KEY_PLACEHOLDER,
                         });
-                        toast("Public TheIntroDB key enabled", "info");
+                        toast('Public TheIntroDB key enabled', 'info');
                       }}
                       className="btn-glass mt-2 w-full text-[12px]"
                     >
@@ -872,8 +817,8 @@ export default function SettingsPage() {
                   {isLoggedIn && isPublicTidbKeyActive && (
                     <button
                       onClick={() => {
-                        store.updateSettings({ introDbApiKey: "" });
-                        toast("Public key cleared", "info");
+                        store.updateSettings({ introDbApiKey: '' });
+                        toast('Public key cleared', 'info');
                       }}
                       className="btn-glass mt-2 w-full text-[12px]"
                     >
@@ -885,17 +830,15 @@ export default function SettingsPage() {
 
               <SettingsRow label="FebBox UI Token">
                 <p className="text-[11px] text-text-muted mb-1.5">
-                  Set up your own FebBox UI token by pasting the full cookie
-                  string or just the ui token.
+                  Set up your own FebBox UI token by pasting the full cookie string or just the ui
+                  token.
                 </p>
                 <input
                   type="password"
-                  value={settings.febboxApiKey || ""}
+                  value={settings.febboxApiKey || ''}
                   onChange={(e) =>
                     store.updateSettings({
-                      febboxApiKey: normalizeFebboxTokenForStorage(
-                        e.target.value,
-                      ),
+                      febboxApiKey: normalizeFebboxTokenForStorage(e.target.value),
                     })
                   }
                   placeholder="ui=..."
@@ -908,7 +851,7 @@ export default function SettingsPage() {
                   </p>
                   <ol className="list-decimal pl-4 space-y-1 text-[11px] text-text-muted leading-relaxed">
                     <li>
-                      Log in to{" "}
+                      Log in to{' '}
                       <a
                         href="https://www.febbox.com"
                         target="_blank"
@@ -918,16 +861,10 @@ export default function SettingsPage() {
                         febbox.com
                       </a>
                     </li>
+                    <li>Open DevTools (F12) → Application/Storage → Cookies → www.febbox.com</li>
                     <li>
-                      Open DevTools (F12) → Application/Storage → Cookies →
-                      www.febbox.com
-                    </li>
-                    <li>
-                      Copy the{" "}
-                      <span className="text-text-secondary font-medium">
-                        ui
-                      </span>{" "}
-                      cookie value
+                      Copy the <span className="text-text-secondary font-medium">ui</span> cookie
+                      value
                     </li>
                   </ol>
                 </div>
@@ -997,7 +934,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => {
                     store.resetSettings();
-                    toast("Settings reset to defaults", "success");
+                    toast('Settings reset to defaults', 'success');
                   }}
                   className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5"
                 >
@@ -1080,17 +1017,15 @@ export default function SettingsPage() {
                   How can i get my own tokens? Are they paid?
                 </p>
                 <p className="mt-1 text-text-muted">
-                  You can get your own tokens by following the instructions in
-                  the settings menu. They are all free to use.
+                  You can get your own tokens by following the instructions in the settings menu.
+                  They are all free to use.
                 </p>
               </div>
               <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-                <p className="text-text-primary font-medium">
-                  Is my data synced?
-                </p>
+                <p className="text-text-primary font-medium">Is my data synced?</p>
                 <p className="mt-1 text-text-muted">
-                  If you are logged in, your settings, watchlist, and progress
-                  are securely synced to your account across all your devices.
+                  If you are logged in, your settings, watchlist, and progress are securely synced
+                  to your account across all your devices.
                 </p>
               </div>
               <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
@@ -1098,8 +1033,8 @@ export default function SettingsPage() {
                   Why is there no author in the credits?
                 </p>
                 <p className="mt-1 text-text-muted">
-                  The author information is not included in the credits for
-                  privacy and legal reasons.
+                  The author information is not included in the credits for privacy and legal
+                  reasons.
                 </p>
               </div>
             </div>
@@ -1126,28 +1061,20 @@ function SettingsCard({
   return (
     <div
       className={cn(
-        "glass-card glass-liquid rounded-[24px] border border-white/10 p-4 sm:p-5 shadow-[0_12px_34px_rgba(0,0,0,0.35)]",
+        'glass-card glass-liquid rounded-[24px] border border-white/10 p-4 sm:p-5 shadow-[0_12px_34px_rgba(0,0,0,0.35)]',
         className,
       )}
     >
       <div className="mb-4 flex items-center gap-2.5">
         {icon && <span className="text-accent/90">{icon}</span>}
-        <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">
-          {title}
-        </h3>
+        <h3 className="text-[15px] font-semibold tracking-tight text-text-primary">{title}</h3>
       </div>
       {children}
     </div>
   );
 }
 
-function SettingsRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function SettingsRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
@@ -1158,23 +1085,13 @@ function SettingsRow({
   );
 }
 
-function ProfileStatTile({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-}) {
+function ProfileStatTile({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="rounded-[12px] border border-white/10 bg-white/[0.03] px-3 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-text-secondary">
         {label}
       </p>
-      <p className="mt-1 text-[18px] font-bold leading-none text-text-primary">
-        {value}
-      </p>
+      <p className="mt-1 text-[18px] font-bold leading-none text-text-primary">{value}</p>
       <p className="mt-1 text-[11px] text-text-muted">{sub}</p>
     </div>
   );

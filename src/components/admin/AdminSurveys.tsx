@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { toast } from "@/components/ui/Toaster";
-import { cloudFetch } from "@/lib/cloudSync";
-import { cn } from "@/lib/utils";
-import { Circle, ListChecks, Star, Type } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { toast } from '@/components/ui/Toaster';
+import { cloudFetch } from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
+import { Circle, ListChecks, Star, Type } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
-type QuestionType = "rating" | "single" | "multiple" | "text";
+type QuestionType = 'rating' | 'single' | 'multiple' | 'text';
 
 interface SurveyQuestion {
   id: string;
@@ -38,8 +38,8 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [newTitle, setNewTitle] = useState("");
-  const [newDesc, setNewDesc] = useState("");
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
   const [newQuestions, setNewQuestions] = useState<SurveyQuestion[]>([]);
 
   const [viewingResults, setViewingResults] = useState<string | null>(null);
@@ -48,17 +48,14 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
 
   const loadSurveys = async () => {
     try {
-      const res = await cloudFetch<{ surveys: any[] }>("/admin/surveys");
+      const res = await cloudFetch<{ surveys: any[] }>('/admin/surveys');
       const mapped = res.surveys.map((s) => ({
         ...s,
-        questions:
-          typeof s.questions === "string"
-            ? JSON.parse(s.questions)
-            : s.questions,
+        questions: typeof s.questions === 'string' ? JSON.parse(s.questions) : s.questions,
       }));
       setSurveys(mapped);
     } catch (err: any) {
-      toast(err.message, "error");
+      toast(err.message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -85,8 +82,8 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
     const q: SurveyQuestion = {
       id: Math.random().toString(36).substring(7),
       type,
-      text: "",
-      options: type === "single" || type === "multiple" ? [""] : undefined,
+      text: '',
+      options: type === 'single' || type === 'multiple' ? [''] : undefined,
     };
     setNewQuestions([...newQuestions, q]);
   };
@@ -95,19 +92,19 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
     | { ok: true; questions: SurveyQuestion[] }
     | { ok: false; error: string } => {
     if (!newTitle.trim()) {
-      return { ok: false, error: "Title is required" };
+      return { ok: false, error: 'Title is required' };
     }
 
     if (newTitle.trim().length > 120) {
-      return { ok: false, error: "Title is too long" };
+      return { ok: false, error: 'Title is too long' };
     }
 
     if (newQuestions.length === 0) {
-      return { ok: false, error: "Add at least one question" };
+      return { ok: false, error: 'Add at least one question' };
     }
 
     if (newQuestions.length > 12) {
-      return { ok: false, error: "Too many questions (max 12)" };
+      return { ok: false, error: 'Too many questions (max 12)' };
     }
 
     const seenIds = new Set<string>();
@@ -118,30 +115,28 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
       const text = question.text.trim();
 
       if (!id || seenIds.has(id)) {
-        return { ok: false, error: "Question ids must be unique" };
+        return { ok: false, error: 'Question ids must be unique' };
       }
       if (!text) {
-        return { ok: false, error: "Every question needs text" };
+        return { ok: false, error: 'Every question needs text' };
       }
 
       seenIds.add(id);
 
       const nextQuestion: SurveyQuestion = { ...question, id, text };
 
-      if (question.type === "single" || question.type === "multiple") {
-        const options = (question.options || [])
-          .map((opt) => opt.trim())
-          .filter(Boolean);
+      if (question.type === 'single' || question.type === 'multiple') {
+        const options = (question.options || []).map((opt) => opt.trim()).filter(Boolean);
         const uniqueOptions = new Set(options.map((opt) => opt.toLowerCase()));
 
         if (options.length < 2) {
           return {
             ok: false,
-            error: "Choice questions need at least two options",
+            error: 'Choice questions need at least two options',
           };
         }
         if (uniqueOptions.size !== options.length) {
-          return { ok: false, error: "Choice options must be unique" };
+          return { ok: false, error: 'Choice options must be unique' };
         }
 
         nextQuestion.options = options;
@@ -158,26 +153,26 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
   const handleCreate = async () => {
     const prepared = prepareQuestions();
     if (!prepared.ok) {
-      toast(prepared.error, "error");
+      toast(prepared.error, 'error');
       return;
     }
     setIsSubmitting(true);
     try {
-      await cloudFetch("/admin/surveys", {
-        method: "POST",
+      await cloudFetch('/admin/surveys', {
+        method: 'POST',
         body: JSON.stringify({
           title: newTitle.trim(),
           description: newDesc,
           questions: prepared.questions,
         }),
       });
-      toast("Survey created", "success");
-      setNewTitle("");
-      setNewDesc("");
+      toast('Survey created', 'success');
+      setNewTitle('');
+      setNewDesc('');
       setNewQuestions([]);
       loadSurveys();
     } catch (err: any) {
-      toast(err.message, "error");
+      toast(err.message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -185,36 +180,33 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
 
   const toggleSurvey = async (id: string, currentActive: boolean) => {
     try {
-      await cloudFetch("/admin/surveys", {
-        method: "PATCH",
+      await cloudFetch('/admin/surveys', {
+        method: 'PATCH',
         body: JSON.stringify({ id, isActive: !currentActive }),
       });
       loadSurveys();
-      toast(
-        !currentActive ? "Survey activated" : "Survey deactivated",
-        "success",
-      );
+      toast(!currentActive ? 'Survey activated' : 'Survey deactivated', 'success');
     } catch (err: any) {
-      toast(err.message, "error");
+      toast(err.message, 'error');
     }
   };
 
   const deleteSurvey = async (id: string) => {
-    if (!confirm("Delete this survey and all its responses?")) return;
+    if (!confirm('Delete this survey and all its responses?')) return;
     try {
-      await cloudFetch(`/admin/surveys?id=${id}`, { method: "DELETE" });
+      await cloudFetch(`/admin/surveys?id=${id}`, { method: 'DELETE' });
       loadSurveys();
       if (viewingResults === id) setViewingResults(null);
-      toast("Survey deleted", "success");
+      toast('Survey deleted', 'success');
     } catch (err: any) {
-      toast(err.message, "error");
+      toast(err.message, 'error');
     }
   };
 
   const setSurveyArchived = async (id: string, archive: boolean) => {
     try {
-      await cloudFetch("/admin/surveys", {
-        method: "PATCH",
+      await cloudFetch('/admin/surveys', {
+        method: 'PATCH',
         body: JSON.stringify({ id, isArchived: archive }),
       });
 
@@ -223,9 +215,9 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
       }
 
       await loadSurveys();
-      toast(archive ? "Survey archived" : "Survey restored", "success");
+      toast(archive ? 'Survey archived' : 'Survey restored', 'success');
     } catch (err: any) {
-      toast(err.message, "error");
+      toast(err.message, 'error');
     }
   };
 
@@ -242,7 +234,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
       );
       setResponses(res.responses);
     } catch (err: any) {
-      toast(err.message, "error");
+      toast(err.message, 'error');
     }
   };
 
@@ -261,11 +253,11 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
         Object.entries(answers).forEach(([qId, val]: [string, any]) => {
           if (!stats[qId]) return;
           const qStat = stats[qId];
-          if (qStat.type === "multiple" && Array.isArray(val)) {
+          if (qStat.type === 'multiple' && Array.isArray(val)) {
             val.forEach((v) => {
               qStat.data[v] = (qStat.data[v] || 0) + 1;
             });
-          } else if (qStat.type === "text") {
+          } else if (qStat.type === 'text') {
             if (!qStat.data.list) qStat.data.list = [];
             qStat.data.list.push(val);
           } else {
@@ -278,9 +270,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
   };
 
   if (isLoading && surveys.length === 0)
-    return (
-      <div className="p-8 text-center text-white/50">Loading surveys...</div>
-    );
+    return <div className="p-8 text-center text-white/50">Loading surveys...</div>;
 
   return (
     <div className="space-y-6">
@@ -288,17 +278,15 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
         {/* Survey List */}
         <div className="space-y-4 min-w-0">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[15px] font-semibold text-text-primary">
-              Manage Surveys
-            </h2>
+            <h2 className="text-[15px] font-semibold text-text-primary">Manage Surveys</h2>
             <button
               onClick={() => setShowArchived((prev) => !prev)}
               className={cn(
-                "btn-glass text-[10px] px-3 py-1.5 tracking-wider",
-                showArchived && "bg-accent/15 text-accent",
+                'btn-glass text-[10px] px-3 py-1.5 tracking-wider',
+                showArchived && 'bg-accent/15 text-accent',
               )}
             >
-              {showArchived ? "Show Active" : "Show Archived"}
+              {showArchived ? 'Show Active' : 'Show Archived'}
             </button>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-6 scroll-row -mx-1 px-1 items-start">
@@ -306,19 +294,17 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
               <div
                 key={s.id}
                 className={cn(
-                  "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 w-[260px] shrink-0 transition-all duration-300",
+                  'rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 w-[260px] shrink-0 transition-all duration-300',
                   s.is_active
-                    ? "!border-accent-glow shadow-lg"
+                    ? '!border-accent-glow shadow-lg'
                     : s.is_archived
-                      ? "border-yellow-500/20 shadow-lg"
-                      : "border-white/5 shadow-lg",
+                      ? 'border-yellow-500/20 shadow-lg'
+                      : 'border-white/5 shadow-lg',
                 )}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <h3 className="font-bold text-white text-[14px] truncate">
-                      {s.title}
-                    </h3>
+                    <h3 className="font-bold text-white text-[14px] truncate">{s.title}</h3>
                     <div className="flex items-center gap-1.5">
                       {s.is_active === 1 && (
                         <span className="text-[8px] bg-accent-muted text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent-glow">
@@ -333,7 +319,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                     </div>
                   </div>
                   <p className="text-[11px] text-white/40 line-clamp-1">
-                    {s.description || "No description"}
+                    {s.description || 'No description'}
                   </p>
                   <p className="text-[9px] text-white/20 mt-2 font-medium">
                     {new Date(s.created_at).toLocaleDateString()}
@@ -344,18 +330,18 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                     disabled={s.is_archived === 1}
                     onClick={() => toggleSurvey(s.id, s.is_active === 1)}
                     className={cn(
-                      "btn-glass text-[11px] py-2.5 px-3 font-semibold",
-                      s.is_active === 1 ? "bg-white/10" : "bg-white/5",
-                      s.is_archived === 1 && "opacity-40 cursor-not-allowed",
+                      'btn-glass text-[11px] py-2.5 px-3 font-semibold',
+                      s.is_active === 1 ? 'bg-white/10' : 'bg-white/5',
+                      s.is_archived === 1 && 'opacity-40 cursor-not-allowed',
                     )}
                   >
-                    {s.is_active === 1 ? "Stop" : "Start"}
+                    {s.is_active === 1 ? 'Stop' : 'Start'}
                   </button>
                   <button
                     onClick={() => selectResults(s.id)}
                     className={cn(
-                      "btn-glass text-[11px] py-2.5 px-3 font-semibold",
-                      viewingResults === s.id && "bg-accent/20 text-accent",
+                      'btn-glass text-[11px] py-2.5 px-3 font-semibold',
+                      viewingResults === s.id && 'bg-accent/20 text-accent',
                     )}
                   >
                     Stats
@@ -363,17 +349,15 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                   <button
                     onClick={() => setSurveyArchived(s.id, s.is_archived !== 1)}
                     className={cn(
-                      "btn-glass text-[11px] py-2.5 px-3 font-semibold",
-                      canDelete ? "col-span-1" : "col-span-2",
+                      'btn-glass text-[11px] py-2.5 px-3 font-semibold',
+                      canDelete ? 'col-span-1' : 'col-span-2',
                       s.is_archived === 1
-                        ? "text-emerald-300/90 bg-emerald-500/10"
-                        : "text-yellow-300/90 bg-yellow-500/10",
+                        ? 'text-emerald-300/90 bg-emerald-500/10'
+                        : 'text-yellow-300/90 bg-yellow-500/10',
                     )}
-                    title={
-                      s.is_archived === 1 ? "Restore survey" : "Archive survey"
-                    }
+                    title={s.is_archived === 1 ? 'Restore survey' : 'Archive survey'}
                   >
-                    {s.is_archived === 1 ? "Restore" : "Archive"}
+                    {s.is_archived === 1 ? 'Restore' : 'Archive'}
                   </button>
                   {canDelete && (
                     <button
@@ -388,7 +372,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
             ))}
             {visibleSurveys.length === 0 && (
               <div className="w-full p-12 text-center text-white/10 border border-dashed border-white/5 rounded-2xl">
-                {showArchived ? "No archived surveys" : "No active surveys"}
+                {showArchived ? 'No archived surveys' : 'No active surveys'}
               </div>
             )}
           </div>
@@ -399,12 +383,9 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-[14px] font-bold text-white">
-                    Results:{" "}
-                    {surveys.find((s) => s.id === viewingResults)?.title}
+                    Results: {surveys.find((s) => s.id === viewingResults)?.title}
                   </h3>
-                  <p className="text-[10px] text-white/40">
-                    {responses.length} responses
-                  </p>
+                  <p className="text-[10px] text-white/40">{responses.length} responses</p>
                 </div>
                 <button
                   onClick={() => setViewingResults(null)}
@@ -436,7 +417,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                       >
                         {stat.text}
                       </p>
-                      {stat.type === "text" ? (
+                      {stat.type === 'text' ? (
                         <div className="space-y-2 max-h-64 overflow-auto pr-2 custom-scrollbar">
                           {stat.data.list?.map((t: string, i: number) => (
                             <div
@@ -457,15 +438,11 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                           {Object.entries(stat.data)
                             .sort((a: any, b: any) => b[1] - a[1])
                             .map(([label, count]: [string, any]) => {
-                              const percent =
-                                Math.round((count / responses.length) * 100) ||
-                                0;
+                              const percent = Math.round((count / responses.length) * 100) || 0;
                               return (
                                 <div key={label} className="space-y-2">
                                   <div className="flex justify-between text-[11px] uppercase font-black tracking-widest mb-1">
-                                    <span className="text-white/40 flex-1 mr-8">
-                                      {label}
-                                    </span>
+                                    <span className="text-white/40 flex-1 mr-8">{label}</span>
                                     <span className="text-accent shrink-0">
                                       {count} ({percent}%)
                                     </span>
@@ -496,9 +473,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
 
         {/* Create Survey */}
         <div className="glass-card p-5 space-y-4 h-fit sticky top-24 border-white/10 shadow-xl">
-          <h2 className="text-[15px] font-bold text-white flex items-center gap-2">
-            New Survey
-          </h2>
+          <h2 className="text-[15px] font-bold text-white flex items-center gap-2">New Survey</h2>
           <div className="space-y-3">
             <input
               className="input w-full bg-white/5 border-white/5"
@@ -529,11 +504,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                       {q.type} #{idx + 1}
                     </span>
                     <button
-                      onClick={() =>
-                        setNewQuestions(
-                          newQuestions.filter((_, i) => i !== idx),
-                        )
-                      }
+                      onClick={() => setNewQuestions(newQuestions.filter((_, i) => i !== idx))}
                       className="text-white/20 hover:text-red-400"
                     >
                       <svg
@@ -558,7 +529,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                       setNewQuestions(qs);
                     }}
                   />
-                  {(q.type === "single" || q.type === "multiple") && (
+                  {(q.type === 'single' || q.type === 'multiple') && (
                     <div className="space-y-1.5 pl-2 border-l border-white/10 mt-1">
                       {q.options?.map((opt, oIdx) => (
                         <div key={oIdx} className="flex gap-2">
@@ -575,9 +546,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                           <button
                             onClick={() => {
                               const qs = [...newQuestions];
-                              qs[idx].options = qs[idx].options!.filter(
-                                (_, i) => i !== oIdx,
-                              );
+                              qs[idx].options = qs[idx].options!.filter((_, i) => i !== oIdx);
                               setNewQuestions(qs);
                             }}
                             className="text-white/20 hover:text-white/50"
@@ -589,7 +558,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                       <button
                         onClick={() => {
                           const qs = [...newQuestions];
-                          qs[idx].options!.push("");
+                          qs[idx].options!.push('');
                           setNewQuestions(qs);
                         }}
                         className="text-[10px] text-accent/60 font-black uppercase"
@@ -604,28 +573,28 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
 
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => addQuestion("rating")}
+                onClick={() => addQuestion('rating')}
                 className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
               >
                 <Star size={12} />
                 Rating
               </button>
               <button
-                onClick={() => addQuestion("single")}
+                onClick={() => addQuestion('single')}
                 className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
               >
                 <Circle size={12} />
                 Single
               </button>
               <button
-                onClick={() => addQuestion("multiple")}
+                onClick={() => addQuestion('multiple')}
                 className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
               >
                 <ListChecks size={12} />
                 Multiple
               </button>
               <button
-                onClick={() => addQuestion("text")}
+                onClick={() => addQuestion('text')}
                 className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
               >
                 <Type size={12} />
@@ -635,13 +604,11 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
           </div>
 
           <button
-            disabled={
-              isSubmitting || !newTitle.trim() || newQuestions.length === 0
-            }
+            disabled={isSubmitting || !newTitle.trim() || newQuestions.length === 0}
             onClick={handleCreate}
             className="btn-accent w-full py-3 mt-2 font-bold tracking-widest text-[11px]"
           >
-            {isSubmitting ? "Creating..." : "Launch Survey"}
+            {isSubmitting ? 'Creating...' : 'Launch Survey'}
           </button>
         </div>
       </div>

@@ -1,0 +1,41 @@
+#!/bin/sh
+# Husky pre-commit hook — prefers bunx as runner, falls back to npx/yarn.
+# Places:
+#   .husky/_/husky.sh should exist and be sourceable by this script.
+#
+# Ensure executable permission if needed:
+#   chmod +x .husky/pre-commit
+
+. "$(dirname "$0")/_/husky.sh"
+
+echo "⏳ Running lint-staged (pre-commit)..."
+
+# Prefer bunx (bundled runner). Fall back to npx (no install) or yarn.
+if command -v bun >/dev/null 2>&1 && command -v bunx >/dev/null 2>&1; then
+  RUNNER="bunx"
+  RUNNER_NOTE="using bunx"
+elif command -v npx >/dev/null 2>&1; then
+  RUNNER="npx --no-install"
+  RUNNER_NOTE="using npx --no-install"
+elif command -v yarn >/dev/null 2>&1; then
+  # yarn will run the local binary when invoked as 'yarn lint-staged'
+  RUNNER="yarn"
+  RUNNER_NOTE="using yarn"
+else
+  echo "❌ No supported runner found. Install bun (bunx) or npx/yarn to enable pre-commit hooks."
+  exit 1
+fi
+
+echo "🔎 Runner detected: $RUNNER_NOTE"
+
+# Run lint-staged via chosen runner. Use exit code to allow git to abort the commit on failure.
+if $RUNNER lint-staged; then
+  echo "✅ lint-staged passed."
+  exit 0
+else
+  echo "❌ lint-staged failed — commit aborted."
+  echo ""
+  echo "If you want to bypass the hook for this commit, run:"
+  echo "  git commit --no-verify"
+  exit 1
+fi

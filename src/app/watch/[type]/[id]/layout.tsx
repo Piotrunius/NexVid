@@ -24,7 +24,10 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
     const releaseSuffix = media.releaseYear ? ` (${media.releaseYear})` : '';
     const baseTitle = `${media.title}${releaseSuffix}`;
     const title = `Watch - ${baseTitle} for free on NexVid`;
-    const description = (media.overview || `Watch ${media.title} online for free on NexVid.`).slice(0, 160);
+    const description = (media.overview || `Watch ${media.title} online for free on NexVid.`).slice(
+      0,
+      160,
+    );
     const canonicalPath = isShow ? `/watch/show/${id}` : `/watch/movie/${id}`;
     const imagePath = media.backdropPath || media.posterPath;
     const imageUrl = imagePath ? tmdbImage(imagePath, 'w1280') : `${SITE_URL}/opengraph-image`;
@@ -43,7 +46,15 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
         description,
         url: `${SITE_URL}${canonicalPath}`,
         type: isShow ? 'video.tv_show' : 'video.movie',
-        images: [{ url: imageUrl, width: imageWidth, height: imageHeight, alt: media.title, type: imageType }],
+        images: [
+          {
+            url: imageUrl,
+            width: imageWidth,
+            height: imageHeight,
+            alt: media.title,
+            type: imageType,
+          },
+        ],
       },
       twitter: {
         card: 'summary_large_image',
@@ -53,7 +64,9 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
       },
     };
   } catch {
-    const fallbackTitle = isShow ? 'Watch TV Episode for free on NexVid' : 'Watch Movie for free on NexVid';
+    const fallbackTitle = isShow
+      ? 'Watch TV Episode for free on NexVid'
+      : 'Watch Movie for free on NexVid';
     const fallbackCanonical = isShow ? `/watch/show/${id}` : `/watch/movie/${id}`;
     const fallbackDescription = 'Watch movies and TV shows online for free on NexVid.';
 
@@ -68,7 +81,15 @@ export async function generateMetadata({ params }: MetadataProps): Promise<Metad
         description: fallbackDescription,
         url: `${SITE_URL}${fallbackCanonical}`,
         type: isShow ? 'video.tv_show' : 'video.movie',
-        images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630, alt: 'NexVid', type: 'image/png' }],
+        images: [
+          {
+            url: `${SITE_URL}/opengraph-image`,
+            width: 1200,
+            height: 630,
+            alt: 'NexVid',
+            type: 'image/png',
+          },
+        ],
       },
       twitter: {
         card: 'summary_large_image',

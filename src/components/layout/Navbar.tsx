@@ -2,35 +2,31 @@
    Navigation – Floating macOS Pill (Top)
    ============================================ */
 
-"use client";
+'use client';
 
-import { AiAssistantModal } from "@/components/ui/AiAssistantModal";
-import {
-  loadPublicAnnouncements,
-  loadUserNotifications,
-} from "@/lib/cloudSync";
-import { normalizeMediaType } from "@/lib/mediaType";
-import { searchMedia } from "@/lib/tmdb";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth";
-import { useBlockedContentStore } from "@/stores/blockedContent";
-import { useSettingsStore } from "@/stores/settings";
-import type { MediaItem } from "@/types";
-import { AnimatePresence, motion } from "framer-motion";
-import { Search } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-
+import { AiAssistantModal } from '@/components/ui/AiAssistantModal';
+import { loadPublicAnnouncements, loadUserNotifications } from '@/lib/cloudSync';
+import { normalizeMediaType } from '@/lib/mediaType';
+import { searchMedia } from '@/lib/tmdb';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { useBlockedContentStore } from '@/stores/blockedContent';
+import { useSettingsStore } from '@/stores/settings';
+import type { MediaItem } from '@/types';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Search } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 interface Announcement {
   id: string;
   message: string;
-  type: "info" | "warning" | "update" | "success";
+  type: 'info' | 'warning' | 'update' | 'success';
   link?: { url: string; label: string };
 }
 
-const ICONS: Record<Announcement["type"], React.ReactNode> = {
+const ICONS: Record<Announcement['type'], React.ReactNode> = {
   info: (
     <svg
       width="14"
@@ -88,18 +84,16 @@ const ICONS: Record<Announcement["type"], React.ReactNode> = {
 };
 
 const TYPE_STYLES = {
-  info: { icon: "text-accent", bg: "bg-transparent" },
-  warning: { icon: "text-yellow-500", bg: "bg-yellow-500/10" },
-  update: { icon: "text-blue-500", bg: "bg-blue-500/10" },
-  success: { icon: "text-green-500", bg: "bg-green-500/10" },
+  info: { icon: 'text-accent', bg: 'bg-transparent' },
+  warning: { icon: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+  update: { icon: 'text-blue-500', bg: 'bg-blue-500/10' },
+  success: { icon: 'text-green-500', bg: 'bg-green-500/10' },
 };
 
 function getDismissedIds(): string[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === 'undefined') return [];
   try {
-    return JSON.parse(
-      localStorage.getItem("nexvid-dismissed-announcements") || "[]",
-    );
+    return JSON.parse(localStorage.getItem('nexvid-dismissed-announcements') || '[]');
   } catch {
     return [];
   }
@@ -108,15 +102,15 @@ function dismissId(id: string) {
   const d = getDismissedIds();
   if (!d.includes(id)) {
     d.push(id);
-    localStorage.setItem("nexvid-dismissed-announcements", JSON.stringify(d));
+    localStorage.setItem('nexvid-dismissed-announcements', JSON.stringify(d));
   }
 }
 
 export function Navbar() {
   const pathname = usePathname();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchType, setSearchType] = useState<"all" | "movie" | "tv">("all");
+  const [searchType, setSearchType] = useState<'all' | 'movie' | 'tv'>('all');
   const [searchResults, setSearchResults] = useState<MediaItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -132,7 +126,7 @@ export function Navbar() {
   const { isBlocked } = useBlockedContentStore();
   const { glassEffect, groqApiKey } = useSettingsStore((s) => s.settings);
 
-  const hasOwnAiKey = groqApiKey && groqApiKey !== "__PUBLIC_GROQ_KEY__";
+  const hasOwnAiKey = groqApiKey && groqApiKey !== '__PUBLIC_GROQ_KEY__';
 
   useEffect(() => {
     setMounted(true);
@@ -149,8 +143,8 @@ export function Navbar() {
       const activeAnnouncements = (publicRes.announcements || [])
         .map((item: any) => ({
           id: String(item.id),
-          message: String(item.message || ""),
-          type: (item.type || "info") as Announcement["type"],
+          message: String(item.message || ''),
+          type: (item.type || 'info') as Announcement['type'],
           link: item.link,
         }))
         .filter((a: Announcement) => a.message)
@@ -178,7 +172,7 @@ export function Navbar() {
         const res = await loadUserNotifications();
         if (isCancelled) return;
         const hasUnread = (res.items || []).some(
-          (item) => !item.isRead && item.type === "feedback_reply",
+          (item) => !item.isRead && item.type === 'feedback_reply',
         );
         setHasUnreadSupportReply(hasUnread);
       } catch {
@@ -198,23 +192,20 @@ export function Navbar() {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (
-        e.key === "/" &&
+        e.key === '/' &&
         !isSearchOpen &&
-        !(
-          e.target instanceof HTMLInputElement ||
-          e.target instanceof HTMLTextAreaElement
-        )
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
       ) {
         e.preventDefault();
         setIsSearchOpen(true);
         setTimeout(() => searchRef.current?.focus(), 100);
       }
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         setIsSearchOpen(false);
       }
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
   }, [isSearchOpen]);
 
   useEffect(() => {
@@ -224,8 +215,8 @@ export function Navbar() {
         setIsProfileOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -247,9 +238,7 @@ export function Navbar() {
         const { results } = await searchMedia(query, 1, searchType);
         if (cancelled) return;
 
-        const filtered = results.filter(
-          (item) => !isBlocked(item.tmdbId, item.mediaType),
-        );
+        const filtered = results.filter((item) => !isBlocked(item.tmdbId, item.mediaType));
 
         setSearchResults(filtered.slice(0, 12));
       } catch {
@@ -267,28 +256,25 @@ export function Navbar() {
 
   const closeSearch = () => {
     setIsSearchOpen(false);
-    setSearchQuery("");
+    setSearchQuery('');
     setSearchResults([]);
     setIsSearching(false);
     setHasSearched(false);
-    setSearchType("all");
+    setSearchType('all');
   };
 
-  const isWatchPage = pathname?.startsWith("/watch");
-  const isSettingsActive =
-    pathname === "/settings" || pathname?.startsWith("/settings/");
-  const isContactActive =
-    pathname === "/contact" || pathname?.startsWith("/contact/");
-  const isAdminActive =
-    pathname === "/admin" || pathname?.startsWith("/admin/");
+  const isWatchPage = pathname?.startsWith('/watch');
+  const isSettingsActive = pathname === '/settings' || pathname?.startsWith('/settings/');
+  const isContactActive = pathname === '/contact' || pathname?.startsWith('/contact/');
+  const isAdminActive = pathname === '/admin' || pathname?.startsWith('/admin/');
   if (!mounted) return null;
   if (isWatchPage) return null;
 
   const dockItems = [
     {
-      href: "/",
-      id: "home",
-      label: "Home",
+      href: '/',
+      id: 'home',
+      label: 'Home',
       icon: (
         <svg
           width="20"
@@ -306,9 +292,9 @@ export function Navbar() {
       ),
     },
     {
-      href: "/browse",
-      id: "browse",
-      label: "Browse",
+      href: '/browse',
+      id: 'browse',
+      label: 'Browse',
       icon: (
         <svg
           width="20"
@@ -328,9 +314,9 @@ export function Navbar() {
       ),
     },
     {
-      href: "/list",
-      id: "list",
-      label: "My List",
+      href: '/list',
+      id: 'list',
+      label: 'My List',
       icon: (
         <svg
           width="20"
@@ -349,25 +335,15 @@ export function Navbar() {
   ];
 
   const iconContainerBase =
-    "flex items-center justify-center rounded-[12px] transition-all duration-500 ease-[var(--spring)] transform-gpu min-w-0";
-  const iconSize = "h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10";
-  const navActiveClass =
-    "text-accent drop-shadow-[0_0_14px_var(--accent-glow)]";
-  const navIdleClass =
-    "text-white/40 hover:text-white/80 hover:bg-white/[0.08]";
-  const modalActiveClass =
-    "text-accent drop-shadow-[0_0_14px_var(--accent-glow)]";
+    'flex items-center justify-center rounded-[12px] transition-all duration-500 ease-[var(--spring)] transform-gpu min-w-0';
+  const iconSize = 'h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10';
+  const navActiveClass = 'text-accent drop-shadow-[0_0_14px_var(--accent-glow)]';
+  const navIdleClass = 'text-white/40 hover:text-white/80 hover:bg-white/[0.08]';
+  const modalActiveClass = 'text-accent drop-shadow-[0_0_14px_var(--accent-glow)]';
 
-  const DockIcon = ({
-    item,
-    isButton,
-  }: {
-    item: (typeof dockItems)[0];
-    isButton?: boolean;
-  }) => {
+  const DockIcon = ({ item, isButton }: { item: (typeof dockItems)[0]; isButton?: boolean }) => {
     const isActive =
-      pathname === item.href ||
-      (item.href !== "/" && pathname?.startsWith(item.href));
+      pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
 
     const content = (
       <div className="relative flex flex-col items-center flex-1 min-w-0 basis-0">
@@ -411,19 +387,19 @@ export function Navbar() {
             onClick={closeSearch}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
-              animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-              exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
+              initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
+              animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+              exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="fixed left-1/2 top-1/2 z-[61] w-full max-w-[min(96vw,900px)] p-3 sm:p-4 outline-none"
               onClick={(e) => e.stopPropagation()}
             >
               <div
                 className={cn(
-                  "relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all",
+                  'relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
                   glassEffect
-                    ? "bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl"
-                    : "bg-[#050608]/95",
+                    ? 'bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl'
+                    : 'bg-[#050608]/95',
                 )}
               >
                 <div className="relative z-10 flex shrink-0 items-center justify-between bg-black/25 px-5 py-4 sm:px-6">
@@ -432,9 +408,7 @@ export function Navbar() {
                       <Search className="h-5 w-5 text-accent" />
                       Search
                     </h2>
-                    <p className="mt-0.5 text-[11px] text-white/45">
-                      Curated results as you type
-                    </p>
+                    <p className="mt-0.5 text-[11px] text-white/45">Curated results as you type</p>
                   </div>
                   <button
                     onClick={closeSearch}
@@ -457,10 +431,7 @@ export function Navbar() {
 
                 <div className="flex-1 overflow-y-scroll custom-scrollbar">
                   <div className="px-5 pt-4 sm:px-6">
-                    <form
-                      className="relative group"
-                      onSubmit={(e) => e.preventDefault()}
-                    >
+                    <form className="relative group" onSubmit={(e) => e.preventDefault()}>
                       <div className="relative">
                         <svg
                           width="18"
@@ -499,16 +470,16 @@ export function Navbar() {
                     <div className="inline-flex items-center rounded-full bg-white/[0.05] p-1">
                       {(
                         [
-                          { key: "all", label: "All" },
-                          { key: "movie", label: "Movies" },
-                          { key: "tv", label: "TV Shows" },
+                          { key: 'all', label: 'All' },
+                          { key: 'movie', label: 'Movies' },
+                          { key: 'tv', label: 'TV Shows' },
                         ] as const
                       ).map((item) => (
                         <button
                           key={item.key}
                           type="button"
                           onClick={() => setSearchType(item.key)}
-                          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none ${searchType === item.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none ${searchType === item.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
                         >
                           {item.label}
                         </button>
@@ -522,9 +493,7 @@ export function Navbar() {
                         {searchResults.map((item) => {
                           const itemType = normalizeMediaType(item.mediaType);
                           const href =
-                            itemType === "movie"
-                              ? `/movie/${item.tmdbId}`
-                              : `/show/${item.tmdbId}`;
+                            itemType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
                           return (
                             <div
                               key={`${item.mediaType}-${item.tmdbId}`}
@@ -558,18 +527,15 @@ export function Navbar() {
                                     </div>
                                     <div className="mt-1.5 flex flex-wrap items-center gap-2 sm:mt-1">
                                       <span className="text-xs font-bold text-white/30">
-                                        {item.releaseYear || "N/A"}
+                                        {item.releaseYear || 'N/A'}
                                       </span>
                                       <div className="h-0.5 w-0.5 rounded-full bg-white/10" />
                                       <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
-                                        {itemType === "movie"
-                                          ? "Movie"
-                                          : "TV Show"}
+                                        {itemType === 'movie' ? 'Movie' : 'TV Show'}
                                       </span>
                                     </div>
                                     <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-white/50 sm:mt-2">
-                                      {item.overview?.trim() ||
-                                        "No description available yet."}
+                                      {item.overview?.trim() || 'No description available yet.'}
                                     </p>
                                   </div>
                                 </div>
@@ -615,10 +581,10 @@ export function Navbar() {
       <nav ref={dockRef} className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
         <div
           className={cn(
-            "flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-[24px] px-2 py-1.5 sm:gap-1 sm:rounded-[28px] sm:px-3 sm:py-2 transition-all duration-500 overflow-x-auto snap-x snap-mandatory touch-pan-x",
+            'flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-[24px] px-2 py-1.5 sm:gap-1 sm:rounded-[28px] sm:px-3 sm:py-2 transition-all duration-500 overflow-x-auto snap-x snap-mandatory touch-pan-x',
             glassEffect
-              ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.06)]"
-              : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.04)]",
+              ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.06)]'
+              : 'bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.04)]',
           )}
         >
           {/* Nav Links */}
@@ -676,8 +642,8 @@ export function Navbar() {
               >
                 <div
                   className={cn(
-                    "relative flex flex-col items-center transition-all duration-500",
-                    isAiOpen ? "text-accent" : "",
+                    'relative flex flex-col items-center transition-all duration-500',
+                    isAiOpen ? 'text-accent' : '',
                   )}
                 >
                   <svg
@@ -730,8 +696,6 @@ export function Navbar() {
             </div>
           </Link>
 
-
-
           {/* Contact only when logged in */}
           {isLoggedIn && (
             <Link
@@ -757,7 +721,7 @@ export function Navbar() {
                   >
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
-                  {hasUnreadSupportReply && pathname !== "/contact" && (
+                  {hasUnreadSupportReply && pathname !== '/contact' && (
                     <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_10px_var(--accent-glow)]" />
                   )}
                 </div>

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { normalizeMediaType } from "@/lib/mediaType";
-import { tmdbImage } from "@/lib/utils";
-import type { MediaItem } from "@/types";
-import { Info, Play } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { normalizeMediaType } from '@/lib/mediaType';
+import { tmdbImage } from '@/lib/utils';
+import type { MediaItem } from '@/types';
+import { Info, Play } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 
 interface FeaturedHeroClientProps {
   items: MediaItem[];
@@ -15,9 +15,7 @@ interface FeaturedHeroClientProps {
 const INTERVAL = 5000;
 
 export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
-  const [featuredItems, setFeaturedItems] = useState<MediaItem[]>(() =>
-    items.slice(0, 5),
-  );
+  const [featuredItems, setFeaturedItems] = useState<MediaItem[]>(() => items.slice(0, 5));
   const [currentIndex, setCurrentIndex] = useState(0);
   const lengthRef = useRef(items.slice(0, 5).length);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -48,18 +46,20 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
   // Simple always-running interval — restartable
   useEffect(() => {
     startInterval();
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (featuredItems.length === 0) {
-    return (
-      <section className="relative h-[90vh] min-h-[640px] bg-black animate-pulse" />
-    );
+    return <section className="relative h-[90vh] min-h-[640px] bg-black animate-pulse" />;
   }
 
   return (
     <section className="relative h-[90vh] min-h-[640px] bg-black overflow-hidden">
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes nxBar {
           from { transform: scaleY(0); }
           to   { transform: scaleY(1); }
@@ -76,18 +76,20 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
           animation: nxBarH ${INTERVAL}ms linear forwards;
           transform-origin: left;
         }
-      ` }} />
+      `,
+        }}
+      />
 
       {/* Background crossfade */}
       {featuredItems.map((item, index) => (
         <div
           key={`bg-${item.tmdbId}`}
           className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-            index === currentIndex ? "opacity-100" : "opacity-0"
+            index === currentIndex ? 'opacity-100' : 'opacity-0'
           }`}
         >
           <Image
-            src={tmdbImage(item.backdropPath, "original")}
+            src={tmdbImage(item.backdropPath, 'original')}
             alt={item.title}
             fill
             priority={index === 0}
@@ -110,15 +112,15 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
                 <div
                   key={`content-${item.tmdbId}`}
                   className={`absolute inset-0 flex flex-col justify-center gap-4 transition-opacity duration-700 ${
-                    isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                    isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px]">
-                      {item.mediaType === "movie" ? "Movie" : "TV"}
+                      {item.mediaType === 'movie' ? 'Movie' : 'TV'}
                     </span>
                     <span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-white backdrop-blur-[10px]">
-                      {item.releaseYear || "N/A"}
+                      {item.releaseYear || 'N/A'}
                     </span>
                     {(item.voteAverage ?? 0) > 0 && (
                       <span className="rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-emerald-200 backdrop-blur-[10px]">
@@ -159,59 +161,74 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
       </div>
 
       {/* ── Indicators: bottom bar on mobile / vertical pills on desktop ── */}
-      {featuredItems.length > 1 && (() => {
-        const dots = featuredItems.map((_, index) => {
-          const isActive = index === currentIndex;
-          const isPast = index < currentIndex;
-          const handleClick = () => { setCurrentIndex(index); startInterval(); };
-          return { isActive, isPast, handleClick, index };
-        });
+      {featuredItems.length > 1 &&
+        (() => {
+          const dots = featuredItems.map((_, index) => {
+            const isActive = index === currentIndex;
+            const isPast = index < currentIndex;
+            const handleClick = () => {
+              setCurrentIndex(index);
+              startInterval();
+            };
+            return { isActive, isPast, handleClick, index };
+          });
 
-        return (
-          <>
-            {/* Mobile: horizontal pill bars anchored near the bottom */}
-            <div className="sm:hidden absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 h-1.5">
-              {dots.map(({ isActive, isPast, handleClick, index }) => (
-                <button
-                  key={`mob-${index}`}
-                  aria-label={`Go to slide ${index + 1}`}
-                  onClick={handleClick}
-                  className={`h-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
-                    isActive ? "w-7 bg-white/25" : "w-3 bg-white/35 hover:bg-white/55"
-                  }`}
-                >
-                  {isActive ? (
-                    <div key={`mob-bar-${currentIndex}`} className="nx-bar-h w-full h-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
-                  ) : (
-                    <div className="w-full h-full bg-white transition-opacity duration-300" style={{ opacity: isPast ? 0.85 : 0 }} />
-                  )}
-                </button>
-              ))}
-            </div>
+          return (
+            <>
+              {/* Mobile: horizontal pill bars anchored near the bottom */}
+              <div className="sm:hidden absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 h-1.5">
+                {dots.map(({ isActive, isPast, handleClick, index }) => (
+                  <button
+                    key={`mob-${index}`}
+                    aria-label={`Go to slide ${index + 1}`}
+                    onClick={handleClick}
+                    className={`h-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
+                      isActive ? 'w-7 bg-white/25' : 'w-3 bg-white/35 hover:bg-white/55'
+                    }`}
+                  >
+                    {isActive ? (
+                      <div
+                        key={`mob-bar-${currentIndex}`}
+                        className="nx-bar-h w-full h-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full bg-white transition-opacity duration-300"
+                        style={{ opacity: isPast ? 0.85 : 0 }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
 
-            {/* Desktop: vertical pills on right edge */}
-            <div className="hidden sm:flex absolute right-6 lg:right-10 xl:right-14 2xl:right-16 top-1/2 -translate-y-1/2 z-20 flex-col gap-2.5 h-48">
-              {dots.map(({ isActive, isPast, handleClick, index }) => (
-                <button
-                  key={`desk-${index}`}
-                  aria-label={`Go to slide ${index + 1}`}
-                  onClick={handleClick}
-                  className={`w-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
-                    isActive ? "flex-1 bg-white/20" : "h-6 bg-white/30 hover:bg-white/50"
-                  }`}
-                >
-                  {isActive ? (
-                    <div key={`desk-bar-${currentIndex}`} className="nx-bar w-full h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
-                  ) : (
-                    <div className="w-full h-full bg-white transition-opacity duration-300" style={{ opacity: isPast ? 0.85 : 0 }} />
-                  )}
-                </button>
-              ))}
-            </div>
-          </>
-        );
-      })()}
+              {/* Desktop: vertical pills on right edge */}
+              <div className="hidden sm:flex absolute right-6 lg:right-10 xl:right-14 2xl:right-16 top-1/2 -translate-y-1/2 z-20 flex-col gap-2.5 h-48">
+                {dots.map(({ isActive, isPast, handleClick, index }) => (
+                  <button
+                    key={`desk-${index}`}
+                    aria-label={`Go to slide ${index + 1}`}
+                    onClick={handleClick}
+                    className={`w-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
+                      isActive ? 'flex-1 bg-white/20' : 'h-6 bg-white/30 hover:bg-white/50'
+                    }`}
+                  >
+                    {isActive ? (
+                      <div
+                        key={`desk-bar-${currentIndex}`}
+                        className="nx-bar w-full h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full bg-white transition-opacity duration-300"
+                        style={{ opacity: isPast ? 0.85 : 0 }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          );
+        })()}
     </section>
   );
 }
-
