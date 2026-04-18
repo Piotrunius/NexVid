@@ -37,6 +37,9 @@ const ui = {
   success: (text) => console.log(`\n${format.bold}${format.green} ✔  ${text}${format.reset}\n`),
   execBoundary: (label) =>
     console.log(`${format.bgGray}${format.dim} ── STDOUT/STDERR: ${label} ── ${format.reset}`),
+  menu: (num, text) => console.log(`  ${format.cyan}${num}.${format.reset} ${text}`),
+  summary: (label, value) =>
+    console.log(`  ${format.dim}▪${format.reset} ${label.padEnd(12)} ${value}`),
 };
 
 const question = (query) =>
@@ -182,8 +185,8 @@ async function ship() {
 
   try {
     ui.header('Deployment Mode');
-    console.log('  1. Development (Git + Deploy Options)');
-    console.log('  2. Preview (Quick Pages deploy to "Preview")');
+    ui.menu('1', 'Development (Git + Deploy Options)');
+    ui.menu('2', 'Preview (Quick Pages deploy to "Preview")');
 
     const mode = await askChoice('\nChoice (1-2): ', ['1', '2']);
 
@@ -212,7 +215,7 @@ async function ship() {
     if (useAiChoice.toLowerCase().trim() === 'y') {
       const aiMsg = await generateCommitMessage();
       if (aiMsg) {
-        console.log(`\n${format.bold}${format.cyan} 🤖 AI Message: ${format.reset}${aiMsg}\n`);
+        ui.info(`🤖 AI Message: ${format.bold}${format.cyan}${aiMsg}${format.reset}`);
         finalMsg = aiMsg;
       } else {
         ui.warn('AI generation failed. Falling back to manual input.');
@@ -251,10 +254,10 @@ async function ship() {
     }
 
     ui.header('Deployment Target');
-    console.log('  1. Worker only');
-    console.log('  2. Pages only');
-    console.log('  3. Both (Worker & Pages)');
-    console.log('  4. Skip deployment');
+    ui.menu('1', 'Worker only');
+    ui.menu('2', 'Pages only');
+    ui.menu('3', 'Both (Worker & Pages)');
+    ui.menu('4', 'Skip deployment');
 
     const deployChoice = await askChoice('\nChoice (1-4): ', ['1', '2', '3', '4']);
 
@@ -263,8 +266,8 @@ async function ship() {
       const shouldDeployPages = deployChoice === '2' || deployChoice === '3';
 
       ui.header('Target Environment');
-      console.log('  1. Production (main)');
-      console.log('  2. Preview (preview)');
+      ui.menu('1', 'Production (main)');
+      ui.menu('2', 'Preview (preview)');
       const envChoice = await askChoice('\nChoice (1-2, default: 1): ', ['1', '2'], '1');
 
       const isPreview = envChoice === '2';
@@ -287,19 +290,27 @@ async function ship() {
     ui.error(error.message);
   } finally {
     ui.header('Execution Summary');
-    console.log(`  Mode:        ${summary.mode}`);
-    console.log(`  Commit:      ${summary.commit}`);
-    console.log(
-      `  Git Push:    ${summary.pushed ? format.green + 'YES' : format.dim + 'NO'}${format.reset}`,
+    ui.summary('Mode:', summary.mode);
+    ui.summary('Commit:', summary.commit);
+    ui.summary(
+      'Git Push:',
+      summary.pushed ? `${format.green}YES${format.reset}` : `${format.dim}NO${format.reset}`,
     );
-    console.log(
-      `  Discord:     ${summary.discord ? format.green + 'YES' : format.dim + 'NO'}${format.reset}`,
+    ui.summary(
+      'Discord:',
+      summary.discord ? `${format.green}YES${format.reset}` : `${format.dim}NO${format.reset}`,
     );
-    console.log(
-      `  Worker:      ${summary.deployWorker ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED/FAILED'}${format.reset}`,
+    ui.summary(
+      'Worker:',
+      summary.deployWorker
+        ? `${format.green}DEPLOYED${format.reset}`
+        : `${format.dim}SKIPPED/FAILED${format.reset}`,
     );
-    console.log(
-      `  Pages:       ${summary.deployPages ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED/FAILED'}${format.reset}`,
+    ui.summary(
+      'Pages:',
+      summary.deployPages
+        ? `${format.green}DEPLOYED${format.reset}`
+        : `${format.dim}SKIPPED/FAILED${format.reset}`,
     );
 
     ui.success('Process completed');
