@@ -76,7 +76,7 @@
     "wrangler": "^4.83.0",
     "prettier": "^3.8.0",
     "husky": "^8.0.0",
-    "lint-staged": "^14.0.0"
+    "lint-staged": "^16.4.0"
   },
   "prettier": {
     "printWidth": 100,
