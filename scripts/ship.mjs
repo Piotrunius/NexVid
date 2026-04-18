@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { performance } from 'node:perf_hooks';
 
@@ -55,6 +55,7 @@ const askChoice = async (query, validOptions, defaultOpt = null) => {
   }
 };
 
+// Do prostych komend powłoki (np. git push)
 const runCmd = (cmd, label) => {
   ui.execBoundary(label);
   try {
@@ -68,11 +69,24 @@ const runCmd = (cmd, label) => {
   }
 };
 
+// Do komend ze zmiennymi użytkownika (chroni przed Shell Injection)
+const runSafeCmd = (bin, args, label) => {
+  ui.execBoundary(label);
+  try {
+    execFileSync(bin, args, { stdio: 'inherit' });
+    ui.execBoundary('END');
+    return true;
+  } catch (error) {
+    ui.error(`Execution aborted: ${label}`);
+    ui.execBoundary('ERROR END');
+    return false;
+  }
+};
+
 async function sendDiscordNotification(message, branch, sha) {
   const webhookUrl = process.env.DISCORD_WEBHOOK;
 
   if (!webhookUrl) {
-    ui.warn('Notification skipped: DISCORD_WEBHOOK environment variable is not set.');
     return false;
   }
 
@@ -125,7 +139,17 @@ async function sendDiscordNotification(message, branch, sha) {
 }
 
 async function generateCommitMessage() {
-  let diff = execSync('git diff --cached').toString().trim();
+  let diff;
+  try {
+    // maxBuffer ustalony na 10MB dla dużych zmian
+    diff = execSync('git diff --cached', { maxBuffer: 10 * 1024 * 1024 })
+      .toString()
+      .trim();
+  } catch (err) {
+    ui.warn('Git Diff Error (Buffer might be exceeded). Proceeding without AI.');
+    return null;
+  }
+
   if (!diff) return null;
 
   const MAX_DIFF_LENGTH = 4000;
@@ -194,6 +218,15 @@ async function ship() {
     deployPages: false,
   };
 
+  // Wczesna weryfikacja .env
+  ui.header('Environment Setup');
+  if (!process.env.GROQ_API_KEY) ui.info('GROQ_API_KEY missing - AI features will be disabled.');
+  else ui.info('GROQ_API_KEY found.');
+
+  if (!process.env.DISCORD_WEBHOOK)
+    ui.info('DISCORD_WEBHOOK missing - Discord notifications disabled.');
+  else ui.info('DISCORD_WEBHOOK found.');
+
   try {
     ui.header('Deployment Mode');
     ui.menu('1', 'Development (Git + Deploy Options)');
@@ -205,46 +238,49 @@ async function ship() {
       summary.mode = 'Preview';
       ui.step('Deploying Preview');
       summary.deployPages = runCmd('bun run pages:deploy -- --branch preview', 'Pages Deploy');
-      return;
+      return; // Kończy całą akcję po deployu preview
     }
 
     summary.mode = 'Development';
     ui.header('Development Process');
 
     const gitStatus = execSync('git status --porcelain').toString().trim();
+
+    // Zmiana logiki: jeśli nie ma zmian, po prostu pomija fazę commitu, zamiast odrzucać wykonanie skryptu
     if (!gitStatus) {
-      ui.warn('No modifications in working tree. Aborting process...');
-      return;
-    }
+      ui.info('Working tree clean. Skipping commit phase.');
+    } else {
+      ui.step('Staging files');
+      if (!runCmd('git add .', 'Git Add')) throw new Error('Command failed: git add.');
 
-    ui.step('Staging files');
-    if (!runCmd('git add .', 'Git Add')) throw new Error('Command failed: git add.');
+      const useAiChoice = await question('\nUse AI to generate commit message? (y/N): ');
+      let finalMsg = '';
 
-    const useAiChoice = await question('\nUse AI to generate commit message? (y/N): ');
-    let finalMsg = '';
-
-    if (useAiChoice.toLowerCase().trim() === 'y') {
-      const aiMsg = await generateCommitMessage();
-      if (aiMsg) {
-        ui.info(`🤖 AI Message: ${format.bold}${format.cyan}${aiMsg}${format.reset}`);
-        finalMsg = aiMsg;
+      if (useAiChoice.toLowerCase().trim() === 'y') {
+        const aiMsg = await generateCommitMessage();
+        if (aiMsg) {
+          ui.info(`🤖 AI Message: ${format.bold}${format.cyan}${aiMsg}${format.reset}`);
+          finalMsg = aiMsg;
+        } else {
+          ui.warn('AI generation failed. Falling back to manual input.');
+          const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+          const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
+          finalMsg = commitMsg.trim() || defaultMsg;
+        }
       } else {
-        ui.warn('AI generation failed. Falling back to manual input.');
         const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
         const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
         finalMsg = commitMsg.trim() || defaultMsg;
       }
-    } else {
-      const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-      const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
-      finalMsg = commitMsg.trim() || defaultMsg;
+
+      summary.commit = finalMsg;
+
+      ui.step(`Creating commit: "${finalMsg}"`);
+      // Zastosowanie bezpiecznej funkcji zamiast template stringu w powłoce
+      if (!runSafeCmd('git', ['commit', '-m', finalMsg], 'Git Commit')) {
+        throw new Error('Command failed: git commit.');
+      }
     }
-
-    summary.commit = finalMsg;
-
-    ui.step(`Creating commit: "${finalMsg}"`);
-    if (!runCmd(`git commit -m "${finalMsg}"`, 'Git Commit'))
-      throw new Error('Command failed: git commit.');
 
     const notifyChoice = await question('\nSend Discord notification? (y/N): ');
     const shouldNotify = notifyChoice.toLowerCase().trim() === 'y';
@@ -259,7 +295,11 @@ async function ship() {
           ui.step('Sending Discord notification');
           const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
           const sha = execSync('git rev-parse --short HEAD').toString().trim();
-          summary.discord = await sendDiscordNotification(finalMsg, branch, sha);
+          const notifyMessage =
+            summary.commit !== 'None'
+              ? summary.commit
+              : 'Direct push without new commit script msg';
+          summary.discord = await sendDiscordNotification(notifyMessage, branch, sha);
         }
       }
     }
