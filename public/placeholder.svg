@@ -1,7 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
-  <rect width="400" height="600" fill="#1a1a2e" rx="12"/>
-  <rect x="1" y="1" width="398" height="598" fill="none" stroke="#333" stroke-width="1" rx="12"/>
-  <circle cx="200" cy="260" r="50" fill="none" stroke="#555" stroke-width="2"/>
-  <polygon points="185,240 185,280 220,260" fill="#555"/>
-  <text x="200" y="340" text-anchor="middle" fill="#666" font-family="system-ui" font-size="14">No Image Available</text>
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="400"
+    height="600"
+    viewBox="0 0 400 600"
+>
+  <rect width="400" height="600" fill="#1a1a2e" rx="12" />
+  <rect
+        x="1"
+        y="1"
+        width="398"
+        height="598"
+        fill="none"
+        stroke="#333"
+        stroke-width="1"
+        rx="12"
+    />
+  <circle cx="200" cy="260" r="50" fill="none" stroke="#555" stroke-width="2" />
+  <polygon points="185,240 185,280 220,260" fill="#555" />
+  <text
+        x="200"
+        y="340"
+        text-anchor="middle"
+        fill="#666"
+        font-family="system-ui"
+        font-size="14"
+    >No Image Available</text>
 </svg>

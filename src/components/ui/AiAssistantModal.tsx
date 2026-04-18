@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { searchMedia } from "@/lib/tmdb";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth";
-import { useSettingsStore } from "@/stores/settings";
-import { LIMITS } from "@/lib/validation";
-import type { MediaItem } from "@/types";
-import * as Dialog from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Search, Sparkles, Star, X } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { toast } from "./Toaster";
+import { searchMedia } from '@/lib/tmdb';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { useSettingsStore } from '@/stores/settings';
+import { LIMITS } from '@/lib/validation';
+import type { MediaItem } from '@/types';
+import * as Dialog from '@radix-ui/react-dialog';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Loader2, Search, Sparkles, Star, X } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from './Toaster';
 
 interface AiRecommendation {
   title: string;
@@ -25,52 +25,42 @@ interface AiRecommendation {
 }
 
 const GENRES = [
-  "Action",
-  "Adventure",
-  "Animation",
-  "Comedy",
-  "Crime",
-  "Documentary",
-  "Drama",
-  "Family",
-  "Fantasy",
-  "History",
-  "Horror",
-  "Music",
-  "Mystery",
-  "Romance",
-  "Sci-Fi",
-  "Thriller",
-  "War",
+  'Action',
+  'Adventure',
+  'Animation',
+  'Comedy',
+  'Crime',
+  'Documentary',
+  'Drama',
+  'Family',
+  'Fantasy',
+  'History',
+  'Horror',
+  'Music',
+  'Mystery',
+  'Romance',
+  'Sci-Fi',
+  'Thriller',
+  'War',
 ];
 
-const ERAS = ["All Time", "2020s", "2010s", "2000s", "90s", "80s", "Classics"];
+const ERAS = ['All Time', '2020s', '2010s', '2000s', '90s', '80s', 'Classics'];
 
-export function AiAssistantModal({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const [step, setStep] = useState<"input" | "loading" | "results">("input");
-  const [mood, setMood] = useState("");
+export function AiAssistantModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [step, setStep] = useState<'input' | 'loading' | 'results'>('input');
+  const [mood, setMood] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [type, setType] = useState<"movie" | "show">("movie");
-  const [era, setEra] = useState("All Time");
-  const [recommendations, setRecommendations] = useState<AiRecommendation[]>(
-    [],
-  );
-  const [usage, setUsage] = useState<{ count: number; limit: number } | null>(
-    null,
-  );
+  const [type, setType] = useState<'movie' | 'show'>('movie');
+  const [era, setEra] = useState('All Time');
+  const [recommendations, setRecommendations] = useState<AiRecommendation[]>([]);
+  const [usage, setUsage] = useState<{ count: number; limit: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const { groqApiKey, glassEffect } = useSettingsStore((s) => s.settings);
   const { authToken, isLoggedIn } = useAuthStore();
 
-  const hasOwnKey = groqApiKey && groqApiKey !== "__PUBLIC_GROQ_KEY__";
+  const hasOwnKey = groqApiKey && groqApiKey !== '__PUBLIC_GROQ_KEY__';
   const isLocked = !authToken && !hasOwnKey;
 
   useEffect(() => {
@@ -79,7 +69,7 @@ export function AiAssistantModal({
 
   useEffect(() => {
     if (isOpen && authToken) {
-      fetch("/api/ai-assistant/usage", {
+      fetch('/api/ai-assistant/usage', {
         headers: { Authorization: `Bearer ${authToken}` },
       })
         .then((res) => res.json())
@@ -100,23 +90,20 @@ export function AiAssistantModal({
     // mood is optional, it can add context but genres are the main filter.
 
     if (isLocked) {
-      toast(
-        "AI Assistant requires a Cloud account or your own Groq API key in Settings.",
-        "error",
-      );
-      setStep("input");
+      toast('AI Assistant requires a Cloud account or your own Groq API key in Settings.', 'error');
+      setStep('input');
       return;
     }
 
-    setStep("loading");
+    setStep('loading');
     setRecommendations([]);
     setErrorMsg(null);
 
     try {
-      const res = await fetch("/api/ai-assistant", {
-        method: "POST",
+      const res = await fetch('/api/ai-assistant', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
@@ -130,7 +117,7 @@ export function AiAssistantModal({
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "AI request failed");
+        throw new Error(errData.error || 'AI request failed');
       }
 
       const data = await res.json();
@@ -143,12 +130,8 @@ export function AiAssistantModal({
               const searchRes = await searchMedia(rec.title);
               const match = searchRes.results.find(
                 (r) =>
-                  (type === "movie"
-                    ? r.mediaType === "movie"
-                    : r.mediaType === "show") &&
-                  (rec.year
-                    ? Math.abs((r.releaseYear || 0) - rec.year) <= 1
-                    : true),
+                  (type === 'movie' ? r.mediaType === 'movie' : r.mediaType === 'show') &&
+                  (rec.year ? Math.abs((r.releaseYear || 0) - rec.year) <= 1 : true),
               );
               if (!match) return null;
               return { ...rec, mediaItem: match };
@@ -161,21 +144,21 @@ export function AiAssistantModal({
 
       setRecommendations(enrichedRecs);
       setUsage((prev) => (prev ? { ...prev, count: prev.count + 1 } : null));
-      setStep("results");
+      setStep('results');
     } catch (error: any) {
-      console.error("AI Error:", error);
-      const msg = error.message || "Something went wrong";
+      console.error('AI Error:', error);
+      const msg = error.message || 'Something went wrong';
       setErrorMsg(msg);
-      toast(msg, "error");
-      setStep("input");
+      toast(msg, 'error');
+      setStep('input');
     }
   };
 
   const reset = () => {
-    setStep("input");
-    setMood("");
+    setStep('input');
+    setMood('');
     setSelectedGenres([]);
-    setEra("All Time");
+    setEra('All Time');
     setRecommendations([]);
     setErrorMsg(null);
   };
@@ -196,18 +179,18 @@ export function AiAssistantModal({
 
             <Dialog.Content asChild>
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
-                animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-45%" }}
+                initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
+                animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 className="fixed left-1/2 top-1/2 z-50 w-full max-w-[min(96vw,900px)] p-3 sm:p-4 outline-none"
               >
                 <div
                   className={cn(
-                    "relative flex w-full max-h-[95vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all",
+                    'relative flex w-full max-h-[95vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
                     glassEffect
-                      ? "bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl"
-                      : "bg-[#050608]/95",
+                      ? 'bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl'
+                      : 'bg-[#050608]/95',
                   )}
                 >
                   {/* Header */}
@@ -230,24 +213,21 @@ export function AiAssistantModal({
                   </div>
 
                   {/* Body */}
-                  <div
-                    ref={bodyRef}
-                    className="flex-1 overflow-y-auto custom-scrollbar"
-                  >
-                    {step === "input" && (
+                  <div ref={bodyRef} className="flex-1 overflow-y-auto custom-scrollbar">
+                    {step === 'input' && (
                       <div className="flex flex-col h-full">
                         {/* Top Bar: Type & Era */}
                         <div className="flex flex-wrap items-center justify-between gap-4 bg-white/[0.02] px-5 py-4 sm:px-6">
                           <div className="flex rounded-full bg-white/[0.05] p-1">
                             <button
-                              onClick={() => setType("movie")}
-                              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === "movie" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                              onClick={() => setType('movie')}
+                              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === 'movie' ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
                             >
                               Movies
                             </button>
                             <button
-                              onClick={() => setType("show")}
-                              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === "show" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                              onClick={() => setType('show')}
+                              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none ${type === 'show' ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
                             >
                               TV Shows
                             </button>
@@ -260,7 +240,7 @@ export function AiAssistantModal({
                                 <button
                                   key={e}
                                   onClick={() => setEra(e)}
-                                  className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none flex-shrink-0 ${era === e ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                                  className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none focus:outline-none focus-visible:outline-none flex-shrink-0 ${era === e ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
                                 >
                                   {e}
                                 </button>
@@ -276,11 +256,7 @@ export function AiAssistantModal({
                               className="w-full rounded-lg bg-white/5 px-3 py-2 text-xs text-white outline-none focus:ring-1 focus:ring-accent"
                             >
                               {ERAS.map((e) => (
-                                <option
-                                  key={e}
-                                  value={e}
-                                  className="bg-[#0a0a0a] text-white"
-                                >
+                                <option key={e} value={e} className="bg-[#0a0a0a] text-white">
                                   {e}
                                 </option>
                               ))}
@@ -301,7 +277,7 @@ export function AiAssistantModal({
                                 <button
                                   key={genre}
                                   onClick={() => handleToggleGenre(genre)}
-                                  className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap grow outline-none focus:outline-none focus-visible:outline-none ${selectedGenres.includes(genre) ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                                  className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap grow outline-none focus:outline-none focus-visible:outline-none ${selectedGenres.includes(genre) ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
                                 >
                                   {genre}
                                 </button>
@@ -317,9 +293,7 @@ export function AiAssistantModal({
                             <input
                               value={mood}
                               onChange={(e) => setMood(e.target.value)}
-                              onKeyDown={(e) =>
-                                e.key === "Enter" && handleGenerate()
-                              }
+                              onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                               placeholder="Type titles, genres, keywords or just anything you can think of..."
                               className="h-12 w-full appearance-none rounded-xl border border-transparent bg-white/5 pl-11 pr-4 text-sm text-white shadow-inner outline-none transition-all placeholder:text-white/20 focus:border-accent/45 focus:outline-none focus:ring-0 focus-visible:outline-none"
                               maxLength={LIMITS.AI_ASSISTANT_MOOD_MAX}
@@ -329,13 +303,11 @@ export function AiAssistantModal({
                       </div>
                     )}
 
-                    {step === "loading" && (
+                    {step === 'loading' && (
                       <div className="h-full flex flex-col items-center justify-center text-center space-y-4 animate-fade-in min-h-[400px]">
                         <Loader2 className="w-16 h-16 text-accent animate-spin opacity-50" />
                         <div>
-                          <p className="text-white text-xl font-bold">
-                            Scanning the multiverse...
-                          </p>
+                          <p className="text-white text-xl font-bold">Scanning the multiverse...</p>
                           <p className="text-white/40 text-sm mt-1">
                             Finding the best matches for your taste
                           </p>
@@ -343,7 +315,7 @@ export function AiAssistantModal({
                       </div>
                     )}
 
-                    {step === "results" && (
+                    {step === 'results' && (
                       <div className="animate-fade-in space-y-4 p-4 sm:p-6">
                         <div className="grid gap-3 sm:gap-4">
                           {recommendations.map((rec, idx) => (
@@ -376,10 +348,10 @@ export function AiAssistantModal({
                                     {rec.match_score && (
                                       <span
                                         className={cn(
-                                          "shrink-0 px-1.5 py-0.5 rounded text-[10px] font-black uppercase",
+                                          'shrink-0 px-1.5 py-0.5 rounded text-[10px] font-black uppercase',
                                           rec.match_score > 85
-                                            ? "bg-green-500 text-black shadow-[0_0_10px_rgba(34,197,94,0.3)]"
-                                            : "bg-yellow-500 text-black",
+                                            ? 'bg-green-500 text-black shadow-[0_0_10px_rgba(34,197,94,0.3)]'
+                                            : 'bg-yellow-500 text-black',
                                         )}
                                       >
                                         {rec.match_score}%
@@ -403,9 +375,7 @@ export function AiAssistantModal({
                                     {rec.mediaItem && (
                                       <div className="ml-auto flex items-center gap-1 text-yellow-500 font-black text-xs">
                                         <Star className="w-3 h-3 fill-current" />
-                                        <span>
-                                          {rec.mediaItem.rating.toFixed(1)}
-                                        </span>
+                                        <span>{rec.mediaItem.rating.toFixed(1)}</span>
                                       </div>
                                     )}
                                   </div>
@@ -419,7 +389,7 @@ export function AiAssistantModal({
                                   {rec.mediaItem && (
                                     <Link
                                       href={
-                                        rec.mediaItem.mediaType === "movie"
+                                        rec.mediaItem.mediaType === 'movie'
                                           ? `/movie/${rec.mediaItem.id}`
                                           : `/show/${rec.mediaItem.id}`
                                       }
@@ -439,17 +409,17 @@ export function AiAssistantModal({
                   </div>
 
                   {/* Footer */}
-                  {(step === "input" || step === "results") && (
+                  {(step === 'input' || step === 'results') && (
                     <div className="z-10 shrink-0 bg-black/35 px-5 py-4 sm:px-6">
-                      {step === "input" ? (
+                      {step === 'input' ? (
                         <button
                           onClick={handleGenerate}
                           disabled={selectedGenres.length === 0 && !mood.trim()}
                           className="group flex w-full items-center justify-center gap-3 rounded-xl bg-accent py-4 text-sm font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98] sm:text-base"
                         >
                           {isLocked
-                            ? "Cloud Account or API Key Required"
-                            : "Generate recommendations"}
+                            ? 'Cloud Account or API Key Required'
+                            : 'Generate recommendations'}
                         </button>
                       ) : (
                         <button

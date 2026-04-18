@@ -2,24 +2,17 @@
    Watchlist Page – macOS glass design
    ============================================ */
 
-"use client";
+'use client';
 
-import { toTmdbMediaType } from "@/lib/mediaType";
-import { cn, tmdbImage } from "@/lib/utils";
-import { useBlockedContentStore } from "@/stores/blockedContent";
-import { useWatchlistStore } from "@/stores/watchlist";
-import type { WatchlistItem, WatchlistStatus } from "@/types";
-import {
-  CheckCircle2,
-  Clock,
-  LayoutGrid,
-  PauseCircle,
-  PlayCircle,
-  XCircle,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { toTmdbMediaType } from '@/lib/mediaType';
+import { cn, tmdbImage } from '@/lib/utils';
+import { useBlockedContentStore } from '@/stores/blockedContent';
+import { useWatchlistStore } from '@/stores/watchlist';
+import type { WatchlistItem, WatchlistStatus } from '@/types';
+import { CheckCircle2, Clock, LayoutGrid, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const STATUSES: {
   key: WatchlistStatus;
@@ -28,59 +21,56 @@ const STATUSES: {
   color: string;
 }[] = [
   {
-    key: "Watching",
-    label: "Watching",
+    key: 'Watching',
+    label: 'Watching',
     icon: <PlayCircle className="h-[12px] w-[12px]" />,
-    color: "text-blue-400",
+    color: 'text-blue-400',
   },
   {
-    key: "Planned",
-    label: "Planned",
+    key: 'Planned',
+    label: 'Planned',
     icon: <Clock className="h-[12px] w-[12px]" />,
-    color: "text-yellow-400",
+    color: 'text-yellow-400',
   },
   {
-    key: "Completed",
-    label: "Completed",
+    key: 'Completed',
+    label: 'Completed',
     icon: <CheckCircle2 className="h-[12px] w-[12px]" />,
-    color: "text-green-400",
+    color: 'text-green-400',
   },
   {
-    key: "On-Hold",
-    label: "On Hold",
+    key: 'On-Hold',
+    label: 'On Hold',
     icon: <PauseCircle className="h-[12px] w-[12px]" />,
-    color: "text-orange-400",
+    color: 'text-orange-400',
   },
   {
-    key: "Dropped",
-    label: "Dropped",
+    key: 'Dropped',
+    label: 'Dropped',
     icon: <XCircle className="h-[12px] w-[12px]" />,
-    color: "text-red-400",
+    color: 'text-red-400',
   },
 ];
 
 export default function WatchlistPage() {
   const { items, removeItem, setStatus } = useWatchlistStore();
-  const [activeStatus, setActiveStatus] = useState<WatchlistStatus | "all">(
-    "all",
-  );
-  const [sortBy, setSortBy] = useState<"title" | "added" | "rating">("added");
+  const [activeStatus, setActiveStatus] = useState<WatchlistStatus | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'title' | 'added' | 'rating'>('added');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const blockedItems = useBlockedContentStore((s) => s.blockedItems);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       // Close menu if click is outside any watchlist card menu
-      if (!(e.target as HTMLElement).closest(".watchlist-menu-container")) {
+      if (!(e.target as HTMLElement).closest('.watchlist-menu-container')) {
         setActiveMenuId(null);
       }
     };
     if (activeMenuId) {
-      window.addEventListener("click", handleClickOutside);
+      window.addEventListener('click', handleClickOutside);
     }
-    return () => window.removeEventListener("click", handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
   }, [activeMenuId]);
-
 
   const continueWatching = useMemo(
     () =>
@@ -90,16 +80,10 @@ export default function WatchlistPage() {
             (item.progress?.percentage || 0) > 0.1 &&
             !blockedItems.some((b) => {
               const normalizedType = toTmdbMediaType(item.mediaType);
-              return (
-                String(b.tmdbId) === String(item.tmdbId) &&
-                b.mediaType === normalizedType
-              );
+              return String(b.tmdbId) === String(item.tmdbId) && b.mediaType === normalizedType;
             }),
         )
-        .sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-        )
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
         .slice(0, 12),
     [items, blockedItems],
   );
@@ -108,23 +92,20 @@ export default function WatchlistPage() {
     // Exclude items with status 'none' (those are only for Continue Watching)
     let list = items.filter(
       (i) =>
-        i.status !== "none" &&
+        i.status !== 'none' &&
         !blockedItems.some((b) => {
           const normalizedType = toTmdbMediaType(i.mediaType);
-          return (
-            String(b.tmdbId) === String(i.tmdbId) &&
-            b.mediaType === normalizedType
-          );
+          return String(b.tmdbId) === String(i.tmdbId) && b.mediaType === normalizedType;
         }),
     );
 
-    if (activeStatus !== "all") {
+    if (activeStatus !== 'all') {
       list = list.filter((i: WatchlistItem) => i.status === activeStatus);
     }
 
     list = [...list].sort((a: WatchlistItem, b: WatchlistItem) => {
-      if (sortBy === "title") return a.title.localeCompare(b.title);
-      if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
     });
     return list;
@@ -133,20 +114,15 @@ export default function WatchlistPage() {
   const statusCounts = useMemo(() => {
     const activeItems = items.filter(
       (i) =>
-        i.status !== "none" &&
+        i.status !== 'none' &&
         !blockedItems.some((b) => {
           const normalizedType = toTmdbMediaType(i.mediaType);
-          return (
-            String(b.tmdbId) === String(i.tmdbId) &&
-            b.mediaType === normalizedType
-          );
+          return String(b.tmdbId) === String(i.tmdbId) && b.mediaType === normalizedType;
         }),
     );
     const counts: Record<string, number> = { all: activeItems.length };
     STATUSES.forEach((s) => {
-      counts[s.key] = activeItems.filter(
-        (i: WatchlistItem) => i.status === s.key,
-      ).length;
+      counts[s.key] = activeItems.filter((i: WatchlistItem) => i.status === s.key).length;
     });
     return counts;
   }, [items, blockedItems]);
@@ -155,18 +131,14 @@ export default function WatchlistPage() {
     <div className="relative min-h-screen overflow-x-hidden pt-24 pb-10">
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
-          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">
-            My List
-          </h1>
+          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">My List</h1>
           <p className="mt-1 text-[13px] text-text-muted">
             Track what you watch and continue where you left off
           </p>
         </div>
 
         <div className="mt-2 mb-7 flex items-center justify-between gap-4">
-          <h2 className="text-[20px] font-semibold text-text-primary tracking-tight">
-            Watchlist
-          </h2>
+          <h2 className="text-[20px] font-semibold text-text-primary tracking-tight">Watchlist</h2>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
@@ -182,8 +154,8 @@ export default function WatchlistPage() {
         <div className="w-full overflow-x-auto pb-4 mb-2 -mx-4 px-4 sm:mx-0 sm:px-0 custom-scrollbar">
           <div className="flex gap-2 p-1 rounded-full bg-white/5 w-max">
             <button
-              onClick={() => setActiveStatus("all")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${activeStatus === "all" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+              onClick={() => setActiveStatus('all')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${activeStatus === 'all' ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
             >
               <span className="text-[12px] opacity-80">
                 <LayoutGrid className="h-[12px] w-[12px]" />
@@ -194,7 +166,7 @@ export default function WatchlistPage() {
               <button
                 key={s.key}
                 onClick={() => setActiveStatus(s.key)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${activeStatus === s.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${activeStatus === s.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
               >
                 <span className="text-[12px] opacity-80">{s.icon}</span>
                 {s.label}
@@ -206,23 +178,19 @@ export default function WatchlistPage() {
         {/* Continue Watching */}
         {continueWatching.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-[15px] font-semibold text-text-primary mb-3">
-              Continue Watching
-            </h2>
+            <h2 className="text-[15px] font-semibold text-text-primary mb-3">Continue Watching</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {continueWatching.map((item) => {
                 const href =
-                  item.mediaType === "movie"
-                    ? `/watch/movie/${item.tmdbId}${item.progress?.timestamp ? `?t=${item.progress.timestamp}` : ""}`
-                    : `/watch/show/${item.tmdbId}?s=${item.progress?.season || 1}&e=${item.progress?.episode || 1}${item.progress?.timestamp ? `&t=${item.progress.timestamp}` : ""}`;
+                  item.mediaType === 'movie'
+                    ? `/watch/movie/${item.tmdbId}${item.progress?.timestamp ? `?t=${item.progress.timestamp}` : ''}`
+                    : `/watch/show/${item.tmdbId}?s=${item.progress?.season || 1}&e=${item.progress?.episode || 1}${item.progress?.timestamp ? `&t=${item.progress.timestamp}` : ''}`;
                 return (
                   <ContinueWatchingCard
                     key={`continue-${item.id}`}
                     item={item}
                     href={href}
-                    onRemove={() =>
-                      useWatchlistStore.getState().clearProgress(item.id)
-                    }
+                    onRemove={() => useWatchlistStore.getState().clearProgress(item.id)}
                   />
                 );
               })}
@@ -246,12 +214,8 @@ export default function WatchlistPage() {
                 <path d="M9 12h6M12 9v6" />
               </svg>
             </div>
-            <p className="text-[15px] font-medium text-text-secondary">
-              No items in your list
-            </p>
-            <p className="text-[13px] text-text-muted mt-1">
-              Start browsing to add movies & shows
-            </p>
+            <p className="text-[15px] font-medium text-text-secondary">No items in your list</p>
+            <p className="text-[13px] text-text-muted mt-1">Start browsing to add movies & shows</p>
             <Link href="/browse" className="btn-accent mt-4">
               Browse Content
             </Link>
@@ -309,7 +273,7 @@ function ContinueWatchingCard({
         <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-[10px] bg-[var(--bg-tertiary)]">
           {item.posterPath ? (
             <Image
-              src={tmdbImage(item.posterPath, "w200")}
+              src={tmdbImage(item.posterPath, 'w200')}
               alt={item.title}
               fill
               sizes="80px"
@@ -332,15 +296,13 @@ function ContinueWatchingCard({
           )}
         </div>
         <div className="min-w-0 flex-1 py-1">
-          <p className="truncate text-[13px] font-semibold text-text-primary">
-            {item.title}
-          </p>
+          <p className="truncate text-[13px] font-semibold text-text-primary">{item.title}</p>
           <p className="mt-0.5 text-[11px] text-text-muted">
-            {(item.mediaType === "show" || item.mediaType === "tv") &&
+            {(item.mediaType === 'show' || item.mediaType === 'tv') &&
             item.progress?.season &&
             item.progress?.episode
               ? `S${item.progress.season} E${item.progress.episode}`
-              : "Movie"}
+              : 'Movie'}
           </p>
           <div className="mt-2 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
             <div
@@ -383,25 +345,16 @@ function WatchlistCard({
     onToggleMenu(!isActive);
   };
 
-
   const statusInfo = STATUSES.find((s) => s.key === item.status);
-  const link =
-    item.mediaType === "movie"
-      ? `/movie/${item.tmdbId}`
-      : `/show/${item.tmdbId}`;
+  const link = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/show/${item.tmdbId}`;
 
   return (
-    <div
-      className={cn(
-        "glass-card group relative",
-        isActive && "z-40 overflow-visible",
-      )}
-    >
+    <div className={cn('glass-card group relative', isActive && 'z-40 overflow-visible')}>
       <Link href={link} className="flex gap-3 p-3">
         <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded-[10px] bg-[var(--bg-tertiary)]">
           {item.posterPath ? (
             <Image
-              src={tmdbImage(item.posterPath, "w200")}
+              src={tmdbImage(item.posterPath, 'w200')}
               alt={item.title}
               fill
               sizes="80px"
@@ -424,21 +377,12 @@ function WatchlistCard({
           )}
         </div>
         <div className="flex-1 min-w-0 py-1">
-          <p className="text-[13px] font-semibold text-text-primary truncate">
-            {item.title}
-          </p>
-          <p className="text-[11px] text-text-muted mt-0.5 capitalize">
-            {item.mediaType}
-          </p>
+          <p className="text-[13px] font-semibold text-text-primary truncate">{item.title}</p>
+          <p className="text-[11px] text-text-muted mt-0.5 capitalize">{item.mediaType}</p>
           <div className="flex items-center gap-1.5 mt-2">
             <span className="text-[12px]">{statusInfo?.icon}</span>
-            <span
-              className={cn(
-                "text-[12px] font-medium capitalize",
-                statusInfo?.color,
-              )}
-            >
-              {item.status.replace("-", " ")}
+            <span className={cn('text-[12px] font-medium capitalize', statusInfo?.color)}>
+              {item.status.replace('-', ' ')}
             </span>
           </div>
           {item.progress && item.progress.percentage != null && (
@@ -464,12 +408,10 @@ function WatchlistCard({
                   width="12"
                   height="12"
                   viewBox="0 0 24 24"
-                  fill={i < item.rating! ? "currentColor" : "none"}
+                  fill={i < item.rating! ? 'currentColor' : 'none'}
                   stroke="currentColor"
                   strokeWidth="2"
-                  className={cn(
-                    i < item.rating! ? "text-amber-400" : "text-text-muted",
-                  )}
+                  className={cn(i < item.rating! ? 'text-amber-400' : 'text-text-muted')}
                 >
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
@@ -482,7 +424,7 @@ function WatchlistCard({
       {/* Hover menu */}
       <div
         className={cn(
-          "absolute right-2 top-2 transition-opacity opacity-100 watchlist-menu-container",
+          'absolute right-2 top-2 transition-opacity opacity-100 watchlist-menu-container',
         )}
       >
         <div className="relative">
@@ -500,10 +442,8 @@ function WatchlistCard({
           {isActive && (
             <div
               className={cn(
-                "absolute right-0 panel-glass w-40 p-1.5 z-50 animate-scale-in rounded-[12px] origin-top-right",
-                openUp
-                  ? "bottom-full mb-2 origin-bottom-right"
-                  : "top-full mt-1",
+                'absolute right-0 panel-glass w-40 p-1.5 z-50 animate-scale-in rounded-[12px] origin-top-right',
+                openUp ? 'bottom-full mb-2 origin-bottom-right' : 'top-full mt-1',
               )}
             >
               {STATUSES.map((s) => (
@@ -515,10 +455,10 @@ function WatchlistCard({
                     onToggleMenu(false);
                   }}
                   className={cn(
-                    "w-full rounded-[8px] px-3 py-1.5 text-left text-[12px] transition-colors flex items-center gap-2",
+                    'w-full rounded-[8px] px-3 py-1.5 text-left text-[12px] transition-colors flex items-center gap-2',
                     item.status === s.key
-                      ? "bg-accent/15 text-accent"
-                      : "text-text-secondary hover:bg-[var(--bg-glass-light)]",
+                      ? 'bg-accent/15 text-accent'
+                      : 'text-text-secondary hover:bg-[var(--bg-glass-light)]',
                   )}
                 >
                   <span>{s.icon}</span>

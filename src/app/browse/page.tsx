@@ -2,24 +2,24 @@
    Browse Page – macOS-style segmented tabs
    ============================================ */
 
-"use client";
+'use client';
 
-import { MediaCard, MediaCardSkeleton } from "@/components/media/MediaCard";
-import { normalizeMediaType } from "@/lib/mediaType";
-import { discover, getGenres, getPopular, getTrending } from "@/lib/tmdb";
-import { cn } from "@/lib/utils";
-import { useBlockedContentStore } from "@/stores/blockedContent";
-import type { Genre, MediaItem } from "@/types";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { MediaCard, MediaCardSkeleton } from '@/components/media/MediaCard';
+import { normalizeMediaType } from '@/lib/mediaType';
+import { discover, getGenres, getPopular, getTrending } from '@/lib/tmdb';
+import { cn } from '@/lib/utils';
+import { useBlockedContentStore } from '@/stores/blockedContent';
+import type { Genre, MediaItem } from '@/types';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
-type Tab = "trending" | "movies" | "shows";
-type Filter = "popular" | "top_rated" | string;
+type Tab = 'trending' | 'movies' | 'shows';
+type Filter = 'popular' | 'top_rated' | string;
 
 export default function BrowsePage() {
-  const [tab, setTab] = useState<Tab>("trending");
-  const [filter, setFilter] = useState<Filter>("popular");
-  const [year, setYear] = useState("");
+  const [tab, setTab] = useState<Tab>('trending');
+  const [filter, setFilter] = useState<Filter>('popular');
+  const [year, setYear] = useState('');
   const [items, setItems] = useState<MediaItem[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [movieGenres, setMovieGenres] = useState<Genre[]>([]);
@@ -33,10 +33,7 @@ export default function BrowsePage() {
   useEffect(() => {
     (async () => {
       try {
-        const [movieG, tvG] = await Promise.all([
-          getGenres("movie"),
-          getGenres("tv"),
-        ]);
+        const [movieG, tvG] = await Promise.all([getGenres('movie'), getGenres('tv')]);
         setMovieGenres(movieG);
         setTvGenres(tvG);
       } catch (_) {}
@@ -44,8 +41,8 @@ export default function BrowsePage() {
   }, []);
 
   useEffect(() => {
-    if (tab === "movies") setGenres(movieGenres);
-    else if (tab === "shows") setGenres(tvGenres);
+    if (tab === 'movies') setGenres(movieGenres);
+    else if (tab === 'shows') setGenres(tvGenres);
     else setGenres([]);
   }, [tab, movieGenres, tvGenres]);
 
@@ -61,43 +58,37 @@ export default function BrowsePage() {
       setIsLoading(true);
       try {
         let results: MediaItem[] = [];
-        const mediaType =
-          tab === "movies" ? "movie" : tab === "shows" ? "tv" : "all";
+        const mediaType = tab === 'movies' ? 'movie' : tab === 'shows' ? 'tv' : 'all';
 
-        if (tab === "trending") {
-          results = await getTrending(mediaType, "week", p);
+        if (tab === 'trending') {
+          results = await getTrending(mediaType, 'week', p);
         } else {
           const params: Record<string, string> = {
             page: String(p),
-            sort_by: "popularity.desc", // Domyślne sortowanie
+            sort_by: 'popularity.desc', // Domyślne sortowanie
           };
 
-          if (filter !== "popular" && filter !== "top_rated") {
+          if (filter !== 'popular' && filter !== 'top_rated') {
             params.with_genres = filter;
-          } else if (filter === "top_rated") {
-            params["vote_count.gte"] = "500";
-            params.sort_by = "vote_average.desc";
+          } else if (filter === 'top_rated') {
+            params['vote_count.gte'] = '500';
+            params.sort_by = 'vote_average.desc';
           }
 
           if (year) {
-            const yearKey =
-              tab === "movies" ? "primary_release_year" : "first_air_date_year";
+            const yearKey = tab === 'movies' ? 'primary_release_year' : 'first_air_date_year';
             params[yearKey] = year;
           }
 
-          results = await discover(mediaType as "movie" | "tv", params);
+          results = await discover(mediaType as 'movie' | 'tv', params);
         }
 
-        const filteredResults = results.filter(
-          (item) => !isBlocked(item.tmdbId, item.mediaType),
-        );
+        const filteredResults = results.filter((item) => !isBlocked(item.tmdbId, item.mediaType));
 
         if (results.length < 20) setHasMore(false);
-        setItems((prev) =>
-          reset ? filteredResults : [...prev, ...filteredResults],
-        );
+        setItems((prev) => (reset ? filteredResults : [...prev, ...filteredResults]));
       } catch (err) {
-        console.error("Failed to load browse items:", err);
+        console.error('Failed to load browse items:', err);
       } finally {
         setIsLoading(false);
       }
@@ -117,26 +108,17 @@ export default function BrowsePage() {
     setIsLoading(true);
     try {
       const type =
-        tab === "movies"
-          ? "movie"
-          : tab === "shows"
-            ? "tv"
-            : Math.random() > 0.5
-              ? "movie"
-              : "tv";
+        tab === 'movies' ? 'movie' : tab === 'shows' ? 'tv' : Math.random() > 0.5 ? 'movie' : 'tv';
       const randomPage = Math.floor(Math.random() * 5) + 1;
-      const results = await getPopular(type as "movie" | "tv", randomPage);
-      const filteredResults = results.filter(
-        (item) => !isBlocked(item.tmdbId, item.mediaType),
-      );
+      const results = await getPopular(type as 'movie' | 'tv', randomPage);
+      const filteredResults = results.filter((item) => !isBlocked(item.tmdbId, item.mediaType));
       if (filteredResults.length > 0) {
-        const randomItem =
-          filteredResults[Math.floor(Math.random() * filteredResults.length)];
+        const randomItem = filteredResults[Math.floor(Math.random() * filteredResults.length)];
         const routeType = normalizeMediaType(randomItem.mediaType);
         router.push(`/${routeType}/${randomItem.tmdbId}`);
       }
     } catch (err) {
-      console.error("Failed to get random item:", err);
+      console.error('Failed to get random item:', err);
     } finally {
       setIsLoading(false);
     }
@@ -144,8 +126,8 @@ export default function BrowsePage() {
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     {
-      key: "trending",
-      label: "Trending",
+      key: 'trending',
+      label: 'Trending',
       icon: (
         <svg
           width="14"
@@ -160,8 +142,8 @@ export default function BrowsePage() {
       ),
     },
     {
-      key: "movies",
-      label: "Movies",
+      key: 'movies',
+      label: 'Movies',
       icon: (
         <svg
           width="14"
@@ -183,8 +165,8 @@ export default function BrowsePage() {
       ),
     },
     {
-      key: "shows",
-      label: "TV Shows",
+      key: 'shows',
+      label: 'TV Shows',
       icon: (
         <svg
           width="14"
@@ -202,17 +184,15 @@ export default function BrowsePage() {
   ];
 
   const filters: { key: Filter; label: string }[] = [
-    { key: "popular", label: "Popular" },
-    { key: "top_rated", label: "Top Rated" },
+    { key: 'popular', label: 'Popular' },
+    { key: 'top_rated', label: 'Top Rated' },
   ];
 
   return (
     <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
-          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">
-            Browse
-          </h1>
+          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Browse</h1>
           <p className="mt-1 text-[13px] text-text-muted">
             Discover trending titles and explore by genre
           </p>
@@ -226,9 +206,9 @@ export default function BrowsePage() {
                 key={t.key}
                 onClick={() => {
                   setTab(t.key);
-                  setFilter("popular");
+                  setFilter('popular');
                 }}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border ${tab === t.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border ${tab === t.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
               >
                 <span className="opacity-80">{t.icon}</span>
                 {t.label}
@@ -237,7 +217,7 @@ export default function BrowsePage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {tab !== "trending" && (
+            {tab !== 'trending' && (
               <input
                 type="number"
                 placeholder="Year"
@@ -258,13 +238,13 @@ export default function BrowsePage() {
         </div>
 
         {/* Sub-filters (Gatunki zawinięte, bez scrolla) */}
-        {tab !== "trending" && (
+        {tab !== 'trending' && (
           <div className="flex flex-wrap items-center gap-2 mb-6">
             {filters.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === f.key ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === f.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
               >
                 {f.label}
               </button>
@@ -274,7 +254,7 @@ export default function BrowsePage() {
               <button
                 key={g.id}
                 onClick={() => setFilter(String(g.id))}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === String(g.id) ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === String(g.id) ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
               >
                 {g.name}
               </button>
@@ -288,13 +268,11 @@ export default function BrowsePage() {
             <MediaCard
               key={`${item.id}-${item.mediaType}`}
               item={item}
-              showType={tab === "trending"}
+              showType={tab === 'trending'}
             />
           ))}
           {isLoading &&
-            Array.from({ length: 12 }).map((_, i) => (
-              <MediaCardSkeleton key={`skel-${i}`} />
-            ))}
+            Array.from({ length: 12 }).map((_, i) => <MediaCardSkeleton key={`skel-${i}`} />)}
         </div>
 
         {/* Load More */}

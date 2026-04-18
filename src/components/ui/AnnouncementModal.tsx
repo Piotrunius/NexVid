@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { loadPublicAnnouncements } from "@/lib/cloudSync";
-import { cn } from "@/lib/utils";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { loadPublicAnnouncements } from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface Announcement {
   id: string;
   message: string;
-  type: "info" | "warning" | "update" | "success";
+  type: 'info' | 'warning' | 'update' | 'success';
   link?: { url: string; label: string };
 }
 
 const TYPE_CONFIG = {
   info: {
-    title: "Notice",
+    title: 'Notice',
     icon: (
       <svg
         width="24"
@@ -28,12 +28,12 @@ const TYPE_CONFIG = {
         <path d="M12 16v-4M12 8h.01" />
       </svg>
     ),
-    color: "text-accent",
-    bg: "bg-accent/10",
-    border: "border-accent/20",
+    color: 'text-accent',
+    bg: 'bg-accent/10',
+    border: 'border-accent/20',
   },
   warning: {
-    title: "Warning",
+    title: 'Warning',
     icon: (
       <svg
         width="24"
@@ -47,12 +47,12 @@ const TYPE_CONFIG = {
         <path d="M12 9v4M12 17h.01" />
       </svg>
     ),
-    color: "text-yellow-500",
-    bg: "bg-yellow-500/10",
-    border: "border-yellow-500/20",
+    color: 'text-yellow-500',
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/20',
   },
   update: {
-    title: "Update",
+    title: 'Update',
     icon: (
       <svg
         width="24"
@@ -68,12 +68,12 @@ const TYPE_CONFIG = {
         <path d="M16 16h5v5" />
       </svg>
     ),
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
   },
   success: {
-    title: "Announcement",
+    title: 'Announcement',
     icon: (
       <svg
         width="24"
@@ -87,9 +87,9 @@ const TYPE_CONFIG = {
         <polyline points="22 4 12 14.01 9 11.01" />
       </svg>
     ),
-    color: "text-green-500",
-    bg: "bg-green-500/10",
-    border: "border-green-500/20",
+    color: 'text-green-500',
+    bg: 'bg-green-500/10',
+    border: 'border-green-500/20',
   },
 };
 
@@ -101,7 +101,7 @@ export function AnnouncementModal() {
   // Allow everywhere, but user specified homepage style behavior?
   // Usually important announcements should show everywhere until dismissed.
   // But let's restrict to homepage to avoid interrupting playback/browsing too much if they prefer.
-  const isHomepage = pathname === "/" || pathname === "";
+  const isHomepage = pathname === '/' || pathname === '';
 
   useEffect(() => {
     const checkAnnouncements = async () => {
@@ -114,16 +114,14 @@ export function AnnouncementModal() {
         if (!latest) return;
 
         const id = latest.id;
-        const isDismissed = localStorage.getItem(
-          `announcement_dismissed_${id}`,
-        );
+        const isDismissed = localStorage.getItem(`announcement_dismissed_${id}`);
 
         if (isDismissed) return;
 
         setAnnouncement(latest);
         setIsVisible(true);
       } catch (err) {
-        console.error("Failed to load announcements:", err);
+        console.error('Failed to load announcements:', err);
       }
     };
 
@@ -132,7 +130,7 @@ export function AnnouncementModal() {
 
   const handleClose = () => {
     if (announcement) {
-      localStorage.setItem(`announcement_dismissed_${announcement.id}`, "true");
+      localStorage.setItem(`announcement_dismissed_${announcement.id}`, 'true');
     }
     setIsVisible(false);
   };
@@ -147,7 +145,7 @@ export function AnnouncementModal() {
         <div className="relative p-8 text-center">
           <div
             className={cn(
-              "mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-500 hover:scale-110",
+              'mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-500 hover:scale-110',
               config.bg,
               config.color,
             )}
@@ -155,9 +153,7 @@ export function AnnouncementModal() {
             {config.icon}
           </div>
 
-          <h2 className="mb-3 text-[22px] font-black tracking-tight text-white">
-            {config.title}
-          </h2>
+          <h2 className="mb-3 text-[22px] font-black tracking-tight text-white">{config.title}</h2>
           <p className="mb-8 whitespace-pre-wrap text-[15px] leading-relaxed text-white/70">
             {announcement.message}
           </p>
@@ -170,7 +166,7 @@ export function AnnouncementModal() {
                 rel="noopener noreferrer"
                 className="btn-accent flex w-full items-center justify-center py-4 font-bold uppercase tracking-widest shadow-[0_8px_24px_rgba(var(--accent-rgb),0.3)]"
               >
-                {announcement.link.label || "Learn more"}
+                {announcement.link.label || 'Learn more'}
               </a>
             )}
             <button

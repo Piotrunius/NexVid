@@ -2,35 +2,30 @@
    Login / Register Page – macOS glass card
    ============================================ */
 
-"use client";
+'use client';
 
-import { toast } from "@/components/ui/Toaster";
-import { Turnstile } from "@/components/ui/Turnstile";
-import { hasCloudBackend } from "@/lib/cloudSync";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth";
-import { LIMITS, VALID_USERNAME_REGEX } from "@/lib/validation";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { toast } from '@/components/ui/Toaster';
+import { Turnstile } from '@/components/ui/Turnstile';
+import { hasCloudBackend } from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { LIMITS, VALID_USERNAME_REGEX } from '@/lib/validation';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-type Mode = "login" | "register";
+type Mode = 'login' | 'register';
 const { PASSWORD_MIN, PASSWORD_MAX, USERNAME_MIN, USERNAME_MAX } = LIMITS;
 
 export default function LoginPage() {
   const router = useRouter();
-  const {
-    loginLocal,
-    registerLocal,
-    loginWithBackend,
-    registerWithBackend,
-    isLoggedIn,
-  } = useAuthStore();
+  const { loginLocal, registerLocal, loginWithBackend, registerWithBackend, isLoggedIn } =
+    useAuthStore();
 
-  const [mode, setMode] = useState<Mode>("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mode, setMode] = useState<Mode>('login');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [hasTurnstile, setHasTurnstile] = useState(true);
@@ -38,48 +33,45 @@ export default function LoginPage() {
   const hasBackendConfigured = hasCloudBackend();
 
   const isNetworkBackendError = (err: unknown): boolean => {
-    const message = err instanceof Error ? err.message : String(err || "");
+    const message = err instanceof Error ? err.message : String(err || '');
     return (
-      message.includes("Network error while contacting cloud backend") ||
-      message.includes("Failed to fetch") ||
-      message.includes("AbortError")
+      message.includes('Network error while contacting cloud backend') ||
+      message.includes('Failed to fetch') ||
+      message.includes('AbortError')
     );
   };
 
   useEffect(() => {
-    if (isLoggedIn) router.push("/");
+    if (isLoggedIn) router.push('/');
   }, [isLoggedIn, router]);
 
   if (isLoggedIn) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "register" && password !== confirmPassword) {
-      toast("Passwords do not match", "error");
+    if (mode === 'register' && password !== confirmPassword) {
+      toast('Passwords do not match', 'error');
       return;
     }
-    if (mode === "register") {
+    if (mode === 'register') {
       if (!VALID_USERNAME_REGEX.test(username.trim())) {
-        toast(
-          "Username can only contain letters, numbers, dots, underscores, and dashes",
-          "error",
-        );
+        toast('Username can only contain letters, numbers, dots, underscores, and dashes', 'error');
         return;
       }
       if (username.trim().length < USERNAME_MIN) {
-        toast(`Username must be at least ${USERNAME_MIN} characters`, "error");
+        toast(`Username must be at least ${USERNAME_MIN} characters`, 'error');
         return;
       }
       if (username.trim().length > USERNAME_MAX) {
-        toast(`Username cannot exceed ${USERNAME_MAX} characters`, "error");
+        toast(`Username cannot exceed ${USERNAME_MAX} characters`, 'error');
         return;
       }
       if (password.length < PASSWORD_MIN) {
-        toast(`Password must be at least ${PASSWORD_MIN} characters`, "error");
+        toast(`Password must be at least ${PASSWORD_MIN} characters`, 'error');
         return;
       }
       if (password.length > PASSWORD_MAX) {
-        toast(`Password cannot exceed ${PASSWORD_MAX} characters`, "error");
+        toast(`Password cannot exceed ${PASSWORD_MAX} characters`, 'error');
         return;
       }
     }
@@ -87,32 +79,31 @@ export default function LoginPage() {
     try {
       if (hasBackendConfigured) {
         try {
-          if (mode === "login")
-            await loginWithBackend(username, password, turnstileToken);
+          if (mode === 'login') await loginWithBackend(username, password, turnstileToken);
           else await registerWithBackend(username, password, turnstileToken);
         } catch (err) {
           if (!isNetworkBackendError(err)) throw err;
 
-          if (mode === "login") loginLocal(username);
+          if (mode === 'login') loginLocal(username);
           else registerLocal(username);
 
           toast(
-            mode === "login"
-              ? "Backend unavailable, signed in locally."
-              : "Backend unavailable, created a local account.",
-            "warning",
+            mode === 'login'
+              ? 'Backend unavailable, signed in locally.'
+              : 'Backend unavailable, created a local account.',
+            'warning',
           );
-          router.push("/");
+          router.push('/');
           return;
         }
       } else {
-        if (mode === "login") loginLocal(username);
+        if (mode === 'login') loginLocal(username);
         else registerLocal(username);
       }
-      toast(mode === "login" ? "Welcome back!" : "Account created!", "success");
-      router.push("/");
+      toast(mode === 'login' ? 'Welcome back!' : 'Account created!', 'success');
+      router.push('/');
     } catch (err: any) {
-      toast(err?.message || "Authentication failed", "error");
+      toast(err?.message || 'Authentication failed', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -128,9 +119,7 @@ export default function LoginPage() {
             <span className="text-text-primary">Vid</span>
           </Link>
           <p className="text-[13px] text-text-muted mt-1">
-            {mode === "login"
-              ? "Sign in to your account"
-              : "Create a new account"}
+            {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
           </p>
         </div>
 
@@ -139,14 +128,14 @@ export default function LoginPage() {
           {/* Segmented control matching Admin Feedback style */}
           <div className="flex gap-2 p-1 rounded-full bg-white/5 mb-6 w-full">
             <button
-              onClick={() => setMode("login")}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === "login" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+              onClick={() => setMode('login')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === 'login' ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
             >
               Sign In
             </button>
             <button
-              onClick={() => setMode("register")}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === "register" ? "bg-accent-muted text-accent border-accent-glow" : "bg-transparent text-white/40 border-transparent hover:text-white"}`}
+              onClick={() => setMode('register')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === 'register' ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
             >
               Register
             </button>
@@ -183,7 +172,7 @@ export default function LoginPage() {
                 maxLength={PASSWORD_MAX}
               />
             </div>
-            {mode === "register" && (
+            {mode === 'register' && (
               <div>
                 <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
                   Confirm Password
@@ -200,20 +189,13 @@ export default function LoginPage() {
                 />
               </div>
             )}
-            <Turnstile
-              onVerify={setTurnstileToken}
-              onAvailabilityChange={setHasTurnstile}
-            />
+            <Turnstile onVerify={setTurnstileToken} onAvailabilityChange={setHasTurnstile} />
             <button
               type="submit"
               disabled={isSubmitting || (hasTurnstile && !turnstileToken)}
               className="btn-accent w-full !py-3 !rounded-full text-[14px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-center leading-none !gap-0 overflow-hidden"
             >
-              {isSubmitting
-                ? "Please wait..."
-                : mode === "login"
-                  ? "Sign In"
-                  : "Create Account"}
+              {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
 

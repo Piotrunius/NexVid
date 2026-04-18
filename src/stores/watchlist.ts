@@ -2,25 +2,25 @@
    Watchlist Store (Zustand)
    ============================================ */
 
-import { getCloudToken, saveCloudWatchlist } from "@/lib/cloudSync";
-import { normalizeMediaType as normalizeMediaTypeBase } from "@/lib/mediaType";
-import { generateId } from "@/lib/utils";
-import type { MediaType, WatchlistItem, WatchlistStatus } from "@/types";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { getCloudToken, saveCloudWatchlist } from '@/lib/cloudSync';
+import { normalizeMediaType as normalizeMediaTypeBase } from '@/lib/mediaType';
+import { generateId } from '@/lib/utils';
+import type { MediaType, WatchlistItem, WatchlistStatus } from '@/types';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface WatchlistStore {
   items: WatchlistItem[];
   setItems: (items: WatchlistItem[]) => void;
 
-  addItem: (item: Omit<WatchlistItem, "id" | "addedAt" | "updatedAt">) => void;
+  addItem: (item: Omit<WatchlistItem, 'id' | 'addedAt' | 'updatedAt'>) => void;
   removeItem: (id: string) => void;
   clearProgress: (id: string) => void; // New: Clears progress but keeps in My List
   updateItem: (id: string, partial: Partial<WatchlistItem>) => void;
   setStatus: (id: string, status: WatchlistStatus) => void;
   updateProgress: (
     id: string,
-    progress: WatchlistItem["progress"],
+    progress: WatchlistItem['progress'],
     mediaMeta?: {
       tmdbId: string;
       mediaType: MediaType;
@@ -45,37 +45,34 @@ function normalizeMediaType(raw: unknown): MediaType {
 }
 
 function normalizeWatchlistStatus(raw: unknown): WatchlistStatus {
-  const value = String(raw || "").trim();
+  const value = String(raw || '').trim();
   if (
-    value === "Planned" ||
-    value === "Watching" ||
-    value === "Completed" ||
-    value === "Dropped" ||
-    value === "On-Hold" ||
-    value === "none"
+    value === 'Planned' ||
+    value === 'Watching' ||
+    value === 'Completed' ||
+    value === 'Dropped' ||
+    value === 'On-Hold' ||
+    value === 'none'
   ) {
     return value;
   }
-  return "Planned";
+  return 'Planned';
 }
 
 function normalizeWatchlistItem(item: any): WatchlistItem {
-  const tmdbId = String(item?.tmdbId ?? item?.tmdb_id ?? item?.id ?? "").trim();
+  const tmdbId = String(item?.tmdbId ?? item?.tmdb_id ?? item?.id ?? '').trim();
   const now = new Date().toISOString();
   const rawType = item?.mediaType ?? item?.media_type ?? item?.type;
   const normalizedFromRaw = normalizeMediaType(rawType);
   const hasEpisodeProgress =
-    Number(item?.progress?.season || 0) > 0 ||
-    Number(item?.progress?.episode || 0) > 0;
-  const normalizedMediaType: MediaType = hasEpisodeProgress
-    ? "show"
-    : normalizedFromRaw;
+    Number(item?.progress?.season || 0) > 0 || Number(item?.progress?.episode || 0) > 0;
+  const normalizedMediaType: MediaType = hasEpisodeProgress ? 'show' : normalizedFromRaw;
 
   return {
     ...item,
     tmdbId,
     mediaType: normalizedMediaType,
-    title: String(item?.title ?? item?.name ?? ""),
+    title: String(item?.title ?? item?.name ?? ''),
     posterPath: item?.posterPath ?? item?.poster_path ?? null,
     status: normalizeWatchlistStatus(item?.status),
     addedAt: item?.addedAt || now,
@@ -98,9 +95,9 @@ export const useWatchlistStore = create<WatchlistStore>()(
         const existing = get().items.find((i) => i.tmdbId === item.tmdbId);
         if (existing) {
           // If already in list but hidden (only in continue Watching), unhide it
-          if (existing.status === "none" || existing.hidden) {
+          if (existing.status === 'none' || existing.hidden) {
             get().updateItem(existing.id, {
-              status: item.status || "Planned",
+              status: item.status || 'Planned',
               hidden: false,
             });
           }
@@ -113,7 +110,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
           id: generateId(),
           addedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          status: item.status || "Planned",
+          status: item.status || 'Planned',
         };
         set((state: any) => {
           const next = [...state.items, newItem];
@@ -140,7 +137,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
               i.id === id
                 ? {
                     ...i,
-                    status: "none",
+                    status: 'none',
                     hidden: true,
                     updatedAt: new Date().toISOString(),
                   }
@@ -164,7 +161,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
           if (!item) return state;
 
           let next;
-          if (item.status === "none") {
+          if (item.status === 'none') {
             next = state.items.filter((i: WatchlistItem) => i.id !== id);
           } else {
             next = state.items.map((i: WatchlistItem) =>
@@ -187,9 +184,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
       updateItem: (id, partial) =>
         set((state: any) => {
           const next = state.items.map((i: WatchlistItem) =>
-            i.id === id
-              ? { ...i, ...partial, updatedAt: new Date().toISOString() }
-              : i,
+            i.id === id ? { ...i, ...partial, updatedAt: new Date().toISOString() } : i,
           );
           if (getCloudToken()) {
             void saveCloudWatchlist(next).catch(() => {});
@@ -204,7 +199,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
               ? {
                   ...i,
                   status,
-                  hidden: status === "none",
+                  hidden: status === 'none',
                   updatedAt: new Date().toISOString(),
                 }
               : i,
@@ -217,7 +212,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
 
       updateProgress: (
         id: string,
-        progress: WatchlistItem["progress"],
+        progress: WatchlistItem['progress'],
         mediaMeta?: {
           tmdbId: string;
           mediaType: MediaType;
@@ -228,10 +223,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
         set((state: any) => {
           let found = false;
           const next = state.items.map((i: WatchlistItem) => {
-            if (
-              i.id === id ||
-              (mediaMeta && String(i.tmdbId) === String(mediaMeta.tmdbId))
-            ) {
+            if (i.id === id || (mediaMeta && String(i.tmdbId) === String(mediaMeta.tmdbId))) {
               found = true;
               // Accumulate forward playback delta into totalWatchedMinutes.
               // We only count small forward steps (≤120 s) so that seeking
@@ -241,8 +233,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
               const newTimestamp = progress?.timestamp ?? 0;
               const delta = newTimestamp - prevTimestamp;
               const addedMinutes = delta > 0 && delta <= 120 ? delta / 60 : 0;
-              const totalWatchedMinutes =
-                (i.totalWatchedMinutes ?? 0) + addedMinutes;
+              const totalWatchedMinutes = (i.totalWatchedMinutes ?? 0) + addedMinutes;
 
               // Do NOT auto-change status to 'Watching' anymore.
               // Keep existing status (could be 'none', 'Planned', etc.)
@@ -263,7 +254,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
               mediaType: normalizeMediaType(mediaMeta.mediaType),
               title: mediaMeta.title,
               posterPath: mediaMeta.posterPath,
-              status: "none", // Default to none so it only shows in Continue Watching
+              status: 'none', // Default to none so it only shows in Continue Watching
               progress,
               totalWatchedMinutes: 0,
               addedAt: new Date().toISOString(),
@@ -289,9 +280,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
       setRating: (id, rating) =>
         set((state: any) => {
           const next = state.items.map((i: WatchlistItem) =>
-            i.id === id
-              ? { ...i, rating, updatedAt: new Date().toISOString() }
-              : i,
+            i.id === id ? { ...i, rating, updatedAt: new Date().toISOString() } : i,
           );
           if (getCloudToken()) {
             void saveCloudWatchlist(next).catch(() => {});
@@ -302,9 +291,7 @@ export const useWatchlistStore = create<WatchlistStore>()(
       setNotes: (id, notes) =>
         set((state: any) => {
           const next = state.items.map((i: WatchlistItem) =>
-            i.id === id
-              ? { ...i, notes, updatedAt: new Date().toISOString() }
-              : i,
+            i.id === id ? { ...i, notes, updatedAt: new Date().toISOString() } : i,
           );
           if (getCloudToken()) {
             void saveCloudWatchlist(next).catch(() => {});
@@ -315,13 +302,11 @@ export const useWatchlistStore = create<WatchlistStore>()(
       getByTmdbId: (tmdbId) => get().items.find((i) => i.tmdbId === tmdbId),
       getByStatus: (status) => get().items.filter((i) => i.status === status),
       isInWatchlist: (tmdbId) =>
-        get().items.some((i) => i.tmdbId === tmdbId && i.status !== "none"),
+        get().items.some((i) => i.tmdbId === tmdbId && i.status !== 'none'),
 
       importItems: (items) =>
         set((state: any) => {
-          const existing = new Set(
-            state.items.map((i: WatchlistItem) => i.tmdbId),
-          );
+          const existing = new Set(state.items.map((i: WatchlistItem) => i.tmdbId));
           const newItems = (items || [])
             .map(normalizeWatchlistItem)
             .filter((i) => i.tmdbId && !existing.has(i.tmdbId));
@@ -341,13 +326,10 @@ export const useWatchlistStore = create<WatchlistStore>()(
       },
     }),
     {
-      name: "nexvid-watchlist",
+      name: 'nexvid-watchlist',
       merge: (persistedState, currentState) => {
-        const typedPersisted = (persistedState ||
-          {}) as Partial<WatchlistStore>;
-        const rawItems = Array.isArray(typedPersisted.items)
-          ? typedPersisted.items
-          : [];
+        const typedPersisted = (persistedState || {}) as Partial<WatchlistStore>;
+        const rawItems = Array.isArray(typedPersisted.items) ? typedPersisted.items : [];
         const normalizedItems = rawItems
           .map(normalizeWatchlistItem)
           .filter((item) => Boolean(item.tmdbId));

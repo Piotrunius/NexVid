@@ -3,25 +3,19 @@
    Applies theme, accent, glass settings
    ============================================ */
 
-"use client";
+'use client';
 
-import { toast } from "@/components/ui/Toaster";
-import {
-  hasCloudBackend,
-  loadCloudSettings,
-  loadCloudWatchlist,
-} from "@/lib/cloudSync";
-import { useAuthStore } from "@/stores/auth";
-import { useBlockedContentStore } from "@/stores/blockedContent";
-import { DEFAULT_SETTINGS, useSettingsStore } from "@/stores/settings";
-import { useWatchlistStore } from "@/stores/watchlist";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { toast } from '@/components/ui/Toaster';
+import { hasCloudBackend, loadCloudSettings, loadCloudWatchlist } from '@/lib/cloudSync';
+import { useAuthStore } from '@/stores/auth';
+import { useBlockedContentStore } from '@/stores/blockedContent';
+import { DEFAULT_SETTINGS, useSettingsStore } from '@/stores/settings';
+import { useWatchlistStore } from '@/stores/watchlist';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { theme, accentColor, customAccentHex, glassEffect } = useSettingsStore(
-    (s) => s.settings,
-  );
+  const { theme, accentColor, customAccentHex, glassEffect } = useSettingsStore((s) => s.settings);
   const setAllSettings = useSettingsStore((s) => s.setAllSettings);
   const setItems = useWatchlistStore((s) => s.setItems);
   const fetchBlockedItems = useBlockedContentStore((s) => s.fetchBlockedItems);
@@ -30,17 +24,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const lastToastAtRef = useRef(0);
 
   const normalizeHex = (value: string): string | null => {
-    const raw = String(value || "").trim();
+    const raw = String(value || '').trim();
     if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
     if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
-      const chars = raw.slice(1).split("");
-      return `#${chars.map((char) => `${char}${char}`).join("")}`.toLowerCase();
+      const chars = raw.slice(1).split('');
+      return `#${chars.map((char) => `${char}${char}`).join('')}`.toLowerCase();
     }
     return null;
   };
 
   const hexToRgb = (hex: string): [number, number, number] => {
-    const value = hex.replace("#", "");
+    const value = hex.replace('#', '');
     return [
       Number.parseInt(value.slice(0, 2), 16),
       Number.parseInt(value.slice(2, 4), 16),
@@ -62,40 +56,31 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.setAttribute("data-theme", theme);
-    root.setAttribute("data-accent", accentColor);
+    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-accent', accentColor);
     // Force simpler UI style all the time
-    root.setAttribute("data-glass", "off");
+    root.setAttribute('data-glass', 'off');
 
-    if (accentColor === "custom") {
-      const normalized = normalizeHex(customAccentHex) || "#6366f1";
+    if (accentColor === 'custom') {
+      const normalized = normalizeHex(customAccentHex) || '#6366f1';
       const rgb = hexToRgb(normalized);
       const hover = mixWithWhite(rgb, 0.16);
 
-      root.style.setProperty("--accent", normalized);
-      root.style.setProperty(
-        "--accent-hover",
-        `rgb(${hover[0]}, ${hover[1]}, ${hover[2]})`,
-      );
-      root.style.setProperty(
-        "--accent-muted",
-        `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.2)`,
-      );
-      root.style.setProperty(
-        "--accent-glow",
-        `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.45)`,
-      );
+      root.style.setProperty('--accent', normalized);
+      root.style.setProperty('--accent-hover', `rgb(${hover[0]}, ${hover[1]}, ${hover[2]})`);
+      root.style.setProperty('--accent-muted', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.2)`);
+      root.style.setProperty('--accent-glow', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.45)`);
     } else {
-      root.style.removeProperty("--accent");
-      root.style.removeProperty("--accent-hover");
-      root.style.removeProperty("--accent-muted");
-      root.style.removeProperty("--accent-glow");
+      root.style.removeProperty('--accent');
+      root.style.removeProperty('--accent-hover');
+      root.style.removeProperty('--accent-muted');
+      root.style.removeProperty('--accent-glow');
     }
 
-    if (theme === "dark") {
-      root.classList.add("dark");
+    if (theme === 'dark') {
+      root.classList.add('dark');
     } else {
-      root.classList.remove("dark");
+      root.classList.remove('dark');
     }
   }, [theme, accentColor, customAccentHex, glassEffect]);
 
@@ -117,7 +102,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         if (cancelled) return;
-        if (settingsRes?.settings && typeof settingsRes.settings === "object") {
+        if (settingsRes?.settings && typeof settingsRes.settings === 'object') {
           setAllSettings({
             ...DEFAULT_SETTINGS,
             ...(settingsRes.settings as any),
@@ -135,18 +120,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [setAllSettings, setItems, hydrateBackendSession]);
 
   useEffect(() => {
-    if (
-      isLoggedIn &&
-      user?.requiresPasswordChange &&
-      pathname !== "/settings"
-    ) {
+    if (isLoggedIn && user?.requiresPasswordChange && pathname !== '/settings') {
       const now = Date.now();
       // Show every 30s if still not changed
       if (now - lastToastAtRef.current > 30000) {
-        toast(
-          "Action Required: Please change your temporary password in Settings.",
-          "warning",
-        );
+        toast('Action Required: Please change your temporary password in Settings.', 'warning');
         lastToastAtRef.current = now;
       }
     }

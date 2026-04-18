@@ -2,62 +2,62 @@
    Donate – Crypto Wallets
    ============================================ */
 
-"use client";
+'use client';
 
-import { toast } from "@/components/ui/Toaster";
-import Image from "next/image";
-import { useState } from "react";
+import { toast } from '@/components/ui/Toaster';
+import Image from 'next/image';
+import { useState } from 'react';
 
 /* ── wallet data ── */
 const WALLETS = [
   {
-    id: "btc",
-    name: "Bitcoin",
-    ticker: "BTC",
-    address: "bc1q2nztgkn59wrla56eestty9m7rdgpv7tp8ugpzt",
-    network: "Bitcoin · Native SegWit",
-    color: "#F7931A",
-    icon: "/Bitcoin.svg",
+    id: 'btc',
+    name: 'Bitcoin',
+    ticker: 'BTC',
+    address: 'bc1q2nztgkn59wrla56eestty9m7rdgpv7tp8ugpzt',
+    network: 'Bitcoin · Native SegWit',
+    color: '#F7931A',
+    icon: '/Bitcoin.svg',
   },
   {
-    id: "eth",
-    name: "Ethereum",
-    ticker: "ETH",
-    address: "0xb7322E9868285A940afebf47E1a2BC37CEE538C2",
-    network: "Ethereum Mainnet",
-    color: "#627EEA",
-    icon: "/Ethereum.svg",
+    id: 'eth',
+    name: 'Ethereum',
+    ticker: 'ETH',
+    address: '0xb7322E9868285A940afebf47E1a2BC37CEE538C2',
+    network: 'Ethereum Mainnet',
+    color: '#627EEA',
+    icon: '/Ethereum.svg',
   },
   {
-    id: "sol",
-    name: "Solana",
-    ticker: "SOL",
-    address: "4VhdmrPjYtTuN3iVuWMKC1YjDHDfwQrbSuSPMinJSGf9",
-    network: "Solana Mainnet",
-    color: "#DC1FFF",
-    icon: "/Solana.svg",
+    id: 'sol',
+    name: 'Solana',
+    ticker: 'SOL',
+    address: '4VhdmrPjYtTuN3iVuWMKC1YjDHDfwQrbSuSPMinJSGf9',
+    network: 'Solana Mainnet',
+    color: '#DC1FFF',
+    icon: '/Solana.svg',
   },
   {
-    id: "ltc",
-    name: "Litecoin",
-    ticker: "LTC",
-    address: "ltc1qecy763qgcj563j0ty5pphqwkvj5k6txy3c9wkh",
-    network: "Litecoin · Native SegWit",
-    color: "#345D9D",
-    icon: "/Litecoin.svg",
+    id: 'ltc',
+    name: 'Litecoin',
+    ticker: 'LTC',
+    address: 'ltc1qecy763qgcj563j0ty5pphqwkvj5k6txy3c9wkh',
+    network: 'Litecoin · Native SegWit',
+    color: '#345D9D',
+    icon: '/Litecoin.svg',
   },
 ];
 
 const GROUPS = [
   {
-    title: "Bitcoin & Ethereum",
-    description: "The original digital gold and the engine of Web3",
-    wallets: ["btc", "eth"],
+    title: 'Bitcoin & Ethereum',
+    description: 'The original digital gold and the engine of Web3',
+    wallets: ['btc', 'eth'],
   },
   {
-    title: "Solana & Litecoin",
-    description: "Lightning-fast transactions with minimal fees",
-    wallets: ["sol", "ltc"],
+    title: 'Solana & Litecoin',
+    description: 'Lightning-fast transactions with minimal fees',
+    wallets: ['sol', 'ltc'],
   },
 ];
 
@@ -69,16 +69,15 @@ export default function DonatePage() {
     try {
       await navigator.clipboard.writeText(address);
       setCopiedId(id);
-      toast("Address copied to clipboard!", "success");
+      toast('Address copied to clipboard!', 'success');
       setTimeout(() => setCopiedId(null), 2500);
     } catch {
-      toast("Failed to copy address", "error");
+      toast('Failed to copy address', 'error');
     }
   };
 
   return (
     <div className="relative min-h-screen overflow-hidden pt-24 pb-16">
-
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         {/* ── Hero Section ── */}
         <header className="text-center mb-14">
@@ -93,7 +92,7 @@ export default function DonatePage() {
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ filter: "drop-shadow(0 0 12px var(--accent-glow))" }}
+              style={{ filter: 'drop-shadow(0 0 12px var(--accent-glow))' }}
             >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
@@ -103,18 +102,15 @@ export default function DonatePage() {
             Support NexVid
           </h1>
           <p className="mt-3 text-[15px] text-text-secondary leading-relaxed max-w-lg mx-auto">
-            NexVid is free and open for everyone. Your donation helps us
-            keep the servers running and build new features.
+            NexVid is free and open for everyone. Your donation helps us keep the servers running
+            and build new features.
           </p>
         </header>
 
         {/* ── Wallet Groups ── */}
         <div className="space-y-8">
           {GROUPS.map((group, groupIdx) => (
-            <section
-              key={group.title}
-              className=""
-            >
+            <section key={group.title} className="">
               {/* Group Header */}
               <div className="flex items-center gap-3 mb-4 px-1">
                 <div className="w-1 h-5 rounded-full bg-gradient-to-b from-[var(--accent)] to-transparent" />
@@ -122,9 +118,7 @@ export default function DonatePage() {
                   <h2 className="text-[16px] font-bold text-text-primary tracking-tight">
                     {group.title}
                   </h2>
-                  <p className="text-[12px] text-text-muted mt-0.5">
-                    {group.description}
-                  </p>
+                  <p className="text-[12px] text-text-muted mt-0.5">{group.description}</p>
                 </div>
               </div>
 
@@ -186,12 +180,8 @@ export default function DonatePage() {
                               >
                                 {wallet.ticker}
                               </span>
-                              <span className="text-[10px] text-text-muted">
-                                •
-                              </span>
-                              <span className="text-[10px] text-text-muted">
-                                {wallet.network}
-                              </span>
+                              <span className="text-[10px] text-text-muted">•</span>
+                              <span className="text-[10px] text-text-muted">{wallet.network}</span>
                             </div>
                           </div>
                         </div>
@@ -205,16 +195,12 @@ export default function DonatePage() {
                           </code>
                         </div>
                         <button
-                          onClick={() =>
-                            copyAddress(wallet.id, wallet.address)
-                          }
+                          onClick={() => copyAddress(wallet.id, wallet.address)}
                           className="shrink-0 flex items-center justify-center gap-1.5 rounded-xl px-4 text-[12px] font-semibold transition-all duration-200 active:scale-95"
                           style={{
-                            background: isCopied
-                              ? `${wallet.color}20`
-                              : "rgba(255,255,255,0.06)",
-                            border: `1px solid ${isCopied ? `${wallet.color}40` : "rgba(255,255,255,0.08)"}`,
-                            color: isCopied ? wallet.color : "var(--text-secondary)",
+                            background: isCopied ? `${wallet.color}20` : 'rgba(255,255,255,0.06)',
+                            border: `1px solid ${isCopied ? `${wallet.color}40` : 'rgba(255,255,255,0.08)'}`,
+                            color: isCopied ? wallet.color : 'var(--text-secondary)',
                           }}
                         >
                           {isCopied ? (
@@ -241,14 +227,7 @@ export default function DonatePage() {
                                 stroke="currentColor"
                                 strokeWidth="2"
                               >
-                                <rect
-                                  x="9"
-                                  y="9"
-                                  width="13"
-                                  height="13"
-                                  rx="2"
-                                  ry="2"
-                                />
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                               </svg>
                               <span className="hidden sm:inline">Copy</span>
@@ -266,9 +245,7 @@ export default function DonatePage() {
 
         {/* ── Bottom CTA / Note ── */}
         <div className="mt-14 text-center">
-          <div
-            className="inline-flex items-center gap-3 rounded-2xl px-6 py-4 border border-white/[0.06] bg-white/[0.02]"
-          >
+          <div className="inline-flex items-center gap-3 rounded-2xl px-6 py-4 border border-white/[0.06] bg-white/[0.02]">
             <svg
               width="18"
               height="18"
@@ -283,12 +260,9 @@ export default function DonatePage() {
               <path d="M12 8h.01" />
             </svg>
             <p className="text-[13px] text-text-muted leading-relaxed text-left">
-              Always double-check the wallet address before sending.
-              Crypto transactions are{" "}
-              <span className="text-text-secondary font-medium">
-                irreversible
-              </span>
-              . Thank you for your generosity!
+              Always double-check the wallet address before sending. Crypto transactions are{' '}
+              <span className="text-text-secondary font-medium">irreversible</span>. Thank you for
+              your generosity!
             </p>
           </div>
         </div>

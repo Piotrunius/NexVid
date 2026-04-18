@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
-import { Ghost } from "lucide-react";
-import Link from "next/link";
+import { motion } from 'framer-motion';
+import { Ghost } from 'lucide-react';
+import Link from 'next/link';
 
 export default function NotFound() {
   return (
@@ -15,9 +15,7 @@ export default function NotFound() {
           className="relative"
         >
           <h1 className="select-none pb-2 text-[160px] font-black leading-[0.94] tracking-tight text-transparent sm:text-[240px]">
-            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">
-              4
-            </span>
+            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">4</span>
             <span className="relative inline-block">
               <span className="bg-gradient-to-b from-accent via-accent to-accent/20 bg-clip-text text-transparent drop-shadow-[0_0_22px_var(--accent-glow)]">
                 0
@@ -31,15 +29,13 @@ export default function NotFound() {
                 transition={{
                   duration: 4,
                   repeat: Infinity,
-                  ease: "easeInOut",
+                  ease: 'easeInOut',
                 }}
               >
                 <div className="h-32 w-32 rounded-full bg-accent/40" />
               </motion.div>
             </span>
-            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">
-              4
-            </span>
+            <span className="bg-gradient-to-b from-white to-white/10 bg-clip-text">4</span>
           </h1>
 
           <motion.div
@@ -58,12 +54,9 @@ export default function NotFound() {
           transition={{ delay: 0.2, duration: 0.6 }}
           className="mt-8 space-y-4"
         >
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">
-            This page is missing
-          </h2>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">This page is missing</h2>
           <p className="mx-auto max-w-[600px] text-base text-white/50 sm:text-lg leading-relaxed">
-            The link may be outdated, the page was moved, or it no longer
-            exists.
+            The link may be outdated, the page was moved, or it no longer exists.
           </p>
         </motion.div>
 

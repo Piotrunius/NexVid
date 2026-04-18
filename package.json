@@ -7,6 +7,8 @@
     "build": "bun scripts/generate-build-info.mjs && next build",
     "start": "next start",
     "lint": "next lint",
+    "format": "prettier --write \"**/*.{js,ts,tsx,mjs,json,md,css,scss,html}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,mjs,json,md,css,scss,html}\"",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
@@ -17,7 +19,8 @@
     "pages:build-output": "bun scripts/generate-build-info.mjs && bunx @cloudflare/next-on-pages@latest",
     "pages:prepare": "bun scripts/prepare-pages-output.mjs",
     "pages:deploy": "bun scripts/deploy-pages.mjs",
-    "ship": "bun scripts/ship.mjs"
+    "ship": "bun run format && bun scripts/ship.mjs",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -70,6 +73,26 @@
     "tailwindcss": "^3.4.19",
     "typescript": "5.9.3",
     "vitest": "^4.1.4",
-    "wrangler": "^4.83.0"
+    "wrangler": "^4.83.0",
+    "prettier": "^3.8.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^14.0.0"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "tabWidth": 2,
+    "useTabs": false,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "bracketSpacing": true,
+    "arrowParens": "always",
+    "endOfLine": "lf"
+  },
+  "lint-staged": {
+    "**/*.{js,ts,tsx,mjs,json,md,css,scss,html}": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }

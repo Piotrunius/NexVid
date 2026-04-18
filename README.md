@@ -31,18 +31,18 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 
 ### Source Map
 
-| Display Name | Internal ID | Type | Remote Link / Source Target |
-|--------------|-------------|------|-------------------------------|
-| Alpha        | `febbox`    | Direct (Best) | _FebBox API (Requires Token)_ |
-| Beta         | `pobreflix` | Direct (Best) | `https://pobreflix.codes` |
-| Gamma        | `zxcstream` | Embed (Safe)  | `https://zxcstream.xyz` |
-| Delta        | `cinesrc`   | Embed (Safe)  | `https://cinesrc.st` |
-| Epsilon      | `vidking`   | Embed (Safe)  | `https://www.vidking.net` |
-| Sigma        | `peachify`  | Embed (Unsafe)  | `https://peachify.top/` |
-| Zeta         | `vidfast`   | Embed (Unsafe)  | `https://vidfast.pro/` |
-| Theta        | `videasy`   | Embed (Unsafe)  | `https://videasy.net/` |
-| Kappa        | `vidsync`   | Embed (Dangerous)  | `https://vidsync.xyz` |
-| Omega        | `vidlink`   | Embed (Dangerous)  | `https://vidlink.pro/` |
+| Display Name | Internal ID | Type              | Remote Link / Source Target   |
+| ------------ | ----------- | ----------------- | ----------------------------- |
+| Alpha        | `febbox`    | Direct (Best)     | _FebBox API (Requires Token)_ |
+| Beta         | `pobreflix` | Direct (Best)     | `https://pobreflix.codes`     |
+| Gamma        | `zxcstream` | Embed (Safe)      | `https://zxcstream.xyz`       |
+| Delta        | `cinesrc`   | Embed (Safe)      | `https://cinesrc.st`          |
+| Epsilon      | `vidking`   | Embed (Safe)      | `https://www.vidking.net`     |
+| Sigma        | `peachify`  | Embed (Unsafe)    | `https://peachify.top`        |
+| Zeta         | `vidfast`   | Embed (Unsafe)    | `https://vidfast.pro`         |
+| Theta        | `videasy`   | Embed (Unsafe)    | `https://videasy.net`         |
+| Kappa        | `vidsync`   | Embed (Dangerous) | `https://vidsync.xyz`         |
+| Omega        | `vidlink`   | Embed (Dangerous) | `https://vidlink.pro`         |
 
 ---
 
@@ -50,19 +50,27 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 
 ```
 / (root)
-├── src/               # Next.js frontend (App Router)
-│   ├── app/           # Pages and layouts
-│   ├── components/    # Reusable UI components
-│   ├── lib/           # API clients, helpers, providers
-│   ├── stores/        # Zustand stores (auth/settings/watchlist/player)
-│   └── types/         # TypeScript interfaces
-├── worker/            # Cloudflare Worker proxy + API
-│   ├── src/           # Worker source code
-│   ├── schema.sql     # D1 schema
-│   └── wrangler.toml  # Worker configuration
-├── public/            # Static assets (images, robots.txt, etc.)
-├── package.json       # Frontend dependencies and scripts
-└── next.config.js     # Next.js configuration
+├── src/                # Next.js frontend (App Router)
+│   ├── app/            # Pages and layouts
+│   ├── components/     # Reusable UI components
+│   ├── lib/            # API clients, helpers, providers
+│   ├── stores/         # Zustand stores (auth/settings/watchlist/player)
+│   └── types/          # TypeScript interfaces
+├── worker/             # Cloudflare Worker proxy + API
+│   ├── src/            # Worker source code
+│   ├── schema.sql      # D1 schema
+│   └── wrangler.toml   # Worker configuration
+├── public/             # Static assets (images, llms.txt, etc.)
+├── scripts/            # Repo helper scripts
+├── .eslintrc.json      # ESLint config
+├── next.config.js      # Next.js configuration
+├── package.json        # Frontend dependencies and scripts
+├── bun.lock            # Bun lockfile (if using bun)
+├── package-lock.json   # npm lockfile
+├── postcss.config.js   # PostCSS config
+├── tailwind.config.js  # Tailwind CSS config
+├── tsconfig.json       # TypeScript config
+└── README.md           # Project README
 ```
 
 ---
@@ -70,8 +78,11 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 ## Prerequisites
 
 - Node.js 20+ (recommended)
-- npm 10+ (or pnpm/yarn if you prefer; this repo uses npm scripts)
+- Bun (optional, but recommended for faster installs and scripts)
+- npm or yarn (if not using Bun)
 - Cloudflare account (for Worker + D1)
+- API tokens for any providers that require them (e.g. FebBox)
+- Wrangler CLI for Cloudflare Worker development
 
 ---
 
@@ -87,28 +98,16 @@ cp .env.example .env.local
 
 Edit `.env.local`:
 
-```env
-NEXT_PUBLIC_PROXY_URL=https://your-proxy.workers.dev
-API_URL=https://your-worker.workers.dev
-DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=
-```
-
-#### Notes
-
-- `NEXT_PUBLIC_PROXY_URL` is the worker proxy used for scraping sources and HLS rewriting.
-- `API_URL` is the worker API endpoint used for auth/settings/watchlist.
-- TMDB metadata uses a built-in public API key in the client bundle, so no env var is required.
-
 ### 2) Install dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 ### 3) Start frontend
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Open http://localhost:3000
@@ -126,19 +125,19 @@ The worker serves two purposes:
 
 ```bash
 cd worker
-npm install
+bun install
 ```
 
 ### 2) Authenticate wrangler
 
 ```bash
-npx wrangler login
+bunx wrangler login
 ```
 
 ### 3) Create or use an existing Cloudflare D1 database
 
 ```bash
-npx wrangler d1 create nexvid-db
+bunx wrangler d1 create nexvid-db
 ```
 
 Then copy the generated `database_id` into `worker/wrangler.toml`.
@@ -146,13 +145,13 @@ Then copy the generated `database_id` into `worker/wrangler.toml`.
 ### 4) Apply the schema
 
 ```bash
-npx wrangler d1 execute nexvid-db --file=./schema.sql
+bunx wrangler d1 execute nexvid-db --file=./schema.sql
 ```
 
 ### 5) Deploy the worker
 
 ```bash
-npx wrangler deploy
+bunx wrangler deploy
 ```
 
 After deployment, set `API_URL` (and optionally `NEXT_PUBLIC_PROXY_URL`) to the deployed worker URL.
@@ -163,42 +162,22 @@ After deployment, set `API_URL` (and optionally `NEXT_PUBLIC_PROXY_URL`) to the 
 
 ### Frontend
 
-- `npm run dev` — Start Next.js in development mode.
-- `npm run build` — Build production frontend.
-- `npm run start` — Run production build locally.
-- `npm run lint` — Run ESLint.
-- `npm run typecheck` — Run TypeScript type check.
+- `bun run dev` — Start Next.js in development mode.
+- `bun run build` — Build production frontend.
+- `bun run start` — Run production build locally.
+- `bun run lint` — Run ESLint.
 
 ### Worker
 
 From `worker/`:
 
-- `npm run dev` — Start wrangler dev server (local emulation).
-- `npm run deploy` — Deploy worker to Cloudflare.
-- `npm run lint` — (if configured) run lint checks for worker code.
+- `bun run dev` — Start wrangler dev server.
+- `bun run lint` — Run lint checks for worker code.
 
----
+### Both
 
-## Environment variables reference
-
-### Frontend (`.env.local`)
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `NEXT_PUBLIC_PROXY_URL` | yes | Worker proxy URL used for scraping and HLS rewriting.
-| `API_URL` | yes | Worker API base URL for auth/settings/watchlist.
-| `DIRECT_RESOLVER_URL` | no | Optional resolver URL for direct stream access (see below).
-
-### Worker (`worker/.env` or `wrangler.toml`)
-
-Worker configuration is stored in `worker/wrangler.toml`. Common settings:
-
-| Key | Purpose |
-|-----|---------|
-| `name` | Worker name.
-| `main` | Entry file (usually `./src/index.ts`).
-| `vars` | Environment variables (if any) required by the worker.
-| `d1_databases` | D1 database bindings.
+- `bun run ship` — Run lint, typecheck, build for frontend and deploy both frontend and worker.
+- `bun run format` — Format all code with Prettier.
 
 ---
 
@@ -206,13 +185,14 @@ Worker configuration is stored in `worker/wrangler.toml`. Common settings:
 
 ### Proxy endpoints (CORS / HLS)
 
-| Path | Method | Purpose |
-|------|--------|---------|
-| `/api/health` | GET | Health check.
-| `/api/proxy?url=...` | GET | Generic CORS proxy (for scraping sources).
-| `/api/hls?url=...` | GET | HLS manifest proxy + rewrite to make segments load.
+| Path                 | Method | Purpose                                             |
+| -------------------- | ------ | --------------------------------------------------- |
+| `/api/health`        | GET    | Health check.                                       |
+| `/api/proxy?url=...` | GET    | Generic CORS proxy (for scraping sources).          |
+| `/api/hls?url=...`   | GET    | HLS manifest proxy + rewrite to make segments load. |
 
 > Header forwarding (from frontend to upstream):
+>
 > - `X-Cookie` → `Cookie`
 > - `X-Referer` → `Referer`
 > - `X-Origin` → `Origin`
@@ -220,23 +200,14 @@ Worker configuration is stored in `worker/wrangler.toml`. Common settings:
 
 ### Auth / user data endpoints
 
-| Path | Method | Purpose |
-|------|--------|---------|
-| `/api/auth/register` | POST | Create user and session.
-| `/api/auth/login` | POST | Sign in and receive bearer token.
-| `/api/auth/me` | GET | Validate token and return user info.
-| `/api/auth/logout` | POST | Invalidate session.
-| `/api/user/settings` | GET/PUT | Read/write user settings (JSON) in D1.
-| `/api/user/watchlist` | GET/PUT | Read/write user watchlist (JSON) in D1.
-
----
-
-## Direct stream resolver (optional)
-
-If some HLS sources return `403`/`401` due to CDN restrictions, you can deploy a dedicated worker resolver and set:
-
-```env
-DIRECT_RESOLVER_URL=https://your-resolver.workers.dev?url=Ls through the resolver before hitting the upstream.
+| Path                  | Method  | Purpose                                 |
+| --------------------- | ------- | --------------------------------------- |
+| `/api/auth/register`  | POST    | Create user and session.                |
+| `/api/auth/login`     | POST    | Sign in and receive bearer token.       |
+| `/api/auth/me`        | GET     | Validate token and return user info.    |
+| `/api/auth/logout`    | POST    | Invalidate session.                     |
+| `/api/user/settings`  | GET/PUT | Read/write user settings (JSON) in D1.  |
+| `/api/user/watchlist` | GET/PUT | Read/write user watchlist (JSON) in D1. |
 
 ---
 

@@ -2,19 +2,19 @@
   NexVid Footer – Horizontal Full-Width
   ============================================ */
 
-"use client";
+'use client';
 
-import buildInfo from "@/lib/build-info.json";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import buildInfo from '@/lib/build-info.json';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 const DISCORD_URL = process.env.NEXT_PUBLIC_DISCORD_URL;
 
 const NAV_LINKS = [
-  { href: "/credits", label: "Credits" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/dmca", label: "DMCA" },
+  { href: '/credits', label: 'Credits' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
+  { href: '/dmca', label: 'DMCA' },
 ];
 
 export function Footer() {
@@ -26,14 +26,14 @@ export function Footer() {
   }, []);
 
   const lastUpdated = isClient
-    ? new Date(buildInfo.timestamp).toLocaleString("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+    ? new Date(buildInfo.timestamp).toLocaleString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       })
-    : "";
+    : '';
 
   return (
     <footer className="relative mt-12 w-full">
@@ -50,13 +50,7 @@ export function Footer() {
             <div className="flex items-center gap-2.5">
               <div className="flex h-6 w-6 items-center justify-center rounded-[7px] shadow-[0_0_14px_var(--accent-glow)] bg-transparent p-0">
                 {isClient && (
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <defs>
                       <linearGradient
                         id="footer-accent"
@@ -70,21 +64,12 @@ export function Footer() {
                         <stop offset="1" stopColor="var(--accent-hover)" />
                       </linearGradient>
                     </defs>
-                    <rect
-                      x="0"
-                      y="0"
-                      width="24"
-                      height="24"
-                      rx="7"
-                      fill="url(#footer-accent)"
-                    />
+                    <rect x="0" y="0" width="24" height="24" rx="7" fill="url(#footer-accent)" />
                     <polygon points="10,7.5 16,12 10,16.5" fill="white" />
                   </svg>
                 )}
               </div>
-              <span className="text-[14px] font-semibold text-white tracking-tight">
-                NexVid
-              </span>
+              <span className="text-[14px] font-semibold text-white tracking-tight">NexVid</span>
             </div>
             <span className="hidden md:inline text-white/10">·</span>
             <p className="hidden md:inline text-[12px] text-white/25">
@@ -146,9 +131,7 @@ export function Footer() {
       {/* ── Bottom Bar ── */}
       <div className="w-full border-t border-white/[0.04]">
         <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 py-5 flex flex-col-reverse sm:flex-row items-center justify-center sm:justify-between gap-2">
-          <p className="text-[11px] text-white/15">
-            © {year} NexVid · All rights reserved.
-          </p>
+          <p className="text-[11px] text-white/15">© {year} NexVid · All rights reserved.</p>
           {isClient && (
             <p className="text-[10px] text-white/10 flex items-center gap-1">
               <span>Updated {lastUpdated}</span>

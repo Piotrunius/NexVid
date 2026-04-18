@@ -1,8 +1,8 @@
-import { isValidCloudSession } from "@/lib/auth-server";
-import { NextRequest, NextResponse } from "next/server";
+import { isValidCloudSession } from '@/lib/auth-server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 interface Segment {
   startMs: number;
@@ -29,10 +29,7 @@ const cache = new Map<
   string,
   { expiresAt: number; value: { segments: MediaSegments; error?: string } }
 >();
-const inflight = new Map<
-  string,
-  Promise<{ segments: MediaSegments; error?: string }>
->();
+const inflight = new Map<string, Promise<{ segments: MediaSegments; error?: string }>>();
 
 function normalizeSegments(raw: any): Segment[] {
   if (!Array.isArray(raw)) return [];
@@ -44,31 +41,29 @@ function normalizeSegments(raw: any): Segment[] {
       confidence: s.confidence != null ? Number(s.confidence) : undefined,
       submissionCount: s.submission_count ?? s.submissionCount,
     }))
-    .filter(
-      (s: Segment) => Number.isFinite(s.startMs) && Number.isFinite(s.endMs),
-    );
+    .filter((s: Segment) => Number.isFinite(s.startMs) && Number.isFinite(s.endMs));
 }
 
 export async function GET(request: NextRequest) {
-  const tmdbId = request.nextUrl.searchParams.get("tmdbId");
-  const type = request.nextUrl.searchParams.get("type");
-  const season = request.nextUrl.searchParams.get("season");
-  const episode = request.nextUrl.searchParams.get("episode");
+  const tmdbId = request.nextUrl.searchParams.get('tmdbId');
+  const type = request.nextUrl.searchParams.get('type');
+  const season = request.nextUrl.searchParams.get('season');
+  const episode = request.nextUrl.searchParams.get('episode');
 
   if (!tmdbId || !/^\d+$/.test(tmdbId)) {
     return NextResponse.json(
-      { segments: EMPTY_SEGMENTS, error: "Invalid request" },
+      { segments: EMPTY_SEGMENTS, error: 'Invalid request' },
       { status: 400 },
     );
   }
-  if (type !== "movie" && type !== "show") {
+  if (type !== 'movie' && type !== 'show') {
     return NextResponse.json(
-      { segments: EMPTY_SEGMENTS, error: "Invalid request" },
+      { segments: EMPTY_SEGMENTS, error: 'Invalid request' },
       { status: 400 },
     );
   }
 
-  const cacheKey = `${type}:${tmdbId}:${season || "0"}:${episode || "0"}`;
+  const cacheKey = `${type}:${tmdbId}:${season || '0'}:${episode || '0'}`;
   const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return NextResponse.json(cached.value, { status: 200 });
@@ -82,18 +77,16 @@ export async function GET(request: NextRequest) {
 
   const requestPromise = (async () => {
     try {
-      const upstream = new URL("https://api.theintrodb.org/v2/media");
-      upstream.searchParams.set("tmdb_id", tmdbId);
-      upstream.searchParams.set("type", type === "show" ? "tv" : "movie");
-      if (type === "show" && season)
-        upstream.searchParams.set("season", season);
-      if (type === "show" && episode)
-        upstream.searchParams.set("episode", episode);
+      const upstream = new URL('https://api.theintrodb.org/v2/media');
+      upstream.searchParams.set('tmdb_id', tmdbId);
+      upstream.searchParams.set('type', type === 'show' ? 'tv' : 'movie');
+      if (type === 'show' && season) upstream.searchParams.set('season', season);
+      if (type === 'show' && episode) upstream.searchParams.set('episode', episode);
 
-      const providedApiKey = request.headers.get("x-introdb-api-key")?.trim();
+      const providedApiKey = request.headers.get('x-introdb-api-key')?.trim();
       let apiKey = providedApiKey;
 
-      if (providedApiKey === "__PUBLIC_TIDB_KEY__" || !providedApiKey) {
+      if (providedApiKey === '__PUBLIC_TIDB_KEY__' || !providedApiKey) {
         // Verify session for public key use
         const isValidSession = await isValidCloudSession(request);
 
@@ -104,11 +97,11 @@ export async function GET(request: NextRequest) {
         }
       }
       const res = await fetch(upstream.toString(), {
-        method: "GET",
-        cache: "no-store",
+        method: 'GET',
+        cache: 'no-store',
         signal: AbortSignal.timeout(8000),
         headers: {
-          Accept: "application/json",
+          Accept: 'application/json',
           ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         },
       });
@@ -120,8 +113,8 @@ export async function GET(request: NextRequest) {
         data = null;
       }
 
-      if (!res.ok || !data || typeof data !== "object" || data.error) {
-        const value = { segments: EMPTY_SEGMENTS, error: "Unable to fetch" };
+      if (!res.ok || !data || typeof data !== 'object' || data.error) {
+        const value = { segments: EMPTY_SEGMENTS, error: 'Unable to fetch' };
         cache.set(cacheKey, { value, expiresAt: Date.now() + 2 * 60 * 1000 });
         return value;
       }
@@ -145,7 +138,7 @@ export async function GET(request: NextRequest) {
     } catch (error: any) {
       const value = {
         segments: EMPTY_SEGMENTS,
-        error: String(error?.message || "Failed to fetch segments"),
+        error: String(error?.message || 'Failed to fetch segments'),
       };
       cache.set(cacheKey, { value, expiresAt: Date.now() + 60 * 1000 });
       return value;

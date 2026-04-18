@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 export default function ChunkLoadErrorHandler() {
   useEffect(() => {
@@ -9,10 +9,9 @@ export default function ChunkLoadErrorHandler() {
     const onError = (event: ErrorEvent) => {
       if (hasReloaded) return;
 
-      const message = event.error?.message || event.message || "";
+      const message = event.error?.message || event.message || '';
       const isChunkLoadError =
-        message?.includes("Loading chunk") ||
-        message?.includes("ChunkLoadError");
+        message?.includes('Loading chunk') || message?.includes('ChunkLoadError');
 
       if (isChunkLoadError) {
         hasReloaded = true;
@@ -20,8 +19,8 @@ export default function ChunkLoadErrorHandler() {
       }
     };
 
-    window.addEventListener("error", onError);
-    return () => window.removeEventListener("error", onError);
+    window.addEventListener('error', onError);
+    return () => window.removeEventListener('error', onError);
   }, []);
 
   return null;

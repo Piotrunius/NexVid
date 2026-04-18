@@ -1,4 +1,4 @@
-import { MediaRowSkeleton } from "@/components/media/MediaCard";
+import { MediaRowSkeleton } from '@/components/media/MediaCard';
 
 export default function Loading() {
   return (

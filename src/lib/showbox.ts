@@ -4,59 +4,58 @@
    Server-side only (used in API routes)
    ============================================ */
 
-import CryptoJS from "crypto-js";
+import CryptoJS from 'crypto-js';
 
 // ---- Configuration ----
 
 const SB_CONFIG = {
-  BASE_URL: "https://mbpapi.shegu.net/api/api_client/index/",
-  APP_KEY: "moviebox",
-  APP_ID: "com.tdo.showbox",
-  IV: "wEiphTn!",
-  KEY: "123d6cedf626dy54233aa1w6",
+  BASE_URL: 'https://mbpapi.shegu.net/api/api_client/index/',
+  APP_KEY: 'moviebox',
+  APP_ID: 'com.tdo.showbox',
+  IV: 'wEiphTn!',
+  KEY: '123d6cedf626dy54233aa1w6',
   DEFAULTS: {
-    CHILD_MODE: "0",
-    APP_VERSION: "11.5",
-    LANG: "en",
-    PLATFORM: "android",
-    CHANNEL: "Website",
-    APPID: "27",
-    VERSION: "129",
-    MEDIUM: "Website",
+    CHILD_MODE: '0',
+    APP_VERSION: '11.5',
+    LANG: 'en',
+    PLATFORM: 'android',
+    CHANNEL: 'Website',
+    APPID: '27',
+    VERSION: '129',
+    MEDIUM: 'Website',
   },
 };
 
-const FEBBOX_BASE = "https://www.febbox.com";
+const FEBBOX_BASE = 'https://www.febbox.com';
 const FEBBOX_HEADERS = {
-  "x-requested-with": "XMLHttpRequest",
-  "user-agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+  'x-requested-with': 'XMLHttpRequest',
+  'user-agent':
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
 };
 
 // Share-link base domains to try (some go down intermittently)
 const SHARE_LINK_HOSTS = [
-  "https://www.showbox.media",
-  "https://showbox.media",
-  "https://www.boxmovie.media",
-  "https://boxmovie.media",
-  "https://showbox.run",
-  "https://www.showbox.run",
+  'https://www.showbox.media',
+  'https://showbox.media',
+  'https://www.boxmovie.media',
+  'https://boxmovie.media',
+  'https://showbox.run',
+  'https://www.showbox.run',
 ];
 
 function randomHex(len: number): string {
-  const chars = "0123456789abcdef";
-  let r = "";
-  for (let i = 0; i < len; i++)
-    r += chars[Math.floor(Math.random() * chars.length)];
+  const chars = '0123456789abcdef';
+  let r = '';
+  for (let i = 0; i < len; i++) r += chars[Math.floor(Math.random() * chars.length)];
   return r;
 }
 
 function toBase64Utf8(value: string): string {
-  if (typeof btoa === "function") {
+  if (typeof btoa === 'function') {
     return btoa(unescape(encodeURIComponent(value)));
   }
 
-  let binary = "";
+  let binary = '';
   const bytes = new TextEncoder().encode(value);
   for (let i = 0; i < bytes.length; i += 1) {
     binary += String.fromCharCode(bytes[i]);
@@ -67,11 +66,9 @@ function toBase64Utf8(value: string): string {
 // ---- Showbox Encryption ----
 
 function encrypt(data: string): string {
-  return CryptoJS.TripleDES.encrypt(
-    data,
-    CryptoJS.enc.Utf8.parse(SB_CONFIG.KEY),
-    { iv: CryptoJS.enc.Utf8.parse(SB_CONFIG.IV) },
-  ).toString();
+  return CryptoJS.TripleDES.encrypt(data, CryptoJS.enc.Utf8.parse(SB_CONFIG.KEY), {
+    iv: CryptoJS.enc.Utf8.parse(SB_CONFIG.IV),
+  }).toString();
 }
 
 function generateVerify(encryptedData: string): string {
@@ -86,10 +83,7 @@ function getExpiryTimestamp(): number {
 
 // ---- Showbox API ----
 
-async function showboxRequest(
-  module: string,
-  params: Record<string, any> = {},
-): Promise<any> {
+async function showboxRequest(module: string, params: Record<string, any> = {}): Promise<any> {
   const requestData = {
     ...SB_CONFIG.DEFAULTS,
     expired_date: getExpiryTimestamp(),
@@ -115,29 +109,28 @@ async function showboxRequest(
   const nonce = randomHex(32);
 
   const response = await fetch(SB_CONFIG.BASE_URL, {
-    method: "POST",
+    method: 'POST',
     headers: {
       Platform: SB_CONFIG.DEFAULTS.PLATFORM,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "okhttp/3.2.0",
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'okhttp/3.2.0',
     },
     body: `${formData.toString()}&token${nonce}`,
     signal: AbortSignal.timeout(12000),
   });
 
-  if (!response.ok)
-    throw new Error(`Showbox API ${module}: HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`Showbox API ${module}: HTTP ${response.status}`);
   return response.json();
 }
 
 export async function searchShowbox(
   title: string,
-  type: "movie" | "tv" = "movie",
+  type: 'movie' | 'tv' = 'movie',
   page = 1,
 ): Promise<any[]> {
-  const data = await showboxRequest("Search5", {
+  const data = await showboxRequest('Search5', {
     page,
-    type: type === "movie" ? "movie" : "tv",
+    type: type === 'movie' ? 'movie' : 'tv',
     keyword: title,
     pagelimit: 20,
   });
@@ -145,25 +138,22 @@ export async function searchShowbox(
 }
 
 export async function getShowboxMovieDetails(movieId: number): Promise<any> {
-  const data = await showboxRequest("Movie_detail", { mid: movieId });
+  const data = await showboxRequest('Movie_detail', { mid: movieId });
   return data?.data;
 }
 
 export async function getShowboxShowDetails(showId: number): Promise<any> {
-  const data = await showboxRequest("TV_detail_v2", { tid: showId });
+  const data = await showboxRequest('TV_detail_v2', { tid: showId });
   return data?.data;
 }
 
-export async function getFebBoxShareKey(
-  showboxId: number,
-  type: 1 | 2,
-): Promise<string | null> {
+export async function getFebBoxShareKey(showboxId: number, type: 1 | 2): Promise<string | null> {
   const errors: string[] = [];
   for (const host of SHARE_LINK_HOSTS) {
     try {
       const url = `${host}/index/share_link?id=${showboxId}&type=${type}`;
       const response = await fetch(url, {
-        headers: { "User-Agent": "okhttp/3.2.0" },
+        headers: { 'User-Agent': 'okhttp/3.2.0' },
         signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) {
@@ -172,13 +162,13 @@ export async function getFebBoxShareKey(
       }
       const data = await response.json();
       const link = data?.data?.link;
-      if (link) return link.split("/").pop() || null;
+      if (link) return link.split('/').pop() || null;
       errors.push(`${host}: no link in response`);
     } catch (err: any) {
       errors.push(`${host}: ${err.message}`);
     }
   }
-  console.error("[showbox] getFebBoxShareKey failed:", errors.join("; "));
+  console.error('[showbox] getFebBoxShareKey failed:', errors.join('; '));
   return null;
 }
 
@@ -201,20 +191,20 @@ export async function getFebBoxToken(
 ): Promise<FebBoxTokenResponse> {
   try {
     const res = await fetch(`${FEBBOX_BASE}/oauth/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        grant_type: "client_credentials",
+        grant_type: 'client_credentials',
       }),
       signal: AbortSignal.timeout(10000),
     });
-    const ct = res.headers.get("content-type") || "";
-    if (!res.ok || !ct.includes("json")) {
+    const ct = res.headers.get('content-type') || '';
+    if (!res.ok || !ct.includes('json')) {
       return {
         code: 0,
-        msg: `FebBox OAuth: HTTP ${res.status} (${ct.split(";")[0] || "non-json"})`,
+        msg: `FebBox OAuth: HTTP ${res.status} (${ct.split(';')[0] || 'non-json'})`,
       };
     }
     return await res.json();
@@ -249,7 +239,7 @@ export interface FebBoxSubtitle {
   url: string;
   language: string;
   label: string;
-  type: "srt" | "vtt";
+  type: 'srt' | 'vtt';
 }
 
 export interface FebBoxAudioTrack {
@@ -261,11 +251,11 @@ export interface FebBoxAudioTrack {
 }
 
 function buildFebboxCookieHeader(rawCookie?: string): string | undefined {
-  const value = (rawCookie || "").trim();
+  const value = (rawCookie || '').trim();
   if (!value) return undefined;
 
-  if (value.includes("=")) {
-    if (value.toLowerCase().startsWith("cookie:")) {
+  if (value.includes('=')) {
+    if (value.toLowerCase().startsWith('cookie:')) {
       return value.slice(7).trim();
     }
     return value;
@@ -276,36 +266,34 @@ function buildFebboxCookieHeader(rawCookie?: string): string | undefined {
 
 function readSetCookieHeaders(response: Response): string[] {
   const anyHeaders = response.headers as any;
-  if (typeof anyHeaders?.getSetCookie === "function") {
+  if (typeof anyHeaders?.getSetCookie === 'function') {
     const values = anyHeaders.getSetCookie();
     if (Array.isArray(values) && values.length > 0) return values;
   }
 
-  const single = response.headers.get("set-cookie");
+  const single = response.headers.get('set-cookie');
   if (!single) return [];
   return [single];
 }
 
-function mergeCookieParts(
-  ...cookieValues: Array<string | undefined>
-): string | undefined {
+function mergeCookieParts(...cookieValues: Array<string | undefined>): string | undefined {
   const parts = cookieValues
     .filter((value): value is string => Boolean(value && value.trim()))
-    .map((value) => value.trim().replace(/;+$/, ""));
+    .map((value) => value.trim().replace(/;+$/, ''));
 
   if (parts.length === 0) return undefined;
 
   const unique = new Map<string, string>();
-  for (const part of parts.join("; ").split(";")) {
+  for (const part of parts.join('; ').split(';')) {
     const trimmed = part.trim();
-    if (!trimmed || !trimmed.includes("=")) continue;
-    const [name, ...rest] = trimmed.split("=");
+    if (!trimmed || !trimmed.includes('=')) continue;
+    const [name, ...rest] = trimmed.split('=');
     if (!name) continue;
-    unique.set(name.trim(), `${name.trim()}=${rest.join("=").trim()}`);
+    unique.set(name.trim(), `${name.trim()}=${rest.join('=').trim()}`);
   }
 
   if (unique.size === 0) return undefined;
-  return Array.from(unique.values()).join("; ");
+  return Array.from(unique.values()).join('; ');
 }
 
 async function getFebboxShareSessionCookie(
@@ -315,8 +303,8 @@ async function getFebboxShareSessionCookie(
   const baseCookie = buildFebboxCookieHeader(uiCookie);
   const shareUrl = `${FEBBOX_BASE}/share/${shareKey}`;
   const requestHeaders = {
-    "user-agent": FEBBOX_HEADERS["user-agent"],
-    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    'user-agent': FEBBOX_HEADERS['user-agent'],
+    accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   };
 
   try {
@@ -359,7 +347,7 @@ export async function febboxGetFileList(
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data = await response.json();
   } catch {
-    throw new Error("FebBox file list fetch failed");
+    throw new Error('FebBox file list fetch failed');
   }
 
   return data?.data?.file_list || [];
@@ -383,12 +371,12 @@ export async function febboxGetLinks(
 
   // Helpers
   const inferFormatFromUrl = (rawUrl: string): string => {
-    const url = String(rawUrl || "").toLowerCase();
-    if (!url) return "";
-    if (url.includes(".m3u8")) return "hls";
-    if (url.includes(".mp4")) return "mp4";
-    if (url.includes(".mkv")) return "mkv";
-    return "";
+    const url = String(rawUrl || '').toLowerCase();
+    if (!url) return '';
+    if (url.includes('.m3u8')) return 'hls';
+    if (url.includes('.mp4')) return 'mp4';
+    if (url.includes('.mkv')) return 'mkv';
+    return '';
   };
 
   const pickQualityUrl = (item: any, fallback: string): string => {
@@ -402,16 +390,16 @@ export async function febboxGetLinks(
       item?.src,
     ];
     for (const candidate of candidates) {
-      const value = String(candidate || "").trim();
+      const value = String(candidate || '').trim();
       if (!value) continue;
-      if (/^https?:\/\//i.test(value) && value.toLowerCase().includes(".m3u8")) return value;
+      if (/^https?:\/\//i.test(value) && value.toLowerCase().includes('.m3u8')) return value;
     }
     for (const candidate of candidates) {
-      const value = String(candidate || "").trim();
+      const value = String(candidate || '').trim();
       if (!value) continue;
       if (/^https?:\/\//i.test(value)) return value;
     }
-    return String(fallback || "").trim();
+    return String(fallback || '').trim();
   };
 
   const fetchJson = async (url: string) => {
@@ -430,58 +418,84 @@ export async function febboxGetLinks(
   };
 
   const parseDirectSubtitles = (directData: any): FebBoxSubtitle[] => {
-    const fileEntry = Array.isArray(directData?.data) ? directData.data[0] : (directData?.data || {});
-    const items = [...(Array.isArray(fileEntry?.subtitle_list) ? fileEntry.subtitle_list : []), ...(Array.isArray(directData?.subtitle_list) ? directData.subtitle_list : [])];
+    const fileEntry = Array.isArray(directData?.data) ? directData.data[0] : directData?.data || {};
+    const items = [
+      ...(Array.isArray(fileEntry?.subtitle_list) ? fileEntry.subtitle_list : []),
+      ...(Array.isArray(directData?.subtitle_list) ? directData.subtitle_list : []),
+    ];
     const guessLang = (v: string) => {
       const l = v.toLowerCase();
-      if (l.includes("pol") || l.includes("pl")) return "pl";
-      if (l.includes("spa") || l.includes("es")) return "es";
-      return "en";
+      if (l.includes('pol') || l.includes('pl')) return 'pl';
+      if (l.includes('spa') || l.includes('es')) return 'es';
+      return 'en';
     };
-    return items.map(item => {
-      const u = typeof item === "string" ? item : (item?.url || item?.src || "");
-      if (!u) return null;
-      return { url: u, language: guessLang(u), label: guessLang(u).toUpperCase(), type: u.toLowerCase().includes(".vtt") ? "vtt" : "srt" } as FebBoxSubtitle;
-    }).filter((s): s is FebBoxSubtitle => !!s);
+    return items
+      .map((item) => {
+        const u = typeof item === 'string' ? item : item?.url || item?.src || '';
+        if (!u) return null;
+        return {
+          url: u,
+          language: guessLang(u),
+          label: guessLang(u).toUpperCase(),
+          type: u.toLowerCase().includes('.vtt') ? 'vtt' : 'srt',
+        } as FebBoxSubtitle;
+      })
+      .filter((s): s is FebBoxSubtitle => !!s);
   };
 
   const parseDirectAudioTracks = (directData: any): FebBoxAudioTrack[] => {
-    const fileEntry = Array.isArray(directData?.data) ? directData.data[0] : (directData?.data || {});
-    const items = [...(Array.isArray(fileEntry?.audio_list) ? fileEntry.audio_list : []), ...(Array.isArray(directData?.audio_list) ? directData.audio_list : [])];
+    const fileEntry = Array.isArray(directData?.data) ? directData.data[0] : directData?.data || {};
+    const items = [
+      ...(Array.isArray(fileEntry?.audio_list) ? fileEntry.audio_list : []),
+      ...(Array.isArray(directData?.audio_list) ? directData.audio_list : []),
+    ];
     return items.map((item, index) => {
-      const u = typeof item === "string" ? item : (item?.url || item?.src || "");
-      const lang = String(item?.lang || "en");
-      return { id: index, name: lang.toUpperCase(), lang, isDefault: index === 0, url: u } as FebBoxAudioTrack;
+      const u = typeof item === 'string' ? item : item?.url || item?.src || '';
+      const lang = String(item?.lang || 'en');
+      return {
+        id: index,
+        name: lang.toUpperCase(),
+        lang,
+        isDefault: index === 0,
+        url: u,
+      } as FebBoxAudioTrack;
     });
   };
 
   const parseLinks = (data: any) => {
-    const fileEntry = Array.isArray(data?.data) ? data.data[0] : (data?.data || data || {});
-    const rawList = fileEntry.quality_list || fileEntry.transcode_list || data.list || data.data?.list || {};
+    const fileEntry = Array.isArray(data?.data) ? data.data[0] : data?.data || data || {};
+    const rawList =
+      fileEntry.quality_list || fileEntry.transcode_list || data.list || data.data?.list || {};
     const items = Array.isArray(rawList) ? rawList : Object.values(rawList);
-    
-    const qualities = items.map((q: any) => {
-      const u = pickQualityUrl(q, String(fileEntry?.download_url || ""));
-      if (!u) return null;
-      
-      const res: FebBoxQuality = {
-        url: u,
-        quality: String(q?.quality || q?.label || "ORG"),
-        name: String(q?.label || q?.name || "Original"),
-        label: String(q?.label || q?.name || "Original"),
-        size: q?.file_size ? `${q.file_size}` : "",
-        format: inferFormatFromUrl(u),
-      };
 
-      // Inject required referer for HLS links
-      if (u.toLowerCase().includes(".m3u8")) {
-        res.headers = { referer: "https://www.febbox.com/" };
-      }
+    const qualities = items
+      .map((q: any) => {
+        const u = pickQualityUrl(q, String(fileEntry?.download_url || ''));
+        if (!u) return null;
 
-      return res;
-    }).filter((q): q is FebBoxQuality => !!q);
+        const res: FebBoxQuality = {
+          url: u,
+          quality: String(q?.quality || q?.label || 'ORG'),
+          name: String(q?.label || q?.name || 'Original'),
+          label: String(q?.label || q?.name || 'Original'),
+          size: q?.file_size ? `${q.file_size}` : '',
+          format: inferFormatFromUrl(u),
+        };
 
-    return { qualities, subtitles: parseDirectSubtitles(data), audioTracks: parseDirectAudioTracks(data) };
+        // Inject required referer for HLS links
+        if (u.toLowerCase().includes('.m3u8')) {
+          res.headers = { referer: 'https://www.febbox.com/' };
+        }
+
+        return res;
+      })
+      .filter((q): q is FebBoxQuality => !!q);
+
+    return {
+      qualities,
+      subtitles: parseDirectSubtitles(data),
+      audioTracks: parseDirectAudioTracks(data),
+    };
   };
 
   let allQualities: FebBoxQuality[] = [];
@@ -489,7 +503,9 @@ export async function febboxGetLinks(
   let allAudioTracks: FebBoxAudioTrack[] = [];
 
   // 1. Try file_download (Direct)
-  const d1 = await fetchJson(`${FEBBOX_BASE}/file/file_download?fid=${fid}&share_key=${encodeURIComponent(shareKey)}&is_hls=1&is_html=0`);
+  const d1 = await fetchJson(
+    `${FEBBOX_BASE}/file/file_download?fid=${fid}&share_key=${encodeURIComponent(shareKey)}&is_hls=1&is_html=0`,
+  );
   if (d1) {
     const p = parseLinks(d1);
     allQualities.push(...p.qualities);
@@ -497,17 +513,17 @@ export async function febboxGetLinks(
     allAudioTracks.push(...p.audioTracks);
     if (d1.data?.[0]?.download_url) {
       const u = d1.data[0].download_url;
-      if (!allQualities.find(q => q.url === u)) {
-        const quality: FebBoxQuality = { 
-          url: u, 
-          quality: "ORG", 
-          name: "Original", 
-          label: "Original", 
-          size: d1.data[0].file_size || "", 
-          format: inferFormatFromUrl(u) 
+      if (!allQualities.find((q) => q.url === u)) {
+        const quality: FebBoxQuality = {
+          url: u,
+          quality: 'ORG',
+          name: 'Original',
+          label: 'Original',
+          size: d1.data[0].file_size || '',
+          format: inferFormatFromUrl(u),
         };
-        if (u.toLowerCase().includes(".m3u8")) {
-          quality.headers = { referer: "https://www.febbox.com/" };
+        if (u.toLowerCase().includes('.m3u8')) {
+          quality.headers = { referer: 'https://www.febbox.com/' };
         }
         allQualities.push(quality);
       }
@@ -515,30 +531,34 @@ export async function febboxGetLinks(
   }
 
   // 2. Try video_quality_list (Quality Console)
-  const d2 = await fetchJson(`${FEBBOX_BASE}/console/video_quality_list?fid=${fid}&share_id=${shareKey}&is_hls=1&is_html=0`);
+  const d2 = await fetchJson(
+    `${FEBBOX_BASE}/console/video_quality_list?fid=${fid}&share_id=${shareKey}&is_hls=1&is_html=0`,
+  );
   if (d2) {
     if (d2.html) {
       const regex = /class="file_quality"[^>]*data-url="([^"]*)"[^>]*data-quality="([^"]*)"/g;
       let m;
       while ((m = regex.exec(d2.html)) !== null) {
-        if (!allQualities.find(q => q.url === m![1])) {
-          const quality: FebBoxQuality = { 
-            url: m[1], 
-            quality: m[2], 
-            name: m[2], 
-            label: m[2], 
-            size: "", 
-            format: inferFormatFromUrl(m[1]) 
+        if (!allQualities.find((q) => q.url === m![1])) {
+          const quality: FebBoxQuality = {
+            url: m[1],
+            quality: m[2],
+            name: m[2],
+            label: m[2],
+            size: '',
+            format: inferFormatFromUrl(m[1]),
           };
-          if (m[1].toLowerCase().includes(".m3u8")) {
-            quality.headers = { referer: "https://www.febbox.com/" };
+          if (m[1].toLowerCase().includes('.m3u8')) {
+            quality.headers = { referer: 'https://www.febbox.com/' };
           }
           allQualities.push(quality);
         }
       }
     } else {
       const p = parseLinks(d2);
-      p.qualities.forEach(q => { if (!allQualities.find(aq => aq.url === q.url)) allQualities.push(q); });
+      p.qualities.forEach((q) => {
+        if (!allQualities.find((aq) => aq.url === q.url)) allQualities.push(q);
+      });
     }
   }
 
@@ -546,13 +566,15 @@ export async function febboxGetLinks(
   const d3 = await fetchJson(`${FEBBOX_BASE}/file/hls_playlist?fid=${fid}&share_key=${shareKey}`);
   if (d3 && !d3.html) {
     const p = parseLinks(d3);
-    p.qualities.forEach(q => { if (!allQualities.find(aq => aq.url === q.url)) allQualities.push(q); });
+    p.qualities.forEach((q) => {
+      if (!allQualities.find((aq) => aq.url === q.url)) allQualities.push(q);
+    });
   }
 
   // Final Merge & Priority
   allQualities.sort((a, b) => {
-    const aH = a.url.toLowerCase().includes(".m3u8");
-    const bH = b.url.toLowerCase().includes(".m3u8");
+    const aH = a.url.toLowerCase().includes('.m3u8');
+    const bH = b.url.toLowerCase().includes('.m3u8');
     if (aH && !bH) return -1;
     if (!aH && bH) return 1;
     return 0;
@@ -567,7 +589,7 @@ export interface ResolvedStream {
     url: string;
     language: string;
     label: string;
-    type: "srt" | "vtt";
+    type: 'srt' | 'vtt';
   }[];
   audioTracks: {
     id: number;
@@ -582,14 +604,14 @@ export interface ResolvedStream {
 
 export interface ResolveLog {
   step: string;
-  status: "ok" | "fail";
+  status: 'ok' | 'fail';
   detail?: string;
 }
 
 export async function resolveStream(options: {
   title: string;
   tmdbId: string;
-  type: "movie" | "show";
+  type: 'movie' | 'show';
   season?: number;
   episode?: number;
   uiCookie?: string;
@@ -600,41 +622,39 @@ export async function resolveStream(options: {
   // Step 1: Search Showbox
   let results: any[];
   try {
-    const searchType = type === "movie" ? "movie" : "tv";
+    const searchType = type === 'movie' ? 'movie' : 'tv';
     results = await searchShowbox(title, searchType);
     if (!results || results.length === 0) {
       logs.push({
-        step: "search",
-        status: "fail",
+        step: 'search',
+        status: 'fail',
         detail: `No results for "${title}"`,
       });
       return { stream: null, logs };
     }
     logs.push({
-      step: "search",
-      status: "ok",
+      step: 'search',
+      status: 'ok',
       detail: `${results.length} results`,
     });
   } catch (err: any) {
-    logs.push({ step: "search", status: "fail", detail: err.message });
+    logs.push({ step: 'search', status: 'fail', detail: err.message });
     return { stream: null, logs };
   }
 
   // Step 2: Match title
-  const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
   const bestMatch =
     results.find((r: any) => {
-      const rTitle = (r.title || r.name || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
+      const rTitle = (r.title || r.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       return rTitle === normalizedTitle;
     }) || results[0];
 
   const showboxId = bestMatch.id;
-  const boxType = type === "movie" ? 1 : 2;
+  const boxType = type === 'movie' ? 1 : 2;
   logs.push({
-    step: "match",
-    status: "ok",
+    step: 'match',
+    status: 'ok',
     detail: `id=${showboxId} "${bestMatch.title || bestMatch.name}"`,
   });
 
@@ -644,15 +664,15 @@ export async function resolveStream(options: {
     shareKey = await getFebBoxShareKey(showboxId, boxType as 1 | 2);
     if (!shareKey) {
       logs.push({
-        step: "shareKey",
-        status: "fail",
-        detail: "All share-link hosts failed",
+        step: 'shareKey',
+        status: 'fail',
+        detail: 'All share-link hosts failed',
       });
       return { stream: null, logs };
     }
-    logs.push({ step: "shareKey", status: "ok", detail: shareKey });
+    logs.push({ step: 'shareKey', status: 'ok', detail: shareKey });
   } catch (err: any) {
-    logs.push({ step: "shareKey", status: "fail", detail: err.message });
+    logs.push({ step: 'shareKey', status: 'fail', detail: err.message });
     return { stream: null, logs };
   }
 
@@ -664,29 +684,27 @@ export async function resolveStream(options: {
     files = await febboxGetFileList(shareKey, 0, shareSessionCookie);
     if (!files || files.length === 0) {
       logs.push({
-        step: "fileList",
-        status: "fail",
-        detail: "Empty file list",
+        step: 'fileList',
+        status: 'fail',
+        detail: 'Empty file list',
       });
       return { stream: null, logs };
     }
     logs.push({
-      step: "fileList",
-      status: "ok",
+      step: 'fileList',
+      status: 'ok',
       detail: `${files.length} files`,
     });
   } catch (err: any) {
-    logs.push({ step: "fileList", status: "fail", detail: err.message });
+    logs.push({ step: 'fileList', status: 'fail', detail: err.message });
     return { stream: null, logs };
   }
 
   // Step 5: Navigate to target file
   let targetFile: FebBoxFile | undefined;
   try {
-    if (type === "movie") {
-      targetFile = files
-        .filter((f) => !f.is_dir)
-        .sort((a, b) => b.file_size - a.file_size)[0];
+    if (type === 'movie') {
+      targetFile = files.filter((f) => !f.is_dir).sort((a, b) => b.file_size - a.file_size)[0];
     } else {
       const seasonNum = season || 1;
       const episodeNum = episode || 1;
@@ -696,26 +714,22 @@ export async function resolveStream(options: {
         const name = f.file_name.toLowerCase();
         return (
           name.includes(`season ${seasonNum}`) ||
-          name.includes(`s${String(seasonNum).padStart(2, "0")}`) ||
+          name.includes(`s${String(seasonNum).padStart(2, '0')}`) ||
           name.includes(`season${seasonNum}`) ||
           name === `s${seasonNum}`
         );
       });
 
       if (seasonDir) {
-        files = await febboxGetFileList(
-          shareKey,
-          seasonDir.fid,
-          shareSessionCookie,
-        );
+        files = await febboxGetFileList(shareKey, seasonDir.fid, shareSessionCookie);
         logs.push({
-          step: "seasonNav",
-          status: "ok",
+          step: 'seasonNav',
+          status: 'ok',
           detail: seasonDir.file_name,
         });
       }
 
-      const epPad = String(episodeNum).padStart(2, "0");
+      const epPad = String(episodeNum).padStart(2, '0');
       targetFile = files.find((f) => {
         if (f.is_dir) return false;
         const name = f.file_name.toLowerCase();
@@ -738,41 +752,37 @@ export async function resolveStream(options: {
 
     if (!targetFile) {
       logs.push({
-        step: "findFile",
-        status: "fail",
-        detail: "No target file found",
+        step: 'findFile',
+        status: 'fail',
+        detail: 'No target file found',
       });
       return { stream: null, logs };
     }
     logs.push({
-      step: "findFile",
-      status: "ok",
+      step: 'findFile',
+      status: 'ok',
       detail: `${targetFile.file_name} (fid=${targetFile.fid})`,
     });
   } catch (err: any) {
-    logs.push({ step: "findFile", status: "fail", detail: err.message });
+    logs.push({ step: 'findFile', status: 'fail', detail: err.message });
     return { stream: null, logs };
   }
 
   // Step 6: Get video links
   try {
-    const linkData = await febboxGetLinks(
-      shareKey,
-      targetFile.fid,
-      shareSessionCookie,
-    );
+    const linkData = await febboxGetLinks(shareKey, targetFile.fid, shareSessionCookie);
     const links = linkData.qualities;
     if (!links || links.length === 0) {
       logs.push({
-        step: "getLinks",
-        status: "fail",
-        detail: "No qualities extracted",
+        step: 'getLinks',
+        status: 'fail',
+        detail: 'No qualities extracted',
       });
       return { stream: null, logs };
     }
     logs.push({
-      step: "getLinks",
-      status: "ok",
+      step: 'getLinks',
+      status: 'ok',
       detail: `${links.length} qualities, ${linkData.subtitles.length} subtitles, ${linkData.audioTracks.length} audio tracks`,
     });
 
@@ -792,7 +802,7 @@ export async function resolveStream(options: {
       logs,
     };
   } catch (err: any) {
-    logs.push({ step: "getLinks", status: "fail", detail: err.message });
+    logs.push({ step: 'getLinks', status: 'fail', detail: err.message });
     return { stream: null, logs };
   }
 }

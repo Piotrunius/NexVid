@@ -2,15 +2,15 @@
    Homepage – Apple Sequoia Pitch Black
    ============================================ */
 
-import { MediaRow } from "@/components/media/MediaCard";
-import { FeaturedHeroClient } from "@/components/pages/FeaturedHeroClient";
-import { HomePageClient } from "@/components/pages/HomePageClient";
-import { loadPublicBlockedMedia } from "@/lib/cloudSync";
-import { toTmdbMediaType } from "@/lib/mediaType";
-import { getPopular, getTopRated, getTrending, getTitleLogoSvgPath } from "@/lib/tmdb";
-import type { MediaItem } from "@/types";
+import { MediaRow } from '@/components/media/MediaCard';
+import { FeaturedHeroClient } from '@/components/pages/FeaturedHeroClient';
+import { HomePageClient } from '@/components/pages/HomePageClient';
+import { loadPublicBlockedMedia } from '@/lib/cloudSync';
+import { toTmdbMediaType } from '@/lib/mediaType';
+import { getPopular, getTopRated, getTrending, getTitleLogoSvgPath } from '@/lib/tmdb';
+import type { MediaItem } from '@/types';
 
-export const runtime = "edge";
+export const runtime = 'edge';
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function HomePage() {
@@ -21,10 +21,10 @@ export default async function HomePage() {
 
   try {
     const [t, p, m, s, blockedRes] = await Promise.all([
-      getTrending("all", "week"),
-      getPopular("movie"),
-      getTopRated("movie"),
-      getTopRated("tv"),
+      getTrending('all', 'week'),
+      getPopular('movie'),
+      getTopRated('movie'),
+      getTopRated('tv'),
       loadPublicBlockedMedia().catch(() => ({ items: [] })),
     ]);
 
@@ -33,9 +33,7 @@ export default async function HomePage() {
       items.filter((item) => {
         const normalizedType = toTmdbMediaType(item.mediaType);
         return !blocked.some(
-          (b: any) =>
-            String(b.tmdbId) === String(item.tmdbId) &&
-            b.mediaType === normalizedType,
+          (b: any) => String(b.tmdbId) === String(item.tmdbId) && b.mediaType === normalizedType,
         );
       });
 
@@ -44,14 +42,13 @@ export default async function HomePage() {
     topMovies = filterBlocked(m);
     topShows = filterBlocked(s);
   } catch (err) {
-    console.error("Failed to load homepage data:", err);
+    console.error('Failed to load homepage data:', err);
   }
 
   return (
     <div className="min-h-screen">
       {/* ── Hero Section ── */}
       <FeaturedHeroClient items={trending.slice(0, 20)} />
-
 
       {/* ── Content Rows ── */}
       <div className="relative z-10 -mt-32 space-y-4 pb-24 sm:-mt-36">

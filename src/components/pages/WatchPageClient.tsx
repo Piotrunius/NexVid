@@ -2,39 +2,26 @@
    Watch Page – Full-screen player with auto-play
    ============================================ */
 
-"use client";
+'use client';
 
-import { VideoPlayer } from "@/components/player/VideoPlayer";
-import { toast } from "@/components/ui/Toaster";
-import { resolveFebboxToken } from "@/lib/febbox";
-import { scrapeAllSources, SOURCES } from "@/lib/providers";
-import type { MediaSegments } from "@/lib/tidb";
-import {
-  getExternalIds,
-  getMovieDetails,
-  getSeasonDetails,
-  getShowDetails,
-} from "@/lib/tmdb";
-import { formatTime, getAccentHex } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth";
-import { useBlockedContentStore } from "@/stores/blockedContent";
-import { usePlayerStore } from "@/stores/player";
-import { useSettingsStore } from "@/stores/settings";
-import { useWatchlistStore } from "@/stores/watchlist";
-import type {
-  Caption,
-  Episode,
-  Movie,
-  Season,
-  Show,
-  SourceResult,
-  Stream,
-} from "@/types";
-import Head from "next/head";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { VideoPlayer } from '@/components/player/VideoPlayer';
+import { toast } from '@/components/ui/Toaster';
+import { resolveFebboxToken } from '@/lib/febbox';
+import { scrapeAllSources, SOURCES } from '@/lib/providers';
+import type { MediaSegments } from '@/lib/tidb';
+import { getExternalIds, getMovieDetails, getSeasonDetails, getShowDetails } from '@/lib/tmdb';
+import { formatTime, getAccentHex } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { useBlockedContentStore } from '@/stores/blockedContent';
+import { usePlayerStore } from '@/stores/player';
+import { useSettingsStore } from '@/stores/settings';
+import { useWatchlistStore } from '@/stores/watchlist';
+import type { Caption, Episode, Movie, Season, Show, SourceResult, Stream } from '@/types';
+import Head from 'next/head';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-export const runtime = "edge";
+export const runtime = 'edge';
 
 const EMPTY_SEGMENTS: MediaSegments = {
   intro: [],
@@ -43,8 +30,7 @@ const EMPTY_SEGMENTS: MediaSegments = {
   preview: [],
 };
 
-const FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY =
-  "nexvid-febbox-token-notice-sitewide-dismissed";
+const FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY = 'nexvid-febbox-token-notice-sitewide-dismissed';
 
 function mergeSourceCaptions(results: Array<{ stream: Stream }>) {
   const seen = new Set<string>();
@@ -52,7 +38,7 @@ function mergeSourceCaptions(results: Array<{ stream: Stream }>) {
 
   for (const result of results) {
     const streamCaptions =
-      "captions" in result.stream && Array.isArray(result.stream.captions)
+      'captions' in result.stream && Array.isArray(result.stream.captions)
         ? result.stream.captions
         : [];
 
@@ -69,15 +55,13 @@ function mergeSourceCaptions(results: Array<{ stream: Stream }>) {
 
 function getStreamCaptions(stream: Stream | null): Caption[] {
   if (!stream) return [];
-  return "captions" in stream && Array.isArray(stream.captions)
-    ? stream.captions
-    : [];
+  return 'captions' in stream && Array.isArray(stream.captions) ? stream.captions : [];
 }
 
 async function loadExternalCaptions(params: {
   imdbId?: string;
   tmdbId?: string;
-  mediaType: "movie" | "show";
+  mediaType: 'movie' | 'show';
   season?: number;
   episode?: number;
 }): Promise<Caption[]> {
@@ -88,12 +72,12 @@ async function loadExternalCaptions(params: {
     type: mediaType,
     t: Date.now().toString(),
   });
-  if (imdbId) query.set("imdbId", imdbId);
-  if (tmdbId) query.set("tmdbId", tmdbId);
+  if (imdbId) query.set('imdbId', imdbId);
+  if (tmdbId) query.set('tmdbId', tmdbId);
 
-  if (mediaType === "show") {
-    if (season) query.set("season", String(season));
-    if (episode) query.set("episode", String(episode));
+  if (mediaType === 'show') {
+    if (season) query.set('season', String(season));
+    if (episode) query.set('episode', String(episode));
   }
 
   try {
@@ -107,17 +91,17 @@ async function loadExternalCaptions(params: {
 
     return subtitles
       .map((subtitle: any): Caption | null => {
-        const url = String(subtitle?.url || "");
+        const url = String(subtitle?.url || '');
         if (!url) return null;
-        const language = String(subtitle?.language || "en").toLowerCase();
-        const type = String(subtitle?.type || "")
+        const language = String(subtitle?.language || 'en').toLowerCase();
+        const type = String(subtitle?.type || '')
           .toLowerCase()
-          .includes("vtt")
-          ? "vtt"
-          : "srt";
+          .includes('vtt')
+          ? 'vtt'
+          : 'srt';
 
-        let id = String(subtitle?.id || "");
-        if (!id.startsWith("wyzie-")) {
+        let id = String(subtitle?.id || '');
+        if (!id.startsWith('wyzie-')) {
           id = `wyzie-${language}-${Math.random().toString(36).slice(2, 9)}`;
         }
 
@@ -134,9 +118,7 @@ async function loadExternalCaptions(params: {
           downloadCount: Number(subtitle?.downloadCount || 0),
         } as Caption;
       })
-      .filter((caption: Caption | null): caption is Caption =>
-        Boolean(caption),
-      );
+      .filter((caption: Caption | null): caption is Caption => Boolean(caption));
   } catch (err: any) {
     console.error(`[Subtitles] FETCH ERROR:`, err);
     return [];
@@ -158,46 +140,34 @@ function mergeCaptionSets(primary: Caption[], secondary: Caption[]) {
 }
 
 function withMergedCaptions(stream: Stream, mergedCaptions: Caption[]): Stream {
-  if (stream.type === "embed") return stream;
+  if (stream.type === 'embed') return stream;
   return {
     ...stream,
     captions: mergedCaptions,
   };
 }
 
-export default function WatchPageClient({
-  initialMedia,
-}: {
-  initialMedia?: Movie | Show | null;
-}) {
+export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie | Show | null }) {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isBlocked, isLoaded } = useBlockedContentStore();
 
-  const routeType = String(params?.type || "").toLowerCase();
-  const type: "movie" | "show" =
-    routeType === "show" || routeType === "tv" || routeType === "series"
-      ? "show"
-      : "movie";
+  const routeType = String(params?.type || '').toLowerCase();
+  const type: 'movie' | 'show' =
+    routeType === 'show' || routeType === 'tv' || routeType === 'series' ? 'show' : 'movie';
   const id = params?.id as string;
 
   useEffect(() => {
     if (isLoaded && isBlocked(id, type)) {
-      router.replace("/");
-      toast("This content is no longer available", "error");
+      router.replace('/');
+      toast('This content is no longer available', 'error');
     }
   }, [isLoaded, isBlocked, id, type, router]);
 
-  const seasonNum = searchParams?.get("s")
-    ? parseInt(searchParams.get("s")!)
-    : 1;
-  const episodeNum = searchParams?.get("e")
-    ? parseInt(searchParams.get("e")!)
-    : 1;
-  const resumeTimeFromUrl = searchParams?.get("t")
-    ? parseFloat(searchParams.get("t")!)
-    : 0;
+  const seasonNum = searchParams?.get('s') ? parseInt(searchParams.get('s')!) : 1;
+  const episodeNum = searchParams?.get('e') ? parseInt(searchParams.get('e')!) : 1;
+  const resumeTimeFromUrl = searchParams?.get('t') ? parseFloat(searchParams.get('t')!) : 0;
 
   const lastProgressSyncRef = useRef<{
     wallTime: number;
@@ -208,40 +178,35 @@ export default function WatchPageClient({
     wallTime: 0,
     percent: 0,
     second: 0,
-    key: "",
+    key: '',
   });
 
   const [media, setMedia] = useState<Movie | Show | null>(initialMedia || null);
   const [season, setSeason] = useState<Season | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
-  const [imdbId, setImdbId] = useState<string | undefined>(
-    (initialMedia as any)?.imdbId,
-  );
+  const [imdbId, setImdbId] = useState<string | undefined>((initialMedia as any)?.imdbId);
   const [stream, setStream] = useState<Stream | null>(null);
   const [segments, setSegments] = useState<MediaSegments>(EMPTY_SEGMENTS);
-  const [scrapeStatus, setScrapeStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
+  const [scrapeStatus, setScrapeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>(
+    'idle',
+  );
   const [sourceResults, setSourceResults] = useState<SourceResult[]>([]);
   const [sourceIndex, setSourceIndex] = useState(0);
   const [externalCaptions, setExternalCaptions] = useState<Caption[]>([]);
-  const memoizedExternalCaptions = useMemo(
-    () => externalCaptions,
-    [externalCaptions],
-  );
+  const memoizedExternalCaptions = useMemo(() => externalCaptions, [externalCaptions]);
 
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [resumeData, setResumeData] = useState<{
     percentage: number;
     timestamp: number;
   } | null>(null);
-  const [resumeType, setResumeType] = useState<"low" | "high" | null>(null);
+  const [resumeType, setResumeType] = useState<'low' | 'high' | null>(null);
   const [appliedSeekTime, setAppliedSeekTime] = useState(resumeTimeFromUrl);
 
-  const [dismissedTokenNoticeMediaKey, setDismissedTokenNoticeMediaKey] =
-    useState<string | null>(null);
-  const [dismissedTokenNoticeSitewide, setDismissedTokenNoticeSitewide] =
-    useState(false);
+  const [dismissedTokenNoticeMediaKey, setDismissedTokenNoticeMediaKey] = useState<string | null>(
+    null,
+  );
+  const [dismissedTokenNoticeSitewide, setDismissedTokenNoticeSitewide] = useState(false);
 
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
@@ -273,18 +238,16 @@ export default function WatchPageClient({
 
   // Prevent duplicate loading
   const loadingRef = useRef(false);
-  const lastLoadKey = useRef("");
+  const lastLoadKey = useRef('');
   /** Cache for prefetched next-episode scrape results: key = "season:episode" */
-  const prefetchCacheRef = useRef<
-    Map<string, import("@/types").SourceResult[]>
-  >(new Map());
+  const prefetchCacheRef = useRef<Map<string, import('@/types').SourceResult[]>>(new Map());
   /** Tracks which next-episode keys have already been prefetch-triggered */
   const prefetchTriggeredRef = useRef<Set<string>>(new Set());
 
   const fetchSegments = useCallback(
     async (params: {
       tmdbId: string;
-      mediaType: "movie" | "show";
+      mediaType: 'movie' | 'show';
       season?: number;
       episode?: number;
     }) => {
@@ -292,15 +255,15 @@ export default function WatchPageClient({
         tmdbId: params.tmdbId,
         type: params.mediaType,
       });
-      if (params.mediaType === "show") {
-        query.set("season", String(params.season ?? 1));
-        query.set("episode", String(params.episode ?? 1));
+      if (params.mediaType === 'show') {
+        query.set('season', String(params.season ?? 1));
+        query.set('episode', String(params.episode ?? 1));
       }
 
       try {
         const headers: Record<string, string> = {};
-        if (introDbApiKey) headers["x-introdb-api-key"] = introDbApiKey;
-        if (sessionToken) headers["Authorization"] = `Bearer ${sessionToken}`;
+        if (introDbApiKey) headers['x-introdb-api-key'] = introDbApiKey;
+        if (sessionToken) headers['Authorization'] = `Bearer ${sessionToken}`;
 
         const response = await fetch(`/api/segments?${query.toString()}`, {
           signal: AbortSignal.timeout(9000),
@@ -309,7 +272,7 @@ export default function WatchPageClient({
         if (!response.ok) return EMPTY_SEGMENTS;
         const json = await response.json();
         const value = json?.segments;
-        if (!value || typeof value !== "object") return EMPTY_SEGMENTS;
+        if (!value || typeof value !== 'object') return EMPTY_SEGMENTS;
         return {
           intro: Array.isArray(value.intro) ? value.intro : [],
           recap: Array.isArray(value.recap) ? value.recap : [],
@@ -325,7 +288,7 @@ export default function WatchPageClient({
 
   const proceedWithScrape = useCallback(
     async (seekTime?: number) => {
-      if (typeof seekTime === "number") {
+      if (typeof seekTime === 'number') {
         setAppliedSeekTime(seekTime);
       }
 
@@ -334,12 +297,12 @@ export default function WatchPageClient({
         let extImdbId: string | undefined = imdbId;
 
         if (!mediaData || mediaData.tmdbId !== id) {
-          if (type === "movie") {
+          if (type === 'movie') {
             const movie = await getMovieDetails(id);
             setMedia(movie);
             mediaData = movie;
             try {
-              const ext = await getExternalIds("movie", id);
+              const ext = await getExternalIds('movie', id);
               setImdbId(ext.imdbId || movie.imdbId);
               extImdbId = ext.imdbId || movie.imdbId;
             } catch {
@@ -351,7 +314,7 @@ export default function WatchPageClient({
             setMedia(show);
             mediaData = show;
             try {
-              const ext = await getExternalIds("tv", id);
+              const ext = await getExternalIds('tv', id);
               setImdbId(ext.imdbId || (show as any).imdbId);
               extImdbId = ext.imdbId || (show as any).imdbId;
             } catch {
@@ -361,76 +324,52 @@ export default function WatchPageClient({
           }
         }
 
-        if (type === "movie") {
-          const seg = await fetchSegments({ tmdbId: id, mediaType: "movie" });
+        if (type === 'movie') {
+          const seg = await fetchSegments({ tmdbId: id, mediaType: 'movie' });
           setSegments(seg);
           setIntroOutro({
-            introStart:
-              seg.intro?.[0]?.startMs != null
-                ? seg.intro[0].startMs / 1000
-                : undefined,
-            introEnd:
-              seg.intro?.[0]?.endMs != null
-                ? seg.intro[0].endMs / 1000
-                : undefined,
+            introStart: seg.intro?.[0]?.startMs != null ? seg.intro[0].startMs / 1000 : undefined,
+            introEnd: seg.intro?.[0]?.endMs != null ? seg.intro[0].endMs / 1000 : undefined,
             outroStart:
-              seg.credits?.[0]?.startMs != null
-                ? seg.credits[0].startMs / 1000
-                : undefined,
-            outroEnd:
-              seg.credits?.[0]?.endMs != null
-                ? seg.credits[0].endMs / 1000
-                : undefined,
+              seg.credits?.[0]?.startMs != null ? seg.credits[0].startMs / 1000 : undefined,
+            outroEnd: seg.credits?.[0]?.endMs != null ? seg.credits[0].endMs / 1000 : undefined,
           });
         } else {
           const seasonData = await getSeasonDetails(id, seasonNum);
           setSeason(seasonData);
-          const ep = seasonData.episodes?.find(
-            (e) => e.episodeNumber === episodeNum,
-          );
+          const ep = seasonData.episodes?.find((e) => e.episodeNumber === episodeNum);
           setCurrentEpisode(ep || null);
 
           const seg = await fetchSegments({
             tmdbId: id,
-            mediaType: "show",
+            mediaType: 'show',
             season: seasonNum,
             episode: episodeNum,
           });
           setSegments(seg);
           setIntroOutro({
-            introStart:
-              seg.intro?.[0]?.startMs != null
-                ? seg.intro[0].startMs / 1000
-                : undefined,
-            introEnd:
-              seg.intro?.[0]?.endMs != null
-                ? seg.intro[0].endMs / 1000
-                : undefined,
+            introStart: seg.intro?.[0]?.startMs != null ? seg.intro[0].startMs / 1000 : undefined,
+            introEnd: seg.intro?.[0]?.endMs != null ? seg.intro[0].endMs / 1000 : undefined,
             outroStart:
-              seg.credits?.[0]?.startMs != null
-                ? seg.credits[0].startMs / 1000
-                : undefined,
-            outroEnd:
-              seg.credits?.[0]?.endMs != null
-                ? seg.credits[0].endMs / 1000
-                : undefined,
+              seg.credits?.[0]?.startMs != null ? seg.credits[0].startMs / 1000 : undefined,
+            outroEnd: seg.credits?.[0]?.endMs != null ? seg.credits[0].endMs / 1000 : undefined,
           });
         }
 
         if (mediaData) {
-          setScrapeStatus("loading");
+          setScrapeStatus('loading');
 
           const results = await scrapeAllSources({
             tmdbId: id,
             imdbId: extImdbId,
             title: mediaData.title,
             releaseYear: mediaData.releaseYear,
-            mediaType: type as "movie" | "show",
+            mediaType: type as 'movie' | 'show',
             season: seasonNum,
             episode: episodeNum,
             febboxCookie: effectiveFebboxToken,
             sessionToken,
-            accentColor: resolvedAccentHex.replace("#", ""),
+            accentColor: resolvedAccentHex.replace('#', ''),
             idlePauseOverlay,
             startAt: seekTime,
             autoPlay,
@@ -444,60 +383,44 @@ export default function WatchPageClient({
             ? results
             : results.filter(
                 (r) =>
-                  r.stream.type !== "embed" ||
-                  ["cinesrc", "vidking", "zxcstream"].includes(r.sourceId),
+                  r.stream.type !== 'embed' ||
+                  ['cinesrc', 'vidking', 'zxcstream'].includes(r.sourceId),
               );
 
           if (filteredResults.length > 0) {
             setSourceResults(filteredResults);
 
             // Priority 1: User's default source from settings
-            const defaultIdx = filteredResults.findIndex(
-              (r) => r.sourceId === defaultSource,
-            );
+            const defaultIdx = filteredResults.findIndex((r) => r.sourceId === defaultSource);
 
             if (defaultIdx !== -1) {
               setSourceIndex(defaultIdx);
-              setStream(
-                withMergedCaptions(
-                  filteredResults[defaultIdx].stream,
-                  externalCaptions,
-                ),
-              );
-              setScrapeStatus("success");
+              setStream(withMergedCaptions(filteredResults[defaultIdx].stream, externalCaptions));
+              setScrapeStatus('success');
             } else {
               // Priority 2: Best direct stream (non-embed) based on rank
               const sortedResults = [...filteredResults].sort((a, b) => {
-                const rankA =
-                  SOURCES.find((s) => s.id === a.sourceId)?.rank || 0;
-                const rankB =
-                  SOURCES.find((s) => s.id === b.sourceId)?.rank || 0;
+                const rankA = SOURCES.find((s) => s.id === a.sourceId)?.rank || 0;
+                const rankB = SOURCES.find((s) => s.id === b.sourceId)?.rank || 0;
                 return rankB - rankA;
               });
 
-              const bestDirect = sortedResults.find(
-                (r) => r.stream.type !== "embed",
-              );
-              const bestDirectIdx = bestDirect
-                ? filteredResults.indexOf(bestDirect)
-                : 0;
+              const bestDirect = sortedResults.find((r) => r.stream.type !== 'embed');
+              const bestDirectIdx = bestDirect ? filteredResults.indexOf(bestDirect) : 0;
 
               setSourceIndex(bestDirectIdx);
               setStream(
-                withMergedCaptions(
-                  filteredResults[bestDirectIdx].stream,
-                  externalCaptions,
-                ),
+                withMergedCaptions(filteredResults[bestDirectIdx].stream, externalCaptions),
               );
-              setScrapeStatus("success");
+              setScrapeStatus('success');
             }
           } else {
-            setScrapeStatus("error");
+            setScrapeStatus('error');
           }
         }
       } catch (err) {
-        console.error("Failed to load media:", err);
-        setScrapeStatus("error");
+        console.error('Failed to load media:', err);
+        setScrapeStatus('error');
       }
     },
     [
@@ -525,13 +448,13 @@ export default function WatchPageClient({
   );
 
   const loadMedia = useCallback(async () => {
-    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}-${effectiveFebboxToken ? "fb1" : "fb0"}`;
+    const loadKey = `${type}-${id}-${seasonNum}-${episodeNum}-${effectiveFebboxToken ? 'fb1' : 'fb0'}`;
     if (loadingRef.current || lastLoadKey.current === loadKey) return;
     loadingRef.current = true;
     lastLoadKey.current = loadKey;
 
     reset();
-    setScrapeStatus("idle");
+    setScrapeStatus('idle');
     setStream(null);
     setSegments(EMPTY_SEGMENTS);
     setIntroOutro(null);
@@ -547,10 +470,8 @@ export default function WatchPageClient({
     const isSameType = item?.mediaType === type;
     const isSameId = String(item?.tmdbId) === String(id);
     const isSameEpisode =
-      type === "movie" ||
-      (prog?.season === seasonNum && prog?.episode === episodeNum);
-    const hasMeaningfulProgress =
-      isSameType && isSameId && isSameEpisode && prog?.percentage;
+      type === 'movie' || (prog?.season === seasonNum && prog?.episode === episodeNum);
+    const hasMeaningfulProgress = isSameType && isSameId && isSameEpisode && prog?.percentage;
 
     if (initialSeek === 0 && hasMeaningfulProgress && prog?.timestamp) {
       initialSeek = prog.timestamp;
@@ -565,7 +486,7 @@ export default function WatchPageClient({
             percentage: prog.percentage,
             timestamp: prog.timestamp || 0,
           });
-          setResumeType("high");
+          setResumeType('high');
           setShowResumeOverlay(true);
           loadingRef.current = false;
           return;
@@ -575,7 +496,7 @@ export default function WatchPageClient({
             percentage: prog.percentage,
             timestamp: prog.timestamp || 0,
           });
-          setResumeType("low");
+          setResumeType('low');
           setShowResumeOverlay(true);
           loadingRef.current = false;
           return;
@@ -584,8 +505,8 @@ export default function WatchPageClient({
 
       await proceedWithScrape(initialSeek);
     } catch (err) {
-      console.error("Failed to load media:", err);
-      setScrapeStatus("error");
+      console.error('Failed to load media:', err);
+      setScrapeStatus('error');
     } finally {
       loadingRef.current = false;
     }
@@ -613,7 +534,7 @@ export default function WatchPageClient({
       const caps = await loadExternalCaptions({
         imdbId,
         tmdbId: id,
-        mediaType: type as "movie" | "show",
+        mediaType: type as 'movie' | 'show',
         season: seasonNum,
         episode: episodeNum,
       });
@@ -646,16 +567,16 @@ export default function WatchPageClient({
       if (percent < 0.1) return;
 
       updateProgress(
-        item?.id || "",
+        item?.id || '',
         {
-          season: type === "show" ? seasonNum : undefined,
-          episode: type === "show" ? episodeNum : undefined,
+          season: type === 'show' ? seasonNum : undefined,
+          episode: type === 'show' ? episodeNum : undefined,
           timestamp: Math.floor(time),
           percentage: percent,
         },
         {
           tmdbId: id,
-          mediaType: type as "movie" | "show",
+          mediaType: type as 'movie' | 'show',
           title: media.title,
           posterPath: media.posterPath,
         },
@@ -693,12 +614,12 @@ export default function WatchPageClient({
           imdbId,
           title: media.title,
           releaseYear: media.releaseYear,
-          mediaType: "show",
+          mediaType: 'show',
           season: targetSeason,
           episode: targetEpisode,
           febboxCookie: effectiveFebboxToken,
           sessionToken,
-          accentColor: resolvedAccentHex.replace("#", ""),
+          accentColor: resolvedAccentHex.replace('#', ''),
           idlePauseOverlay,
           autoPlay,
           autoNext,
@@ -757,7 +678,7 @@ export default function WatchPageClient({
 
     // ── Prefetch next episode when ~2 minutes from end ──────────────────
     if (
-      type === "show" &&
+      type === 'show' &&
       duration > 120 &&
       currentTime > 0 &&
       duration - currentTime <= 120 &&
@@ -784,7 +705,7 @@ export default function WatchPageClient({
   useEffect(() => {
     try {
       setDismissedTokenNoticeSitewide(
-        window.localStorage.getItem(FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY) === "1",
+        window.localStorage.getItem(FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY) === '1',
       );
     } catch {
       setDismissedTokenNoticeSitewide(false);
@@ -792,9 +713,7 @@ export default function WatchPageClient({
   }, []);
 
   useEffect(() => {
-    setDismissedTokenNoticeMediaKey((prev) =>
-      prev === currentMediaKey ? prev : null,
-    );
+    setDismissedTokenNoticeMediaKey((prev) => (prev === currentMediaKey ? prev : null));
   }, [currentMediaKey]);
 
   const lastNavigateRef = useRef<{
@@ -808,16 +727,12 @@ export default function WatchPageClient({
     const last = lastNavigateRef.current;
 
     // Avoid immediate double-jump glitches caused by edge-case auto-next race
-    if (
-      now - last.ts < 1200 &&
-      last.season === s &&
-      Math.abs(e - last.episode) <= 1
-    ) {
+    if (now - last.ts < 1200 && last.season === s && Math.abs(e - last.episode) <= 1) {
       return;
     }
     if (now - last.ts < 1200 && Math.abs(e - episodeNum) > 1) {
       // guard against accidental two-step skip (e.g. 2->4) during fast auto-next sequence
-      console.warn("Blocked suspicious fast navigation", {
+      console.warn('Blocked suspicious fast navigation', {
         current: episodeNum,
         target: e,
         last,
@@ -848,7 +763,7 @@ export default function WatchPageClient({
   );
 
   const openSettings = useCallback(() => {
-    router.push("/settings");
+    router.push('/settings');
   }, [router]);
 
   const dismissTokenNoticeForCurrentMedia = useCallback(() => {
@@ -858,48 +773,46 @@ export default function WatchPageClient({
   const dismissTokenNoticeSitewide = useCallback(() => {
     setDismissedTokenNoticeSitewide(true);
     try {
-      window.localStorage.setItem(FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY, "1");
+      window.localStorage.setItem(FEBBOX_NOTICE_SITEWIDE_DISMISS_KEY, '1');
     } catch (e) {
-      console.error("Failed to save sitewide dismiss:", e);
+      console.error('Failed to save sitewide dismiss:', e);
     }
   }, []);
 
-  const handleResumeChoice = (choice: "watch" | "rewatch" | "next") => {
+  const handleResumeChoice = (choice: 'watch' | 'rewatch' | 'next') => {
     setShowResumeOverlay(false);
-    if (choice === "next") {
+    if (choice === 'next') {
       const nextEpNum = episodeNum + 1;
       router.push(`/watch/show/${id}?s=${seasonNum}&e=${nextEpNum}`);
       return;
     }
-    const seekTime = choice === "rewatch" ? 0.1 : resumeData?.timestamp || 0;
+    const seekTime = choice === 'rewatch' ? 0.1 : resumeData?.timestamp || 0;
     proceedWithScrape(seekTime);
   };
 
   const shouldShowMissingFebboxTokenPrompt =
-    scrapeStatus === "error" && !stream && !hasAnyFebboxToken;
+    scrapeStatus === 'error' && !stream && !hasAnyFebboxToken;
   const shouldShowPersistentTokenNotice =
     !hasAnyFebboxToken &&
     !dismissedTokenNoticeSitewide &&
     dismissedTokenNoticeMediaKey !== currentMediaKey;
 
   const currentEpisodeComputed = useMemo(() => {
-    if (type !== "show") return null;
+    if (type !== 'show') return null;
     if (currentEpisode?.episodeNumber === episodeNum) return currentEpisode;
-    return (
-      season?.episodes?.find((ep) => ep.episodeNumber === episodeNum) || null
-    );
+    return season?.episodes?.find((ep) => ep.episodeNumber === episodeNum) || null;
   }, [type, currentEpisode, season, episodeNum]);
 
   const getTitle = () => {
-    return media?.title || "";
+    return media?.title || '';
   };
 
   const getSubtitle = () => {
-    if (type === "show") {
-      const episodeName = currentEpisodeComputed?.name || "";
-      return `S${seasonNum}:E${episodeNum}${episodeName ? ` - ${episodeName}` : ""}`;
+    if (type === 'show') {
+      const episodeName = currentEpisodeComputed?.name || '';
+      return `S${seasonNum}:E${episodeNum}${episodeName ? ` - ${episodeName}` : ''}`;
     }
-    return "";
+    return '';
   };
 
   return (
@@ -913,7 +826,7 @@ export default function WatchPageClient({
           stream={stream}
           fullViewport
           onBack={() => {
-            if (type === "show") {
+            if (type === 'show') {
               router.push(`/show/${id}`);
               return;
             }
@@ -925,16 +838,12 @@ export default function WatchPageClient({
           season={season}
           seasonNum={seasonNum}
           episodeNum={episodeNum}
-          mediaType={type as "movie" | "show"}
+          mediaType={type as 'movie' | 'show'}
           onNavigateEpisode={navigateEpisode}
           scrapeStatus={scrapeStatus}
           segments={segments}
           tmdbId={id}
-          sourceLabel={
-            sourceResults.length > 0
-              ? sourceResults[sourceIndex]?.sourceId
-              : undefined
-          }
+          sourceLabel={sourceResults.length > 0 ? sourceResults[sourceIndex]?.sourceId : undefined}
           canTryNextSource={sourceResults.length > 1}
           onTryNextSource={tryNextSource}
           allSourceResults={sourceResults}
@@ -942,22 +851,14 @@ export default function WatchPageClient({
           onSelectSource={selectSource}
           externalCaptions={memoizedExternalCaptions}
           scrapeErrorTitle={
-            shouldShowMissingFebboxTokenPrompt
-              ? "No FebBox token configured"
-              : undefined
+            shouldShowMissingFebboxTokenPrompt ? 'No FebBox token configured' : undefined
           }
           scrapeErrorDescription={
-            shouldShowMissingFebboxTokenPrompt
-              ? "Add your own token in settings"
-              : undefined
+            shouldShowMissingFebboxTokenPrompt ? 'Add your own token in settings' : undefined
           }
-          scrapeErrorActionLabel={
-            shouldShowMissingFebboxTokenPrompt ? "Open settings" : undefined
-          }
+          scrapeErrorActionLabel={shouldShowMissingFebboxTokenPrompt ? 'Open settings' : undefined}
           onScrapeErrorAction={
-            shouldShowMissingFebboxTokenPrompt
-              ? () => router.push("/settings")
-              : undefined
+            shouldShowMissingFebboxTokenPrompt ? () => router.push('/settings') : undefined
           }
           initialSeekTime={appliedSeekTime}
         />
@@ -965,7 +866,7 @@ export default function WatchPageClient({
         {showResumeOverlay && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
             <div className="mx-4 w-full max-w-xl rounded-[28px] border border-white/10 bg-white/[0.03] px-4 py-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl sm:px-8 sm:py-8 animate-scale-in">
-              {resumeType === "high" ? (
+              {resumeType === 'high' ? (
                 <>
                   <div className="mb-4 flex justify-center">
                     <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
@@ -986,32 +887,32 @@ export default function WatchPageClient({
                     You're almost done
                   </h2>
                   <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
-                    You've watched{" "}
+                    You've watched{' '}
                     <span className="text-accent font-bold">
                       {Math.round(resumeData?.percentage || 0)}%
-                    </span>{" "}
-                    of this {type === "movie" ? "movie" : "episode"}.
+                    </span>{' '}
+                    of this {type === 'movie' ? 'movie' : 'episode'}.
                   </p>
 
                   <div className="mx-auto flex w-full max-w-[360px] flex-col gap-2">
                     <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={() => handleResumeChoice("watch")}
+                        onClick={() => handleResumeChoice('watch')}
                         className="btn-accent justify-center w-full"
                       >
                         Watch ({Math.round(resumeData?.percentage || 0)}%)
                       </button>
                       <button
-                        onClick={() => handleResumeChoice("rewatch")}
+                        onClick={() => handleResumeChoice('rewatch')}
                         className="btn-glass justify-center w-full"
                       >
                         Rewatch
                       </button>
                     </div>
 
-                    {type === "show" && (
+                    {type === 'show' && (
                       <button
-                        onClick={() => handleResumeChoice("next")}
+                        onClick={() => handleResumeChoice('next')}
                         className="btn-glass !bg-accent/10 !border-accent/20 !text-accent justify-center w-full hover:!bg-accent/20"
                       >
                         Next Episode
@@ -1040,19 +941,18 @@ export default function WatchPageClient({
                     Welcome back
                   </h2>
                   <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
-                    You're just getting started. Resume from where you left off
-                    or start over.
+                    You're just getting started. Resume from where you left off or start over.
                   </p>
 
                   <div className="mx-auto grid w-full max-w-[360px] grid-cols-2 gap-2">
                     <button
-                      onClick={() => handleResumeChoice("watch")}
+                      onClick={() => handleResumeChoice('watch')}
                       className="btn-accent justify-center w-full"
                     >
                       Resume ({formatTime(resumeData?.timestamp || 0)})
                     </button>
                     <button
-                      onClick={() => handleResumeChoice("rewatch")}
+                      onClick={() => handleResumeChoice('rewatch')}
                       className="btn-glass justify-center w-full"
                     >
                       Start Over

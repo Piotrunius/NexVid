@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { AdminSurveys } from "@/components/admin/AdminSurveys";
-import { toast } from "@/components/ui/Toaster";
+import { AdminSurveys } from '@/components/admin/AdminSurveys';
+import { toast } from '@/components/ui/Toaster';
 import {
   addAdminBlockedMedia,
   banAdminTarget,
@@ -28,13 +28,13 @@ import {
   revokeAdminPermission,
   unbanAdminTarget,
   updateAdminAnnouncement,
-} from "@/lib/cloudSync";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+} from '@/lib/cloudSync';
+import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
-type AnnouncementType = "info" | "warning" | "update" | "success";
+type AnnouncementType = 'info' | 'warning' | 'update' | 'success';
 
 type AdminAnnouncement = {
   id: string;
@@ -48,7 +48,7 @@ type AdminAnnouncement = {
 };
 
 type BannedItem = {
-  type: "username" | "ip";
+  type: 'username' | 'ip';
   value: string;
   reason?: string;
   created_at: string;
@@ -76,9 +76,9 @@ type AdminFeedbackThread = {
   id: string;
   userId: string;
   username: string;
-  category: "bug" | "feedback" | "contact" | "feature";
+  category: 'bug' | 'feedback' | 'contact' | 'feature';
   subject: string;
-  status: "open" | "answered" | "closed";
+  status: 'open' | 'answered' | 'closed';
   createdAt: string;
   updatedAt: string;
   lastReplyAt: string;
@@ -90,7 +90,7 @@ type AdminFeedbackThread = {
 type AdminFeedbackMessage = {
   id: string;
   senderUserId?: string;
-  senderRole: "user" | "admin";
+  senderRole: 'user' | 'admin';
   message: string;
   createdAt: string;
 };
@@ -116,9 +116,9 @@ type BlockedMediaItem = {
 const ANNOUNCEMENT_MAX_CHARS = 260;
 const AUDIT_PAGE_SIZE = 20;
 const FEEDBACK_ARCHIVE_MESSAGE =
-  "Thank you for your message. This thread has been reviewed and archived. If you need more help, please open a new feedback thread.";
+  'Thank you for your message. This thread has been reviewed and archived. If you need more help, please open a new feedback thread.';
 const FEEDBACK_UNARCHIVE_MESSAGE =
-  "This thread has been reopened by support. You can continue this conversation here.";
+  'This thread has been reopened by support. You can continue this conversation here.';
 
 type FebboxTokenItem = {
   token: string;
@@ -133,17 +133,14 @@ type FebboxTokenItem = {
 
 export default function AdminPage() {
   const { user, isLoggedIn, logout } = useAuthStore();
-  const [serverRole, setServerRole] = useState<
-    "owner" | "admin" | "moderator" | null
-  >(null);
+  const [serverRole, setServerRole] = useState<'owner' | 'admin' | 'moderator' | null>(null);
 
-  const userRole = serverRole || user?.role || (user?.isAdmin ? "admin" : null);
-  const isModerator = userRole === "moderator";
-  const isAdminRole = userRole === "admin";
-  const isOwner = userRole === "owner";
-  const isOwnerConfirmed = serverRole === "owner";
-  const hasAdminPanelAccess =
-    isLoggedIn && (isModerator || isAdminRole || isOwner);
+  const userRole = serverRole || user?.role || (user?.isAdmin ? 'admin' : null);
+  const isModerator = userRole === 'moderator';
+  const isAdminRole = userRole === 'admin';
+  const isOwner = userRole === 'owner';
+  const isOwnerConfirmed = serverRole === 'owner';
+  const hasAdminPanelAccess = isLoggedIn && (isModerator || isAdminRole || isOwner);
 
   const canManageModeration = isOwner || isAdminRole;
   const canManageAdmins = isOwner || isAdminRole;
@@ -164,61 +161,48 @@ export default function AdminPage() {
   const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
   const [blockedMedia, setBlockedMedia] = useState<BlockedMediaItem[]>([]);
   const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>([]);
-  const [userSearchQuery, setUserSearchQuery] = useState("");
-  const [userSortKey, setUserSortKey] = useState<
-    "username" | "createdAt" | "lastActiveAt"
-  >("lastActiveAt");
-  const [userSortOrder, setUserSortOrder] = useState<"asc" | "desc">("desc");
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSortKey, setUserSortKey] = useState<'username' | 'createdAt' | 'lastActiveAt'>(
+    'lastActiveAt',
+  );
+  const [userSortOrder, setUserSortOrder] = useState<'asc' | 'desc'>('desc');
   const [adminGrants, setAdminGrants] = useState<AdminGrantItem[]>([]);
-  const [grantUsername, setGrantUsername] = useState("");
-  const [grantRole, setGrantRole] = useState<"moderator" | "admin" | "owner">(
-    "moderator",
-  );
+  const [grantUsername, setGrantUsername] = useState('');
+  const [grantRole, setGrantRole] = useState<'moderator' | 'admin' | 'owner'>('moderator');
   const [grantExpiresDays, setGrantExpiresDays] = useState(0);
-  const [feedbackThreads, setFeedbackThreads] = useState<AdminFeedbackThread[]>(
-    [],
-  );
+  const [feedbackThreads, setFeedbackThreads] = useState<AdminFeedbackThread[]>([]);
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogItem[]>([]);
   const [auditHasMore, setAuditHasMore] = useState(false);
   const [auditNextOffset, setAuditNextOffset] = useState(0);
   const [isLoadingMoreAudit, setIsLoadingMoreAudit] = useState(false);
-  const [auditActionFilter, setAuditActionFilter] = useState("");
-  const [auditAdminFilter, setAuditAdminFilter] = useState("");
-  const [selectedFeedbackThreadId, setSelectedFeedbackThreadId] = useState<
-    string | null
-  >(null);
-  const [feedbackInboxTab, setFeedbackInboxTab] = useState<
-    "active" | "archive"
-  >("active");
-  const [feedbackMessages, setFeedbackMessages] = useState<
-    AdminFeedbackMessage[]
-  >([]);
+  const [auditActionFilter, setAuditActionFilter] = useState('');
+  const [auditAdminFilter, setAuditAdminFilter] = useState('');
+  const [selectedFeedbackThreadId, setSelectedFeedbackThreadId] = useState<string | null>(null);
+  const [feedbackInboxTab, setFeedbackInboxTab] = useState<'active' | 'archive'>('active');
+  const [feedbackMessages, setFeedbackMessages] = useState<AdminFeedbackMessage[]>([]);
   const [selectedFeedbackThreadMeta, setSelectedFeedbackThreadMeta] = useState<{
-    status: "open" | "answered" | "closed";
+    status: 'open' | 'answered' | 'closed';
     closedExpiresAt?: string;
     closedRemainingMs?: number;
   } | null>(null);
-  const [feedbackReply, setFeedbackReply] = useState("");
+  const [feedbackReply, setFeedbackReply] = useState('');
 
-  const banType: "username" = "username";
-  const [banValue, setBanValue] = useState("");
-  const [banReason, setBanReason] = useState("");
-  const [deleteUsername, setDeleteUsername] = useState("");
-  const [blockedTmdbId, setBlockedTmdbId] = useState("");
-  const [blockedMediaType, setBlockedMediaType] = useState<"movie" | "tv">(
-    "movie",
-  );
-  const [blockedReason, setBlockedReason] = useState("");
-  const [blockedSearch, setBlockedSearch] = useState("");
-  const lookupType: "username" = "username";
+  const banType: 'username' = 'username';
+  const [banValue, setBanValue] = useState('');
+  const [banReason, setBanReason] = useState('');
+  const [deleteUsername, setDeleteUsername] = useState('');
+  const [blockedTmdbId, setBlockedTmdbId] = useState('');
+  const [blockedMediaType, setBlockedMediaType] = useState<'movie' | 'tv'>('movie');
+  const [blockedReason, setBlockedReason] = useState('');
+  const [blockedSearch, setBlockedSearch] = useState('');
+  const lookupType: 'username' = 'username';
 
   const filteredBlockedMedia = useMemo(() => {
     const query = blockedSearch.trim();
     if (!query) return blockedMedia;
     return blockedMedia.filter(
       (item) =>
-        item.tmdbId.includes(query) ||
-        item.reason?.toLowerCase().includes(query.toLowerCase()),
+        item.tmdbId.includes(query) || item.reason?.toLowerCase().includes(query.toLowerCase()),
     );
   }, [blockedMedia, blockedSearch]);
 
@@ -227,22 +211,19 @@ export default function AdminPage() {
     const adminQuery = auditAdminFilter.trim().toLowerCase();
 
     return auditLogs.filter((item) => {
-      const actionMatch = actionQuery
-        ? item.action.toLowerCase().includes(actionQuery)
-        : true;
+      const actionMatch = actionQuery ? item.action.toLowerCase().includes(actionQuery) : true;
       const adminName = (item.adminUsername || item.adminUserId).toLowerCase();
       const adminMatch = adminQuery ? adminName.includes(adminQuery) : true;
       return actionMatch && adminMatch;
     });
   }, [auditLogs, auditActionFilter, auditAdminFilter]);
 
-  const [lookupValue, setLookupValue] = useState("");
+  const [lookupValue, setLookupValue] = useState('');
 
-  const [message, setMessage] = useState("");
-  const [announcementType, setAnnouncementType] =
-    useState<AnnouncementType>("info");
-  const [linkUrl, setLinkUrl] = useState("");
-  const [linkLabel, setLinkLabel] = useState("");
+  const [message, setMessage] = useState('');
+  const [announcementType, setAnnouncementType] = useState<AnnouncementType>('info');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkLabel, setLinkLabel] = useState('');
 
   const canManage = hasAdminPanelAccess;
 
@@ -259,46 +240,32 @@ export default function AdminPage() {
   }, [selectedFeedbackThreadId, canManage]);
 
   const sortedAnnouncements = useMemo(
-    () =>
-      [...announcements].sort(
-        (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
-      ),
+    () => [...announcements].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
     [announcements],
   );
 
   const sortedFeedbackThreads = useMemo(() => {
     const filtered = feedbackThreads.filter((t) =>
-      feedbackInboxTab === "active"
-        ? t.status !== "closed"
-        : t.status === "closed",
+      feedbackInboxTab === 'active' ? t.status !== 'closed' : t.status === 'closed',
     );
-    return [...filtered].sort(
-      (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
-    );
+    return [...filtered].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   }, [feedbackThreads, feedbackInboxTab]);
 
   const selectedFeedbackThread = useMemo(
-    () =>
-      sortedFeedbackThreads.find(
-        (item) => item.id === selectedFeedbackThreadId,
-      ) || null,
+    () => sortedFeedbackThreads.find((item) => item.id === selectedFeedbackThreadId) || null,
     [sortedFeedbackThreads, selectedFeedbackThreadId],
   );
 
   const selectedFeedbackStatus =
-    selectedFeedbackThreadMeta?.status ||
-    selectedFeedbackThread?.status ||
-    "open";
+    selectedFeedbackThreadMeta?.status || selectedFeedbackThread?.status || 'open';
   const selectedFeedbackClosedExpiresAt =
-    selectedFeedbackThreadMeta?.closedExpiresAt ||
-    selectedFeedbackThread?.closedExpiresAt;
+    selectedFeedbackThreadMeta?.closedExpiresAt || selectedFeedbackThread?.closedExpiresAt;
   const selectedFeedbackClosedRemainingMs =
-    selectedFeedbackThreadMeta?.closedRemainingMs ??
-    selectedFeedbackThread?.closedRemainingMs;
+    selectedFeedbackThreadMeta?.closedRemainingMs ?? selectedFeedbackThread?.closedRemainingMs;
   const announcementLength = message.length;
   const announcementRows = useMemo(() => {
     const softRows = Math.ceil(announcementLength / 70);
-    const explicitRows = message.split("\n").length;
+    const explicitRows = message.split('\n').length;
     return Math.max(3, Math.min(8, Math.max(softRows, explicitRows)));
   }, [announcementLength, message]);
 
@@ -310,10 +277,10 @@ export default function AdminPage() {
     });
 
     return filtered.sort((a, b) => {
-      const valA = a[userSortKey] || "";
-      const valB = b[userSortKey] || "";
+      const valA = a[userSortKey] || '';
+      const valB = b[userSortKey] || '';
 
-      if (userSortOrder === "asc") {
+      if (userSortOrder === 'asc') {
         return valA < valB ? -1 : valA > valB ? 1 : 0;
       } else {
         return valA > valB ? -1 : valA < valB ? 1 : 0;
@@ -322,19 +289,19 @@ export default function AdminPage() {
   }, [adminUsers, userSearchQuery, userSortKey, userSortOrder]);
   const announcementFontClass =
     announcementLength > 210
-      ? "text-[11px]"
+      ? 'text-[11px]'
       : announcementLength > 130
-        ? "text-[12px]"
-        : "text-[13px]";
+        ? 'text-[12px]'
+        : 'text-[13px]';
 
   const formatAuditMeta = (meta: Record<string, unknown> | null) => {
-    if (!meta) return "-";
+    if (!meta) return '-';
     const text = JSON.stringify(meta);
     return text.length > 140 ? `${text.slice(0, 140)}...` : text;
   };
 
   const formatRemaining = (milliseconds?: number) => {
-    if (!milliseconds || milliseconds <= 0) return "less than 1 hour";
+    if (!milliseconds || milliseconds <= 0) return 'less than 1 hour';
     const totalMinutes = Math.ceil(milliseconds / (1000 * 60));
     const days = Math.floor(totalMinutes / (60 * 24));
     const hours = Math.floor((totalMinutes - days * 60 * 24) / 60);
@@ -351,33 +318,23 @@ export default function AdminPage() {
     setIsLoading(true);
     try {
       const overview = await loadAdminOverview();
-      setServerRole(
-        (overview.admin?.role as "owner" | "admin" | "moderator" | null) ||
-          null,
-      );
+      setServerRole((overview.admin?.role as 'owner' | 'admin' | 'moderator' | null) || null);
       setStats({
         users: Number(overview.stats?.users || 0),
         activeSessions: Number(overview.stats?.activeSessions || 0),
-        activeWatchPartyRooms: Number(
-          (overview.stats as any)?.activeWatchPartyRooms || 0,
-        ),
+        activeWatchPartyRooms: Number((overview.stats as any)?.activeWatchPartyRooms || 0),
         activeAnnouncements: Number(overview.stats?.activeAnnouncements || 0),
         activeUsers: Number(overview.stats?.activeUsers || 0),
         activeGuests: Number(overview.stats?.activeGuests || 0),
         newUsersToday: Number((overview.stats as any)?.newUsersToday || 0),
       });
 
-      const promises: Promise<any>[] = [
-        loadAdminUsers(),
-        loadAdminFeedbackThreads(),
-      ];
+      const promises: Promise<any>[] = [loadAdminUsers(), loadAdminFeedbackThreads()];
 
       if (canManageModeration) {
         promises.push(loadAdminBans());
         promises.push(loadAdminAnnouncements());
-        promises.push(
-          loadAdminAuditLogs({ limit: AUDIT_PAGE_SIZE, offset: 0 }),
-        );
+        promises.push(loadAdminAuditLogs({ limit: AUDIT_PAGE_SIZE, offset: 0 }));
         promises.push(loadAdminBlockedMedia());
       }
 
@@ -396,9 +353,7 @@ export default function AdminPage() {
         setAnnouncements(results[3].items || []);
         setAuditLogs(results[4].items || []);
         setAuditHasMore(Boolean(results[4].hasMore));
-        setAuditNextOffset(
-          Number(results[4].nextOffset || (results[4].items || []).length || 0),
-        );
+        setAuditNextOffset(Number(results[4].nextOffset || (results[4].items || []).length || 0));
         setBlockedMedia(results[5].items || []);
       }
 
@@ -411,9 +366,7 @@ export default function AdminPage() {
 
       const nextVisibleThreads = nextFeedbackThreads
         .filter((item: AdminFeedbackThread) =>
-          feedbackInboxTab === "active"
-            ? item.status !== "closed"
-            : item.status === "closed",
+          feedbackInboxTab === 'active' ? item.status !== 'closed' : item.status === 'closed',
         )
         .sort(
           (a: AdminFeedbackThread, b: AdminFeedbackThread) =>
@@ -429,7 +382,7 @@ export default function AdminPage() {
         setSelectedFeedbackThreadId(nextVisibleThreads[0]?.id || null);
       }
     } catch (error: any) {
-      toast(error?.message || "Failed to load admin data", "error");
+      toast(error?.message || 'Failed to load admin data', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -457,7 +410,7 @@ export default function AdminPage() {
           });
         }
       } catch (error: any) {
-        toast(error?.message || "Failed to load feedback messages", "error");
+        toast(error?.message || 'Failed to load feedback messages', 'error');
         setFeedbackMessages([]);
         setSelectedFeedbackThreadMeta(null);
       }
@@ -476,9 +429,7 @@ export default function AdminPage() {
 
     if (
       !selectedFeedbackThreadId ||
-      !sortedFeedbackThreads.some(
-        (item) => item.id === selectedFeedbackThreadId,
-      )
+      !sortedFeedbackThreads.some((item) => item.id === selectedFeedbackThreadId)
     ) {
       setSelectedFeedbackThreadId(sortedFeedbackThreads[0].id);
     }
@@ -487,32 +438,32 @@ export default function AdminPage() {
   const handleBanTarget = async () => {
     const value = banValue.trim();
     if (!value) {
-      toast("Enter nickname or full user ID", "error");
+      toast('Enter nickname or full user ID', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
       await banAdminTarget(banType, value, banReason.trim());
-      setBanValue("");
-      setBanReason("");
+      setBanValue('');
+      setBanReason('');
       await loadAll();
-      toast("Account banned", "success");
+      toast('Account banned', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to ban target", "error");
+      toast(error?.message || 'Failed to ban target', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleUnban = async (type: "username" | "ip", value: string) => {
+  const handleUnban = async (type: 'username' | 'ip', value: string) => {
     setIsSubmitting(true);
     try {
       await unbanAdminTarget(type, value);
       await loadAll();
-      toast("Target unbanned", "success");
+      toast('Target unbanned', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to unban target", "error");
+      toast(error?.message || 'Failed to unban target', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -521,24 +472,19 @@ export default function AdminPage() {
   const handleDeleteUser = async () => {
     const identifier = deleteUsername.trim();
     if (!identifier) {
-      toast("Enter nickname or full user ID", "error");
+      toast('Enter nickname or full user ID', 'error');
       return;
     }
-    if (
-      !confirm(
-        `Delete user data for ${identifier}? This action cannot be undone.`,
-      )
-    )
-      return;
+    if (!confirm(`Delete user data for ${identifier}? This action cannot be undone.`)) return;
 
     setIsSubmitting(true);
     try {
       await deleteAdminUserByUsername(identifier);
-      setDeleteUsername("");
+      setDeleteUsername('');
       await loadAll();
-      toast("User data deleted from D1", "success");
+      toast('User data deleted from D1', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to delete user data", "error");
+      toast(error?.message || 'Failed to delete user data', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -547,29 +493,21 @@ export default function AdminPage() {
   const handleResetPassword = async () => {
     const identifier = deleteUsername.trim();
     if (!identifier) {
-      toast("Enter nickname or full user ID", "error");
+      toast('Enter nickname or full user ID', 'error');
       return;
     }
-    if (
-      !confirm(
-        `Reset password for ${identifier}? This will generate a temporary one.`,
-      )
-    )
-      return;
+    if (!confirm(`Reset password for ${identifier}? This will generate a temporary one.`)) return;
 
     setIsSubmitting(true);
     try {
       const res = await resetUserPassword(identifier);
       if (res.temporaryPassword) {
-        prompt(
-          "Password reset successful. Copy the temporary password:",
-          res.temporaryPassword,
-        );
+        prompt('Password reset successful. Copy the temporary password:', res.temporaryPassword);
       } else {
-        toast("Password reset, but no temp password returned.", "warning");
+        toast('Password reset, but no temp password returned.', 'warning');
       }
     } catch (error: any) {
-      toast(error?.message || "Failed to reset password", "error");
+      toast(error?.message || 'Failed to reset password', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -577,23 +515,23 @@ export default function AdminPage() {
 
   const handleClearAllSessions = async () => {
     if (!isOwnerConfirmed) {
-      toast("Only owner can clear active sessions", "error");
+      toast('Only owner can clear active sessions', 'error');
       return;
     }
 
     const shouldClear = window.confirm(
-      "This will force logout all users, including you. Continue?",
+      'This will force logout all users, including you. Continue?',
     );
     if (!shouldClear) return;
 
     setIsSubmitting(true);
     try {
       const result = await clearAllActiveSessions();
-      toast(`Cleared ${result.clearedCount} active sessions`, "success");
+      toast(`Cleared ${result.clearedCount} active sessions`, 'success');
       logout();
-      window.location.href = "/login";
+      window.location.href = '/login';
     } catch (error: any) {
-      toast(error?.message || "Failed to clear active sessions", "error");
+      toast(error?.message || 'Failed to clear active sessions', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -601,13 +539,11 @@ export default function AdminPage() {
 
   const handleClearUserSessions = async (userId: string, username: string) => {
     if (!isOwnerConfirmed) {
-      toast("Only owner can clear user sessions", "error");
+      toast('Only owner can clear user sessions', 'error');
       return;
     }
 
-    const shouldClear = window.confirm(
-      `Force logout all active sessions for "${username}"?`,
-    );
+    const shouldClear = window.confirm(`Force logout all active sessions for "${username}"?`);
     if (!shouldClear) return;
 
     setIsSubmitting(true);
@@ -615,18 +551,18 @@ export default function AdminPage() {
       const result = await clearUserActiveSessions(userId);
       toast(
         `Cleared ${result.clearedCount} active sessions for ${result.user.username}`,
-        "success",
+        'success',
       );
 
       if (result.user.id === user?.id) {
         logout();
-        window.location.href = "/login";
+        window.location.href = '/login';
         return;
       }
 
       await loadAll();
     } catch (error: any) {
-      toast(error?.message || "Failed to clear user sessions", "error");
+      toast(error?.message || 'Failed to clear user sessions', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -635,7 +571,7 @@ export default function AdminPage() {
   const handleGrantAdmin = async () => {
     const username = grantUsername.trim();
     if (!username) {
-      toast("Enter nickname to grant admin", "error");
+      toast('Enter nickname to grant admin', 'error');
       return;
     }
 
@@ -646,31 +582,29 @@ export default function AdminPage() {
         grantExpiresDays > 0 ? grantExpiresDays : undefined,
         grantRole,
       );
-      setGrantUsername("");
+      setGrantUsername('');
       setGrantExpiresDays(0);
-      setGrantRole("moderator");
+      setGrantRole('moderator');
       await loadAll();
-      toast(`${grantRole} access granted to ${username}`, "success");
+      toast(`${grantRole} access granted to ${username}`, 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to grant admin access", "error");
+      toast(error?.message || 'Failed to grant admin access', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleRevokeAdmin = async (userId: string, username: string) => {
-    const shouldRevoke = window.confirm(
-      `Revoke admin access from "${username}"?`,
-    );
+    const shouldRevoke = window.confirm(`Revoke admin access from "${username}"?`);
     if (!shouldRevoke) return;
 
     setIsSubmitting(true);
     try {
       await revokeAdminPermission(userId);
       await loadAll();
-      toast(`Admin access revoked from ${username}`, "success");
+      toast(`Admin access revoked from ${username}`, 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to revoke admin access", "error");
+      toast(error?.message || 'Failed to revoke admin access', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -679,14 +613,11 @@ export default function AdminPage() {
   const handleCreateAnnouncement = async () => {
     const trimmed = message.trim();
     if (!trimmed) {
-      toast("Message is required", "error");
+      toast('Message is required', 'error');
       return;
     }
     if (trimmed.length > ANNOUNCEMENT_MAX_CHARS) {
-      toast(
-        `Message is too long (max ${ANNOUNCEMENT_MAX_CHARS} chars)`,
-        "error",
-      );
+      toast(`Message is too long (max ${ANNOUNCEMENT_MAX_CHARS} chars)`, 'error');
       return;
     }
 
@@ -699,14 +630,14 @@ export default function AdminPage() {
         linkLabel: linkLabel.trim() || undefined,
         isActive: false, // Manual activation
       });
-      setMessage("");
-      setLinkUrl("");
-      setLinkLabel("");
-      setAnnouncementType("info");
+      setMessage('');
+      setLinkUrl('');
+      setLinkLabel('');
+      setAnnouncementType('info');
       await loadAll();
-      toast("Announcement created", "success");
+      toast('Announcement created', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to create announcement", "error");
+      toast(error?.message || 'Failed to create announcement', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -724,12 +655,9 @@ export default function AdminPage() {
         isActive: !item.isActive,
       });
       await loadAll();
-      toast(
-        item.isActive ? "Announcement hidden" : "Announcement activated",
-        "success",
-      );
+      toast(item.isActive ? 'Announcement hidden' : 'Announcement activated', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to update announcement", "error");
+      toast(error?.message || 'Failed to update announcement', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -738,39 +666,32 @@ export default function AdminPage() {
   const handleBlockMedia = async () => {
     const tmdbId = blockedTmdbId.trim();
     if (!tmdbId) {
-      toast("Enter TMDB ID", "error");
+      toast('Enter TMDB ID', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await addAdminBlockedMedia(
-        tmdbId,
-        blockedMediaType,
-        blockedReason.trim(),
-      );
-      setBlockedTmdbId("");
-      setBlockedReason("");
+      await addAdminBlockedMedia(tmdbId, blockedMediaType, blockedReason.trim());
+      setBlockedTmdbId('');
+      setBlockedReason('');
       await loadAll();
-      toast("Content blocked successfully", "success");
+      toast('Content blocked successfully', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to block content", "error");
+      toast(error?.message || 'Failed to block content', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleUnblockMedia = async (
-    tmdbId: string,
-    mediaType: "movie" | "tv",
-  ) => {
+  const handleUnblockMedia = async (tmdbId: string, mediaType: 'movie' | 'tv') => {
     setIsSubmitting(true);
     try {
       await deleteAdminBlockedMedia(tmdbId, mediaType as any);
       await loadAll();
-      toast("Content unblocked successfully", "success");
+      toast('Content unblocked successfully', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to unblock content", "error");
+      toast(error?.message || 'Failed to unblock content', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -781,9 +702,9 @@ export default function AdminPage() {
     try {
       await deleteAdminAnnouncement(id);
       await loadAll();
-      toast("Announcement deleted", "success");
+      toast('Announcement deleted', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to delete announcement", "error");
+      toast(error?.message || 'Failed to delete announcement', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -791,12 +712,12 @@ export default function AdminPage() {
 
   const handleArchiveFeedbackThread = async () => {
     if (!selectedFeedbackThreadId) {
-      toast("Select a feedback thread first", "error");
+      toast('Select a feedback thread first', 'error');
       return;
     }
 
-    if (selectedFeedbackStatus === "closed") {
-      toast("This thread is already archived", "warning");
+    if (selectedFeedbackStatus === 'closed') {
+      toast('This thread is already archived', 'warning');
       return;
     }
 
@@ -805,7 +726,7 @@ export default function AdminPage() {
       await replyAdminFeedbackThread({
         threadId: selectedFeedbackThreadId,
         message: FEEDBACK_ARCHIVE_MESSAGE,
-        status: "closed",
+        status: 'closed',
       });
       const [threadsRes, messagesRes] = await Promise.all([
         loadAdminFeedbackThreads(),
@@ -820,9 +741,9 @@ export default function AdminPage() {
           closedRemainingMs: messagesRes.thread.closedRemainingMs,
         });
       }
-      toast("Thread archived and user notified", "success");
+      toast('Thread archived and user notified', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to archive feedback thread", "error");
+      toast(error?.message || 'Failed to archive feedback thread', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -830,18 +751,18 @@ export default function AdminPage() {
 
   const handleSendFeedbackReply = async () => {
     if (!selectedFeedbackThreadId) {
-      toast("Select a feedback thread first", "error");
+      toast('Select a feedback thread first', 'error');
       return;
     }
 
-    if (selectedFeedbackStatus === "closed") {
-      toast("Thread is archived. Unarchive it first.", "warning");
+    if (selectedFeedbackStatus === 'closed') {
+      toast('Thread is archived. Unarchive it first.', 'warning');
       return;
     }
 
     const body = feedbackReply.trim();
     if (!body) {
-      toast("Reply cannot be empty", "error");
+      toast('Reply cannot be empty', 'error');
       return;
     }
 
@@ -850,9 +771,9 @@ export default function AdminPage() {
       await replyAdminFeedbackThread({
         threadId: selectedFeedbackThreadId,
         message: body,
-        status: "answered",
+        status: 'answered',
       });
-      setFeedbackReply("");
+      setFeedbackReply('');
 
       const [threadsRes, messagesRes] = await Promise.all([
         loadAdminFeedbackThreads(),
@@ -867,9 +788,9 @@ export default function AdminPage() {
           closedRemainingMs: messagesRes.thread.closedRemainingMs,
         });
       }
-      toast("Reply sent", "success");
+      toast('Reply sent', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to send reply", "error");
+      toast(error?.message || 'Failed to send reply', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -877,17 +798,17 @@ export default function AdminPage() {
 
   const handleUnarchiveFeedbackThread = async () => {
     if (!selectedFeedbackThreadId) {
-      toast("Select a feedback thread first", "error");
+      toast('Select a feedback thread first', 'error');
       return;
     }
 
     if (!canManageModeration) {
-      toast("Only admin+ can unarchive threads", "error");
+      toast('Only admin+ can unarchive threads', 'error');
       return;
     }
 
-    if (selectedFeedbackStatus !== "closed") {
-      toast("Thread is already active", "warning");
+    if (selectedFeedbackStatus !== 'closed') {
+      toast('Thread is already active', 'warning');
       return;
     }
 
@@ -896,7 +817,7 @@ export default function AdminPage() {
       await replyAdminFeedbackThread({
         threadId: selectedFeedbackThreadId,
         message: FEEDBACK_UNARCHIVE_MESSAGE,
-        status: "open",
+        status: 'open',
       });
 
       const [threadsRes, messagesRes] = await Promise.all([
@@ -912,47 +833,38 @@ export default function AdminPage() {
           closedRemainingMs: messagesRes.thread.closedRemainingMs,
         });
       }
-      toast("Thread unarchived", "success");
+      toast('Thread unarchived', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to unarchive thread", "error");
+      toast(error?.message || 'Failed to unarchive thread', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCreateAdminChat = async (
-    targetUserId: string,
-    targetUsername: string,
-  ) => {
-    const subject = window.prompt(
-      `Chat subject for ${targetUsername}:`,
-      "Support Message",
-    );
+  const handleCreateAdminChat = async (targetUserId: string, targetUsername: string) => {
+    const subject = window.prompt(`Chat subject for ${targetUsername}:`, 'Support Message');
     if (!subject) return;
     const initialMessage = window.prompt(`Message for ${targetUsername}:`);
     if (!initialMessage) return;
 
     setIsSubmitting(true);
     try {
-      const res = await cloudFetch<{ threadId: string }>(
-        "/admin/feedback/create-chat",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            targetUserId,
-            subject,
-            message: initialMessage,
-          }),
-        },
-      );
+      const res = await cloudFetch<{ threadId: string }>('/admin/feedback/create-chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          targetUserId,
+          subject,
+          message: initialMessage,
+        }),
+      });
 
       const threadsRes = await loadAdminFeedbackThreads();
       setFeedbackThreads(threadsRes.items || []);
-      setFeedbackInboxTab("active");
+      setFeedbackInboxTab('active');
       setSelectedFeedbackThreadId(res.threadId);
-      toast("Chat thread created", "success");
+      toast('Chat thread created', 'success');
     } catch (error: any) {
-      toast(error?.message || "Failed to create chat thread", "error");
+      toast(error?.message || 'Failed to create chat thread', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -960,17 +872,17 @@ export default function AdminPage() {
 
   const handleForceDeleteFeedbackThread = async () => {
     if (!isOwnerConfirmed) {
-      toast("Only owner can force delete feedback threads", "error");
+      toast('Only owner can force delete feedback threads', 'error');
       return;
     }
 
     if (!selectedFeedbackThreadId) {
-      toast("Select a feedback thread first", "error");
+      toast('Select a feedback thread first', 'error');
       return;
     }
 
     const shouldDelete = window.confirm(
-      "Force delete this entire feedback thread (messages + notifications)?",
+      'Force delete this entire feedback thread (messages + notifications)?',
     );
     if (!shouldDelete) return;
 
@@ -978,19 +890,14 @@ export default function AdminPage() {
     try {
       const deletedId = selectedFeedbackThreadId;
       await deleteAdminFeedbackThread(deletedId);
-      const remainingThreads = feedbackThreads.filter(
-        (item) => item.id !== deletedId,
-      );
+      const remainingThreads = feedbackThreads.filter((item) => item.id !== deletedId);
       setFeedbackThreads(remainingThreads);
       setSelectedFeedbackThreadId(remainingThreads[0]?.id || null);
       setFeedbackMessages([]);
       setSelectedFeedbackThreadMeta(null);
-      toast("Feedback thread force deleted", "success");
+      toast('Feedback thread force deleted', 'success');
     } catch (error: any) {
-      toast(
-        error?.message || "Failed to force delete feedback thread",
-        "error",
-      );
+      toast(error?.message || 'Failed to force delete feedback thread', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -1009,17 +916,13 @@ export default function AdminPage() {
 
       setAuditLogs((prev) => {
         const existingIds = new Set(prev.map((item) => item.id));
-        const uniqueIncoming = incoming.filter(
-          (item) => !existingIds.has(item.id),
-        );
+        const uniqueIncoming = incoming.filter((item) => !existingIds.has(item.id));
         return [...prev, ...uniqueIncoming];
       });
       setAuditHasMore(Boolean(res.hasMore));
-      setAuditNextOffset(
-        Number(res.nextOffset || auditNextOffset + incoming.length),
-      );
+      setAuditNextOffset(Number(res.nextOffset || auditNextOffset + incoming.length));
     } catch (error: any) {
-      toast(error?.message || "Failed to load more audit logs", "error");
+      toast(error?.message || 'Failed to load more audit logs', 'error');
     } finally {
       setIsLoadingMoreAudit(false);
     }
@@ -1076,8 +979,7 @@ export default function AdminPage() {
               </span>
             </div>
             <p className="mt-1 text-[13px] text-text-muted max-w-xl">
-              System overview and administrative controls for NexVid
-              infrastructure.
+              System overview and administrative controls for NexVid infrastructure.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -1088,7 +990,7 @@ export default function AdminPage() {
               title="Refresh data"
             >
               <svg
-                className={cn("w-5 h-5", isLoading && "animate-spin")}
+                className={cn('w-5 h-5', isLoading && 'animate-spin')}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1129,12 +1031,8 @@ export default function AdminPage() {
 
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
-                    <h3 className="text-[13px] font-semibold text-text-primary">
-                      Account bans
-                    </h3>
-                    <p className="text-[11px] text-text-muted">
-                      Ban an account.
-                    </p>
+                    <h3 className="text-[13px] font-semibold text-text-primary">Account bans</h3>
+                    <p className="text-[11px] text-text-muted">Ban an account.</p>
                     <input
                       className="input w-full"
                       placeholder="nickname or user ID"
@@ -1163,8 +1061,7 @@ export default function AdminPage() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <p className="text-[11px] font-medium text-text-primary break-all">
-                                {item.type === "ip" ? "IP" : "User"}:{" "}
-                                {item.value}
+                                {item.type === 'ip' ? 'IP' : 'User'}: {item.value}
                               </p>
                               {item.userId && (
                                 <p className="text-[10px] font-mono text-white/35 break-all">
@@ -1174,11 +1071,11 @@ export default function AdminPage() {
                               {Array.isArray(item.linkedUserIds) &&
                                 item.linkedUserIds.length > 0 && (
                                   <p className="text-[10px] font-mono text-white/35 break-all">
-                                    Linked IDs: {item.linkedUserIds.join(", ")}
+                                    Linked IDs: {item.linkedUserIds.join(', ')}
                                   </p>
                                 )}
                               <p className="text-[10px] text-text-muted">
-                                {item.reason ? `${item.reason} • ` : ""}
+                                {item.reason ? `${item.reason} • ` : ''}
                                 {new Date(item.created_at).toLocaleString()}
                               </p>
                             </div>
@@ -1243,9 +1140,7 @@ export default function AdminPage() {
                   <select
                     className="input w-full"
                     value={announcementType}
-                    onChange={(e) =>
-                      setAnnouncementType(e.target.value as AnnouncementType)
-                    }
+                    onChange={(e) => setAnnouncementType(e.target.value as AnnouncementType)}
                   >
                     <option value="info">Info</option>
                     <option value="warning">Warning</option>
@@ -1280,9 +1175,7 @@ export default function AdminPage() {
               <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
                   <div className="flex-1 rounded-[20px] bg-[var(--bg-glass-light)] p-5 backdrop-blur-sm">
-                    <h2 className="text-[15px] font-semibold text-text-primary">
-                      Block content
-                    </h2>
+                    <h2 className="text-[15px] font-semibold text-text-primary">Block content</h2>
 
                     <div className="mt-4 space-y-4">
                       <div className="flex flex-col sm:flex-row gap-3">
@@ -1304,9 +1197,7 @@ export default function AdminPage() {
                           <select
                             className="input w-full min-h-[48px] text-text-primary bg-white/5"
                             value={blockedMediaType}
-                            onChange={(e) =>
-                              setBlockedMediaType(e.target.value as any)
-                            }
+                            onChange={(e) => setBlockedMediaType(e.target.value as any)}
                           >
                             <option value="movie">Movie</option>
                             <option value="tv">Show</option>
@@ -1336,9 +1227,7 @@ export default function AdminPage() {
 
                   <div className="flex-1 rounded-[20px] bg-[var(--bg-glass-light)] p-5 backdrop-blur-sm">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <h2 className="text-[15px] font-semibold text-text-primary">
-                        Blocked IDs
-                      </h2>
+                      <h2 className="text-[15px] font-semibold text-text-primary">Blocked IDs</h2>
                       <div className="flex w-full items-center gap-2 sm:w-auto">
                         <input
                           className="input w-full min-h-[44px] text-[13px] bg-white/5"
@@ -1351,13 +1240,9 @@ export default function AdminPage() {
 
                     <div className="mt-3 max-h-[420px] overflow-auto space-y-2 border-t border-white/5 pt-4">
                       {isLoading ? (
-                        <p className="text-[13px] text-text-muted">
-                          Loading...
-                        </p>
+                        <p className="text-[13px] text-text-muted">Loading...</p>
                       ) : filteredBlockedMedia.length === 0 ? (
-                        <p className="text-[13px] text-text-muted">
-                          No blocked content.
-                        </p>
+                        <p className="text-[13px] text-text-muted">No blocked content.</p>
                       ) : (
                         filteredBlockedMedia.map((item) => (
                           <div
@@ -1372,7 +1257,7 @@ export default function AdminPage() {
                                 ID: {item.tmdbId}
                               </p>
                               <p className="text-[11px] text-text-muted truncate">
-                                {item.reason || "No reason provided"}
+                                {item.reason || 'No reason provided'}
                               </p>
                               <p className="text-[10px] text-text-muted/60 mt-0.5">
                                 {new Date(item.createdAt).toLocaleDateString()}
@@ -1381,12 +1266,7 @@ export default function AdminPage() {
                             <button
                               className="btn-glass text-red-400 text-[11px]"
                               disabled={isSubmitting}
-                              onClick={() =>
-                                handleUnblockMedia(
-                                  item.tmdbId,
-                                  item.mediaType as any,
-                                )
-                              }
+                              onClick={() => handleUnblockMedia(item.tmdbId, item.mediaType as any)}
                             >
                               Unblock
                             </button>
@@ -1404,9 +1284,7 @@ export default function AdminPage() {
         {canManageAdmins && (
           <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
             <div>
-              <h2 className="text-[15px] font-semibold text-text-primary">
-                Staff permissions
-              </h2>
+              <h2 className="text-[15px] font-semibold text-text-primary">Staff permissions</h2>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
@@ -1448,9 +1326,7 @@ export default function AdminPage() {
               {isLoading ? (
                 <p className="p-3 text-[13px] text-text-muted">Loading...</p>
               ) : adminGrants.length === 0 ? (
-                <p className="p-3 text-[13px] text-text-muted">
-                  No staff found.
-                </p>
+                <p className="p-3 text-[13px] text-text-muted">No staff found.</p>
               ) : (
                 <table className="w-full text-[13px]">
                   <thead className="bg-[var(--bg-glass-light)]">
@@ -1464,30 +1340,23 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {adminGrants.map((item) => (
-                      <tr
-                        key={item.userId}
-                        className="border-t border-[var(--border)]"
-                      >
-                        <td className="px-3 py-2 text-text-primary">
-                          {item.username}
-                        </td>
+                      <tr key={item.userId} className="border-t border-[var(--border)]">
+                        <td className="px-3 py-2 text-text-primary">{item.username}</td>
                         <td className="px-3 py-2">
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                              item.role === "owner"
-                                ? "bg-amber-500/20 text-amber-500"
-                                : item.role === "admin"
-                                  ? "bg-red-500/20 text-red-500"
-                                  : "bg-emerald-500/20 text-emerald-500"
+                              item.role === 'owner'
+                                ? 'bg-amber-500/20 text-amber-500'
+                                : item.role === 'admin'
+                                  ? 'bg-red-500/20 text-red-500'
+                                  : 'bg-emerald-500/20 text-emerald-500'
                             }`}
                           >
                             {item.role}
                           </span>
                         </td>
                         <td className="px-3 py-2 text-text-muted">
-                          {item.expiresAt
-                            ? new Date(item.expiresAt).toLocaleDateString()
-                            : "Never"}
+                          {item.expiresAt ? new Date(item.expiresAt).toLocaleDateString() : 'Never'}
                         </td>
                         <td className="px-3 py-2 text-text-muted">
                           {new Date(item.createdAt).toLocaleDateString()}
@@ -1500,9 +1369,7 @@ export default function AdminPage() {
                             >
                               You
                             </button>
-                          ) : (isAdminRole &&
-                              (item.role === "admin" ||
-                                item.role === "owner")) ||
+                          ) : (isAdminRole && (item.role === 'admin' || item.role === 'owner')) ||
                             isModerator ? (
                             <button
                               className="btn-glass text-text-muted text-[11px] cursor-default opacity-40"
@@ -1515,9 +1382,7 @@ export default function AdminPage() {
                             <button
                               className="btn-glass text-red-400 text-[11px]"
                               disabled={isSubmitting}
-                              onClick={() =>
-                                handleRevokeAdmin(item.userId, item.username)
-                              }
+                              onClick={() => handleRevokeAdmin(item.userId, item.username)}
                             >
                               Revoke
                             </button>
@@ -1535,9 +1400,7 @@ export default function AdminPage() {
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-[15px] font-semibold text-text-primary">
-                Users
-              </h2>
+              <h2 className="text-[15px] font-semibold text-text-primary">Users</h2>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
               <div className="relative">
@@ -1549,7 +1412,7 @@ export default function AdminPage() {
                 />
                 {userSearchQuery && (
                   <button
-                    onClick={() => setUserSearchQuery("")}
+                    onClick={() => setUserSearchQuery('')}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
                   >
                     ×
@@ -1560,7 +1423,7 @@ export default function AdminPage() {
                 className="input"
                 value={`${userSortKey}-${userSortOrder}`}
                 onChange={(e) => {
-                  const [key, order] = e.target.value.split("-") as [any, any];
+                  const [key, order] = e.target.value.split('-') as [any, any];
                   setUserSortKey(key);
                   setUserSortOrder(order);
                 }}
@@ -1585,18 +1448,10 @@ export default function AdminPage() {
               <table className="w-full text-[13px]">
                 <thead className="bg-white/5 sticky top-0 z-10 backdrop-blur-md">
                   <tr className="text-left text-[11px] text-text-muted">
-                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">
-                      Nick
-                    </th>
-                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">
-                      User ID
-                    </th>
-                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">
-                      Last active
-                    </th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">Nick</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">User ID</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">Created</th>
+                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider">Last active</th>
                     <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-right">
                       Action
                     </th>
@@ -1605,8 +1460,7 @@ export default function AdminPage() {
                 <tbody>
                   {filteredAndSortedUsers.map((item) => {
                     const isLive =
-                      Date.now() - new Date(item.lastActiveAt).getTime() <
-                      5 * 60 * 1000;
+                      Date.now() - new Date(item.lastActiveAt).getTime() < 5 * 60 * 1000;
                     return (
                       <tr
                         key={item.id}
@@ -1628,7 +1482,7 @@ export default function AdminPage() {
                             className="text-[11px] font-mono text-text-muted hover:text-accent transition-colors"
                             onClick={() => {
                               navigator.clipboard.writeText(item.id);
-                              toast("User ID copied", "success");
+                              toast('User ID copied', 'success');
                             }}
                             title="Click to copy full ID"
                           >
@@ -1639,28 +1493,19 @@ export default function AdminPage() {
                           {new Date(item.createdAt).toLocaleString()}
                         </td>
                         <td className="px-3 py-3 text-[12px] text-text-muted">
-                          <span>
-                            {new Date(item.lastActiveAt).toLocaleString()}
-                          </span>
+                          <span>{new Date(item.lastActiveAt).toLocaleString()}</span>
                         </td>
                         <td className="px-3 py-3 text-right">
                           <div className="inline-flex items-center gap-2">
                             <button
-                              onClick={() =>
-                                handleCreateAdminChat(item.id, item.username)
-                              }
+                              onClick={() => handleCreateAdminChat(item.id, item.username)}
                               className="btn-glass text-[10px] py-1.5 px-3 bg-white/5 border-white/5 hover:bg-white/10"
                             >
                               Chat
                             </button>
                             {isOwnerConfirmed && (
                               <button
-                                onClick={() =>
-                                  handleClearUserSessions(
-                                    item.id,
-                                    item.username,
-                                  )
-                                }
+                                onClick={() => handleClearUserSessions(item.id, item.username)}
                                 disabled={isSubmitting}
                                 className="btn-glass text-[10px] py-1.5 px-3 text-amber-300 border-amber-500/20 hover:bg-amber-500/10"
                               >
@@ -1680,9 +1525,7 @@ export default function AdminPage() {
 
         {canManageModeration && (
           <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
-            <h2 className="text-[15px] font-semibold text-text-primary">
-              Audit log
-            </h2>
+            <h2 className="text-[15px] font-semibold text-text-primary">Audit log</h2>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <input
@@ -1703,9 +1546,7 @@ export default function AdminPage() {
               {isLoading && auditLogs.length === 0 ? (
                 <p className="p-3 text-[13px] text-text-muted">Loading...</p>
               ) : auditLogs.length === 0 ? (
-                <p className="p-3 text-[13px] text-text-muted">
-                  No audit entries yet.
-                </p>
+                <p className="p-3 text-[13px] text-text-muted">No audit entries yet.</p>
               ) : (
                 <table className="w-full text-[13px]">
                   <thead className="bg-[var(--bg-glass-light)]">
@@ -1713,36 +1554,24 @@ export default function AdminPage() {
                       <th className="px-3 py-2 font-medium">Time</th>
                       <th className="px-3 py-2 font-medium">Admin</th>
                       <th className="px-3 py-2 font-medium">Action</th>
-                      <th className="px-3 py-2 font-medium sm:hidden">
-                        Details
-                      </th>
-                      <th className="hidden px-3 py-2 font-medium sm:table-cell">
-                        Target
-                      </th>
-                      <th className="hidden px-3 py-2 font-medium sm:table-cell">
-                        Meta
-                      </th>
+                      <th className="px-3 py-2 font-medium sm:hidden">Details</th>
+                      <th className="hidden px-3 py-2 font-medium sm:table-cell">Target</th>
+                      <th className="hidden px-3 py-2 font-medium sm:table-cell">Meta</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredAuditLogs.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="border-t border-[var(--border)]"
-                      >
+                      <tr key={item.id} className="border-t border-[var(--border)]">
                         <td className="px-3 py-2 text-text-muted whitespace-nowrap">
                           {new Date(item.createdAt).toLocaleString()}
                         </td>
                         <td className="px-3 py-2 text-text-primary">
                           {item.adminUsername || item.adminUserId.slice(0, 12)}
                         </td>
-                        <td className="px-3 py-2 text-text-muted">
-                          {item.action}
-                        </td>
+                        <td className="px-3 py-2 text-text-muted">{item.action}</td>
                         <td className="px-3 py-2 text-text-muted sm:hidden">
                           <span className="block max-w-[180px] truncate">
-                            {item.targetType}:{item.targetId || "-"} |{" "}
-                            {formatAuditMeta(item.meta)}
+                            {item.targetType}:{item.targetId || '-'} | {formatAuditMeta(item.meta)}
                           </span>
                         </td>
                         <td className="hidden px-3 py-2 text-text-muted sm:table-cell">
@@ -1764,9 +1593,7 @@ export default function AdminPage() {
                   disabled={isLoadingMoreAudit}
                   onClick={handleLoadMoreAuditLogs}
                 >
-                  {isLoadingMoreAudit
-                    ? "Loading..."
-                    : `Load ${AUDIT_PAGE_SIZE} more`}
+                  {isLoadingMoreAudit ? 'Loading...' : `Load ${AUDIT_PAGE_SIZE} more`}
                 </button>
               </div>
             )}
@@ -1776,29 +1603,27 @@ export default function AdminPage() {
         <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-[15px] font-semibold text-text-primary">
-                Feedback inbox
-              </h2>
+              <h2 className="text-[15px] font-semibold text-text-primary">Feedback inbox</h2>
             </div>
             <div className="flex gap-2 p-1 rounded-full bg-white/5 w-fit">
               <button
-                onClick={() => setFeedbackInboxTab("active")}
+                onClick={() => setFeedbackInboxTab('active')}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border",
-                  feedbackInboxTab === "active"
-                    ? "bg-accent-muted text-accent border-accent-glow"
-                    : "bg-transparent text-white/40 border-transparent hover:text-white",
+                  'px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border',
+                  feedbackInboxTab === 'active'
+                    ? 'bg-accent-muted text-accent border-accent-glow'
+                    : 'bg-transparent text-white/40 border-transparent hover:text-white',
                 )}
               >
                 Active
               </button>
               <button
-                onClick={() => setFeedbackInboxTab("archive")}
+                onClick={() => setFeedbackInboxTab('archive')}
                 className={cn(
-                  "px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border",
-                  feedbackInboxTab === "archive"
-                    ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
-                    : "bg-transparent text-white/40 border-transparent hover:text-white",
+                  'px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border',
+                  feedbackInboxTab === 'archive'
+                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                    : 'bg-transparent text-white/40 border-transparent hover:text-white',
                 )}
               >
                 Archive
@@ -1809,13 +1634,9 @@ export default function AdminPage() {
           <div className="grid items-stretch gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
             <div className="h-[72vh] min-h-[460px] max-h-[760px] overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] p-2 backdrop-blur-sm">
               {isLoading && feedbackThreads.length === 0 ? (
-                <p className="px-2 py-4 text-[13px] text-text-muted">
-                  Loading...
-                </p>
+                <p className="px-2 py-4 text-[13px] text-text-muted">Loading...</p>
               ) : sortedFeedbackThreads.length === 0 ? (
-                <p className="px-2 py-4 text-[13px] text-text-muted">
-                  No feedback threads yet.
-                </p>
+                <p className="px-2 py-4 text-[13px] text-text-muted">No feedback threads yet.</p>
               ) : (
                 <div className="space-y-1.5">
                   {sortedFeedbackThreads.map((thread) => (
@@ -1824,18 +1645,16 @@ export default function AdminPage() {
                       onClick={() => setSelectedFeedbackThreadId(thread.id)}
                       className={`w-full rounded-[8px] px-2.5 py-2 text-left transition-all ${
                         selectedFeedbackThreadId === thread.id
-                          ? "border-accent/30 bg-accent/10 shadow-[0_1px_6px_var(--accent-glow)]"
-                          : "border-transparent hover:bg-[var(--bg-glass-light)]"
+                          ? 'border-accent/30 bg-accent/10 shadow-[0_1px_6px_var(--accent-glow)]'
+                          : 'border-transparent hover:bg-[var(--bg-glass-light)]'
                       }`}
                     >
                       <p className="text-[12px] font-semibold text-text-primary line-clamp-1">
                         {thread.subject}
                       </p>
                       <p className="mt-0.5 text-[11px] text-text-muted">
-                        {thread.username} · {thread.category} ·{" "}
-                        {thread.status === "answered"
-                          ? "resolved"
-                          : thread.status}
+                        {thread.username} · {thread.category} ·{' '}
+                        {thread.status === 'answered' ? 'resolved' : thread.status}
                       </p>
                       <p className="mt-1 text-[11px] text-text-muted">
                         {new Date(thread.lastReplyAt).toLocaleString()}
@@ -1863,57 +1682,47 @@ export default function AdminPage() {
                       {selectedFeedbackThread.subject}
                     </p>
                     <p className="mt-0.5 text-[11px] text-text-muted">
-                      {selectedFeedbackThread.username} ·{" "}
-                      {selectedFeedbackThread.category} ·{" "}
-                      {selectedFeedbackStatus === "answered"
-                        ? "resolved"
-                        : selectedFeedbackStatus}
+                      {selectedFeedbackThread.username} · {selectedFeedbackThread.category} ·{' '}
+                      {selectedFeedbackStatus === 'answered' ? 'resolved' : selectedFeedbackStatus}
                     </p>
-                    {selectedFeedbackStatus === "answered" && (
+                    {selectedFeedbackStatus === 'answered' && (
                       <p className="mt-1 text-[11px] font-semibold text-emerald-500">
                         Marked as resolved
                       </p>
                     )}
-                    {selectedFeedbackStatus === "closed" && (
+                    {selectedFeedbackStatus === 'closed' && (
                       <p className="mt-1 text-[11px] font-semibold text-red-500">
-                        Archived thread (read-only) · Permanently stored for
-                        staff
+                        Archived thread (read-only) · Permanently stored for staff
                       </p>
                     )}
                   </div>
 
                   <div className="mt-3 flex-1 min-h-0 space-y-3 overflow-auto pr-1">
                     {feedbackMessages.length === 0 ? (
-                      <p className="text-[13px] text-text-muted">
-                        No messages in this thread yet.
-                      </p>
+                      <p className="text-[13px] text-text-muted">No messages in this thread yet.</p>
                     ) : (
                       feedbackMessages.map((item) => (
                         <div
                           key={item.id}
                           className={cn(
-                            "flex flex-col gap-1",
-                            item.senderRole === "admin"
-                              ? "items-end"
-                              : "items-start",
+                            'flex flex-col gap-1',
+                            item.senderRole === 'admin' ? 'items-end' : 'items-start',
                           )}
                         >
                           <div
                             className={cn(
-                              "max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] leading-relaxed shadow-sm",
-                              item.senderRole === "admin"
-                                ? "bg-accent text-white rounded-tr-[4px]"
-                                : "bg-white/10 text-white/90 rounded-tl-[4px]",
+                              'max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] leading-relaxed shadow-sm',
+                              item.senderRole === 'admin'
+                                ? 'bg-accent text-white rounded-tr-[4px]'
+                                : 'bg-white/10 text-white/90 rounded-tl-[4px]',
                             )}
                           >
-                            <p className="whitespace-pre-wrap">
-                              {item.message}
-                            </p>
+                            <p className="whitespace-pre-wrap">{item.message}</p>
                           </div>
                           <p className="text-[10px] text-white/30 px-1 font-medium">
-                            {item.senderRole === "admin"
-                              ? "Support"
-                              : selectedFeedbackThread.username}{" "}
+                            {item.senderRole === 'admin'
+                              ? 'Support'
+                              : selectedFeedbackThread.username}{' '}
                             · {new Date(item.createdAt).toLocaleString()}
                           </p>
                         </div>
@@ -1926,17 +1735,15 @@ export default function AdminPage() {
                       <textarea
                         className="input min-h-12 max-h-32 w-full"
                         value={feedbackReply}
-                        onChange={(event) =>
-                          setFeedbackReply(event.target.value)
-                        }
+                        onChange={(event) => setFeedbackReply(event.target.value)}
                         placeholder={
-                          selectedFeedbackStatus === "closed"
-                            ? "Thread is archived. Unarchive to reply..."
-                            : "Write message..."
+                          selectedFeedbackStatus === 'closed'
+                            ? 'Thread is archived. Unarchive to reply...'
+                            : 'Write message...'
                         }
                         maxLength={4000}
                         rows={1}
-                        disabled={selectedFeedbackStatus === "closed"}
+                        disabled={selectedFeedbackStatus === 'closed'}
                       />
                     </div>
 
@@ -1944,7 +1751,7 @@ export default function AdminPage() {
                       <button
                         disabled={
                           isSubmitting ||
-                          selectedFeedbackStatus === "closed" ||
+                          selectedFeedbackStatus === 'closed' ||
                           !feedbackReply.trim()
                         }
                         onClick={handleSendFeedbackReply}
@@ -1952,7 +1759,7 @@ export default function AdminPage() {
                       >
                         Send
                       </button>
-                      {selectedFeedbackStatus !== "closed" ? (
+                      {selectedFeedbackStatus !== 'closed' ? (
                         <button
                           disabled={isSubmitting}
                           onClick={handleArchiveFeedbackThread}
@@ -1969,9 +1776,7 @@ export default function AdminPage() {
                           Unarchive
                         </button>
                       ) : (
-                        <p className="self-center text-[11px] text-text-muted">
-                          Thread archived
-                        </p>
+                        <p className="self-center text-[11px] text-text-muted">Thread archived</p>
                       )}
 
                       {isOwnerConfirmed && (
@@ -1993,25 +1798,19 @@ export default function AdminPage() {
 
         {canManageModeration && (
           <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
-            <h2 className="text-[15px] font-semibold text-text-primary">
-              Announcements list
-            </h2>
+            <h2 className="text-[15px] font-semibold text-text-primary">Announcements list</h2>
             <div className="space-y-2">
               {isLoading && announcements.length === 0 ? (
                 <p className="text-[13px] text-text-muted">Loading...</p>
               ) : sortedAnnouncements.length === 0 ? (
-                <p className="text-[13px] text-text-muted">
-                  No announcements yet.
-                </p>
+                <p className="text-[13px] text-text-muted">No announcements yet.</p>
               ) : (
                 sortedAnnouncements.map((item) => (
                   <div
                     key={item.id}
                     className={cn(
-                      "rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300",
-                      item.isActive
-                        ? "!border-accent-glow shadow-lg"
-                        : "border-white/5",
+                      'rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300',
+                      item.isActive ? '!border-accent-glow shadow-lg' : 'border-white/5',
                     )}
                   >
                     <div>
@@ -2036,13 +1835,13 @@ export default function AdminPage() {
                     <div className="flex gap-2">
                       <button
                         className={cn(
-                          "btn-glass flex-1 text-[11px] py-2",
-                          item.isActive && "bg-white/10",
+                          'btn-glass flex-1 text-[11px] py-2',
+                          item.isActive && 'bg-white/10',
                         )}
                         disabled={isSubmitting}
                         onClick={() => handleToggleAnnouncement(item)}
                       >
-                        {item.isActive ? "Deactivate" : "Activate"}
+                        {item.isActive ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
                         className="btn-glass text-red-400 text-[11px] p-2"
@@ -2089,19 +1888,15 @@ function StatCard({
 }) {
   return (
     <div
-      className={`glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-4 ${isAccent ? "border-accent/30 shadow-[0_0_15px_var(--accent-glow)]" : ""}`}
+      className={`glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-4 ${isAccent ? 'border-accent/30 shadow-[0_0_15px_var(--accent-glow)]' : ''}`}
     >
       <p className="text-[11px] text-text-muted">{label}</p>
       <p
-        className={`mt-1 text-[22px] font-bold tracking-tight ${isAccent ? "text-accent" : "text-text-primary"}`}
+        className={`mt-1 text-[22px] font-bold tracking-tight ${isAccent ? 'text-accent' : 'text-text-primary'}`}
       >
         {value}
       </p>
-      {subValue && (
-        <p className="mt-1 text-[10px] text-text-muted/60 font-medium">
-          {subValue}
-        </p>
-      )}
+      {subValue && <p className="mt-1 text-[10px] text-text-muted/60 font-medium">{subValue}</p>}
     </div>
   );
 }

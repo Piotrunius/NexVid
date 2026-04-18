@@ -18,7 +18,7 @@ export default async function WatchPage({ params }: PageProps) {
     const blockedRes = await loadPublicBlockedMedia();
     const blockedType = normalizedType === 'show' ? 'tv' : 'movie';
     const isBlocked = (blockedRes.items || []).some(
-      (item: any) => item.tmdbId === id && item.mediaType === blockedType
+      (item: any) => item.tmdbId === id && item.mediaType === blockedType,
     );
     if (isBlocked) return notFound();
   } catch (err) {

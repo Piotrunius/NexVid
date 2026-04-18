@@ -1,4 +1,4 @@
-export type MediaType = "movie" | "show";
+export type MediaType = 'movie' | 'show';
 
 export interface ProviderMediaObject {
   type: MediaType;
@@ -10,7 +10,7 @@ export interface ProviderMediaObject {
   e?: number;
 }
 
-export type SourceType = "hls" | "mp4" | "mkv" | "embed";
+export type SourceType = 'hls' | 'mp4' | 'mkv' | 'embed';
 
 export interface Source {
   url: string;
@@ -30,14 +30,14 @@ export interface Source {
 export interface Subtitle {
   url: string;
   label: string;
-  format: "srt" | "vtt";
+  format: 'srt' | 'vtt';
 }
 
 export interface Diagnostic {
   code: string;
   message: string;
   field: string;
-  severity: "info" | "warning" | "error";
+  severity: 'info' | 'warning' | 'error';
 }
 
 export interface ProviderResult {
@@ -47,7 +47,7 @@ export interface ProviderResult {
 }
 
 export interface ProviderCapabilities {
-  supportedContentTypes: ("movies" | "tv")[];
+  supportedContentTypes: ('movies' | 'tv')[];
 }
 
 export abstract class BaseProvider {
@@ -65,10 +65,7 @@ export abstract class BaseProvider {
   abstract getMovieSources(media: ProviderMediaObject): Promise<ProviderResult>;
   abstract getTVSources(media: ProviderMediaObject): Promise<ProviderResult>;
 
-  protected createProxyUrl(
-    url: string,
-    headers?: Record<string, string>,
-  ): string {
+  protected createProxyUrl(url: string, headers?: Record<string, string>): string {
     // In our app, we use /api/hls-proxy or similar if needed.
     // For now, return the URL as is, or wrap it in a proxy if the provider needs it.
     // The VideoPlayer component handles hls-proxy for HLS streams.
@@ -76,10 +73,7 @@ export abstract class BaseProvider {
   }
 
   // Edge-compatible fetch helpers
-  protected async fetchPage(
-    url: string,
-    headers?: Record<string, string>,
-  ): Promise<string | null> {
+  protected async fetchPage(url: string, headers?: Record<string, string>): Promise<string | null> {
     try {
       const res = await fetch(url, {
         headers: headers || {},
@@ -92,10 +86,7 @@ export abstract class BaseProvider {
     }
   }
 
-  protected async fetchJson<T>(
-    url: string,
-    headers?: Record<string, string>,
-  ): Promise<T | null> {
+  protected async fetchJson<T>(url: string, headers?: Record<string, string>): Promise<T | null> {
     try {
       const res = await fetch(url, {
         headers: headers || {},

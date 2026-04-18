@@ -1,22 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = "edge";
+export const runtime = 'edge';
 
 const ALLOWED_HEADER_KEYS = new Set([
-  "referer",
-  "origin",
-  "user-agent",
-  "authorization",
-  "cookie",
-  "accept",
-  "accept-language",
-  "range",
-  "connection",
+  'referer',
+  'origin',
+  'user-agent',
+  'authorization',
+  'cookie',
+  'accept',
+  'accept-language',
+  'range',
+  'connection',
 ]);
 
 function parseCsvSet(value: string | undefined): string[] {
-  return String(value || "")
-    .split(",")
+  return String(value || '')
+    .split(',')
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 }
@@ -24,8 +24,8 @@ function parseCsvSet(value: string | undefined): string[] {
 function matchHostname(hostname: string, pattern: string): boolean {
   const host = hostname.toLowerCase();
   const candidate = pattern.toLowerCase();
-  if (candidate === "*") return true;
-  if (candidate.startsWith("*.")) {
+  if (candidate === '*') return true;
+  if (candidate.startsWith('*.')) {
     const base = candidate.slice(2);
     return host === base || host.endsWith(`.${base}`);
   }
@@ -34,18 +34,18 @@ function matchHostname(hostname: string, pattern: string): boolean {
 
 function isAllowedHost(hostname: string): boolean {
   const allowed = parseCsvSet(
-    process.env.ALLOWED_HOSTS || 
-    process.env.NEXT_PUBLIC_ALLOWED_HOSTS ||
-    process.env.PROXY_ALLOWED_HOSTS
+    process.env.ALLOWED_HOSTS ||
+      process.env.NEXT_PUBLIC_ALLOWED_HOSTS ||
+      process.env.PROXY_ALLOWED_HOSTS,
   );
 
   // Fallback allowlist for critical sources if env vars are missing
-  const fallback = ["*.shegu.net", "*.febbox.com", "*.febbox.org", "febbox.com"];
-  
+  const fallback = ['*.shegu.net', '*.febbox.com', '*.febbox.org', 'febbox.com'];
+
   if (allowed.length === 0) {
     return fallback.some((pattern) => matchHostname(hostname, pattern));
   }
-  
+
   return (
     allowed.some((pattern) => matchHostname(hostname, pattern)) ||
     fallback.some((pattern) => matchHostname(hostname, pattern))
@@ -53,16 +53,13 @@ function isAllowedHost(hostname: string): boolean {
 }
 
 function parseIPv4(hostname: string): number[] | null {
-  const parts = hostname.split(".");
+  const parts = hostname.split('.');
   if (parts.length !== 4) return null;
   const octets = parts.map((part) => Number.parseInt(part, 10));
   if (
     octets.some(
       (value, index) =>
-        !/^\d+$/.test(parts[index]) ||
-        Number.isNaN(value) ||
-        value < 0 ||
-        value > 255,
+        !/^\d+$/.test(parts[index]) || Number.isNaN(value) || value < 0 || value > 255,
     )
   ) {
     return null;
@@ -84,9 +81,9 @@ function isPrivateIPv4(octets: number[]): boolean {
 
 function expandIPv6(hostname: string): number[] | null {
   const normalized = hostname.toLowerCase();
-  if (!normalized.includes(":")) return null;
-  if (normalized.includes(".") && normalized.includes(":")) {
-    const lastColon = normalized.lastIndexOf(":");
+  if (!normalized.includes(':')) return null;
+  if (normalized.includes('.') && normalized.includes(':')) {
+    const lastColon = normalized.lastIndexOf(':');
     const head = normalized.slice(0, lastColon);
     const tail = normalized.slice(lastColon + 1);
     const ipv4 = parseIPv4(tail);
@@ -95,26 +92,23 @@ function expandIPv6(hostname: string): number[] | null {
     return expandIPv6(mapped);
   }
 
-  const parts = normalized.split("::");
+  const parts = normalized.split('::');
   if (parts.length > 2) return null;
 
-  const left = parts[0] ? parts[0].split(":").filter(Boolean) : [];
-  const right = parts[1] ? parts[1].split(":").filter(Boolean) : [];
+  const left = parts[0] ? parts[0].split(':').filter(Boolean) : [];
+  const right = parts[1] ? parts[1].split(':').filter(Boolean) : [];
   if (left.length + right.length > 8) return null;
   if (parts.length === 1 && left.length !== 8) return null;
 
   const fillCount = 8 - (left.length + right.length);
-  const full = [...left, ...Array(fillCount).fill("0"), ...right];
+  const full = [...left, ...Array(fillCount).fill('0'), ...right];
   if (full.length !== 8) return null;
 
   const hextets = full.map((part) => Number.parseInt(part, 16));
   if (
     hextets.some(
       (value, index) =>
-        !/^[0-9a-f]{1,4}$/i.test(full[index]) ||
-        Number.isNaN(value) ||
-        value < 0 ||
-        value > 0xffff,
+        !/^[0-9a-f]{1,4}$/i.test(full[index]) || Number.isNaN(value) || value < 0 || value > 0xffff,
     )
   ) {
     return null;
@@ -126,14 +120,7 @@ function isPrivateIPv6(hextets: number[]): boolean {
   const [a, b, c, d, e, f, g, h] = hextets;
   const isUnspecified = hextets.every((value) => value === 0);
   const isLoopback =
-    a === 0 &&
-    b === 0 &&
-    c === 0 &&
-    d === 0 &&
-    e === 0 &&
-    f === 0 &&
-    g === 0 &&
-    h === 1;
+    a === 0 && b === 0 && c === 0 && d === 0 && e === 0 && f === 0 && g === 0 && h === 1;
   const isUniqueLocal = (a & 0xfe00) === 0xfc00; // fc00::/7
   const isLinkLocal = (a & 0xffc0) === 0xfe80; // fe80::/10
   if (isUnspecified || isLoopback || isUniqueLocal || isLinkLocal) return true;
@@ -149,12 +136,12 @@ function isPrivateIPv6(hextets: number[]): boolean {
 
 function isBlockedTargetHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".internal")) return true;
+  if (host === 'localhost' || host.endsWith('.internal')) return true;
 
   const ipv4 = parseIPv4(host);
   if (ipv4) {
     if (isPrivateIPv4(ipv4)) return true;
-    if (host === "169.254.169.254") return true; // cloud metadata endpoint
+    if (host === '169.254.169.254') return true; // cloud metadata endpoint
     return false;
   }
 
@@ -175,15 +162,13 @@ function parseHeadersJson(raw: string | null): Record<string, string> {
       return null;
     }
   })();
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
 
   const result: Record<string, string> = {};
-  for (const [key, value] of Object.entries(
-    parsed as Record<string, unknown>,
-  )) {
+  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
     const normalized = key.toLowerCase();
     if (!ALLOWED_HEADER_KEYS.has(normalized)) continue;
-    if (typeof value !== "string") continue;
+    if (typeof value !== 'string') continue;
     const trimmed = value.trim();
     if (!trimmed) continue;
     result[normalized] = trimmed;
@@ -191,11 +176,9 @@ function parseHeadersJson(raw: string | null): Record<string, string> {
   return result;
 }
 
-function parseForwardHeaders(
-  searchParams: URLSearchParams,
-): Record<string, string> {
+function parseForwardHeaders(searchParams: URLSearchParams): Record<string, string> {
   const merged: Record<string, string> = {};
-  for (const raw of searchParams.getAll("headers")) {
+  for (const raw of searchParams.getAll('headers')) {
     const parsed = parseHeadersJson(raw);
     Object.assign(merged, parsed);
   }
@@ -206,7 +189,7 @@ function cleanTargetUrl(rawTarget: string): {
   targetUrl: string;
   nestedHeaders: Record<string, string>;
 } {
-  let target = String(rawTarget || "").trim();
+  let target = String(rawTarget || '').trim();
   let nestedHeaders: Record<string, string> = {};
 
   for (let i = 0; i < 3; i += 1) {
@@ -214,29 +197,28 @@ function cleanTargetUrl(rawTarget: string): {
     try {
       const parsed = new URL(target);
 
-      for (const raw of parsed.searchParams.getAll("headers")) {
+      for (const raw of parsed.searchParams.getAll('headers')) {
         nestedHeaders = { ...nestedHeaders, ...parseHeadersJson(raw) };
       }
 
-      const hintedHost = String(parsed.searchParams.get("host") || "").trim();
+      const hintedHost = String(parsed.searchParams.get('host') || '').trim();
       if (hintedHost) {
         try {
           const hostUrl = new URL(hintedHost);
           if (!nestedHeaders.origin) nestedHeaders.origin = hostUrl.origin;
-          if (!nestedHeaders.referer)
-            nestedHeaders.referer = `${hostUrl.origin}/`;
+          if (!nestedHeaders.referer) nestedHeaders.referer = `${hostUrl.origin}/`;
         } catch {}
       }
 
-      const nestedUrl = String(parsed.searchParams.get("url") || "").trim();
+      const nestedUrl = String(parsed.searchParams.get('url') || '').trim();
       if (/^https?:\/\//i.test(nestedUrl)) {
         target = nestedUrl;
         continue;
       }
 
-      parsed.searchParams.delete("headers");
-      parsed.searchParams.delete("host");
-      parsed.searchParams.delete("url");
+      parsed.searchParams.delete('headers');
+      parsed.searchParams.delete('host');
+      parsed.searchParams.delete('url');
 
       target = parsed.toString();
       break;
@@ -254,29 +236,27 @@ function buildResolverUrl(
   headers: Record<string, string>,
 ): string {
   const trimmedBase = base.trim();
-  if (!trimmedBase) return "";
+  if (!trimmedBase) return '';
 
   const encoded = encodeURIComponent(targetUrl);
   const headersPayload =
-    Object.keys(headers).length > 0
-      ? encodeURIComponent(JSON.stringify(headers))
-      : "";
+    Object.keys(headers).length > 0 ? encodeURIComponent(JSON.stringify(headers)) : '';
 
   const appendHeadersParam = (value: string): string => {
     if (!headersPayload) return value;
-    const separator = value.includes("?") ? "&" : "?";
+    const separator = value.includes('?') ? '&' : '?';
     return `${value}${separator}headers=${headersPayload}`;
   };
 
-  if (trimmedBase.includes("{url}")) {
-    return appendHeadersParam(trimmedBase.replaceAll("{url}", encoded));
+  if (trimmedBase.includes('{url}')) {
+    return appendHeadersParam(trimmedBase.replaceAll('{url}', encoded));
   }
 
-  if (trimmedBase.endsWith("=") || trimmedBase.endsWith("%3D")) {
+  if (trimmedBase.endsWith('=') || trimmedBase.endsWith('%3D')) {
     return appendHeadersParam(`${trimmedBase}${encoded}`);
   }
 
-  const separator = trimmedBase.includes("?") ? "&" : "?";
+  const separator = trimmedBase.includes('?') ? '&' : '?';
   return appendHeadersParam(`${trimmedBase}${separator}url=${encoded}`);
 }
 
@@ -284,15 +264,15 @@ function isM3u8(url: string, contentType: string): boolean {
   const type = contentType.toLowerCase();
   return (
     /\.m3u8($|\?)/i.test(url) ||
-    type.includes("application/vnd.apple.mpegurl") ||
-    type.includes("application/x-mpegurl")
+    type.includes('application/vnd.apple.mpegurl') ||
+    type.includes('application/x-mpegurl')
   );
 }
 
 function buildProxyUrl(url: string, headers: Record<string, string>): string {
   const params = new URLSearchParams({ url });
   if (Object.keys(headers).length > 0) {
-    params.set("headers", JSON.stringify(headers));
+    params.set('headers', JSON.stringify(headers));
   }
   return `/api/hls-proxy?${params.toString()}`;
 }
@@ -306,7 +286,7 @@ function rewritePlaylist(
 
   const rewriteAbsolute = (value: string): string => {
     const trimmed = value.trim();
-    if (!trimmed || trimmed.startsWith("data:")) return trimmed;
+    if (!trimmed || trimmed.startsWith('data:')) return trimmed;
     try {
       const absolute = new URL(trimmed, playlistUrl).toString();
       return buildProxyUrl(absolute, headers);
@@ -319,37 +299,37 @@ function rewritePlaylist(
     const trimmed = line.trim();
     if (!trimmed) return line;
 
-    if (trimmed.startsWith("#EXT-X-KEY") && trimmed.includes('URI="')) {
+    if (trimmed.startsWith('#EXT-X-KEY') && trimmed.includes('URI="')) {
       return line.replace(
         /URI="([^"]+)"/g,
         (_match, uri: string) => `URI="${rewriteAbsolute(uri)}"`,
       );
     }
 
-    if (trimmed.startsWith("#EXT-X-MEDIA") && trimmed.includes('URI="')) {
+    if (trimmed.startsWith('#EXT-X-MEDIA') && trimmed.includes('URI="')) {
       return line.replace(
         /URI="([^"]+)"/g,
         (_match, uri: string) => `URI="${rewriteAbsolute(uri)}"`,
       );
     }
 
-    if (trimmed.startsWith("#EXT-X-STREAM-INF")) {
+    if (trimmed.startsWith('#EXT-X-STREAM-INF')) {
       return line.replace(
         /URI="([^"]+)"/g,
         (_match, uri: string) => `URI="${rewriteAbsolute(uri)}"`,
       );
     }
 
-    if (trimmed.startsWith("#")) return line;
+    if (trimmed.startsWith('#')) return line;
     return rewriteAbsolute(trimmed);
   });
 
-  return rewritten.join("\n");
+  return rewritten.join('\n');
 }
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const rawTargetUrl = String(searchParams.get("url") || "").trim();
+  const rawTargetUrl = String(searchParams.get('url') || '').trim();
   const { targetUrl, nestedHeaders } = cleanTargetUrl(rawTargetUrl);
   const forwardHeaders = {
     ...nestedHeaders,
@@ -357,10 +337,7 @@ export async function GET(request: NextRequest) {
   };
 
   if (!/^https?:\/\//i.test(targetUrl)) {
-    return NextResponse.json(
-      { success: false, error: "Invalid target url" },
-      { status: 400 },
-    );
+    return NextResponse.json({ success: false, error: 'Invalid target url' }, { status: 400 });
   }
 
   try {
@@ -368,13 +345,13 @@ export async function GET(request: NextRequest) {
     const hostname = target.hostname.toLowerCase();
     if (isBlockedTargetHost(hostname)) {
       return NextResponse.json(
-        { success: false, error: "Target host is not allowed" },
+        { success: false, error: 'Target host is not allowed' },
         { status: 403 },
       );
     }
     if (!isAllowedHost(hostname)) {
       return NextResponse.json(
-        { success: false, error: "Target host is not in allowlist" },
+        { success: false, error: 'Target host is not in allowlist' },
         { status: 403 },
       );
     }
@@ -383,10 +360,9 @@ export async function GET(request: NextRequest) {
       ...forwardHeaders,
       referer: forwardHeaders.referer || `${target.origin}/`,
       origin: forwardHeaders.origin || target.origin,
-      accept: forwardHeaders.accept || "*/*",
+      accept: forwardHeaders.accept || '*/*',
     };
-    const rangeHeader =
-      forwardHeaders.range || request.headers.get("range") || "";
+    const rangeHeader = forwardHeaders.range || request.headers.get('range') || '';
     if (rangeHeader) {
       upstreamHeaders.range = rangeHeader;
     }
@@ -398,20 +374,12 @@ export async function GET(request: NextRequest) {
 
     if (
       !upstream.ok &&
-      (upstream.status === 401 ||
-        upstream.status === 403 ||
-        upstream.status === 429)
+      (upstream.status === 401 || upstream.status === 403 || upstream.status === 429)
     ) {
       const resolverBase = String(
-        process.env.DIRECT_RESOLVER_URL ||
-          process.env.NEXT_PUBLIC_DIRECT_RESOLVER_URL ||
-          "",
+        process.env.DIRECT_RESOLVER_URL || process.env.NEXT_PUBLIC_DIRECT_RESOLVER_URL || '',
       ).trim();
-      const resolverUrl = buildResolverUrl(
-        resolverBase,
-        targetUrl,
-        forwardHeaders,
-      );
+      const resolverUrl = buildResolverUrl(resolverBase, targetUrl, forwardHeaders);
       if (resolverUrl) {
         try {
           const resolverResponse = await fetch(resolverUrl, {
@@ -425,22 +393,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (!upstream.ok) {
-      const text = await upstream.text().catch(() => "");
-      return new NextResponse(
-        text || `Upstream failed with HTTP ${upstream.status}`,
-        {
-          status: upstream.status,
-          headers: {
-            "content-type":
-              upstream.headers.get("content-type") ||
-              "text/plain; charset=utf-8",
-            "cache-control": "no-store",
-          },
+      const text = await upstream.text().catch(() => '');
+      return new NextResponse(text || `Upstream failed with HTTP ${upstream.status}`, {
+        status: upstream.status,
+        headers: {
+          'content-type': upstream.headers.get('content-type') || 'text/plain; charset=utf-8',
+          'cache-control': 'no-store',
         },
-      );
+      });
     }
 
-    const contentType = upstream.headers.get("content-type") || "";
+    const contentType = upstream.headers.get('content-type') || '';
 
     if (isM3u8(targetUrl, contentType)) {
       const text = await upstream.text();
@@ -448,8 +411,8 @@ export async function GET(request: NextRequest) {
       return new NextResponse(rewritten, {
         status: 200,
         headers: {
-          "content-type": "application/vnd.apple.mpegurl; charset=utf-8",
-          "cache-control": "no-store",
+          'content-type': 'application/vnd.apple.mpegurl; charset=utf-8',
+          'cache-control': 'no-store',
         },
       });
     }
@@ -458,15 +421,15 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body, {
       status: 200,
       headers: {
-        "content-type": contentType || "application/octet-stream",
-        "cache-control": "no-store",
+        'content-type': contentType || 'application/octet-stream',
+        'cache-control': 'no-store',
       },
     });
   } catch (error: any) {
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || "HLS proxy failed",
+        error: error?.message || 'HLS proxy failed',
       },
       { status: 500 },
     );

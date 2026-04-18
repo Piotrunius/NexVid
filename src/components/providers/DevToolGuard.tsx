@@ -3,10 +3,10 @@
    Admins are automatically excluded.
    ============================================ */
 
-"use client";
+'use client';
 
-import { useAuthStore } from "@/stores/auth";
-import { useEffect, useState } from "react";
+import { useAuthStore } from '@/stores/auth';
+import { useEffect, useState } from 'react';
 
 export function DevToolGuard() {
   const user = useAuthStore((s) => s.user);
@@ -17,20 +17,17 @@ export function DevToolGuard() {
   }, []);
 
   const isAdmin =
-    user?.isAdmin ||
-    user?.role === "admin" ||
-    user?.role === "owner" ||
-    user?.role === "moderator";
+    user?.isAdmin || user?.role === 'admin' || user?.role === 'owner' || user?.role === 'moderator';
 
   useEffect(() => {
     if (!mounted) return;
-    if (process.env.NODE_ENV !== "production") return;
+    if (process.env.NODE_ENV !== 'production') return;
 
     if (isAdmin) {
-      import("disable-devtool").then((mod) => {
+      import('disable-devtool').then((mod) => {
         try {
           if (mod.default) {
-             mod.default.isSuspend = true;
+            mod.default.isSuspend = true;
           }
         } catch {}
       });
@@ -41,7 +38,7 @@ export function DevToolGuard() {
 
     const init = async () => {
       try {
-        const DisableDevtool = (await import("disable-devtool")).default;
+        const DisableDevtool = (await import('disable-devtool')).default;
 
         DisableDevtool({
           disableMenu: false,
@@ -54,10 +51,10 @@ export function DevToolGuard() {
           ondevtoolopen: (_type, _next) => {
             window.close();
             try {
-              document.documentElement.innerHTML = "";
-              document.title = "";
+              document.documentElement.innerHTML = '';
+              document.title = '';
             } catch {}
-            window.location.replace("about:blank");
+            window.location.replace('about:blank');
           },
         });
 
@@ -67,7 +64,7 @@ export function DevToolGuard() {
           } catch {}
         };
       } catch (e) {
-        console.error("[DevToolGuard] Failed to initialize:", e);
+        console.error('[DevToolGuard] Failed to initialize:', e);
       }
     };
 

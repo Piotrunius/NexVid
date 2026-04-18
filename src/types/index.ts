@@ -4,7 +4,7 @@
 
 // ---- Media Types ----
 
-export type MediaType = "movie" | "show";
+export type MediaType = 'movie' | 'show';
 
 export interface MediaBase {
   id: number;
@@ -24,7 +24,7 @@ export interface MediaBase {
 }
 
 export interface Movie extends MediaBase {
-  mediaType: "movie";
+  mediaType: 'movie';
   runtime: number;
   certification?: string;
   cast?: CastMember[];
@@ -40,7 +40,7 @@ export interface Movie extends MediaBase {
 }
 
 export interface Show extends MediaBase {
-  mediaType: "show";
+  mediaType: 'show';
   seasons: Season[];
   totalEpisodes: number;
   certification?: string;
@@ -110,19 +110,12 @@ export type MediaItem = Movie | Show;
 
 // ---- Stream Types ----
 
-export type StreamQuality =
-  | "unknown"
-  | "360"
-  | "480"
-  | "720"
-  | "1080"
-  | "2k"
-  | "4k";
+export type StreamQuality = 'unknown' | '360' | '480' | '720' | '1080' | '2k' | '4k';
 
-export type PlayerViewMode = "original" | "stretch" | "zoom";
+export type PlayerViewMode = 'original' | 'stretch' | 'zoom';
 
 export interface StreamFile {
-  type: "mp4";
+  type: 'mp4';
   url: string;
 }
 
@@ -130,7 +123,7 @@ export interface Caption {
   id: string;
   url: string;
   language: string;
-  type: "srt" | "vtt";
+  type: 'srt' | 'vtt';
   hasCorsRestrictions?: boolean;
   label?: string;
   flagUrl?: string;
@@ -152,25 +145,25 @@ export interface StreamBase {
   id: string;
   flags: string[];
   captions: Caption[];
-  thumbnailTrack?: { type: "vtt"; url: string };
+  thumbnailTrack?: { type: 'vtt'; url: string };
   headers?: Record<string, string>;
   preferredHeaders?: Record<string, string>;
 }
 
 export interface FileBasedStream extends StreamBase {
-  type: "file";
+  type: 'file';
   qualities: Partial<Record<StreamQuality, StreamFile>>;
   audioTracks?: AudioTrack[];
 }
 
 export interface HlsBasedStream extends StreamBase {
-  type: "hls";
+  type: 'hls';
   playlist: string;
   proxyDepth?: 0 | 1 | 2;
 }
 
 export interface EmbedStream {
-  type: "embed";
+  type: 'embed';
   url: string;
 }
 
@@ -186,7 +179,7 @@ export interface SourceMeta {
   id: string;
   name: string;
   rank: number;
-  type: "source" | "embed";
+  type: 'source' | 'embed';
   mediaTypes?: MediaType[];
 }
 
@@ -195,7 +188,7 @@ export interface SourceMeta {
 export interface ScrapeProgress {
   id: string;
   percentage: number;
-  status: "pending" | "success" | "failure" | "notfound";
+  status: 'pending' | 'success' | 'failure' | 'notfound';
   error?: unknown;
   reason?: string;
 }
@@ -206,14 +199,14 @@ export interface User {
   id: string;
   username: string;
   isAdmin?: boolean;
-  role?: "owner" | "admin" | "moderator" | null;
+  role?: 'owner' | 'admin' | 'moderator' | null;
   requiresPasswordChange?: boolean;
   createdAt: string;
   settings: UserSettings;
 }
 
 export interface UserSettings {
-  theme: "dark" | "light";
+  theme: 'dark' | 'light';
   accentColor: AccentColor;
   customAccentHex: string;
   glassEffect: boolean;
@@ -242,29 +235,23 @@ export interface UserSettings {
 }
 
 export type AccentColor =
-  | "indigo"
-  | "violet"
-  | "rose"
-  | "emerald"
-  | "amber"
-  | "cyan"
-  | "sky"
-  | "lime"
-  | "orange"
-  | "fuchsia"
-  | "teal"
-  | "red"
-  | "custom";
-export type Theme = "dark" | "light";
+  | 'indigo'
+  | 'violet'
+  | 'rose'
+  | 'emerald'
+  | 'amber'
+  | 'cyan'
+  | 'sky'
+  | 'lime'
+  | 'orange'
+  | 'fuchsia'
+  | 'teal'
+  | 'red'
+  | 'custom';
+export type Theme = 'dark' | 'light';
 // ---- Watchlist Types ----
 
-export type WatchlistStatus =
-  | "Planned"
-  | "Watching"
-  | "Completed"
-  | "Dropped"
-  | "On-Hold"
-  | "none";
+export type WatchlistStatus = 'Planned' | 'Watching' | 'Completed' | 'Dropped' | 'On-Hold' | 'none';
 
 export interface WatchlistItem {
   id: string;
@@ -318,7 +305,7 @@ export interface TMDBTrending {
 
 export interface TestResult {
   sourceId: string;
-  status: "success" | "failure" | "timeout";
+  status: 'success' | 'failure' | 'timeout';
   streams: number;
   duration: number;
   error?: string;
