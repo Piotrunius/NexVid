@@ -219,7 +219,6 @@ async function ship() {
     console.log(
       `  Pages:       ${summary.deployPages ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED'}${format.reset}`,
     );
-    console.log(`  Time:        ${executionTime}s`);
 
     ui.success('Process completed');
     rl.close();
