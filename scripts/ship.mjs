@@ -1,9 +1,15 @@
 import { execSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
+import { performance } from 'node:perf_hooks';
 
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout,
+});
+
+rl.on('SIGINT', () => {
+  console.log('\n\x1b[31m ✖  Process aborted by user (SIGINT).\x1b[0m');
+  process.exit(0);
 });
 
 const format = {
@@ -15,27 +21,38 @@ const format = {
   blue: '\x1b[34m',
   cyan: '\x1b[36m',
   red: '\x1b[31m',
+  bgGray: '\x1b[48;5;236m',
 };
 
 const ui = {
   header: (text) =>
-    console.log(`\n${format.bold}${format.blue}=== ${text.toUpperCase()} ===${format.reset}\n`),
-  step: (text) => console.log(`${format.green}[+]${format.reset} ${text}`),
-  info: (text) => console.log(`${format.dim} -  ${text}${format.reset}`),
-  warn: (text) => console.log(`\n${format.yellow}[!]${format.reset} ${text}`),
-  error: (text) => console.error(`\n${format.red}[x] ERROR:${format.reset} ${text}`),
-  success: (text) => console.log(`\n${format.bold}${format.green}[V] ${text}${format.reset}\n`),
+    console.log(
+      `\n${format.bold}${format.blue} ❖  ${text.toUpperCase()}  ${format.reset}\n${format.dim} ──────────────────────────────────────${format.reset}`,
+    ),
+  step: (text) => console.log(`${format.green} ► ${format.reset} ${text}`),
+  info: (text) => console.log(`${format.dim} │  ${text}${format.reset}`),
+  warn: (text) => console.log(`\n${format.yellow} ⚠ ${format.reset} ${text}`),
+  error: (text) => console.error(`\n${format.red} ✖  ERROR:${format.reset} ${text}`),
+  success: (text) => console.log(`\n${format.bold}${format.green} ✔  ${text}${format.reset}\n`),
+  execBoundary: (label) =>
+    console.log(`${format.bgGray}${format.dim} ── STDOUT/STDERR: ${label} ── ${format.reset}`),
 };
 
 const question = (query) =>
-  new Promise((resolve) => rl.question(`${format.cyan}?${format.reset} ${query}`, resolve));
+  new Promise((resolve) => rl.question(`${format.cyan} ❯ ${format.reset} ${query}`, resolve));
+
+const runCmd = (cmd, label) => {
+  ui.execBoundary(label);
+  execSync(cmd, { stdio: 'inherit' });
+  ui.execBoundary('END');
+};
 
 async function sendDiscordNotification(message, branch, sha) {
   const webhookUrl = process.env.DISCORD_WEBHOOK;
 
   if (!webhookUrl) {
     ui.warn('Notification skipped: DISCORD_WEBHOOK environment variable is not set.');
-    return;
+    return false;
   }
 
   const config = {
@@ -76,53 +93,74 @@ async function sendDiscordNotification(message, branch, sha) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    ui.info(`Discord notification sent: [${type.label}]`);
+    ui.info(`Discord webhook sent: [${type.label}]`);
+    return true;
   } catch (err) {
-    ui.error(`Sending to Discord: ${err.message}`);
+    ui.error(`Discord Webhook: ${err.message}`);
+    return false;
   }
 }
 
 async function ship() {
+  const startTime = performance.now();
+  const summary = {
+    mode: 'Unknown',
+    commit: 'None',
+    pushed: false,
+    discord: false,
+    deployWorker: false,
+    deployPages: false,
+  };
+
   try {
-    ui.header('Shipping Mode');
-    console.log('  1. Development (Git + Deploy selection)');
+    ui.header('Deployment Mode');
+    console.log('  1. Development (Git + Deploy Options)');
     console.log('  2. Preview (Quick Pages deploy to "Preview")');
 
     const mode = await question('\nChoice (1-2): ');
 
     if (mode.trim() === '2') {
-      ui.step('Deploying Preview...');
-      execSync('bun run pages:deploy -- --branch preview', { stdio: 'inherit' });
-      ui.success('Done');
+      summary.mode = 'Preview';
+      summary.deployPages = true;
+      ui.step('Deploying Preview');
+      runCmd('bun run pages:deploy -- --branch preview', 'Pages Deploy');
       return;
     }
 
+    summary.mode = 'Development';
     ui.header('Development Process');
 
-    ui.step('Staging files...');
-    execSync('git add .', { stdio: 'inherit' });
+    const gitStatus = execSync('git status --porcelain').toString().trim();
+    if (!gitStatus) {
+      ui.warn('No modifications in working tree. Aborting process...');
+      return;
+    }
+
+    ui.step('Staging files');
+    runCmd('git add .', 'Git Add');
 
     const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-    const commitMsg = await question(
-      `Commit message (e.g. feat: description) [default: ${defaultMsg}]: `,
-    );
+    const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
     const finalMsg = commitMsg.trim() || defaultMsg;
+    summary.commit = finalMsg;
 
-    ui.step(`Committing: "${finalMsg}"`);
-    execSync(`git commit -m "${finalMsg}"`, { stdio: 'inherit' });
+    ui.step(`Creating commit: "${finalMsg}"`);
+    runCmd(`git commit -m "${finalMsg}"`, 'Git Commit');
 
-    const notifyChoice = await question('\nSend a Discord notification? (y/N): ');
+    const notifyChoice = await question('\nSend Discord notification? (y/N): ');
     const shouldNotify = notifyChoice.toLowerCase().trim() === 'y';
 
-    const pushChoice = await question('Push to GitHub? (y/N): ');
+    const pushChoice = await question('Push to remote origin? (y/N): ');
     if (pushChoice.toLowerCase().trim() === 'y') {
-      ui.step('Pushing to remote...');
-      execSync('git push', { stdio: 'inherit' });
+      summary.pushed = true;
+      ui.step('Pushing to remote repository');
+      runCmd('git push', 'Git Push');
 
       if (shouldNotify) {
+        ui.step('Sending Discord notification');
         const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
         const sha = execSync('git rev-parse --short HEAD').toString().trim();
-        await sendDiscordNotification(finalMsg, branch, sha);
+        summary.discord = await sendDiscordNotification(finalMsg, branch, sha);
       }
     }
 
@@ -130,7 +168,7 @@ async function ship() {
     console.log('  1. Worker only');
     console.log('  2. Pages only');
     console.log('  3. Both (Worker & Pages)');
-    console.log('  4. None');
+    console.log('  4. Skip deployment');
 
     const deployChoice = await question('\nChoice (1-4): ');
 
@@ -139,31 +177,51 @@ async function ship() {
       const shouldDeployWorker = selected === '1' || selected === '3';
       const shouldDeployPages = selected === '2' || selected === '3';
 
-      ui.header('Environment');
+      ui.header('Target Environment');
       console.log('  1. Production (main)');
       console.log('  2. Preview (preview)');
       const envChoice = await question('\nChoice (1-2, default: 1): ');
 
       const isPreview = envChoice.trim() === '2';
-      const branch = isPreview ? 'preview' : 'main';
+      const targetBranch = isPreview ? 'preview' : 'main';
 
       if (shouldDeployWorker) {
-        ui.step('Deploying Worker...');
-        execSync('bun run worker:deploy', { stdio: 'inherit' });
+        summary.deployWorker = true;
+        ui.step('Deploying Worker');
+        runCmd('bun run worker:deploy', 'Worker Deploy');
       }
 
       if (shouldDeployPages) {
-        ui.step(`Deploying Pages to branch "${branch}"...`);
-        execSync(`bun run pages:deploy -- --branch ${branch}`, { stdio: 'inherit' });
+        summary.deployPages = true;
+        ui.step(`Deploying Pages to branch "${targetBranch}"`);
+        runCmd(`bun run pages:deploy -- --branch ${targetBranch}`, 'Pages Deploy');
       }
     } else {
       ui.info('Deployment skipped.');
     }
-
-    ui.success('All tasks completed');
   } catch (error) {
     ui.error(error.message);
   } finally {
+    const executionTime = ((performance.now() - startTime) / 1000).toFixed(2);
+
+    ui.header('Execution Summary');
+    console.log(`  Mode:        ${summary.mode}`);
+    console.log(`  Commit:      ${summary.commit}`);
+    console.log(
+      `  Git Push:    ${summary.pushed ? format.green + 'YES' : format.dim + 'NO'}${format.reset}`,
+    );
+    console.log(
+      `  Discord:     ${summary.discord ? format.green + 'YES' : format.dim + 'NO'}${format.reset}`,
+    );
+    console.log(
+      `  Worker:      ${summary.deployWorker ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED'}${format.reset}`,
+    );
+    console.log(
+      `  Pages:       ${summary.deployPages ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED'}${format.reset}`,
+    );
+    console.log(`  Time:        ${executionTime}s`);
+
+    ui.success('Process completed');
     rl.close();
   }
 }
