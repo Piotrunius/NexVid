@@ -55,7 +55,6 @@ const askChoice = async (query, validOptions, defaultOpt = null) => {
   }
 };
 
-// Do prostych komend powłoki (np. git push)
 const runCmd = (cmd, label) => {
   ui.execBoundary(label);
   try {
@@ -69,7 +68,6 @@ const runCmd = (cmd, label) => {
   }
 };
 
-// Do komend ze zmiennymi użytkownika (chroni przed Shell Injection)
 const runSafeCmd = (bin, args, label) => {
   ui.execBoundary(label);
   try {
@@ -141,7 +139,6 @@ async function sendDiscordNotification(message, branch, sha) {
 async function generateCommitMessage() {
   let diff;
   try {
-    // maxBuffer ustalony na 10MB dla dużych zmian
     diff = execSync('git diff --cached', { maxBuffer: 10 * 1024 * 1024 })
       .toString()
       .trim();
@@ -200,7 +197,13 @@ Rules:
     }
 
     const data = await response.json();
-    return data.choices[0].message.content.trim().replace(/^['"]|['"]$/g, '');
+    const rawOutput = data.choices[0].message.content;
+    const firstLine = rawOutput
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)[0];
+
+    return firstLine ? firstLine.replace(/^['"]|['"]$/g, '') : null;
   } catch (err) {
     ui.warn(`Groq API Error: ${err.message}`);
     return null;
@@ -218,7 +221,6 @@ async function ship() {
     deployPages: false,
   };
 
-  // Wczesna weryfikacja .env
   ui.header('Environment Setup');
   if (!process.env.GROQ_API_KEY) ui.info('GROQ_API_KEY missing - AI features will be disabled.');
   else ui.info('GROQ_API_KEY found.');
@@ -238,7 +240,7 @@ async function ship() {
       summary.mode = 'Preview';
       ui.step('Deploying Preview');
       summary.deployPages = runCmd('bun run pages:deploy -- --branch preview', 'Pages Deploy');
-      return; // Kończy całą akcję po deployu preview
+      return;
     }
 
     summary.mode = 'Development';
@@ -246,7 +248,6 @@ async function ship() {
 
     const gitStatus = execSync('git status --porcelain').toString().trim();
 
-    // Zmiana logiki: jeśli nie ma zmian, po prostu pomija fazę commitu, zamiast odrzucać wykonanie skryptu
     if (!gitStatus) {
       ui.info('Working tree clean. Skipping commit phase.');
     } else {
@@ -276,7 +277,6 @@ async function ship() {
       summary.commit = finalMsg;
 
       ui.step(`Creating commit: "${finalMsg}"`);
-      // Zastosowanie bezpiecznej funkcji zamiast template stringu w powłoce
       if (!runSafeCmd('git', ['commit', '-m', finalMsg], 'Git Commit')) {
         throw new Error('Command failed: git commit.');
       }
