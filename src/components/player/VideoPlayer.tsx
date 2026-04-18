@@ -207,32 +207,59 @@ function getLanguageGroup(lang: string): string {
   return LANGUAGE_GROUP_MAP[normalized] ?? normalized;
 }
 
-function resolveFlagUrl(lang: string, providedUrl?: string | null): string | null {
+function resolveFlagUrl(
+  lang: string,
+  providedUrl?: string | null,
+): string | null {
   const normalized = lang.toLowerCase();
   // Forced mappings per user request
   if (normalized === "zh" || normalized === "zt" || normalized === "ze")
     return "https://flagsapi.com/CN/flat/24.png";
-  if (normalized === "yue" || normalized === "yc" || normalized === "zc" || normalized === "zcy" || normalized === "zh-hk")
+  if (
+    normalized === "yue" ||
+    normalized === "yc" ||
+    normalized === "zc" ||
+    normalized === "zcy" ||
+    normalized === "zh-hk"
+  )
     return "https://flagsapi.com/HK/flat/24.png";
-  if (normalized === "mx" || normalized === "ea" || normalized === "es-la" || normalized === "es-419")
+  if (
+    normalized === "mx" ||
+    normalized === "ea" ||
+    normalized === "es-la" ||
+    normalized === "es-419"
+  )
     return "https://flagsapi.com/MX/flat/24.png";
-  if (normalized === "br" || normalized === "pb" || normalized === "pt-br" || normalized === "ptbr")
+  if (
+    normalized === "br" ||
+    normalized === "pb" ||
+    normalized === "pt-br" ||
+    normalized === "ptbr"
+  )
     return "https://flagsapi.com/BR/flat/24.png";
   if (normalized === "es" || normalized === "sp")
     return "https://flagsapi.com/ES/flat/24.png";
   if (normalized === "pt" || normalized === "pt-pt")
     return "https://flagsapi.com/PT/flat/24.png";
-  if (normalized === "pl")
-    return "https://flagsapi.com/PL/flat/24.png";
-  if (normalized === "en")
-    return "https://flagsapi.com/GB/flat/24.png";
+  if (normalized === "pl") return "https://flagsapi.com/PL/flat/24.png";
+  if (normalized === "en") return "https://flagsapi.com/GB/flat/24.png";
 
   if (providedUrl) return providedUrl;
   return null;
 }
 const SUB_DELAY_MIN_MS = -10000;
 const SUB_DELAY_MAX_MS = 10000;
-const KNOWN_SOURCE_ORDER = ["febbox", "pobreflix","zxcstream", "cinesrc", "vidking", "vidfast", "videasy","vidsync", "vidlink"] as const;
+const KNOWN_SOURCE_ORDER = [
+  "febbox",
+  "pobreflix",
+  "zxcstream",
+  "cinesrc",
+  "vidking",
+  "vidfast",
+  "videasy",
+  "vidsync",
+  "vidlink",
+] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = "nexvid-subtitle-appearance";
 const PAUSE_IDLE_OVERLAY_MS = 10000;
 
@@ -284,11 +311,11 @@ function getNormalizedQualityEntries(
     const quality = normalizeQualityKey(key);
     if (!quality || !file?.url) continue;
     if (!bestByQuality.has(quality)) {
-      bestByQuality.set(quality, { 
-        quality, 
-        url: file.url, 
+      bestByQuality.set(quality, {
+        quality,
+        url: file.url,
         sourceKey: key,
-        headers: (file as any).headers
+        headers: (file as any).headers,
       });
     }
   }
@@ -567,8 +594,10 @@ export function VideoPlayer({
         } else if (type === "ended") {
           setPlaying(false);
         } else if (type === "playerstatus" && msgData) {
-          if (typeof msgData.currentTime === "number") setCurrentTime(msgData.currentTime);
-          if (typeof msgData.duration === "number") setDuration(msgData.duration);
+          if (typeof msgData.currentTime === "number")
+            setCurrentTime(msgData.currentTime);
+          if (typeof msgData.duration === "number")
+            setDuration(msgData.duration);
         }
       }
     };
@@ -695,9 +724,15 @@ export function VideoPlayer({
   const [isDraggingProgress, setIsDraggingProgress] = useState(false);
   const [dragStartTime, setDragStartTime] = useState(0);
   const [dragCurrentTime, setDragCurrentTime] = useState(0);
-  const [showSkipIndicator, setShowSkipIndicator] = useState<"left" | "right" | null>(null);
-  const [playbackIndicator, setPlaybackIndicator] = useState<"play" | "pause" | null>(null);
-  const lastTapRef = useRef<{ time: number; side: "left" | "right" } | null>(null);
+  const [showSkipIndicator, setShowSkipIndicator] = useState<
+    "left" | "right" | null
+  >(null);
+  const [playbackIndicator, setPlaybackIndicator] = useState<
+    "play" | "pause" | null
+  >(null);
+  const lastTapRef = useRef<{ time: number; side: "left" | "right" } | null>(
+    null,
+  );
   const nextPromptDismissedForRef = useRef<string | null>(null);
   const nextPromptHandledForRef = useRef<string | null>(null);
   const nextEpisodeAutoNavRef = useRef(false);
@@ -720,14 +755,21 @@ export function VideoPlayer({
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const sessionToken = useAuthStore((s) => s.authToken);
 
-  const sendEmbedCommand = useCallback((command: string, value?: any) => {
-    if (stream?.type === "embed" && (stream.url.includes("peachify.top") || stream.url.includes("cinesrc.st"))) {
-      const iframe = containerRef.current?.querySelector("iframe");
-      if (iframe?.contentWindow) {
-        iframe.contentWindow.postMessage({ command, value }, "*");
+  const sendEmbedCommand = useCallback(
+    (command: string, value?: any) => {
+      if (
+        stream?.type === "embed" &&
+        (stream.url.includes("peachify.top") ||
+          stream.url.includes("cinesrc.st"))
+      ) {
+        const iframe = containerRef.current?.querySelector("iframe");
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage({ command, value }, "*");
+        }
       }
-    }
-  }, [stream]);
+    },
+    [stream],
+  );
   const {
     addItem,
     getByTmdbId,
@@ -1057,14 +1099,14 @@ export function VideoPlayer({
       if (selectedEntry?.url) {
         // Robust HLS detection within file-type qualities
         const isHls = selectedEntry.url.toLowerCase().includes(".m3u8");
-        
+
         if (isHls) {
           loadHls(selectedEntry.url, video, selectedEntry.headers);
         } else {
           video.src = selectedEntry.url;
           video.load();
         }
-        
+
         setQuality(selectedEntry.quality);
 
         if (
@@ -1156,7 +1198,7 @@ export function VideoPlayer({
     defaultQuality,
     canTryNextSource,
     onTryNextSource,
-    // explicitly ignoring playbackSpeed, playerVolume, autoPlay 
+    // explicitly ignoring playbackSpeed, playerVolume, autoPlay
     // to prevent stream reloading when local fast-changing state updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ]);
@@ -1782,7 +1824,14 @@ export function VideoPlayer({
         targetTimeRef.current = null;
       }, 100);
     },
-    [duration, externalAudioUrl, pushWatchPartyHostStateNow, setCurrentTime, stream?.type, sendEmbedCommand],
+    [
+      duration,
+      externalAudioUrl,
+      pushWatchPartyHostStateNow,
+      setCurrentTime,
+      stream?.type,
+      sendEmbedCommand,
+    ],
   );
 
   const handleProgressClick = useCallback(
@@ -1795,20 +1844,26 @@ export function VideoPlayer({
     [duration, seek],
   );
 
-  const startDragging = useCallback((time: number) => {
-    setIsDraggingProgress(true);
-    setDragStartTime(currentTime);
-    setDragCurrentTime(time);
-  }, [currentTime]);
+  const startDragging = useCallback(
+    (time: number) => {
+      setIsDraggingProgress(true);
+      setDragStartTime(currentTime);
+      setDragCurrentTime(time);
+    },
+    [currentTime],
+  );
 
-  const updateDragging = useCallback((time: number) => {
-    const clamped = Math.max(0, Math.min(time, duration || 0));
-    setDragCurrentTime(clamped);
-    // Optional: Real-time seeking for file-based streams
-    if (stream?.type === "file") {
-      seek(clamped);
-    }
-  }, [duration, stream?.type, seek]);
+  const updateDragging = useCallback(
+    (time: number) => {
+      const clamped = Math.max(0, Math.min(time, duration || 0));
+      setDragCurrentTime(clamped);
+      // Optional: Real-time seeking for file-based streams
+      if (stream?.type === "file") {
+        seek(clamped);
+      }
+    },
+    [duration, stream?.type, seek],
+  );
 
   const stopDragging = useCallback(() => {
     if (isDraggingProgress) {
@@ -1817,20 +1872,26 @@ export function VideoPlayer({
     }
   }, [isDraggingProgress, dragCurrentTime, seek]);
 
-  const handleProgressMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!progressRef.current || !duration) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    startDragging(pos * duration);
-  }, [duration, startDragging]);
+  const handleProgressMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (!progressRef.current || !duration) return;
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      startDragging(pos * duration);
+    },
+    [duration, startDragging],
+  );
 
-  const handleProgressTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!progressRef.current || !duration) return;
-    const touch = e.touches[0];
-    const rect = progressRef.current.getBoundingClientRect();
-    const pos = (touch.clientX - rect.left) / rect.width;
-    startDragging(pos * duration);
-  }, [duration, startDragging]);
+  const handleProgressTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!progressRef.current || !duration) return;
+      const touch = e.touches[0];
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = (touch.clientX - rect.left) / rect.width;
+      startDragging(pos * duration);
+    },
+    [duration, startDragging],
+  );
 
   useEffect(() => {
     if (!isDraggingProgress) return;
@@ -1847,7 +1908,7 @@ export function VideoPlayer({
       if (!progressRef.current || !duration) return;
       const touch = e.touches[0];
       const rect = progressRef.current.getBoundingClientRect();
-      const pos = (touch.clientX - rect.left) / touch.width;
+      const pos = (touch.clientX - rect.left) / rect.width;
       updateDragging(pos * duration);
       showControls();
     };
@@ -1877,67 +1938,91 @@ export function VideoPlayer({
     [duration],
   );
 
-  const handleInteractionAreaClick = useCallback((e: React.MouseEvent, shouldTogglePlayback = true) => {
-    // If a settings panel is open, clicking the area should close it
-    if (settingsPanel) {
-      setSettingsPanel(null);
-      return;
-    }
-
-    // Standard playback toggle if requested (standard for desktop, optional for mobile)
-    if (shouldTogglePlayback) {
-      togglePlay();
-    }
-
-    // Toggle controls visibility - ONLY on touch devices where there's no mouse-move wake
-    if (isTouchDevice) {
-      if (!controlsVisible) {
-        showControls();
-      } else {
-        hideControls();
+  const handleInteractionAreaClick = useCallback(
+    (e: React.MouseEvent, shouldTogglePlayback = true) => {
+      // If a settings panel is open, clicking the area should close it
+      if (settingsPanel) {
+        setSettingsPanel(null);
+        return;
       }
-    }
-  }, [controlsVisible, showControls, hideControls, togglePlay, settingsPanel, isTouchDevice]);
 
-  const handleInteractionAreaTouch = useCallback((e: React.TouchEvent) => {
-    // Prevent simulated mouse events (clicks) after touch
-    e.preventDefault();
-    e.stopPropagation();
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const touchX = e.changedTouches[0].clientX - rect.left;
-    const width = rect.width;
-    
-    // 3-Sector Model: Left 30%, Right 30%, Center 40%
-    const isLeft = touchX < width * 0.3;
-    const isRight = touchX > width * 0.7;
-    const side = isLeft ? "left" : isRight ? "right" : "center";
-    
-    const now = Date.now();
-
-    if (side !== "center") {
-      // HANDLE SKIP SECTORS
-      if (lastTapRef.current && lastTapRef.current.side === side && now - lastTapRef.current.time < 350) {
-        // Double tap detected
-        const skipAmount = side === "left" ? -10 : 10;
-        seek(currentTime + skipAmount);
-        setShowSkipIndicator(side as "left" | "right");
-        setTimeout(() => setShowSkipIndicator(null), 800);
-        lastTapRef.current = null;
-        showControls();
-      } else {
-        lastTapRef.current = { time: now, side: side as "left" | "right" };
-        // Single tap on sides only wakes UI
-        if (!controlsVisible) showControls();
-        else hideControls();
+      // Standard playback toggle if requested (standard for desktop, optional for mobile)
+      if (shouldTogglePlayback) {
+        togglePlay();
       }
-    } else {
-      // HANDLE CENTER SECTOR (Play/Pause)
-      togglePlay();
-      showControls();
-      lastTapRef.current = null; // Reset skip chain if tapping center
-    }
-  }, [currentTime, seek, togglePlay, showControls, hideControls, controlsVisible]);
+
+      // Toggle controls visibility - ONLY on touch devices where there's no mouse-move wake
+      if (isTouchDevice) {
+        if (!controlsVisible) {
+          showControls();
+        } else {
+          hideControls();
+        }
+      }
+    },
+    [
+      controlsVisible,
+      showControls,
+      hideControls,
+      togglePlay,
+      settingsPanel,
+      isTouchDevice,
+    ],
+  );
+
+  const handleInteractionAreaTouch = useCallback(
+    (e: React.TouchEvent) => {
+      // Prevent simulated mouse events (clicks) after touch
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const touchX = e.changedTouches[0].clientX - rect.left;
+      const width = rect.width;
+
+      // 3-Sector Model: Left 30%, Right 30%, Center 40%
+      const isLeft = touchX < width * 0.3;
+      const isRight = touchX > width * 0.7;
+      const side = isLeft ? "left" : isRight ? "right" : "center";
+
+      const now = Date.now();
+
+      if (side !== "center") {
+        // HANDLE SKIP SECTORS
+        if (
+          lastTapRef.current &&
+          lastTapRef.current.side === side &&
+          now - lastTapRef.current.time < 350
+        ) {
+          // Double tap detected
+          const skipAmount = side === "left" ? -10 : 10;
+          seek(currentTime + skipAmount);
+          setShowSkipIndicator(side as "left" | "right");
+          setTimeout(() => setShowSkipIndicator(null), 800);
+          lastTapRef.current = null;
+          showControls();
+        } else {
+          lastTapRef.current = { time: now, side: side as "left" | "right" };
+          // Single tap on sides only wakes UI
+          if (!controlsVisible) showControls();
+          else hideControls();
+        }
+      } else {
+        // HANDLE CENTER SECTOR (Play/Pause)
+        togglePlay();
+        showControls();
+        lastTapRef.current = null; // Reset skip chain if tapping center
+      }
+    },
+    [
+      currentTime,
+      seek,
+      togglePlay,
+      showControls,
+      hideControls,
+      controlsVisible,
+    ],
+  );
 
   const changeVolume = useCallback(
     (newVol: number) => {
@@ -1953,7 +2038,8 @@ export function VideoPlayer({
     [isMuted],
   );
 
-   const promptKey = mediaType === "movie" ? "movie-finish" : `${seasonNum}-${episodeNum}`;
+  const promptKey =
+    mediaType === "movie" ? "movie-finish" : `${seasonNum}-${episodeNum}`;
   const effectiveSegments: MediaSegments = segments ?? {
     intro: [],
     recap: [],
@@ -1978,7 +2064,10 @@ export function VideoPlayer({
       }
     });
 
-    if (introOutro?.outroStart !== undefined && introOutro?.outroEnd !== undefined) {
+    if (
+      introOutro?.outroStart !== undefined &&
+      introOutro?.outroEnd !== undefined
+    ) {
       const start = introOutro.outroStart;
       const end = introOutro.outroEnd;
       if (end >= duration - 5) {
@@ -2027,8 +2116,9 @@ export function VideoPlayer({
       return;
     }
 
-    const nextEpisodeTarget = mediaType === "show" ? getNextEpisodeTarget() : null;
-    
+    const nextEpisodeTarget =
+      mediaType === "show" ? getNextEpisodeTarget() : null;
+
     // If it's a show and no next episode, and it's not a movie, we don't show prompt.
     if (mediaType === "show" && !nextEpisodeTarget) {
       if (showNextPrompt) setShowNextPrompt(false);
@@ -2062,7 +2152,12 @@ export function VideoPlayer({
         } else if (nextEpisodeTarget) {
           setIsEpisodeNavigating(true);
           nextEpisodeAutoNavRef.current = true;
-          onNavigateEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
+          if (typeof onNavigateEpisode === "function") {
+            onNavigateEpisode(
+              nextEpisodeTarget.season,
+              nextEpisodeTarget.episode,
+            );
+          }
         }
       }
     } else {
@@ -2717,7 +2812,8 @@ export function VideoPlayer({
   const changeSpeed = useCallback(
     (speed: number) => {
       if (videoRef.current) videoRef.current.playbackRate = speed;
-      if (externalAudioRef.current) externalAudioRef.current.playbackRate = speed;
+      if (externalAudioRef.current)
+        externalAudioRef.current.playbackRate = speed;
       setPlaybackSpeed(speed);
       pushWatchPartyHostStateNow();
       setSettingsPanel(null);
@@ -2858,16 +2954,24 @@ export function VideoPlayer({
       if (isNowFullscreen) {
         showControls();
         // Automatically go to landscape on mobile when entering fullscreen
-        if (typeof screen !== "undefined" && screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock("landscape").catch(() => {
+        if (
+          typeof screen !== "undefined" &&
+          screen.orientation &&
+          (screen.orientation as any).lock
+        ) {
+          (screen.orientation as any).lock("landscape").catch(() => {
             // Silently ignore if the browser doesn't support locking or if it fails
           });
         }
       } else {
         // Unlock orientation when exiting fullscreen
-        if (typeof screen !== "undefined" && screen.orientation && screen.orientation.unlock) {
+        if (
+          typeof screen !== "undefined" &&
+          screen.orientation &&
+          (screen.orientation as any).unlock
+        ) {
           try {
-            screen.orientation.unlock();
+            (screen.orientation as any).unlock();
           } catch {
             // Ignore errors
           }
@@ -2964,7 +3068,9 @@ export function VideoPlayer({
                 allowFullScreen
                 allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                 referrerPolicy="origin"
-                {...(/videasy|vidlink|vidfast|vidsync|peachify/i.test(stream.url)
+                {...(/videasy|vidlink|vidfast|vidsync|peachify/i.test(
+                  stream.url,
+                )
                   ? {}
                   : {
                       sandbox:
@@ -3032,11 +3138,11 @@ export function VideoPlayer({
           <div
             className={cn(
               "absolute inset-x-0 top-16 bottom-24 z-[20] select-none",
-              isDraggingProgress 
-                ? "cursor-grabbing" 
-                : controlsVisible || settingsPanel !== null 
-                  ? "cursor-pointer" 
-                  : "cursor-none"
+              isDraggingProgress
+                ? "cursor-grabbing"
+                : controlsVisible || settingsPanel !== null
+                  ? "cursor-pointer"
+                  : "cursor-none",
             )}
             onClick={handleInteractionAreaClick}
             onTouchEnd={handleInteractionAreaTouch}
@@ -3075,7 +3181,9 @@ export function VideoPlayer({
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <Rewind className="h-8 w-8 fill-white text-white" />
                   </div>
-                  <span className="text-[14px] font-bold text-white shadow-lg">-10s</span>
+                  <span className="text-[14px] font-bold text-white shadow-lg">
+                    -10s
+                  </span>
                 </motion.div>
               )}
               {showSkipIndicator === "right" && (
@@ -3089,7 +3197,9 @@ export function VideoPlayer({
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                     <FastForward className="h-8 w-8 fill-white text-white" />
                   </div>
-                  <span className="text-[14px] font-bold text-white shadow-lg">+10s</span>
+                  <span className="text-[14px] font-bold text-white shadow-lg">
+                    +10s
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -3392,44 +3502,50 @@ export function VideoPlayer({
 
       {/* Skip Intro */}
       <AnimatePresence mode="wait">
-        {stream?.type !== "embed" && showSkipIntro && skipIntro && !showNextPrompt && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            onClick={handleSkipIntro}
-             className={cn(
-              "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
-              glassEffect
-                ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-                : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
-            )}
-          >
-            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
-            Skip Intro
-          </motion.button>
-        )}
+        {stream?.type !== "embed" &&
+          showSkipIntro &&
+          skipIntro &&
+          !showNextPrompt && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={handleSkipIntro}
+              className={cn(
+                "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+                glassEffect
+                  ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+                  : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
+              )}
+            >
+              <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
+              Skip Intro
+            </motion.button>
+          )}
       </AnimatePresence>
 
       {/* Skip Outro */}
       <AnimatePresence mode="wait">
-        {stream?.type !== "embed" && showSkipOutro && skipOutro && !showNextPrompt && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            onClick={handleSkipOutro}
-            className={cn(
-              "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
-              glassEffect
-                ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-                : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
-            )}
-          >
-            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
-            Skip Outro
-          </motion.button>
-        )}
+        {stream?.type !== "embed" &&
+          showSkipOutro &&
+          skipOutro &&
+          !showNextPrompt && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={handleSkipOutro}
+              className={cn(
+                "absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group",
+                glassEffect
+                  ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+                  : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
+              )}
+            >
+              <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
+              Skip Outro
+            </motion.button>
+          )}
       </AnimatePresence>
 
       {/* Top Bar - shown for all stream types */}
@@ -4173,7 +4289,9 @@ export function VideoPlayer({
                                 Playback Speed
                               </div>
                               <span className="text-[11px] text-accent font-medium">
-                                {playbackSpeed === 1 ? "Normal" : `${playbackSpeed}x`}
+                                {playbackSpeed === 1
+                                  ? "Normal"
+                                  : `${playbackSpeed}x`}
                               </span>
                             </button>
                           </div>
@@ -5469,85 +5587,95 @@ export function VideoPlayer({
           </div>
 
           <AnimatePresence>
-            {showNextPrompt && (isShowWithEpisodes || mediaType === "movie") && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
-                animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-                exit={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className={cn(
-                  "absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
-                  glassEffect
-                    ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-                    : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]"
-                )}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
-                    <FastForward className="h-4 w-4" />
+            {showNextPrompt &&
+              (isShowWithEpisodes || mediaType === "movie") && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
+                  animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                  exit={{ opacity: 0, y: 20, scale: 0.96, x: "-50%" }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className={cn(
+                    "absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border border-white/10",
+                    glassEffect
+                      ? "bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+                      : "bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.85)]",
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                      <FastForward className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-bold text-white truncate">
+                        {mediaType === "movie"
+                          ? "Movie finishing"
+                          : `Next: S${getNextEpisodeTarget()?.season} E${getNextEpisodeTarget()?.episode}`}
+                      </p>
+                      <p className="text-[10px] font-medium text-white/50">
+                        {isEpisodeNavigating
+                          ? "Loading..."
+                          : autoNext
+                            ? mediaType === "movie"
+                              ? `Finishing in ${nextCountdown}s`
+                              : `Auto-Next in ${nextCountdown}s`
+                            : mediaType === "movie"
+                              ? "About to finish"
+                              : "Ready to play"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[12px] font-bold text-white truncate">
-                      {mediaType === "movie" 
-                        ? "Movie finishing" 
-                        : `Next: S${getNextEpisodeTarget()?.season} E${getNextEpisodeTarget()?.episode}`
-                      }
-                    </p>
-                    <p className="text-[10px] font-medium text-white/50">
-                      {isEpisodeNavigating
-                        ? "Loading..."
-                        : autoNext
-                          ? (mediaType === "movie" ? `Finishing in ${nextCountdown}s` : `Auto-Next in ${nextCountdown}s`)
-                          : (mediaType === "movie" ? "About to finish" : "Ready to play")}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 ml-auto shrink-0">
-                  <button
-                    onClick={() => {
-                      nextPromptHandledForRef.current = promptKey;
-                      if (mediaType === "movie") {
-                        setIsFinished(true);
-                        setPlaying(false);
-                        setAutoNextLocked(true);
-                        setShowNextPrompt(false);
-                      } else {
-                        navigateNextEpisode();
-                      }
-                    }}
-                    disabled={isEpisodeNavigating}
-                    className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
-                  >
-                    {isEpisodeNavigating ? "..." : mediaType === "movie" ? "Finish" : "Play Now"}
-                  </button>
-                  {autoNext && (
+                  <div className="flex items-center gap-2 ml-auto shrink-0">
                     <button
                       onClick={() => {
-                        nextPromptDismissedForRef.current = promptKey;
-                        setShowNextPrompt(false);
-                        setNextCountdown(8);
+                        nextPromptHandledForRef.current = promptKey;
+                        if (mediaType === "movie") {
+                          setIsFinished(true);
+                          setPlaying(false);
+                          setAutoNextLocked(true);
+                          setShowNextPrompt(false);
+                        } else {
+                          navigateNextEpisode();
+                        }
                       }}
-                      className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                      disabled={isEpisodeNavigating}
+                      className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      {isEpisodeNavigating
+                        ? "..."
+                        : mediaType === "movie"
+                          ? "Finish"
+                          : "Play Now"}
                     </button>
-                  )}
-                </div>
-
-                {/* Minimal Progress Bar */}
-                {autoNext && !isEpisodeNavigating && (
-                  <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/5">
-                    <motion.div
-                      initial={{ width: "0%" }}
-                      animate={{ width: `${((8 - nextCountdown) / 8) * 100}%` }}
-                      className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
-                      transition={{ duration: 1, ease: "linear" }}
-                    />
+                    {autoNext && (
+                      <button
+                        onClick={() => {
+                          nextPromptDismissedForRef.current = promptKey;
+                          setShowNextPrompt(false);
+                          setNextCountdown(8);
+                        }}
+                        className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                )}
-              </motion.div>
-            )}
+
+                  {/* Minimal Progress Bar */}
+                  {autoNext && !isEpisodeNavigating && (
+                    <div className="absolute bottom-0 left-0 h-0.5 w-full bg-white/5">
+                      <motion.div
+                        initial={{ width: "0%" }}
+                        animate={{
+                          width: `${((8 - nextCountdown) / 8) * 100}%`,
+                        }}
+                        className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
+                        transition={{ duration: 1, ease: "linear" }}
+                      />
+                    </div>
+                  )}
+                </motion.div>
+              )}
           </AnimatePresence>
 
           {/* End Screen / Finished Overlay */}
@@ -5602,7 +5730,7 @@ export function VideoPlayer({
                     }}
                     className={cn(
                       "min-w-[140px] justify-center",
-                      mediaType === "show" ? "btn-glass" : "btn-accent"
+                      mediaType === "show" ? "btn-glass" : "btn-accent",
                     )}
                   >
                     Rewatch
@@ -6064,7 +6192,7 @@ export function VideoPlayer({
                   const isDangerous = ["vidlink", "vidsync"].includes(
                     res.sourceId,
                   );
-                  const isUnsafe = ["videasy", "vidfast"].includes(
+                  const isUnsafe = ["videasy", "vidfast", "peachify"].includes(
                     res.sourceId,
                   );
                   const isBest = ["febbox", "pobreflix"].includes(res.sourceId);
