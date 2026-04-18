@@ -9,7 +9,8 @@ const rl = createInterface({
 
 rl.on('SIGINT', () => {
   console.log('\n\x1b[31m ✖  Process aborted by user (SIGINT).\x1b[0m');
-  process.exit(0);
+  rl.close();
+  process.exit(1);
 });
 
 const format = {
@@ -41,10 +42,27 @@ const ui = {
 const question = (query) =>
   new Promise((resolve) => rl.question(`${format.cyan} ❯ ${format.reset} ${query}`, resolve));
 
+const askChoice = async (query, validOptions, defaultOpt = null) => {
+  while (true) {
+    const answer = await question(query);
+    const choice = answer.trim();
+    if (choice === '' && defaultOpt !== null) return defaultOpt;
+    if (validOptions.includes(choice)) return choice;
+    ui.warn(`Invalid input. Required: ${validOptions.join(', ')}`);
+  }
+};
+
 const runCmd = (cmd, label) => {
   ui.execBoundary(label);
-  execSync(cmd, { stdio: 'inherit' });
-  ui.execBoundary('END');
+  try {
+    execSync(cmd, { stdio: 'inherit' });
+    ui.execBoundary('END');
+    return true;
+  } catch (error) {
+    ui.error(`Execution aborted: ${label}`);
+    ui.execBoundary('ERROR END');
+    return false;
+  }
 };
 
 async function sendDiscordNotification(message, branch, sha) {
@@ -61,8 +79,8 @@ async function sendDiscordNotification(message, branch, sha) {
     chore: { label: 'Chore', color: 10197915 },
     refactor: { label: 'Refactor', color: 3447003 },
     perf: { label: 'Performance', color: 15844367 },
-    sec: { label: 'Security', color: 0 },
-    default: { label: 'Update', color: 1 },
+    sec: { label: 'Security', color: 15105570 },
+    default: { label: 'Update', color: 3447003 },
   };
 
   const match = message.match(/^(\w+)(?:\(.+?\))?:/);
@@ -71,7 +89,7 @@ async function sendDiscordNotification(message, branch, sha) {
 
   const payload = {
     username: 'NexVid Update',
-    content: '<@&1493288088166731836>',
+    content: process.env.DISCORD_ROLE_ID ? `<@&${process.env.DISCORD_ROLE_ID}>` : '',
     embeds: [
       {
         title: `Site ${type.label} Pushed`,
@@ -88,16 +106,66 @@ async function sendDiscordNotification(message, branch, sha) {
   };
 
   try {
-    await fetch(webhookUrl, {
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
     ui.info(`Discord webhook sent: [${type.label}]`);
     return true;
   } catch (err) {
     ui.error(`Discord Webhook: ${err.message}`);
     return false;
+  }
+}
+
+async function generateCommitMessage() {
+  let diff = execSync('git diff --cached').toString().trim();
+  if (!diff) return null;
+
+  const MAX_DIFF_LENGTH = 4000;
+  if (diff.length > MAX_DIFF_LENGTH) {
+    diff = diff.substring(0, MAX_DIFF_LENGTH) + '\n...[diff truncated]';
+  }
+
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    ui.info('Generating commit message (Groq)...');
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Generate a short Conventional Commit message. Use only these types: feat, fix, chore, refactor, perf, sec. Format must be "type: description". Return ONLY the raw string, no markdown, no quotes.',
+          },
+          { role: 'user', content: diff },
+        ],
+        max_tokens: 50,
+        temperature: 0.2,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`HTTP ${response.status} - ${errorData}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim().replace(/^['"]|['"]$/g, '');
+  } catch (err) {
+    ui.warn(`Groq API Error: ${err.message}`);
+    return null;
   }
 }
 
@@ -117,13 +185,12 @@ async function ship() {
     console.log('  1. Development (Git + Deploy Options)');
     console.log('  2. Preview (Quick Pages deploy to "Preview")');
 
-    const mode = await question('\nChoice (1-2): ');
+    const mode = await askChoice('\nChoice (1-2): ', ['1', '2']);
 
-    if (mode.trim() === '2') {
+    if (mode === '2') {
       summary.mode = 'Preview';
-      summary.deployPages = true;
       ui.step('Deploying Preview');
-      runCmd('bun run pages:deploy -- --branch preview', 'Pages Deploy');
+      summary.deployPages = runCmd('bun run pages:deploy -- --branch preview', 'Pages Deploy');
       return;
     }
 
@@ -137,30 +204,49 @@ async function ship() {
     }
 
     ui.step('Staging files');
-    runCmd('git add .', 'Git Add');
+    if (!runCmd('git add .', 'Git Add')) throw new Error('Command failed: git add.');
 
-    const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-    const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
-    const finalMsg = commitMsg.trim() || defaultMsg;
+    const useAiChoice = await question('\nUse AI to generate commit message? (y/N): ');
+    let finalMsg = '';
+
+    if (useAiChoice.toLowerCase().trim() === 'y') {
+      const aiMsg = await generateCommitMessage();
+      if (aiMsg) {
+        console.log(`\n${format.bold}${format.cyan} 🤖 AI Message: ${format.reset}${aiMsg}\n`);
+        finalMsg = aiMsg;
+      } else {
+        ui.warn('AI generation failed. Falling back to manual input.');
+        const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+        const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
+        finalMsg = commitMsg.trim() || defaultMsg;
+      }
+    } else {
+      const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+      const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
+      finalMsg = commitMsg.trim() || defaultMsg;
+    }
+
     summary.commit = finalMsg;
 
     ui.step(`Creating commit: "${finalMsg}"`);
-    runCmd(`git commit -m "${finalMsg}"`, 'Git Commit');
+    if (!runCmd(`git commit -m "${finalMsg}"`, 'Git Commit'))
+      throw new Error('Command failed: git commit.');
 
     const notifyChoice = await question('\nSend Discord notification? (y/N): ');
     const shouldNotify = notifyChoice.toLowerCase().trim() === 'y';
 
     const pushChoice = await question('Push to remote origin? (y/N): ');
     if (pushChoice.toLowerCase().trim() === 'y') {
-      summary.pushed = true;
       ui.step('Pushing to remote repository');
-      runCmd('git push', 'Git Push');
+      if (runCmd('git push', 'Git Push')) {
+        summary.pushed = true;
 
-      if (shouldNotify) {
-        ui.step('Sending Discord notification');
-        const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
-        const sha = execSync('git rev-parse --short HEAD').toString().trim();
-        summary.discord = await sendDiscordNotification(finalMsg, branch, sha);
+        if (shouldNotify) {
+          ui.step('Sending Discord notification');
+          const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
+          const sha = execSync('git rev-parse --short HEAD').toString().trim();
+          summary.discord = await sendDiscordNotification(finalMsg, branch, sha);
+        }
       }
     }
 
@@ -170,40 +256,36 @@ async function ship() {
     console.log('  3. Both (Worker & Pages)');
     console.log('  4. Skip deployment');
 
-    const deployChoice = await question('\nChoice (1-4): ');
+    const deployChoice = await askChoice('\nChoice (1-4): ', ['1', '2', '3', '4']);
 
-    if (deployChoice.trim() !== '4') {
-      const selected = deployChoice.trim();
-      const shouldDeployWorker = selected === '1' || selected === '3';
-      const shouldDeployPages = selected === '2' || selected === '3';
+    if (deployChoice !== '4') {
+      const shouldDeployWorker = deployChoice === '1' || deployChoice === '3';
+      const shouldDeployPages = deployChoice === '2' || deployChoice === '3';
 
       ui.header('Target Environment');
       console.log('  1. Production (main)');
       console.log('  2. Preview (preview)');
-      const envChoice = await question('\nChoice (1-2, default: 1): ');
+      const envChoice = await askChoice('\nChoice (1-2, default: 1): ', ['1', '2'], '1');
 
-      const isPreview = envChoice.trim() === '2';
+      const isPreview = envChoice === '2';
       const targetBranch = isPreview ? 'preview' : 'main';
 
       if (shouldDeployWorker) {
-        summary.deployWorker = true;
         ui.step('Deploying Worker');
-        runCmd('bun run worker:deploy', 'Worker Deploy');
+        summary.deployWorker = runCmd('bun run worker:deploy', 'Worker Deploy');
       }
 
       if (shouldDeployPages) {
-        summary.deployPages = true;
         ui.step(`Deploying Pages to branch "${targetBranch}"`);
-        runCmd(`bun run pages:deploy -- --branch ${targetBranch}`, 'Pages Deploy');
+        summary.deployPages = runCmd(
+          `bun run pages:deploy -- --branch ${targetBranch}`,
+          'Pages Deploy',
+        );
       }
-    } else {
-      ui.info('Deployment skipped.');
     }
   } catch (error) {
     ui.error(error.message);
   } finally {
-    const executionTime = ((performance.now() - startTime) / 1000).toFixed(2);
-
     ui.header('Execution Summary');
     console.log(`  Mode:        ${summary.mode}`);
     console.log(`  Commit:      ${summary.commit}`);
@@ -214,10 +296,10 @@ async function ship() {
       `  Discord:     ${summary.discord ? format.green + 'YES' : format.dim + 'NO'}${format.reset}`,
     );
     console.log(
-      `  Worker:      ${summary.deployWorker ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED'}${format.reset}`,
+      `  Worker:      ${summary.deployWorker ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED/FAILED'}${format.reset}`,
     );
     console.log(
-      `  Pages:       ${summary.deployPages ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED'}${format.reset}`,
+      `  Pages:       ${summary.deployPages ? format.green + 'DEPLOYED' : format.dim + 'SKIPPED/FAILED'}${format.reset}`,
     );
 
     ui.success('Process completed');
