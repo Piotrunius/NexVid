@@ -440,7 +440,19 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
 
               // If this is the source we're waiting for, set it immediately
               if (res.sourceId === waitingForSourceIdRef.current) {
-                setStream(withMergedCaptions(res.stream, externalCaptions));
+                setStream((prev) => {
+                  // Only update if the stream is actually different (by ID or URL)
+                  if (
+                    !prev ||
+                    prev.id !== res.stream.id ||
+                    (prev.type === 'embed' &&
+                      res.stream.type === 'embed' &&
+                      prev.url !== res.stream.url)
+                  ) {
+                    return withMergedCaptions(res.stream, externalCaptions);
+                  }
+                  return prev;
+                });
                 setScrapeStatus('success');
               }
             },
@@ -566,10 +578,6 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   ]);
 
   useEffect(() => {
-    loadMedia();
-  }, [loadMedia]);
-
-  useEffect(() => {
     if (!id) return;
 
     let cancelled = false;
@@ -584,10 +592,8 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
 
       if (!cancelled) {
         setExternalCaptions(caps);
-        setStream((prev) => {
-          if (!prev) return null;
-          return withMergedCaptions(prev, caps);
-        });
+        // Do NOT call setStream here. VideoPlayer receives externalCaptions as a prop
+        // and handles merging internally to avoid a full stream/player reset.
       }
     };
 

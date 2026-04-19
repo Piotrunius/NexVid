@@ -1185,10 +1185,11 @@ export function VideoPlayer({
   }, [stream, externalAudioUrl, isMuted, volume]);
 
   useEffect(() => {
-    // Sync external captions to the player store
-    // We don't include 'captions' in deps to avoid infinite loops
-    setCaptions(externalCaptions);
-  }, [externalCaptions, setCaptions]);
+    // Sync external and internal stream captions to the player store
+    const streamCaptions =
+      stream && 'captions' in stream && Array.isArray(stream.captions) ? stream.captions : [];
+    setCaptions([...streamCaptions, ...(externalCaptions || [])]);
+  }, [stream, externalCaptions, setCaptions]);
 
   useEffect(() => {
     if (captions.length === 0) {
