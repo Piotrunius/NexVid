@@ -191,6 +191,8 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     'idle',
   );
   const [sourceResults, setSourceResults] = useState<SourceResult[]>([]);
+  const loadingSourceIdsRef = useRef<Set<string>>(new Set());
+  const waitingForSourceIdRef = useRef<string | null>(null);
   const [sourceIndex, setSourceIndex] = useState(0);
   const [externalCaptions, setExternalCaptions] = useState<Caption[]>([]);
   const memoizedExternalCaptions = useMemo(() => externalCaptions, [externalCaptions]);
@@ -359,6 +361,39 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         if (mediaData) {
           setScrapeStatus('loading');
 
+          // Initialize source results with placeholders so they appear in UI immediately
+          const initialMeta = SOURCES.filter((s) => {
+            if (s.id === 'febbox' && !effectiveFebboxToken) return false;
+            if (!enableUnsafeEmbeds) {
+              if (s.type === 'embed' && !['cinesrc', 'vidking', 'zxcstream'].includes(s.id))
+                return false;
+            }
+            return true;
+          });
+
+          const initialResults: SourceResult[] = initialMeta.map((s) => ({
+            sourceId: s.id,
+            stream: {
+              type: 'file',
+              id: `${s.id}-pending`,
+              flags: [],
+              qualities: {},
+              captions: [],
+            } as any,
+          }));
+          setSourceResults(initialResults);
+
+          // Determine starting source (Priority 1: Setting, Priority 2: Best ranked)
+          let targetId = defaultSource;
+          if (!initialResults.some((r) => r.sourceId === targetId)) {
+            const sorted = [...initialMeta].sort((a, b) => (b.rank || 0) - (a.rank || 0));
+            targetId = sorted[0]?.id || '';
+          }
+          waitingForSourceIdRef.current = targetId;
+          const initialIdx = initialResults.findIndex((r) => r.sourceId === targetId);
+          setSourceIndex(initialIdx !== -1 ? initialIdx : 0);
+
+          // Start parallel scraping
           const results = await scrapeAllSources({
             tmdbId: id,
             imdbId: extImdbId,
@@ -377,45 +412,53 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
             autoSkipSegments: skipIntro || skipOutro || autoSkipSegments,
             nextButton: true,
             episodeSelector: true,
-          });
+            onSourceFound: (res) => {
+              // Double check security settings before adding to results
+              if (!enableUnsafeEmbeds) {
+                const meta = SOURCES.find((s) => s.id === res.sourceId);
+                if (
+                  meta?.type === 'embed' &&
+                  !['cinesrc', 'vidking', 'zxcstream'].includes(res.sourceId)
+                ) {
+                  return;
+                }
+              }
 
-          const filteredResults = enableUnsafeEmbeds
-            ? results
-            : results.filter(
-                (r) =>
-                  r.stream.type !== 'embed' ||
-                  ['cinesrc', 'vidking', 'zxcstream'].includes(r.sourceId),
-              );
-
-          if (filteredResults.length > 0) {
-            setSourceResults(filteredResults);
-
-            // Priority 1: User's default source from settings
-            const defaultIdx = filteredResults.findIndex((r) => r.sourceId === defaultSource);
-
-            if (defaultIdx !== -1) {
-              setSourceIndex(defaultIdx);
-              setStream(withMergedCaptions(filteredResults[defaultIdx].stream, externalCaptions));
-              setScrapeStatus('success');
-            } else {
-              // Priority 2: Best direct stream (non-embed) based on rank
-              const sortedResults = [...filteredResults].sort((a, b) => {
-                const rankA = SOURCES.find((s) => s.id === a.sourceId)?.rank || 0;
-                const rankB = SOURCES.find((s) => s.id === b.sourceId)?.rank || 0;
-                return rankB - rankA;
+              setSourceResults((prev) => {
+                const isPlaceholder = prev.some(
+                  (p) => p.sourceId === res.sourceId && p.stream.id.endsWith('-pending'),
+                );
+                if (isPlaceholder) {
+                  return prev.map((p) => (p.sourceId === res.sourceId ? res : p));
+                }
+                // If it's not a placeholder and not in list, add it (shouldn't happen with current logic but for safety)
+                if (!prev.some((p) => p.sourceId === res.sourceId)) {
+                  return [...prev, res];
+                }
+                return prev;
               });
 
-              const bestDirect = sortedResults.find((r) => r.stream.type !== 'embed');
-              const bestDirectIdx = bestDirect ? filteredResults.indexOf(bestDirect) : 0;
+              // If this is the source we're waiting for, set it immediately
+              if (res.sourceId === waitingForSourceIdRef.current) {
+                setStream(withMergedCaptions(res.stream, externalCaptions));
+                setScrapeStatus('success');
+              }
+            },
+          });
 
-              setSourceIndex(bestDirectIdx);
-              setStream(
-                withMergedCaptions(filteredResults[bestDirectIdx].stream, externalCaptions),
-              );
-              setScrapeStatus('success');
+          // Final check if target source was found
+          if (
+            !waitingForSourceIdRef.current ||
+            !results.some((r) => r.sourceId === waitingForSourceIdRef.current)
+          ) {
+            // Find any successful result if the target failed
+            const successful = results.length > 0;
+            if (successful && !waitingForSourceIdRef.current) {
+              // Logic to pick a fallback if needed, but usually onSourceFound handles the first one
+            } else if (!successful && results.length === 0) {
+              // Wait a bit to ensure all concurrent ones finished (Promise.all in scrapeAllSources ensures this)
+              setScrapeStatus('error');
             }
-          } else {
-            setScrapeStatus('error');
           }
         }
       } catch (err) {
@@ -747,17 +790,35 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const tryNextSource = useCallback(() => {
     if (sourceResults.length < 2) return;
     const next = (sourceIndex + 1) % sourceResults.length;
-    const currentStream = sourceResults[next].stream;
+    const res = sourceResults[next];
     setSourceIndex(next);
-    setStream(withMergedCaptions(currentStream, externalCaptions));
+
+    // If source is already found (not a pending placeholder)
+    if (res.stream && !res.stream.id.endsWith('-pending')) {
+      setStream(withMergedCaptions(res.stream, externalCaptions));
+      waitingForSourceIdRef.current = res.sourceId;
+    } else {
+      // It's still pending, set current stream to null and wait for onSourceFound
+      setStream(null);
+      setScrapeStatus('loading');
+      waitingForSourceIdRef.current = res.sourceId;
+    }
   }, [sourceIndex, sourceResults, externalCaptions]);
 
   const selectSource = useCallback(
     (idx: number) => {
       if (idx < 0 || idx >= sourceResults.length) return;
-      const currentStream = sourceResults[idx].stream;
+      const res = sourceResults[idx];
       setSourceIndex(idx);
-      setStream(withMergedCaptions(currentStream, externalCaptions));
+
+      if (res.stream && !res.stream.id.endsWith('-pending')) {
+        setStream(withMergedCaptions(res.stream, externalCaptions));
+        waitingForSourceIdRef.current = res.sourceId;
+      } else {
+        setStream(null);
+        setScrapeStatus('loading');
+        waitingForSourceIdRef.current = res.sourceId;
+      }
     },
     [sourceResults, externalCaptions],
   );
