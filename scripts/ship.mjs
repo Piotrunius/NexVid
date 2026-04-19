@@ -1,6 +1,6 @@
-import { execSync, execFileSync } from 'node:child_process';
-import { createInterface } from 'node:readline';
+import { execFileSync, execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
+import { createInterface } from 'node:readline';
 
 const rl = createInterface({
   input: process.stdin,
@@ -137,25 +137,45 @@ async function sendDiscordNotification(message, branch, sha) {
 }
 
 async function generateCommitMessage() {
-  let diff;
+  let finalDiff = '';
+  let files = '';
+
   try {
-    diff = execSync('git diff --cached', { maxBuffer: 10 * 1024 * 1024 })
+    files = execSync('git diff --cached --name-status').toString().trim();
+    const rawDiff = execSync(
+      "git diff --cached -U1 -- . ':(exclude)*.lock' ':(exclude)*-lock.json' ':(exclude)*.lockb'",
+      { maxBuffer: 10 * 1024 * 1024 },
+    )
       .toString()
       .trim();
+
+    if (!rawDiff && !files) return null;
+
+    const fileDiffs = rawDiff.split(/(?=^diff --git)/m);
+    const MAX_PER_FILE = 800;
+
+    const processedDiffs = fileDiffs.map((diffChunk) => {
+      if (diffChunk.length > MAX_PER_FILE) {
+        return diffChunk.substring(0, MAX_PER_FILE) + '\n...[FILE DIFF TRUNCATED]';
+      }
+      return diffChunk;
+    });
+
+    finalDiff = processedDiffs.join('\n');
+
+    const MAX_GLOBAL_LENGTH = 6000;
+    if (finalDiff.length > MAX_GLOBAL_LENGTH) {
+      finalDiff = finalDiff.substring(0, MAX_GLOBAL_LENGTH) + '\n...[GLOBAL DIFF TRUNCATED]';
+    }
   } catch (err) {
     ui.warn('Git Diff Error (Buffer might be exceeded). Proceeding without AI.');
     return null;
   }
 
-  if (!diff) return null;
-
-  const MAX_DIFF_LENGTH = 4000;
-  if (diff.length > MAX_DIFF_LENGTH) {
-    diff = diff.substring(0, MAX_DIFF_LENGTH) + '\n...[diff truncated]';
-  }
-
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
+
+  const promptContent = `CHANGED FILES:\n${files}\n\nDIFF DETAILS:\n${finalDiff}`;
 
   try {
     ui.info('Generating commit message (Groq)...');
@@ -170,22 +190,17 @@ async function generateCommitMessage() {
         messages: [
           {
             role: 'system',
-            content: `Generate a strictly compliant Conventional Commit message based on the provided git diff.
+            content: `Generate a strictly compliant Conventional Commit message based on the provided git data.
 Rules:
-1. Analyze the diff. Focus strictly on lines starting with '+' (additions) and '-' (deletions). The unchanged lines are only for context.
-2. Determine the correct type:
-  - feat: A new feature.
-  - fix: A bug fix.
-  - refactor: A code change that neither fixes a bug nor adds a feature.
-  - chore: Updating build tasks, configurations, etc.
-  - perf: A performance improvement.
-  - sec: Security patches.
-3. Determine a short, 1-word scope based on the modified function, feature, or file (e.g., ai, discord, ui, git, worker).
-4. Format MUST be exactly: "type(scope): short description in lowercase imperative mood".
-5. Maximum description length is 50 characters.
-6. Output ONLY the raw string. No markdown formatting, no quotes, no preamble.`,
+1. Analyze the CHANGED FILES list first to understand the macro-scope of the changes.
+2. Use the DIFF DETAILS to understand specific logic changes.
+3. Determine the correct type: feat, fix, refactor, chore, perf, sec.
+4. Determine a short, 1-word scope based on the primary modified system.
+5. Format MUST be exactly: "type(scope): short description in lowercase imperative mood".
+6. Maximum description length is 50 characters.
+7. Output ONLY the raw string. No markdown formatting, no quotes, no preamble.`,
           },
-          { role: 'user', content: diff },
+          { role: 'user', content: promptContent },
         ],
         max_tokens: 50,
         temperature: 0.1,
