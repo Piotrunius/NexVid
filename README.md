@@ -31,18 +31,18 @@ NexVid is a production-ready streaming frontend built with **Next.js 15 (App Rou
 
 ### Source Map
 
-| Display Name | Internal ID | Type              | Remote Link / Source Target   |
-| ------------ | ----------- | ----------------- | ----------------------------- |
-| Alpha        | `febbox`    | Direct (Best)     | _FebBox API (Requires Token)_ |
-| Beta         | `pobreflix` | Direct (Best)     | `https://pobreflix.codes`     |
-| Gamma        | `zxcstream` | Embed (Safe)      | `https://zxcstream.xyz`       |
-| Delta        | `cinesrc`   | Embed (Safe)      | `https://cinesrc.st`          |
-| Epsilon      | `vidking`   | Embed (Safe)      | `https://www.vidking.net`     |
-| Sigma        | `peachify`  | Embed (Unsafe)    | `https://peachify.top`        |
-| Zeta         | `vidfast`   | Embed (Unsafe)    | `https://vidfast.pro`         |
-| Theta        | `videasy`   | Embed (Unsafe)    | `https://videasy.net`         |
-| Kappa        | `vidsync`   | Embed (Dangerous) | `https://vidsync.xyz`         |
-| Omega        | `vidlink`   | Embed (Dangerous) | `https://vidlink.pro`         |
+| Display Name | Internal ID         | Type              | Remote Link / Source Target      |
+| ------------ | ------------------- | ----------------- | -------------------------------- |
+| Alpha        | `febbox`            | Direct (Best)     | _FebBox API (Requires Token)_    |
+| Beta         | `pobreflix`         | Direct (Best)     | `https://pobreflix.codes`        |
+| Gamma        | `02moviedownloader` | Direct (Best)     | `https://02moviedownloader.site` |
+| Delta        | `zxcstream`         | Embed (Safe)      | `https://zxcstream.xyz`          |
+| Epsilon      | `cinesrc`           | Embed (Safe)      | `https://cinesrc.st`             |
+| Sigma        | `peachify`          | Embed (Unsafe)    | `https://peachify.top`           |
+| Eeta         | `vidfast`           | Embed (Unsafe)    | `https://vidfast.pro`            |
+| Theta        | `videasy`           | Embed (Unsafe)    | `https://videasy.net`            |
+| Iota         | `vidsync`           | Embed (Dangerous) | `https://vidsync.xyz`            |
+| Kappa        | `vidlink`           | Embed (Dangerous) | `https://vidlink.pro`            |
 
 ---
 
