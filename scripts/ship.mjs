@@ -2,6 +2,13 @@ import { execFileSync, execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { createInterface } from 'node:readline';
 
+// Mapowanie zmiennych dla OpenCommit w locie
+if (process.env.GROQ_API_KEY) {
+  process.env.OCO_OPENAI_API_KEY = process.env.GROQ_API_KEY;
+  process.env.OCO_OPENAI_BASE_PATH = 'https://api.groq.com/openai/v1';
+  process.env.OCO_MODEL = 'llama-3.3-70b-versatile';
+}
+
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -136,96 +143,6 @@ async function sendDiscordNotification(message, branch, sha) {
   }
 }
 
-async function generateCommitMessage() {
-  let finalDiff = '';
-  let files = '';
-
-  try {
-    files = execSync('git diff --cached --name-status').toString().trim();
-    const rawDiff = execSync(
-      "git diff --cached -U1 -- . ':(exclude)*.lock' ':(exclude)*-lock.json' ':(exclude)*.lockb'",
-      { maxBuffer: 10 * 1024 * 1024 },
-    )
-      .toString()
-      .trim();
-
-    if (!rawDiff && !files) return null;
-
-    const fileDiffs = rawDiff.split(/(?=^diff --git)/m);
-    const MAX_PER_FILE = 800;
-
-    const processedDiffs = fileDiffs.map((diffChunk) => {
-      if (diffChunk.length > MAX_PER_FILE) {
-        return diffChunk.substring(0, MAX_PER_FILE) + '\n...[FILE DIFF TRUNCATED]';
-      }
-      return diffChunk;
-    });
-
-    finalDiff = processedDiffs.join('\n');
-
-    const MAX_GLOBAL_LENGTH = 6000;
-    if (finalDiff.length > MAX_GLOBAL_LENGTH) {
-      finalDiff = finalDiff.substring(0, MAX_GLOBAL_LENGTH) + '\n...[GLOBAL DIFF TRUNCATED]';
-    }
-  } catch (err) {
-    ui.warn('Git Diff Error (Buffer might be exceeded). Proceeding without AI.');
-    return null;
-  }
-
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return null;
-
-  const promptContent = `CHANGED FILES:\n${files}\n\nDIFF DETAILS:\n${finalDiff}`;
-
-  try {
-    ui.info('Generating commit message (Groq)...');
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        messages: [
-          {
-            role: 'system',
-            content: `Generate a strictly compliant Conventional Commit message based on the provided git data.
-Rules:
-1. Analyze the CHANGED FILES list first to understand the macro-scope of the changes.
-2. Use the DIFF DETAILS to understand specific logic changes.
-3. Determine the correct type: feat, fix, refactor, chore, perf, sec.
-4. Determine a short, 1-word scope based on the primary modified system.
-5. Format MUST be exactly: "type(scope): short description in lowercase imperative mood".
-6. Maximum description length is 50 characters.
-7. Output ONLY the raw string. No markdown formatting, no quotes, no preamble.`,
-          },
-          { role: 'user', content: promptContent },
-        ],
-        max_tokens: 50,
-        temperature: 0.1,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(`HTTP ${response.status} - ${errorData}`);
-    }
-
-    const data = await response.json();
-    const rawOutput = data.choices[0].message.content;
-    const firstLine = rawOutput
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)[0];
-
-    return firstLine ? firstLine.replace(/^['"]|['"]$/g, '') : null;
-  } catch (err) {
-    ui.warn(`Groq API Error: ${err.message}`);
-    return null;
-  }
-}
-
 async function ship() {
   const startTime = performance.now();
   const summary = {
@@ -238,8 +155,8 @@ async function ship() {
   };
 
   ui.header('Environment Setup');
-  if (!process.env.GROQ_API_KEY) ui.info('GROQ_API_KEY missing - AI features will be disabled.');
-  else ui.info('GROQ_API_KEY found.');
+  if (!process.env.GROQ_API_KEY) ui.info('GROQ_API_KEY missing - OpenCommit AI will fail.');
+  else ui.info('GROQ_API_KEY found. Configured for OpenCommit.');
 
   if (!process.env.DISCORD_WEBHOOK)
     ui.info('DISCORD_WEBHOOK missing - Discord notifications disabled.');
@@ -270,31 +187,38 @@ async function ship() {
       ui.step('Staging files');
       if (!runCmd('git add .', 'Git Add')) throw new Error('Command failed: git add.');
 
-      const useAiChoice = await question('\nUse AI to generate commit message? (y/N): ');
-      let finalMsg = '';
+      const useAiChoice = await question('\nUse OpenCommit to generate commit message? (y/N): ');
 
       if (useAiChoice.toLowerCase().trim() === 'y') {
-        const aiMsg = await generateCommitMessage();
-        if (aiMsg) {
-          ui.info(`🤖 AI Message: ${format.bold}${format.cyan}${aiMsg}${format.reset}`);
-          finalMsg = aiMsg;
-        } else {
-          ui.warn('AI generation failed. Falling back to manual input.');
+        ui.step('Running OpenCommit via npx...');
+        try {
+          // Uruchomienie OpenCommit. Przejmuje kontrolę nad konsolą.
+          execSync('npx opencommit', { stdio: 'inherit' });
+
+          // Pobranie ostatniej wiadomości commit po zakończeniu działania OpenCommit
+          const lastCommitMsg = execSync('git log -1 --pretty=%B').toString().trim();
+          summary.commit = lastCommitMsg;
+          ui.success('Commit created by OpenCommit.');
+        } catch (error) {
+          ui.warn('OpenCommit failed or aborted. Falling back to manual commit.');
           const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
           const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
-          finalMsg = commitMsg.trim() || defaultMsg;
+          const finalMsg = commitMsg.trim() || defaultMsg;
+          summary.commit = finalMsg;
+          if (!runSafeCmd('git', ['commit', '-m', finalMsg], 'Git Commit')) {
+            throw new Error('Command failed: git commit.');
+          }
         }
       } else {
         const defaultMsg = `update: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
         const commitMsg = await question(`Commit message [default: ${defaultMsg}]: `);
-        finalMsg = commitMsg.trim() || defaultMsg;
-      }
+        const finalMsg = commitMsg.trim() || defaultMsg;
+        summary.commit = finalMsg;
 
-      summary.commit = finalMsg;
-
-      ui.step(`Creating commit: "${finalMsg}"`);
-      if (!runSafeCmd('git', ['commit', '-m', finalMsg], 'Git Commit')) {
-        throw new Error('Command failed: git commit.');
+        ui.step(`Creating commit: "${finalMsg}"`);
+        if (!runSafeCmd('git', ['commit', '-m', finalMsg], 'Git Commit')) {
+          throw new Error('Command failed: git commit.');
+        }
       }
     }
 
@@ -358,7 +282,10 @@ async function ship() {
   } finally {
     ui.header('Execution Summary');
     ui.summary('Mode:', summary.mode);
-    ui.summary('Commit:', summary.commit);
+    // Skrócenie podsumowania wiadomości commit w logach jeśli jest za długa
+    const displayCommit =
+      summary.commit.length > 50 ? summary.commit.substring(0, 47) + '...' : summary.commit;
+    ui.summary('Commit:', displayCommit);
     ui.summary(
       'Git Push:',
       summary.pushed ? `${format.green}YES${format.reset}` : `${format.dim}NO${format.reset}`,
