@@ -6,6 +6,7 @@
 
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface Toast {
@@ -68,11 +69,11 @@ export function Toaster() {
     warning: 'bg-amber-500/15 text-amber-300',
   };
 
-  const typeIcons: Record<string, string> = {
-    success: '✓',
-    error: '✕',
-    info: 'ℹ',
-    warning: '⚠',
+  const typeIcons: Record<string, any> = {
+    success: CheckCircle2,
+    error: AlertCircle,
+    info: Info,
+    warning: AlertTriangle,
   };
 
   const { glassEffect } = useSettingsStore((s) => s.settings);
@@ -86,20 +87,25 @@ export function Toaster() {
       className="fixed bottom-20 left-1/2 z-[100] flex flex-col items-center gap-2"
       style={{ transform: 'translateX(-50%)' }}
     >
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={cn(
-            'animate-slide-up flex items-center gap-3 px-4 py-3 rounded-[20px] min-w-[280px] max-w-[400px] cursor-pointer transition-all',
-            toastStyle,
-            typeStyles[t.type],
-          )}
-          onClick={() => removeToast(t.id)}
-        >
-          <span className="text-[13px] font-bold">{typeIcons[t.type]}</span>
-          <span className="text-[13px] text-text-primary">{t.message}</span>
-        </div>
-      ))}
+      {toasts.map((t) => {
+        const Icon = typeIcons[t.type];
+        return (
+          <div
+            key={t.id}
+            className={cn(
+              'animate-slide-up relative flex items-center justify-center px-12 py-3.5 rounded-full min-w-[300px] max-w-[450px] cursor-pointer transition-all',
+              toastStyle,
+              typeStyles[t.type],
+            )}
+            onClick={() => removeToast(t.id)}
+          >
+            <Icon size={16} strokeWidth={2.5} className="absolute left-6 shrink-0" />
+            <span className="text-[13.5px] font-bold text-white leading-none text-center">
+              {t.message}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
