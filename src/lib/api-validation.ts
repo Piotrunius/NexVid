@@ -52,7 +52,7 @@ export function validateStreamParams(searchParams: URLSearchParams): {
 
   // Validate source (allowlist)
   const sourceId = (searchParams.get('source') || 'febbox').trim().toLowerCase();
-  const validSources = ['febbox', 'pobreflix', 'beta', 'alpha'];
+  const validSources = ['febbox', 'pobreflix', 'beta', 'alpha', '02moviedownloader'];
   if (!validSources.includes(sourceId)) {
     errors.push(`Invalid source: must be one of ${validSources.join(', ')}`);
   }

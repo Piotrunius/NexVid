@@ -29,26 +29,28 @@ export function configureProviders(newConfig: ProviderConfig) {
 export const SOURCES: SourceMeta[] = [
   { id: 'febbox', name: 'Alpha', rank: 1000, type: 'source' },
   { id: 'pobreflix', name: 'Beta', rank: 950, type: 'source' },
-  { id: 'zxcstream', name: 'Gamma', rank: 900, type: 'embed' },
-  { id: 'cinesrc', name: 'Delta', rank: 850, type: 'embed' },
-  { id: 'vidking', name: 'Epsilon', rank: 800, type: 'embed' },
+  { id: '02moviedownloader', name: 'Gamma', rank: 920, type: 'source' },
+  { id: 'zxcstream', name: 'Delta', rank: 900, type: 'embed' },
+  { id: 'cinesrc', name: 'Epsilon', rank: 850, type: 'embed' },
+  { id: 'vidking', name: 'Zeta', rank: 800, type: 'embed' },
   { id: 'peachify', name: 'Sigma', rank: 110, type: 'embed' },
-  { id: 'vidfast', name: 'Zeta', rank: 104, type: 'embed' },
+  { id: 'vidfast', name: 'Eta', rank: 104, type: 'embed' },
   { id: 'videasy', name: 'Theta', rank: 103, type: 'embed' },
-  { id: 'vidsync', name: 'Kappa', rank: 102, type: 'embed' },
-  { id: 'vidlink', name: 'Omega', rank: 101, type: 'embed' },
+  { id: 'vidsync', name: 'Iota', rank: 102, type: 'embed' },
+  { id: 'vidlink', name: 'Kappa', rank: 101, type: 'embed' },
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
   febbox: 'Alpha',
   pobreflix: 'Beta',
-  zxcstream: 'Gamma',
-  cinesrc: 'Delta',
-  vidking: 'Epsilon',
-  vidfast: 'Zeta',
+  '02moviedownloader': 'Gamma',
+  zxcstream: 'Delta',
+  cinesrc: 'Epsilon',
+  vidking: 'Zeta',
+  vidfast: 'Eta',
   videasy: 'Theta',
-  vidsync: 'Kappa',
-  vidlink: 'Omega',
+  vidsync: 'Iota',
+  vidlink: 'Kappa',
   peachify: 'Sigma',
 };
 
@@ -449,19 +451,17 @@ async function scrapeSource(
 }
 
 export async function scrapeAllSources(options: ScrapeOptions): Promise<SourceResult[]> {
-  const results: SourceResult[] = [];
-
-  for (const source of SOURCES) {
-    if (options.excludeSources?.includes(source.id)) continue;
+  const promises = SOURCES.map(async (source) => {
+    if (options.excludeSources?.includes(source.id)) return null;
 
     if (source.id === 'febbox' && !options.febboxCookie) {
-      continue;
+      return null;
     }
 
     const result = await scrapeSource(options, source.id);
     if (result) {
-      results.push(result);
       options.onSourceFound?.(result);
+      return result;
     } else if (source.id === 'febbox') {
       const placeholder: SourceResult = {
         sourceId: source.id,
@@ -473,12 +473,14 @@ export async function scrapeAllSources(options: ScrapeOptions): Promise<SourceRe
           captions: [],
         },
       };
-      results.push(placeholder);
       options.onSourceFound?.(placeholder);
+      return placeholder;
     }
-  }
+    return null;
+  });
 
-  return results;
+  const results = await Promise.all(promises);
+  return results.filter((r): r is SourceResult => r !== null);
 }
 
 export function getAvailableSources(): SourceMeta[] {
