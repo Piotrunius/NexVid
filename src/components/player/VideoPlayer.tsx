@@ -5544,7 +5544,9 @@ export function VideoPlayer({
                 .filter((r) => r.stream.type !== 'embed')
                 .map((res) => {
                   const isSelected = currentSourceIndex === sourceResults.indexOf(res);
-                  const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                  const isBest = ['febbox', 'pobreflix', '02moviedownloader'].includes(
+                    res.sourceId,
+                  );
                   return (
                     <button
                       key={res.sourceId}
@@ -5594,7 +5596,7 @@ export function VideoPlayer({
                           <span
                             className={cn(
                               'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
+                              'bg-white/10 text-white/40',
                             )}
                           >
                             Direct
@@ -5604,7 +5606,7 @@ export function VideoPlayer({
                         <span
                           className={cn(
                             'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                            isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
+                            'bg-white/10 text-white/40',
                           )}
                         >
                           Direct
@@ -5619,7 +5621,9 @@ export function VideoPlayer({
                   const isSelected = currentSourceIndex === sourceResults.indexOf(res);
                   const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
                   const isUnsafe = ['videasy', 'vidfast', 'peachify'].includes(res.sourceId);
-                  const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                  const isBest = ['febbox', 'pobreflix', '02moviedownloader'].includes(
+                    res.sourceId,
+                  );
                   const isGood = ['cinesrc', 'vidking', 'zxcstream'].includes(res.sourceId);
                   return (
                     <button
@@ -5670,7 +5674,7 @@ export function VideoPlayer({
                           <span
                             className={cn(
                               'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
+                              'bg-white/10 text-white/40',
                             )}
                           >
                             Embed
@@ -5691,7 +5695,7 @@ export function VideoPlayer({
                           <span
                             className={cn(
                               'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
+                              'bg-white/10 text-white/40',
                             )}
                           >
                             Embed
@@ -5712,7 +5716,7 @@ export function VideoPlayer({
                           <span
                             className={cn(
                               'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
+                              'bg-white/10 text-white/40',
                             )}
                           >
                             Direct
@@ -5733,7 +5737,7 @@ export function VideoPlayer({
                           <span
                             className={cn(
                               'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                              isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
+                              'bg-white/10 text-white/40',
                             )}
                           >
                             Embed
@@ -5743,7 +5747,7 @@ export function VideoPlayer({
                         <span
                           className={cn(
                             'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                            isSelected ? 'bg-accent/20 text-accent' : 'bg-white/5 text-white/30',
+                            'bg-white/10 text-white/40',
                           )}
                         >
                           Embed
