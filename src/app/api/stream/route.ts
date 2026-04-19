@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Import providers
 import { PobreflixProvider } from '@/lib/providers/pobreflix';
+import { MovieDownloader } from '@/lib/providers/02moviedownloader/02moviedownloader';
 
 // Edge runtime is required for Cloudflare Pages
 export const runtime = 'edge';
@@ -153,6 +154,91 @@ export async function GET(request: NextRequest) {
               captions: result.subtitles,
               audioTracks: first.audioTracks,
               headers: first.headers, // Fallback for some player logic
+            },
+          });
+        }
+      } catch (provErr) {
+        console.error(`[API /stream] Provider ${actualSourceId} error:`, provErr);
+        return createGenericErrorResponse(provErr, 502, '/stream');
+      }
+
+      return NextResponse.json({ error: 'No streams found' }, { status: 404 });
+    }
+
+    // Handle MovieDownloader (02moviedownloader)
+    if (actualSourceId === '02moviedownloader') {
+      console.log(
+        `[API /stream] Handling provider source: ${actualSourceId} (requested: ${sourceId})`,
+      );
+      const provider = new MovieDownloader();
+
+      const media = {
+        type: type === 'show' ? ('show' as const) : ('movie' as const),
+        tmdbId,
+        title,
+        releaseYear: year || 2024,
+        s: season,
+        e: episode,
+      };
+
+      try {
+        const result =
+          type === 'movie'
+            ? await provider.getMovieSources(media)
+            : await provider.getTVSources(media);
+
+        console.log(
+          `[API /stream] Provider ${actualSourceId} returned ${result.sources.length} sources`,
+        );
+
+        if (result.sources.length > 0) {
+          // Find the best quality source (highest resolution)
+          const sortedByQuality = [...result.sources].sort((a: any, b: any) => {
+            const getRes = (s: any) => {
+              const match = s.quality.match(/\d+/);
+              return match ? parseInt(match[0]) : 0;
+            };
+            return getRes(b) - getRes(a);
+          });
+
+          const bestSource = sortedByQuality[0];
+          const qualities: any = {};
+
+          if (bestSource) {
+            let qualityLabel = (bestSource.quality || '1080').toLowerCase().replace('p', '').trim();
+            if (qualityLabel === 'unknown' || qualityLabel === '0') qualityLabel = '360';
+
+            qualities[qualityLabel] = {
+              url: bestSource.url,
+              headers: bestSource.headers || provider.HEADERS,
+            };
+          }
+
+          // Check if any source is HLS
+          const hlsSource = result.sources.find((s) => s.type === 'hls');
+
+          if (hlsSource) {
+            return NextResponse.json({
+              success: true,
+              data: {
+                type: 'hls',
+                url: hlsSource.url,
+                playlist: hlsSource.url,
+                captions: result.subtitles,
+                headers: hlsSource.headers || provider.HEADERS,
+              },
+            });
+          }
+
+          const firstSource = result.sources[0];
+          return NextResponse.json({
+            success: true,
+            data: {
+              type: 'file',
+              qualities,
+              captions: result.subtitles,
+              audioTracks: firstSource.audioTracks,
+              headers: firstSource.headers || provider.HEADERS,
             },
           });
         }

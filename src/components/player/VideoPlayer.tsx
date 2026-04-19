@@ -242,6 +242,7 @@ const SUB_DELAY_MAX_MS = 10000;
 const KNOWN_SOURCE_ORDER = [
   'febbox',
   'pobreflix',
+  '02moviedownloader',
   'zxcstream',
   'cinesrc',
   'vidking',
@@ -249,6 +250,7 @@ const KNOWN_SOURCE_ORDER = [
   'videasy',
   'vidsync',
   'vidlink',
+  'peachify',
 ] as const;
 const SUBTITLE_APPEARANCE_CACHE_KEY = 'nexvid-subtitle-appearance';
 const PAUSE_IDLE_OVERLAY_MS = 10000;
@@ -779,13 +781,14 @@ export function VideoPlayer({
     if (!sourceId) return 'Source';
     if (sourceId === 'febbox') return 'Alpha';
     if (sourceId === 'pobreflix') return 'Beta';
-    if (sourceId === 'zxcstream') return 'Gamma';
-    if (sourceId === 'cinesrc') return 'Delta';
-    if (sourceId === 'vidking') return 'Epsilon';
-    if (sourceId === 'vidfast') return 'Zeta';
+    if (sourceId === '02moviedownloader') return 'Gamma';
+    if (sourceId === 'zxcstream') return 'Delta';
+    if (sourceId === 'cinesrc') return 'Epsilon';
+    if (sourceId === 'vidking') return 'Zeta';
+    if (sourceId === 'vidfast') return 'Eta';
     if (sourceId === 'videasy') return 'Theta';
-    if (sourceId === 'vidsync') return 'Kappa';
-    if (sourceId === 'vidlink') return 'Omega';
+    if (sourceId === 'vidsync') return 'Iota';
+    if (sourceId === 'vidlink') return 'Kappa';
     if (sourceId === 'peachify') return 'Sigma';
     return sourceId;
   }, []);
@@ -796,7 +799,9 @@ export function VideoPlayer({
         return <Crown className="w-3.5 h-3.5" />;
       case 'pobreflix':
         return <Gem className="w-3.5 h-3.5" />;
-      case 'gamma':
+      case '02moviedownloader':
+        return <Rocket className="w-3.5 h-3.5" />;
+      case 'delta':
       case 'zxcstream':
         return <Zap className="w-3.5 h-3.5" />;
       case 'cinesrc':
@@ -4107,7 +4112,7 @@ export function VideoPlayer({
                             Quality
                           </button>
                           <div className="space-y-0.5">
-                            {selectableQualities.length > 0 ? (
+                            {selectableQualities.length > 1 ? (
                               selectableQualities.map((q) => (
                                 <button
                                   key={q}
@@ -4250,7 +4255,9 @@ export function VideoPlayer({
                               const isUnsafe = ['videasy', 'vidfast', 'peachify'].includes(
                                 res.sourceId,
                               );
-                              const isBest = ['febbox', 'pobreflix'].includes(res.sourceId);
+                              const isBest = ['febbox', 'pobreflix', '02moviedownloader'].includes(
+                                res.sourceId,
+                              );
                               const isGood = ['cinesrc', 'vidking', 'zxcstream'].includes(
                                 res.sourceId,
                               );
@@ -4304,9 +4311,7 @@ export function VideoPlayer({
                                       <span
                                         className={cn(
                                           'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                                          isSelected
-                                            ? 'bg-accent/20 text-accent'
-                                            : 'bg-white/5 text-white/30',
+                                          'bg-white/10 text-white/40',
                                         )}
                                       >
                                         Embed
@@ -4327,9 +4332,7 @@ export function VideoPlayer({
                                       <span
                                         className={cn(
                                           'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                                          isSelected
-                                            ? 'bg-accent/20 text-accent'
-                                            : 'bg-white/5 text-white/30',
+                                          'bg-white/10 text-white/40',
                                         )}
                                       >
                                         Embed
@@ -4350,9 +4353,7 @@ export function VideoPlayer({
                                       <span
                                         className={cn(
                                           'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                                          isSelected
-                                            ? 'bg-accent/20 text-accent'
-                                            : 'bg-white/5 text-white/30',
+                                          'bg-white/10 text-white/40',
                                         )}
                                       >
                                         Direct
@@ -4373,9 +4374,7 @@ export function VideoPlayer({
                                       <span
                                         className={cn(
                                           'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                                          isSelected
-                                            ? 'bg-accent/20 text-accent'
-                                            : 'bg-white/5 text-white/30',
+                                          'bg-white/10 text-white/40',
                                         )}
                                       >
                                         Embed
@@ -4385,9 +4384,7 @@ export function VideoPlayer({
                                     <span
                                       className={cn(
                                         'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
-                                        isSelected
-                                          ? 'bg-accent/20 text-accent'
-                                          : 'bg-white/5 text-white/30',
+                                        'bg-white/10 text-white/40',
                                       )}
                                     >
                                       Direct
