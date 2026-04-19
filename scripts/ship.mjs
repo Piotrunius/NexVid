@@ -2,13 +2,6 @@ import { execFileSync, execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { createInterface } from 'node:readline';
 
-// Mapowanie zmiennych dla OpenCommit w locie
-if (process.env.GROQ_API_KEY) {
-  process.env.OCO_OPENAI_API_KEY = process.env.GROQ_API_KEY;
-  process.env.OCO_OPENAI_BASE_PATH = 'https://api.groq.com/openai/v1';
-  process.env.OCO_MODEL = 'llama-3.3-70b-versatile';
-}
-
 const rl = createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -154,14 +147,6 @@ async function ship() {
     deployPages: false,
   };
 
-  ui.header('Environment Setup');
-  if (!process.env.GROQ_API_KEY) ui.info('GROQ_API_KEY missing - OpenCommit AI will fail.');
-  else ui.info('GROQ_API_KEY found. Configured for OpenCommit.');
-
-  if (!process.env.DISCORD_WEBHOOK)
-    ui.info('DISCORD_WEBHOOK missing - Discord notifications disabled.');
-  else ui.info('DISCORD_WEBHOOK found.');
-
   try {
     ui.header('Deployment Mode');
     ui.menu('1', 'Development (Git + Deploy Options)');
@@ -193,7 +178,7 @@ async function ship() {
         ui.step('Running OpenCommit via npx...');
         try {
           // Uruchomienie OpenCommit. Przejmuje kontrolę nad konsolą.
-          execSync('npx opencommit', { stdio: 'inherit' });
+          execSync('npx opencommit --yes', { stdio: 'inherit' });
 
           // Pobranie ostatniej wiadomości commit po zakończeniu działania OpenCommit
           const lastCommitMsg = execSync('git log -1 --pretty=%B').toString().trim();
