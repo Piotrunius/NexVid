@@ -42,8 +42,13 @@ const ui = {
     console.log(`  ${format.dim}▪${format.reset} ${label.padEnd(12)} ${value}`),
 };
 
-const question = (query) =>
-  new Promise((resolve) => rl.question(`${format.cyan} ❯ ${format.reset} ${query}`, resolve));
+const question = (query) => {
+  const prefix = query.startsWith('\n') ? '\n' : '';
+  const cleanQuery = query.replace(/^\n+/, '');
+  return new Promise((resolve) =>
+    rl.question(`${prefix}${format.cyan} ❯ ${format.reset} ${cleanQuery}`, resolve),
+  );
+};
 
 const askChoice = async (query, validOptions, defaultOpt = null) => {
   while (true) {
