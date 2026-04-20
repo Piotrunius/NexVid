@@ -1906,6 +1906,8 @@ export function VideoPlayer({
   }, [duration, autoSkipSegments, effectiveSegments.credits, introOutro]);
 
   useEffect(() => {
+    nextPromptHandledForRef.current = null;
+    nextPromptDismissedForRef.current = null;
     nextEpisodeAutoNavRef.current = false;
     setAutoNextLocked(false);
     if (autoNextTimeoutRef.current) {
