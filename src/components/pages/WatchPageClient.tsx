@@ -540,6 +540,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
 
     reset();
     setScrapeStatus('idle');
+    setIsEpisodeNavigating(false);
     setStream(null);
     setSegments(EMPTY_SEGMENTS);
     setIntroOutro(null);
