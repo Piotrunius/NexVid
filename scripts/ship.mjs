@@ -96,10 +96,15 @@ async function sendDiscordNotification(message, branch, sha) {
   const config = {
     feat: { label: 'Feature', color: 5763719 },
     fix: { label: 'Fix', color: 15548997 },
-    chore: { label: 'Chore', color: 10197915 },
+    docs: { label: 'Documentation', color: 6139362 },
+    style: { label: 'Style', color: 15418782 },
     refactor: { label: 'Refactor', color: 3447003 },
     perf: { label: 'Performance', color: 15844367 },
-    sec: { label: 'Security', color: 15105570 },
+    test: { label: 'Testing', color: 10672590 },
+    build: { label: 'Build', color: 7419530 },
+    ci: { label: 'CI', color: 1752220 },
+    chore: { label: 'Chore', color: 10197915 },
+    revert: { label: 'Revert', color: 10038562 },
     default: { label: 'Update', color: 3447003 },
   };
 
@@ -182,10 +187,8 @@ async function ship() {
       if (useAiChoice.toLowerCase().trim() === 'y') {
         ui.step('Running OpenCommit via npx...');
         try {
-          // Uruchomienie OpenCommit. Przejmuje kontrolę nad konsolą.
           execSync('npx opencommit --yes', { stdio: 'inherit' });
 
-          // Pobranie ostatniej wiadomości commit po zakończeniu działania OpenCommit
           const lastCommitMsg = execSync('git log -1 --pretty=%B').toString().trim();
           summary.commit = lastCommitMsg;
           ui.success('Commit created by OpenCommit.');
@@ -272,7 +275,6 @@ async function ship() {
   } finally {
     ui.header('Execution Summary');
     ui.summary('Mode:', summary.mode);
-    // Skrócenie podsumowania wiadomości commit w logach jeśli jest za długa
     const displayCommit =
       summary.commit.length > 50 ? summary.commit.substring(0, 47) + '...' : summary.commit;
     ui.summary('Commit:', displayCommit);
