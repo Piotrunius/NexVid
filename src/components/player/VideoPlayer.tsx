@@ -641,7 +641,7 @@ export function VideoPlayer({
   );
   const [episodePanelLoading, setEpisodePanelLoading] = useState(false);
   const [showNextPrompt, setShowNextPrompt] = useState(false);
-  const [nextCountdown, setNextCountdown] = useState(8);
+  const [nextCountdown, setNextCountdown] = useState(10);
   const [embedLockState, setEmbedLockState] = useState<'locked' | 'unlocked'>('locked');
   const [externalAudioUrl, setExternalAudioUrl] = useState<string | null>(null);
   const [watchPartyRoomId, setWatchPartyRoomId] = useState('');
@@ -1911,7 +1911,7 @@ export function VideoPlayer({
       autoNextTimeoutRef.current = null;
     }
     setShowNextPrompt(false);
-    setNextCountdown(8);
+    setNextCountdown(10);
     setIsEpisodeNavigating(false);
     setIsFinished(false);
   }, [promptKey]);
@@ -1948,57 +1948,45 @@ export function VideoPlayer({
 
     const remaining = Math.max(0, effectiveVideoEndTime - currentTime);
 
-    // If we're within 12s of the effective end (e.g. credits start), show the prompt.
-    const shouldPrompt = autoNext && remaining <= 12;
+    // If we're within 10s of the effective end (e.g. credits start), show the prompt.
+    const shouldPrompt = autoNext && remaining <= 10;
 
     if (shouldPrompt) {
       if (!showNextPrompt) setShowNextPrompt(true);
+      setNextCountdown(Math.max(0, Math.ceil(remaining)));
 
       // Trigger automatic transition if autoNext is on and we reached the effective end.
-      if (
-        autoNext &&
-        (nextCountdown <= 0 || remaining <= 0.1) &&
-        nextPromptHandledForRef.current !== promptKey
-      ) {
+      if (autoNext && remaining <= 0.1 && nextPromptHandledForRef.current !== promptKey) {
         nextPromptHandledForRef.current = promptKey;
         if (mediaType === 'movie') {
           setIsFinished(true);
           setPlaying(false);
           setAutoNextLocked(true);
+          setShowNextPrompt(false);
         } else if (nextEpisodeTarget) {
           setIsEpisodeNavigating(true);
           nextEpisodeAutoNavRef.current = true;
-          if (typeof onNavigateEpisode === 'function') {
-            onNavigateEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
-          }
+          navigateNextEpisode();
         }
       }
     } else {
       if (showNextPrompt) setShowNextPrompt(false);
-      setNextCountdown(8);
+      setNextCountdown(10);
       nextPromptHandledForRef.current = null;
     }
   }, [
     currentTime,
     duration,
-    effectiveVideoEndTime, // Added dependency
+    effectiveVideoEndTime,
     autoNext,
-    nextCountdown,
     mediaType,
     onNavigateEpisode,
     season,
     showNextPrompt,
     promptKey,
     getNextEpisodeTarget,
+    navigateNextEpisode,
   ]);
-
-  useEffect(() => {
-    if (!showNextPrompt || !autoNext) return;
-    const timer = setInterval(() => {
-      setNextCountdown((value) => (value > 0 ? value - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [showNextPrompt, autoNext]);
 
   useEffect(() => {
     if (!autoSkipSegments || stream?.type === 'embed' || !duration || !currentTime) {
@@ -5115,7 +5103,7 @@ export function VideoPlayer({
                       onClick={() => {
                         nextPromptDismissedForRef.current = promptKey;
                         setShowNextPrompt(false);
-                        setNextCountdown(8);
+                        setNextCountdown(10);
                       }}
                       className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
                     >
@@ -5130,7 +5118,7 @@ export function VideoPlayer({
                     <motion.div
                       initial={{ width: '0%' }}
                       animate={{
-                        width: `${((8 - nextCountdown) / 8) * 100}%`,
+                        width: `${((10 - nextCountdown) / 10) * 100}%`,
                       }}
                       className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
                       transition={{ duration: 1, ease: 'linear' }}
