@@ -94,23 +94,34 @@ async function sendDiscordNotification(message, branch, sha) {
   }
 
   const config = {
-    feat: { label: 'Feature', color: 5763719 },
-    fix: { label: 'Fix', color: 15548997 },
-    docs: { label: 'Documentation', color: 6139362 },
-    style: { label: 'Style', color: 15418782 },
-    refactor: { label: 'Refactor', color: 3447003 },
-    perf: { label: 'Performance', color: 15844367 },
-    test: { label: 'Testing', color: 10672590 },
-    build: { label: 'Build', color: 7419530 },
-    ci: { label: 'CI', color: 1752220 },
-    chore: { label: 'Chore', color: 10197915 },
-    revert: { label: 'Revert', color: 10038562 },
-    default: { label: 'Update', color: 3447003 },
+    feat: { label: 'Feature', color: 5763719 }, // Green
+    fix: { label: 'Fix', color: 15548997 }, // Red
+    docs: { label: 'Documentation', color: 6139362 }, // Gray-blue
+    style: { label: 'Style', color: 15418782 }, // Yellow
+    refactor: { label: 'Refactor', color: 3447003 }, // Blue
+    perf: { label: 'Performance', color: 15844367 }, // Orange
+    test: { label: 'Testing', color: 10672590 }, // Purple
+    build: { label: 'Build', color: 7419530 }, // Brown
+    ci: { label: 'CI', color: 1752220 }, // Dark Blue
+    chore: { label: 'Chore', color: 10197915 }, // Gray
+    revert: { label: 'Revert', color: 10038562 }, // Dark Red
+    default: { label: 'Update', color: 3447003 }, // Blue
+    multiple: { label: 'Multiple Updates', color: 1146986 }, // Cyan for multi-commits
   };
 
-  const match = message.match(/^(\w+)(?:\(.+?\))?:/);
-  const typeKey = match ? match[1].toLowerCase() : null;
-  const type = config[typeKey] || config.default;
+  // Find all matches for standard commit types in the message
+  const typeRegex =
+    /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\(.+?\))?:/gim;
+  const matches = [...message.matchAll(typeRegex)].map((m) => m[1].toLowerCase());
+
+  let type;
+  if (matches.length > 1) {
+    type = config.multiple;
+  } else if (matches.length === 1) {
+    type = config[matches[0]] || config.default;
+  } else {
+    type = config.default;
+  }
 
   const payload = {
     username: 'NexVid Update',
@@ -123,7 +134,7 @@ async function sendDiscordNotification(message, branch, sha) {
         fields: [
           { name: 'Branch', value: `\`${branch}\``, inline: true },
           { name: 'Commit', value: `\`${sha}\``, inline: true },
-          { name: 'Message', value: `\`\`\`${message}\`\`\``, inline: false },
+          { name: 'Message', value: `\`\`\`\n${message}\n\`\`\``, inline: false },
         ],
         timestamp: new Date().toISOString(),
       },
