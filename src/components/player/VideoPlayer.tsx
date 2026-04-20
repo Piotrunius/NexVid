@@ -1964,8 +1964,6 @@ export function VideoPlayer({
           setAutoNextLocked(true);
           setShowNextPrompt(false);
         } else if (nextEpisodeTarget) {
-          setIsEpisodeNavigating(true);
-          nextEpisodeAutoNavRef.current = true;
           navigateNextEpisode();
         }
       }
@@ -3498,7 +3496,7 @@ export function VideoPlayer({
                     <button
                       onClick={navigatePrevEpisode}
                       className="hidden rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed sm:inline-flex"
-                      disabled={episodeNum <= 1}
+                      disabled={episodeNum <= 1 || isEpisodeNavigating}
                       title="Previous Episode"
                       aria-label="Previous episode"
                     >
@@ -3506,7 +3504,8 @@ export function VideoPlayer({
                     </button>
                     <button
                       onClick={navigateNextEpisode}
-                      className="hidden rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors sm:inline-flex"
+                      className="hidden rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed sm:inline-flex"
+                      disabled={isEpisodeNavigating}
                       title="Next Episode"
                       aria-label="Next episode"
                     >
