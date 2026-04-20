@@ -1,4 +1,5 @@
-import { execSync } from 'node:child_process';
+#!/usr/bin/env bunx
+import { execSync } from 'child_process';
 
 function parseBranch(argv) {
   const branchFlagIndex = argv.findIndex(
@@ -51,9 +52,11 @@ async function main() {
   const branch = parseBranch(process.argv.slice(2));
 
   console.log(`\n📦 Building Pages output for branch "${branch}"...`);
+  // Use Bun to run the build and preparation steps. The shebang at the top runs this script with bunx.
   run('bun run pages:build-output');
   run('bun run pages:prepare');
 
+  // Use bunx to invoke wrangler (ensures we use Bun's package runner for the binary)
   const deployCommand = `bunx wrangler pages deploy .vercel/output/static --project-name nexvid --branch ${branch}`;
   const maxAttempts = 5;
 
