@@ -209,6 +209,27 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     null,
   );
   const [dismissedTokenNoticeSitewide, setDismissedTokenNoticeSitewide] = useState(false);
+  const mediaRef = useRef<Movie | Show | null>(media);
+  const imdbIdRef = useRef<string | undefined>(imdbId);
+  const externalCaptionsRef = useRef<Caption[]>(externalCaptions);
+  const sourceResultsRef = useRef<SourceResult[]>(sourceResults);
+  const sourceIndexRef = useRef<number>(sourceIndex);
+
+  useEffect(() => {
+    mediaRef.current = media;
+  }, [media]);
+  useEffect(() => {
+    imdbIdRef.current = imdbId;
+  }, [imdbId]);
+  useEffect(() => {
+    externalCaptionsRef.current = externalCaptions;
+  }, [externalCaptions]);
+  useEffect(() => {
+    sourceResultsRef.current = sourceResults;
+  }, [sourceResults]);
+  useEffect(() => {
+    sourceIndexRef.current = sourceIndex;
+  }, [sourceIndex]);
 
   const { setIntroOutro, reset, currentTime, duration } = usePlayerStore();
   const { isLoggedIn, authToken: sessionToken } = useAuthStore();
@@ -449,7 +470,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                       res.stream.type === 'embed' &&
                       prev.url !== res.stream.url)
                   ) {
-                    return withMergedCaptions(res.stream, externalCaptions);
+                    return withMergedCaptions(res.stream, externalCaptionsRef.current);
                   }
                   return prev;
                 });
@@ -483,15 +504,14 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
       id,
       seasonNum,
       episodeNum,
-      media,
-      imdbId,
-      effectiveFebboxToken,
+      // media removed - using mediaRef.current
+      // imdbId removed - using imdbIdRef.current
       fetchSegments,
       sessionToken,
       resolvedAccentHex,
       idlePauseOverlay,
       enableUnsafeEmbeds,
-      externalCaptions,
+      // externalCaptions removed - using externalCaptionsRef.current
       defaultSource,
       autoPlay,
       autoNext,
@@ -499,6 +519,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
       skipOutro,
       autoSkipSegments,
       setIntroOutro,
+      effectiveFebboxToken,
     ],
   );
 
@@ -575,6 +596,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     reset,
     proceedWithScrape,
     resumeTimeFromUrl,
+    // explicitly stable dependencies
   ]);
 
   useEffect(() => {
@@ -794,14 +816,15 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   };
 
   const tryNextSource = useCallback(() => {
-    if (sourceResults.length < 2) return;
-    const next = (sourceIndex + 1) % sourceResults.length;
-    const res = sourceResults[next];
+    const results = sourceResultsRef.current;
+    if (results.length < 2) return;
+    const next = (sourceIndexRef.current + 1) % results.length;
+    const res = results[next];
     setSourceIndex(next);
 
     // If source is already found (not a pending placeholder)
     if (res.stream && !res.stream.id.endsWith('-pending')) {
-      setStream(withMergedCaptions(res.stream, externalCaptions));
+      setStream(withMergedCaptions(res.stream, externalCaptionsRef.current));
       waitingForSourceIdRef.current = res.sourceId;
     } else {
       // It's still pending, set current stream to null and wait for onSourceFound
@@ -809,16 +832,17 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
       setScrapeStatus('loading');
       waitingForSourceIdRef.current = res.sourceId;
     }
-  }, [sourceIndex, sourceResults, externalCaptions]);
+  }, [setStream]);
 
   const selectSource = useCallback(
     (idx: number) => {
-      if (idx < 0 || idx >= sourceResults.length) return;
-      const res = sourceResults[idx];
+      const results = sourceResultsRef.current;
+      if (idx < 0 || idx >= results.length) return;
+      const res = results[idx];
       setSourceIndex(idx);
 
       if (res.stream && !res.stream.id.endsWith('-pending')) {
-        setStream(withMergedCaptions(res.stream, externalCaptions));
+        setStream(withMergedCaptions(res.stream, externalCaptionsRef.current));
         waitingForSourceIdRef.current = res.sourceId;
       } else {
         setStream(null);
@@ -826,7 +850,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         waitingForSourceIdRef.current = res.sourceId;
       }
     },
-    [sourceResults, externalCaptions],
+    [setStream],
   );
 
   const openSettings = useCallback(() => {
