@@ -1,6 +1,7 @@
-import { execFileSync, execSync } from 'node:child_process';
-import { performance } from 'node:perf_hooks';
-import { createInterface } from 'node:readline';
+#!/usr/bin/env bunx
+import { execFileSync, execSync } from 'child_process';
+import { performance } from 'perf_hooks';
+import { createInterface } from 'readline';
 
 const rl = createInterface({
   input: process.stdin,
@@ -196,9 +197,9 @@ async function ship() {
       const useAiChoice = await question('\nUse OpenCommit to generate commit message? (y/N): ');
 
       if (useAiChoice.toLowerCase().trim() === 'y') {
-        ui.step('Running OpenCommit via npx...');
+        ui.step('Running OpenCommit via bunx...');
         try {
-          execSync('bunx opencommit --yes --fgm', { stdio: 'inherit' });
+          execSync('bunx opencommit --yes', { stdio: 'inherit' });
 
           const lastCommitMsg = execSync('git log -1 --pretty=%B').toString().trim();
           summary.commit = lastCommitMsg;
@@ -282,7 +283,7 @@ async function ship() {
       }
     }
   } catch (error) {
-    ui.error(error.message);
+    ui.error(error.message || String(error));
   } finally {
     ui.header('Execution Summary');
     ui.summary('Mode:', summary.mode);

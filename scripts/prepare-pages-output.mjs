@@ -1,5 +1,6 @@
-import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+#!/usr/bin/env bunx
+import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
 const chunksDir = join(process.cwd(), '.vercel', 'output', 'static', '_next', 'static', 'chunks');
 
