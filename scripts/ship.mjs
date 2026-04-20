@@ -198,7 +198,7 @@ async function ship() {
       if (useAiChoice.toLowerCase().trim() === 'y') {
         ui.step('Running OpenCommit via npx...');
         try {
-          execSync('npx opencommit --yes', { stdio: 'inherit' });
+          execSync('bunx opencommit --yes --fgm', { stdio: 'inherit' });
 
           const lastCommitMsg = execSync('git log -1 --pretty=%B').toString().trim();
           summary.commit = lastCommitMsg;
