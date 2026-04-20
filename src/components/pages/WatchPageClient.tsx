@@ -197,6 +197,9 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
   const [externalCaptions, setExternalCaptions] = useState<Caption[]>([]);
   const memoizedExternalCaptions = useMemo(() => externalCaptions, [externalCaptions]);
 
+  const [isEpisodeNavigating, setIsEpisodeNavigating] = useState(false);
+  const latestRequestIdRef = useRef(0);
+
   const [showResumeOverlay, setShowResumeOverlay] = useState(false);
   const [resumeData, setResumeData] = useState<{
     percentage: number;
@@ -311,6 +314,8 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
 
   const proceedWithScrape = useCallback(
     async (seekTime?: number) => {
+      const requestId = ++latestRequestIdRef.current;
+
       if (typeof seekTime === 'number') {
         setAppliedSeekTime(seekTime);
       }
@@ -379,6 +384,8 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
           });
         }
 
+        if (requestId !== latestRequestIdRef.current) return;
+
         if (mediaData) {
           setScrapeStatus('loading');
 
@@ -410,6 +417,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
             const sorted = [...initialMeta].sort((a, b) => (b.rank || 0) - (a.rank || 0));
             targetId = sorted[0]?.id || '';
           }
+          if (requestId !== latestRequestIdRef.current) return;
           waitingForSourceIdRef.current = targetId;
           const initialIdx = initialResults.findIndex((r) => r.sourceId === targetId);
           setSourceIndex(initialIdx !== -1 ? initialIdx : 0);
@@ -434,6 +442,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
             nextButton: true,
             episodeSelector: true,
             onSourceFound: (res) => {
+              if (requestId !== latestRequestIdRef.current) return;
               // Double check security settings before adding to results
               if (!enableUnsafeEmbeds) {
                 const meta = SOURCES.find((s) => s.id === res.sourceId);
@@ -798,19 +807,11 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
     const last = lastNavigateRef.current;
 
     // Avoid immediate double-jump glitches caused by edge-case auto-next race
-    if (now - last.ts < 1200 && last.season === s && Math.abs(e - last.episode) <= 1) {
-      return;
-    }
-    if (now - last.ts < 1200 && Math.abs(e - episodeNum) > 1) {
-      // guard against accidental two-step skip (e.g. 2->4) during fast auto-next sequence
-      console.warn('Blocked suspicious fast navigation', {
-        current: episodeNum,
-        target: e,
-        last,
-      });
+    if (now - last.ts < 400 && last.season === s && last.episode === e) {
       return;
     }
 
+    setIsEpisodeNavigating(true);
     lastNavigateRef.current = { ts: now, season: s, episode: e };
     router.push(`/watch/show/${id}?s=${s}&e=${e}`);
   };
@@ -931,6 +932,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
           episodeNum={episodeNum}
           mediaType={type as 'movie' | 'show'}
           onNavigateEpisode={navigateEpisode}
+          isEpisodeNavigating={isEpisodeNavigating}
           scrapeStatus={scrapeStatus}
           segments={segments}
           tmdbId={id}

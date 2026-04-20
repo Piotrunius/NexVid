@@ -127,6 +127,7 @@ interface PlayerProps {
   fullViewport?: boolean;
   initialSeekTime?: number;
   externalCaptions?: Caption[];
+  isEpisodeNavigating?: boolean;
 }
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
@@ -389,6 +390,7 @@ export function VideoPlayer({
   fullViewport = false,
   initialSeekTime = 0,
   externalCaptions = [],
+  isEpisodeNavigating: externalIsEpisodeNavigating,
 }: PlayerProps) {
   const WATCH_PARTY_CODE_KEY = 'nexvid-watch-party-code';
 
@@ -1927,6 +1929,8 @@ export function VideoPlayer({
       if (showNextPrompt) setShowNextPrompt(false);
       return;
     }
+
+    if (isEpisodeNavigating || externalIsEpisodeNavigating) return;
 
     if (!duration || !currentTime || (mediaType !== 'show' && mediaType !== 'movie')) {
       if (showNextPrompt) setShowNextPrompt(false);
