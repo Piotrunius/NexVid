@@ -140,8 +140,8 @@ export function AnnouncementModal() {
   const config = TYPE_CONFIG[announcement.type] || TYPE_CONFIG.info;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#050608]/95 shadow-[0_24px_80px_rgba(0,0,0,0.75)] animate-scale-in">
+    <div className="fixed inset-0 z-[110] flex animate-fade-in items-center justify-center bg-black/75 p-4 backdrop-blur-md">
+      <div className="w-full max-w-md animate-scale-in overflow-hidden rounded-[28px] border border-white/10 bg-[#050608]/95 shadow-[0_24px_80px_rgba(0,0,0,0.75)]">
         <div className="relative p-8 text-center">
           <div
             className={cn(

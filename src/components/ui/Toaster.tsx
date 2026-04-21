@@ -93,14 +93,14 @@ export function Toaster() {
           <div
             key={t.id}
             className={cn(
-              'animate-slide-up relative flex items-center justify-center px-12 py-3.5 rounded-full min-w-[300px] max-w-[450px] cursor-pointer transition-all',
+              'relative flex min-w-[300px] max-w-[450px] animate-slide-up cursor-pointer items-center justify-center rounded-full px-12 py-3.5 transition-all',
               toastStyle,
               typeStyles[t.type],
             )}
             onClick={() => removeToast(t.id)}
           >
             <Icon size={16} strokeWidth={2.5} className="absolute left-6 shrink-0" />
-            <span className="text-[13.5px] font-bold text-white leading-none text-center">
+            <span className="text-center text-[13.5px] font-bold leading-none text-white">
               {t.message}
             </span>
           </div>

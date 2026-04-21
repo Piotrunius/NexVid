@@ -1,10 +1,10 @@
 export default function Loading() {
   return (
-    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
+    <div className="relative min-h-screen overflow-hidden pb-10 pt-24">
       <div className="mx-auto max-w-[1700px] px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
+        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 shadow-[0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-6">
           <div className="skeleton h-10 w-40 rounded-xl" />
-          <div className="mt-2 skeleton h-4 w-64 rounded-md" />
+          <div className="skeleton mt-2 h-4 w-64 rounded-md" />
         </div>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">

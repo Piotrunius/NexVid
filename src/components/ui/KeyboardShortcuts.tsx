@@ -68,15 +68,15 @@ export function KeyboardShortcuts() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/75 backdrop-blur-md"
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="mx-4 w-full max-w-lg rounded-[28px] border border-white/10 bg-[#050608]/95 p-6 animate-scale-in shadow-[0_24px_80px_rgba(0,0,0,0.75)]"
+        className="mx-4 w-full max-w-lg animate-scale-in rounded-[28px] border border-white/10 bg-[#050608]/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.75)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-[15px] font-bold text-text-primary flex items-center gap-2">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-[15px] font-bold text-text-primary">
             <svg
               width="20"
               height="20"
@@ -92,7 +92,7 @@ export function KeyboardShortcuts() {
           </h2>
           <button
             onClick={() => setIsOpen(false)}
-            className="rounded-[8px] p-1.5 text-text-muted hover:bg-black/50 hover:text-text-primary transition-colors"
+            className="rounded-[8px] p-1.5 text-text-muted transition-colors hover:bg-black/50 hover:text-text-primary"
           >
             <svg
               width="16"
@@ -110,7 +110,7 @@ export function KeyboardShortcuts() {
         <div className="space-y-4">
           {SHORTCUTS.map((group) => (
             <div key={group.category}>
-              <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                 {group.category}
               </h3>
               <div className="space-y-1.5">
@@ -126,7 +126,7 @@ export function KeyboardShortcuts() {
                           key={key}
                           className={cn(
                             'inline-flex items-center justify-center rounded-[6px]',
-                            'bg-black/50 px-2 py-0.5 text-[11px] font-mono text-text-primary',
+                            'bg-black/50 px-2 py-0.5 font-mono text-[11px] text-text-primary',
                             'min-w-[28px]',
                           )}
                         >
@@ -143,7 +143,7 @@ export function KeyboardShortcuts() {
 
         <p className="mt-5 text-center text-[11px] text-text-muted">
           Press{' '}
-          <kbd className="mx-0.5 rounded-[4px] bg-black/50 px-1.5 py-0.5 text-[10px] font-mono">
+          <kbd className="mx-0.5 rounded-[4px] bg-black/50 px-1.5 py-0.5 font-mono text-[10px]">
             ?
           </kbd>{' '}
           to toggle this overlay

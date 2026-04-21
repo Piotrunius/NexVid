@@ -798,30 +798,30 @@ export function VideoPlayer({
   const getSourceIcon = (sourceId?: string) => {
     switch (sourceId) {
       case 'febbox':
-        return <Crown className="w-3.5 h-3.5" />;
+        return <Crown className="h-3.5 w-3.5" />;
       case 'pobreflix':
-        return <Gem className="w-3.5 h-3.5" />;
+        return <Gem className="h-3.5 w-3.5" />;
       case '02moviedownloader':
-        return <Rocket className="w-3.5 h-3.5" />;
+        return <Rocket className="h-3.5 w-3.5" />;
       case 'delta':
       case 'zxcstream':
-        return <Zap className="w-3.5 h-3.5" />;
+        return <Zap className="h-3.5 w-3.5" />;
       case 'cinesrc':
-        return <Sparkles className="w-3.5 h-3.5" />;
+        return <Sparkles className="h-3.5 w-3.5" />;
       case 'vidking':
-        return <Award className="w-3.5 h-3.5" />;
+        return <Award className="h-3.5 w-3.5" />;
       case 'vidfast':
-        return <Rocket className="w-3.5 h-3.5" />;
+        return <Rocket className="h-3.5 w-3.5" />;
       case 'videasy':
-        return <Compass className="w-3.5 h-3.5" />;
+        return <Compass className="h-3.5 w-3.5" />;
       case 'vidsync':
-        return <Link className="w-3.5 h-3.5" />;
+        return <Link className="h-3.5 w-3.5" />;
       case 'vidlink':
-        return <InfinityIcon className="w-3.5 h-3.5" />;
+        return <InfinityIcon className="h-3.5 w-3.5" />;
       case 'peachify':
-        return <FastForward className="w-3.5 h-3.5" />;
+        return <FastForward className="h-3.5 w-3.5" />;
       default:
-        return <Server className="w-3.5 h-3.5" />;
+        return <Server className="h-3.5 w-3.5" />;
     }
   };
 
@@ -2793,7 +2793,7 @@ export function VideoPlayer({
         <>
           <video
             ref={videoRef}
-            className="h-full w-full nexvid-video"
+            className="nexvid-video h-full w-full"
             style={{
               objectFit:
                 playerViewMode === 'stretch'
@@ -2844,7 +2844,7 @@ export function VideoPlayer({
           {/* Combined Interaction & Mobile Gesture Layer */}
           <div
             className={cn(
-              'absolute inset-x-0 top-16 bottom-24 z-[20] select-none',
+              'absolute inset-x-0 bottom-24 top-16 z-[20] select-none',
               isDraggingProgress
                 ? 'cursor-grabbing'
                 : controlsVisible || settingsPanel !== null
@@ -2857,13 +2857,13 @@ export function VideoPlayer({
             {/* Playback Indicators */}
             <AnimatePresence>
               {isTouchDevice && playbackIndicator && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <motion.div
                     key="playback-indicator"
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.5 }}
-                    className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10"
+                    className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/40 backdrop-blur-md"
                   >
                     {playbackIndicator === 'play' ? (
                       <Play className="h-8 w-8 fill-white text-white" />
@@ -2883,9 +2883,9 @@ export function VideoPlayer({
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="absolute left-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-none"
+                  className="pointer-events-none absolute left-[10%] top-1/2 flex -translate-y-1/2 flex-col items-center gap-2"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/40 backdrop-blur-md">
                     <Rewind className="h-8 w-8 fill-white text-white" />
                   </div>
                   <span className="text-[14px] font-bold text-white shadow-lg">-10s</span>
@@ -2897,9 +2897,9 @@ export function VideoPlayer({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="absolute right-[10%] top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 pointer-events-none"
+                  className="pointer-events-none absolute right-[10%] top-1/2 flex -translate-y-1/2 flex-col items-center gap-2"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/40 backdrop-blur-md">
                     <FastForward className="h-8 w-8 fill-white text-white" />
                   </div>
                   <span className="text-[14px] font-bold text-white shadow-lg">+10s</span>
@@ -2935,20 +2935,20 @@ export function VideoPlayer({
         !isEmbedNoticeDismissed &&
         embedLockState === 'locked' && (
           <div className="absolute inset-x-0 bottom-24 z-30 flex justify-center px-4">
-            <div className="rounded-[20px] bg-black/85 p-5 backdrop-blur-2xl flex flex-col items-center gap-4 max-w-sm border border-white/10 shadow-[0_32px_64px_rgba(0,0,0,0.8)] animate-scale-in">
+            <div className="flex max-w-sm animate-scale-in flex-col items-center gap-4 rounded-[20px] border border-white/10 bg-black/85 p-5 shadow-[0_32px_64px_rgba(0,0,0,0.8)] backdrop-blur-2xl">
               <div className="flex flex-col items-center gap-1">
                 <p className="text-center text-[13px] font-semibold text-white">
                   Embed Interaction Locked
                 </p>
-                <p className="text-center text-[11px] text-white/50 leading-relaxed px-4">
+                <p className="px-4 text-center text-[11px] leading-relaxed text-white/50">
                   Clicks are restricted to prevent malicious redirects and popups from the provider.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 w-full">
+              <div className="grid w-full grid-cols-2 gap-2.5">
                 <button
                   onClick={() => setEmbedLockState('unlocked')}
-                  className="flex items-center justify-center gap-2 rounded-[12px] bg-accent px-3 py-2.5 text-[11px] text-white font-bold hover:brightness-110 transition-all shadow-lg shadow-accent/25"
+                  className="shadow-accent/25 flex items-center justify-center gap-2 rounded-[12px] bg-accent px-3 py-2.5 text-[11px] font-bold text-white shadow-lg transition-all hover:brightness-110"
                 >
                   <svg
                     width="14"
@@ -2977,7 +2977,7 @@ export function VideoPlayer({
                       window.location.reload();
                     }
                   }}
-                  className="flex items-center justify-center gap-2 rounded-[12px] bg-white/10 px-3 py-2.5 text-[11px] text-white font-bold hover:bg-white/15 transition-all border border-white/5"
+                  className="flex items-center justify-center gap-2 rounded-[12px] border border-white/5 bg-white/10 px-3 py-2.5 text-[11px] font-bold text-white transition-all hover:bg-white/15"
                 >
                   <svg
                     width="14"
@@ -2997,7 +2997,7 @@ export function VideoPlayer({
                   href={stream.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-[12px] bg-white/10 px-3 py-2.5 text-[11px] text-white font-bold hover:bg-white/15 transition-all border border-white/5"
+                  className="flex items-center justify-center gap-2 rounded-[12px] border border-white/5 bg-white/10 px-3 py-2.5 text-[11px] font-bold text-white transition-all hover:bg-white/15"
                 >
                   <svg
                     width="14"
@@ -3014,7 +3014,7 @@ export function VideoPlayer({
 
                 <button
                   onClick={() => setIsEmbedNoticeDismissed(true)}
-                  className="flex items-center justify-center gap-2 rounded-[12px] bg-white/5 px-3 py-2.5 text-[11px] text-white/40 font-bold hover:bg-white/10 hover:text-white/60 transition-all"
+                  className="flex items-center justify-center gap-2 rounded-[12px] bg-white/5 px-3 py-2.5 text-[11px] font-bold text-white/40 transition-all hover:bg-white/10 hover:text-white/60"
                 >
                   <svg
                     width="14"
@@ -3031,9 +3031,9 @@ export function VideoPlayer({
               </div>
 
               {sourceLabel && (
-                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shadow-[0_0_8px_var(--accent-glow)]" />
-                  <p className="text-[10px] font-bold text-white/40 tracking-wider uppercase">
+                <div className="flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-3 py-1">
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent shadow-[0_0_8px_var(--accent-glow)]" />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
                     {formatSourceName(sourceLabel)}
                   </p>
                 </div>
@@ -3049,7 +3049,7 @@ export function VideoPlayer({
           <div className="absolute inset-x-0 bottom-20 z-30 flex justify-center">
             <button
               onClick={() => setEmbedLockState('locked')}
-              className="rounded-full bg-black/60 px-4 py-1.5 text-[11px] text-white/60 hover:bg-black/80 hover:text-white/90 backdrop-blur-sm transition-all flex items-center gap-1.5"
+              className="flex items-center gap-1.5 rounded-full bg-black/60 px-4 py-1.5 text-[11px] text-white/60 backdrop-blur-sm transition-all hover:bg-black/80 hover:text-white/90"
             >
               <svg
                 width="12"
@@ -3069,20 +3069,20 @@ export function VideoPlayer({
 
       {/* Loading spinner */}
       {isLoading && stream?.type !== 'embed' && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
         </div>
       )}
 
       {/* Scrape status overlay */}
       {scrapeStatus === 'loading' && !stream && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none z-10">
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
           <p className="text-[13px] text-white/60">Finding sources...</p>
         </div>
       )}
       {scrapeStatus === 'error' && !stream && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 pointer-events-none">
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
           <svg
             width="40"
             height="40"
@@ -3102,7 +3102,7 @@ export function VideoPlayer({
             </p>
           )}
           {(onScrapeErrorAction || onBack) && (
-            <div className="mt-2 flex items-center gap-2 pointer-events-auto">
+            <div className="pointer-events-auto mt-2 flex items-center gap-2">
               {onScrapeErrorAction && scrapeErrorActionLabel && (
                 <button
                   onClick={onScrapeErrorAction}
@@ -3114,7 +3114,7 @@ export function VideoPlayer({
               {onBack && (
                 <button
                   onClick={onBack}
-                  className="rounded-[8px] bg-white/10 px-4 py-2 text-[13px] text-white hover:bg-white/20 transition-colors"
+                  className="rounded-[8px] bg-white/10 px-4 py-2 text-[13px] text-white transition-colors hover:bg-white/20"
                 >
                   Go Back
                 </button>
@@ -3125,10 +3125,10 @@ export function VideoPlayer({
       )}
 
       {effectiveShowTokenNotice && (
-        <div className="absolute left-1/2 top-16 z-30 w-[min(92%,740px)] -translate-x-1/2 px-2 pointer-events-none">
-          <div className="pointer-events-auto p-3 sm:p-4 rounded-[16px] bg-black/80 backdrop-blur-[40px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)]">
+        <div className="pointer-events-none absolute left-1/2 top-16 z-30 w-[min(92%,740px)] -translate-x-1/2 px-2">
+          <div className="pointer-events-auto rounded-[16px] bg-black/80 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] backdrop-blur-[40px] backdrop-saturate-[200%] sm:p-4">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-accent/20 text-accent">
+              <div className="bg-accent/20 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-accent">
                 <svg
                   width="16"
                   height="16"
@@ -3143,7 +3143,7 @@ export function VideoPlayer({
                 </svg>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/90">
+                <p className="text-accent/90 text-[11px] font-semibold uppercase tracking-wide">
                   FebBox token
                 </p>
                 <p className="mt-0.5 text-[13px] font-medium text-white">
@@ -3167,7 +3167,7 @@ export function VideoPlayer({
               {onTokenNoticeSettings && (
                 <button
                   onClick={onTokenNoticeSettings}
-                  className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 hover:bg-white/20 transition-colors"
+                  className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/80 transition-colors hover:bg-white/20"
                 >
                   {effectiveTokenNoticeSettingsLabel}
                 </button>
@@ -3175,7 +3175,7 @@ export function VideoPlayer({
               {onTokenNoticeDismiss && (
                 <button
                   onClick={onTokenNoticeDismiss}
-                  className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/60 hover:bg-white/20 transition-colors"
+                  className="rounded-[8px] bg-white/10 px-3 py-1.5 text-[11px] text-white/60 transition-colors hover:bg-white/20"
                 >
                   {effectiveTokenNoticeDismissLabel}
                 </button>
@@ -3189,7 +3189,7 @@ export function VideoPlayer({
                   )}
                   <button
                     onClick={onTokenNoticePermanentDismiss}
-                    className="rounded-[8px] bg-red-500/12 px-3 py-1.5 text-[11px] font-medium text-red-300 hover:bg-red-500/20 transition-colors"
+                    className="bg-red-500/12 rounded-[8px] px-3 py-1.5 text-[11px] font-medium text-red-300 transition-colors hover:bg-red-500/20"
                   >
                     {tokenNoticePermanentDismissLabel || 'Dismiss sitewide'}
                   </button>
@@ -3209,13 +3209,13 @@ export function VideoPlayer({
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipIntro}
             className={cn(
-              'absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group',
+              'group absolute bottom-24 right-6 z-50 flex items-center gap-2 rounded-full border px-6 py-2.5 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95',
               glassEffect
-                ? 'bg-white/10 backdrop-blur-[32px] backdrop-saturate-[180%] border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)]'
-                : 'bg-zinc-900 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)]',
+                ? 'border-white/20 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-[32px] backdrop-saturate-[180%]'
+                : 'border-white/10 bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.8)]',
             )}
           >
-            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
+            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 transition-colors group-hover:text-white" />
             Skip Intro
           </motion.button>
         )}
@@ -3230,13 +3230,13 @@ export function VideoPlayer({
             exit={{ opacity: 0, scale: 0.9 }}
             onClick={handleSkipOutro}
             className={cn(
-              'absolute right-6 bottom-24 z-50 flex items-center gap-2 px-6 py-2.5 rounded-full border text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95 group',
+              'group absolute bottom-24 right-6 z-50 flex items-center gap-2 rounded-full border px-6 py-2.5 text-[13px] font-bold text-white transition-all hover:scale-105 active:scale-95',
               glassEffect
-                ? 'bg-white/10 backdrop-blur-[32px] backdrop-saturate-[180%] border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)]'
-                : 'bg-zinc-900 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)]',
+                ? 'border-white/20 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-[32px] backdrop-saturate-[180%]'
+                : 'border-white/10 bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.8)]',
             )}
           >
-            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 group-hover:text-white transition-colors" />
+            <FastForward className="h-4 w-4 stroke-[2.5] text-white/70 transition-colors group-hover:text-white" />
             Skip Outro
           </motion.button>
         )}
@@ -3245,7 +3245,7 @@ export function VideoPlayer({
       {/* Top Bar - shown for all stream types */}
       <div
         className={cn(
-          'absolute top-0 left-0 right-0 flex items-center gap-3 px-3 sm:px-5 pt-4 pb-12 z-[40]',
+          'absolute left-0 right-0 top-0 z-[40] flex items-center gap-3 px-3 pb-12 pt-4 sm:px-5',
           'bg-gradient-to-b from-black/80 to-transparent',
           'transition-opacity duration-300',
           stream?.type === 'embed' ||
@@ -3254,22 +3254,22 @@ export function VideoPlayer({
             scrapeStatus === 'error' ||
             (error && !stream)
             ? 'opacity-100'
-            : 'opacity-0 pointer-events-none',
+            : 'pointer-events-none opacity-0',
         )}
       >
         {onBack && (
           <button
             onClick={onBack}
-            className="rounded-[10px] p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+            className="rounded-[10px] p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Go back"
             title="Go back"
           >
             <ChevronLeft className="h-5 w-5 stroke-[1.85]" />
           </button>
         )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
-            {title && <p className="text-[13px] font-semibold text-white truncate">{title}</p>}
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            {title && <p className="truncate text-[13px] font-semibold text-white">{title}</p>}
             {media && (
               <button
                 onClick={() => setSettingsPanel(settingsPanel === 'info' ? null : 'info')}
@@ -3313,7 +3313,7 @@ export function VideoPlayer({
               </button>
             )}
           </div>
-          {subtitle && <p className="text-[11px] text-white/60 truncate">{subtitle}</p>}
+          {subtitle && <p className="truncate text-[11px] text-white/60">{subtitle}</p>}
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -3324,7 +3324,7 @@ export function VideoPlayer({
             embedLockState === 'locked' && (
               <button
                 onClick={() => setIsEmbedNoticeDismissed(false)}
-                className="rounded-[8px] p-2 text-amber-400/80 hover:bg-white/10 hover:text-amber-400 transition-colors"
+                className="rounded-[8px] p-2 text-amber-400/80 transition-colors hover:bg-white/10 hover:text-amber-400"
                 title="Show interaction notice"
               >
                 <Info className="h-5 w-5 stroke-[1.9]" />
@@ -3332,7 +3332,7 @@ export function VideoPlayer({
             )}
 
           {playbackSpeed !== 1 && stream?.type !== 'embed' && (
-            <span className="rounded-[6px] bg-accent/80 px-2 py-0.5 text-[11px] font-bold text-white">
+            <span className="bg-accent/80 rounded-[6px] px-2 py-0.5 text-[11px] font-bold text-white">
               {playbackSpeed}x
             </span>
           )}
@@ -3354,7 +3354,7 @@ export function VideoPlayer({
               'transition-opacity duration-300',
               controlsVisible || settingsPanel !== null
                 ? 'opacity-100'
-                : 'opacity-0 pointer-events-none',
+                : 'pointer-events-none opacity-0',
             )}
           >
             {/* Progress Bar */}
@@ -3380,7 +3380,7 @@ export function VideoPlayer({
                     return (
                       <div
                         key={`intro-${i}`}
-                        className="absolute top-0 h-full bg-yellow-400/50 rounded-sm z-[1]"
+                        className="absolute top-0 z-[1] h-full rounded-sm bg-yellow-400/50"
                         style={{ left: `${left}%`, width: `${width}%` }}
                         title="Intro"
                       />
@@ -3395,7 +3395,7 @@ export function VideoPlayer({
                     return (
                       <div
                         key={`recap-${i}`}
-                        className="absolute top-0 h-full bg-blue-400/50 rounded-sm z-[1]"
+                        className="absolute top-0 z-[1] h-full rounded-sm bg-blue-400/50"
                         style={{ left: `${left}%`, width: `${width}%` }}
                         title="Recap"
                       />
@@ -3410,7 +3410,7 @@ export function VideoPlayer({
                     return (
                       <div
                         key={`credits-${i}`}
-                        className="absolute top-0 h-full bg-gray-400/80 rounded-sm z-[1]"
+                        className="absolute top-0 z-[1] h-full rounded-sm bg-gray-400/80"
                         style={{ left: `${left}%`, width: `${width}%` }}
                         title="Credits"
                       />
@@ -3425,7 +3425,7 @@ export function VideoPlayer({
                     return (
                       <div
                         key={`preview-${i}`}
-                        className="absolute top-0 h-full bg-green-400/50 rounded-sm z-[1]"
+                        className="absolute top-0 z-[1] h-full rounded-sm bg-green-400/50"
                         style={{ left: `${left}%`, width: `${width}%` }}
                         title="Preview"
                       />
@@ -3436,7 +3436,7 @@ export function VideoPlayer({
               <div className="player-progress-fill" style={{ width: `${progress}%` }} />
               {hoverPercent !== null && (
                 <div
-                  className="absolute -top-8 rounded bg-black/80 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm pointer-events-none"
+                  className="pointer-events-none absolute -top-8 rounded bg-black/80 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm"
                   style={{
                     left: `${hoverPercent}%`,
                     transform: 'translateX(-50%)',
@@ -3446,7 +3446,7 @@ export function VideoPlayer({
                 </div>
               )}
               <div
-                className="absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-accent shadow-lg shadow-accent/30 opacity-0 transition-opacity group-hover:opacity-100"
+                className="shadow-accent/30 absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-accent opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
                 style={{ left: `${progress}%`, marginLeft: '-7px' }}
               />
             </div>
@@ -3456,7 +3456,7 @@ export function VideoPlayer({
               <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
                 <button
                   onClick={togglePlay}
-                  className="rounded-[10px] p-2 text-white hover:bg-white/10 transition-colors"
+                  className="rounded-[10px] p-2 text-white transition-colors hover:bg-white/10"
                   title={isPlaying ? 'Pause (K)' : 'Play (K)'}
                   aria-label={isPlaying ? 'Pause (K)' : 'Play (K)'}
                 >
@@ -3466,10 +3466,10 @@ export function VideoPlayer({
                     <Play className="h-5 w-5 fill-current stroke-[1.85]" />
                   )}
                 </button>
-                <div className="flex items-center gap-1 group/vol">
+                <div className="group/vol flex items-center gap-1">
                   <button
                     onClick={() => toggleMute()}
-                    className="rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                    className="rounded-[10px] p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                     title="Mute (M)"
                     aria-label="Toggle mute (M)"
                   >
@@ -3488,10 +3488,10 @@ export function VideoPlayer({
                     step="0.05"
                     value={isMuted ? 0 : volume}
                     onChange={(e) => changeVolume(parseFloat(e.target.value))}
-                    className="w-0 opacity-0 transition-all group-hover/vol:w-20 group-hover/vol:opacity-100 accent-accent"
+                    className="w-0 accent-accent opacity-0 transition-all group-hover/vol:w-20 group-hover/vol:opacity-100"
                   />
                 </div>
-                <span className="ml-1 hidden text-[11px] text-white/70 tabular-nums sm:ml-2 sm:inline">
+                <span className="ml-1 hidden text-[11px] tabular-nums text-white/70 sm:ml-2 sm:inline">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </span>
               </div>
@@ -3501,7 +3501,7 @@ export function VideoPlayer({
                   <>
                     <button
                       onClick={navigatePrevEpisode}
-                      className="hidden rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed sm:inline-flex"
+                      className="hidden rounded-[10px] p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:inline-flex"
                       disabled={episodeNum <= 1 || isEpisodeNavigating}
                       title="Previous Episode"
                       aria-label="Previous episode"
@@ -3510,7 +3510,7 @@ export function VideoPlayer({
                     </button>
                     <button
                       onClick={navigateNextEpisode}
-                      className="hidden rounded-[10px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed sm:inline-flex"
+                      className="hidden rounded-[10px] p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:inline-flex"
                       disabled={isEpisodeNavigating}
                       title="Next Episode"
                       aria-label="Next episode"
@@ -3543,20 +3543,20 @@ export function VideoPlayer({
                     {settingsPanel === 'episodes' && (
                       <div
                         className={cn(
-                          'mb-0 w-[min(92vw,20rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]',
+                          'z-[95] mb-0 w-[min(92vw,20rem)] animate-fade-in overflow-y-auto rounded-[16px] bg-black/85 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] backdrop-blur-[40px] backdrop-saturate-[180%]',
                           isTouchDevice
-                            ? 'fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]'
+                            ? 'fixed left-1/2 top-1/2 z-[95] max-h-[70vh] -translate-x-1/2 -translate-y-1/2 landscape:max-h-[85vh]'
                             : 'absolute bottom-full right-0 z-[50] mb-2 max-h-[60vh]',
                         )}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="mb-3 flex items-center justify-between">
                           <p className="text-[11px] font-semibold text-white/80">Episodes</p>
                           {(media as Show)?.seasons && (media as Show).seasons.length > 1 && (
                             <select
                               value={episodePanelSeason}
                               onChange={(e) => loadSeasonEpisodes(parseInt(e.target.value))}
-                              className="rounded-[8px] bg-white/10 px-2 py-1 text-[11px] text-white border-none outline-none shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)]"
+                              className="rounded-[8px] border-none bg-white/10 px-2 py-1 text-[11px] text-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)] outline-none"
                             >
                               {(media as Show).seasons.map((s) => (
                                 <option
@@ -3615,7 +3615,7 @@ export function VideoPlayer({
                                       </p>
                                       {episodePanelSeason === seasonNum &&
                                         ep.episodeNumber === episodeNum && (
-                                          <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">
+                                          <span className="bg-accent/15 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">
                                             Now
                                           </span>
                                         )}
@@ -3665,9 +3665,9 @@ export function VideoPlayer({
                   {settingsPanel && !['info', 'episodes'].includes(settingsPanel) && (
                     <div
                       className={cn(
-                        'mb-0 w-[min(90vw,18rem)] rounded-[16px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 animate-fade-in overflow-y-auto z-[95]',
+                        'z-[95] mb-0 w-[min(90vw,18rem)] animate-fade-in overflow-y-auto rounded-[16px] bg-black/85 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] backdrop-blur-[40px] backdrop-saturate-[180%]',
                         isTouchDevice
-                          ? 'fixed left-1/2 top-1/2 z-[95] -translate-x-1/2 -translate-y-1/2 max-h-[70vh] landscape:max-h-[85vh]'
+                          ? 'fixed left-1/2 top-1/2 z-[95] max-h-[70vh] -translate-x-1/2 -translate-y-1/2 landscape:max-h-[85vh]'
                           : 'absolute bottom-full right-0 z-[50] mb-2 max-h-[65vh]',
                       )}
                       onClick={(e) => e.stopPropagation()}
@@ -3679,7 +3679,7 @@ export function VideoPlayer({
                             {/* Quality Tile */}
                             <button
                               onClick={() => setSettingsPanel('quality')}
-                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 transition-colors hover:bg-white/10"
                             >
                               <svg
                                 width="20"
@@ -3702,7 +3702,7 @@ export function VideoPlayer({
                             {/* Sources Tile */}
                             <button
                               onClick={() => setSettingsPanel('sources')}
-                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 transition-colors hover:bg-white/10"
                             >
                               <svg
                                 width="20"
@@ -3719,14 +3719,14 @@ export function VideoPlayer({
                                 <line x1="6" y1="18" x2="6" y2="18" />
                               </svg>
                               <span className="text-[10px] text-white/60">Sources</span>
-                              <span className="text-[10px] font-semibold text-accent truncate max-w-full">
+                              <span className="max-w-full truncate text-[10px] font-semibold text-accent">
                                 {formatSourceName(sourceResults[currentSourceIndex]?.sourceId)}
                               </span>
                             </button>
                             {/* Subtitles Tile */}
                             <button
                               onClick={() => setSettingsPanel('subtitles')}
-                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 transition-colors hover:bg-white/10"
                             >
                               <svg
                                 width="20"
@@ -3754,7 +3754,7 @@ export function VideoPlayer({
                             {/* Segments Tile */}
                             <button
                               onClick={() => setSettingsPanel('segments')}
-                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 transition-colors hover:bg-white/10"
                             >
                               <svg
                                 width="20"
@@ -3783,7 +3783,7 @@ export function VideoPlayer({
                             {/* Playback Tile */}
                             <button
                               onClick={() => setSettingsPanel('playback')}
-                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 transition-colors hover:bg-white/10"
                             >
                               <Play className="h-5 w-5 fill-current stroke-[1.85] text-white/80" />
                               <span className="text-[10px] text-white/60">Playback</span>
@@ -3795,7 +3795,7 @@ export function VideoPlayer({
                             {/* Watch Together Tile */}
                             <button
                               onClick={() => setSettingsPanel('watchParty')}
-                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-white/5 p-3 transition-colors hover:bg-white/10"
                             >
                               <svg
                                 width="20"
@@ -3830,7 +3830,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('main')}
-                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-2 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <ChevronLeft className="h-[14px] w-[14px] stroke-[1.85]" />
                             Playback
@@ -3867,7 +3867,7 @@ export function VideoPlayer({
 
                           <button
                             onClick={() => setSettingsPanel('speed')}
-                            className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
+                            className="flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 transition-colors hover:bg-white/5 hover:text-white"
                           >
                             <div className="flex items-center gap-2">
                               <svg
@@ -3883,7 +3883,7 @@ export function VideoPlayer({
                               </svg>
                               Playback Speed
                             </div>
-                            <span className="text-[11px] text-accent font-medium">
+                            <span className="text-[11px] font-medium text-accent">
                               {playbackSpeed === 1 ? 'Normal' : `${playbackSpeed}x`}
                             </span>
                           </button>
@@ -3894,7 +3894,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('playback')}
-                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-3 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -3909,15 +3909,15 @@ export function VideoPlayer({
                             Playback Speed
                           </button>
 
-                          <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                          <div className="custom-scrollbar max-h-48 space-y-0.5 overflow-y-auto pr-1">
                             {PLAYBACK_SPEEDS.map((speed) => (
                               <button
                                 key={speed}
                                 onClick={() => changeSpeed(speed)}
                                 className={cn(
-                                  'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
+                                  'flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
                                   playbackSpeed === speed
-                                    ? 'bg-accent/20 text-accent font-bold'
+                                    ? 'bg-accent/20 font-bold text-accent'
                                     : 'text-white/60 hover:bg-white/10',
                                 )}
                               >
@@ -3944,7 +3944,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('main')}
-                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-2 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -3977,7 +3977,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('main')}
-                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-2 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -4015,7 +4015,7 @@ export function VideoPlayer({
                                       setWatchPartyJoinCode(e.target.value.toUpperCase())
                                     }
                                     placeholder="Room code"
-                                    className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
+                                    className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white outline-none placeholder:text-white/30"
                                   />
                                   <button
                                     onClick={() => joinWatchPartyRoom()}
@@ -4089,7 +4089,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('main')}
-                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-2 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -4128,7 +4128,7 @@ export function VideoPlayer({
                           <hr className="my-2 border-white/[0.06]" />
                           <button
                             onClick={() => setSettingsPanel('aspectRatio')}
-                            className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-between"
+                            className="flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 transition-colors hover:bg-white/5 hover:text-white"
                           >
                             <div className="flex items-center gap-2">
                               <svg
@@ -4144,7 +4144,7 @@ export function VideoPlayer({
                               </svg>
                               Aspect Ratio
                             </div>
-                            <span className="text-[11px] text-accent font-medium capitalize">
+                            <span className="text-[11px] font-medium capitalize text-accent">
                               {playerViewMode}
                             </span>
                           </button>
@@ -4155,7 +4155,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('quality')}
-                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-3 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -4170,15 +4170,15 @@ export function VideoPlayer({
                             Aspect Ratio
                           </button>
 
-                          <div className="space-y-0.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                          <div className="custom-scrollbar max-h-48 space-y-0.5 overflow-y-auto pr-1">
                             {(['original', 'stretch', 'zoom'] as const).map((mode) => (
                               <button
                                 key={mode}
                                 onClick={() => updateSettings({ playerViewMode: mode })}
                                 className={cn(
-                                  'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
+                                  'flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
                                   playerViewMode === mode
-                                    ? 'bg-accent/20 text-accent font-bold'
+                                    ? 'bg-accent/20 font-bold text-accent'
                                     : 'text-white/60 hover:bg-white/10',
                                 )}
                               >
@@ -4226,7 +4226,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('main')}
-                            className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-2 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -4240,7 +4240,7 @@ export function VideoPlayer({
                             </svg>
                             Sources
                           </button>
-                          <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
+                          <div className="custom-scrollbar -mx-1 max-h-60 space-y-1 overflow-y-auto px-1">
                             {sourceResults.map((res) => {
                               const isSelected = currentSourceIndex === sourceResults.indexOf(res);
                               const isDangerous = ['vidlink', 'vidsync'].includes(res.sourceId);
@@ -4262,26 +4262,26 @@ export function VideoPlayer({
                                     setSettingsPanel(null);
                                   }}
                                   className={cn(
-                                    'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none',
+                                    'flex w-full items-center justify-between gap-3 rounded-[10px] border-none px-3 py-2 text-left transition-all duration-300',
                                     isSelected
                                       ? 'bg-accent/20 text-accent'
                                       : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
                                   )}
                                 >
-                                  <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="flex min-w-0 items-center gap-2.5">
                                     <div
                                       className={cn(
                                         'flex items-center justify-center transition-all duration-500',
                                         isSelected
-                                          ? 'text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110'
-                                          : 'text-white/40 scale-100',
+                                          ? 'scale-110 text-accent drop-shadow-[0_0_8px_var(--accent-glow)]'
+                                          : 'scale-100 text-white/40',
                                       )}
                                     >
                                       {getSourceIcon(res.sourceId)}
                                     </div>
                                     <p
                                       className={cn(
-                                        'text-[12px] font-semibold truncate',
+                                        'truncate text-[12px] font-semibold',
                                         isSelected ? 'text-accent' : 'text-white',
                                       )}
                                     >
@@ -4292,7 +4292,7 @@ export function VideoPlayer({
                                     <div className="flex items-center gap-1.5 hover:opacity-90">
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           isSelected
                                             ? 'bg-red-500/20 text-red-500'
                                             : 'bg-red-500/10 text-red-500/50',
@@ -4302,7 +4302,7 @@ export function VideoPlayer({
                                       </span>
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           'bg-white/10 text-white/40',
                                         )}
                                       >
@@ -4313,7 +4313,7 @@ export function VideoPlayer({
                                     <div className="flex items-center gap-1.5 hover:opacity-90">
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           isSelected
                                             ? 'bg-amber-500/20 text-amber-500'
                                             : 'bg-amber-500/10 text-amber-500/50',
@@ -4323,7 +4323,7 @@ export function VideoPlayer({
                                       </span>
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           'bg-white/10 text-white/40',
                                         )}
                                       >
@@ -4334,7 +4334,7 @@ export function VideoPlayer({
                                     <div className="flex items-center gap-1.5 hover:opacity-90">
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           isSelected
                                             ? 'bg-blue-500/20 text-blue-500'
                                             : 'bg-blue-500/10 text-blue-500/80',
@@ -4344,7 +4344,7 @@ export function VideoPlayer({
                                       </span>
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           'bg-white/10 text-white/40',
                                         )}
                                       >
@@ -4355,7 +4355,7 @@ export function VideoPlayer({
                                     <div className="flex items-center gap-1.5 hover:opacity-90">
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           isSelected
                                             ? 'bg-emerald-500/20 text-emerald-500'
                                             : 'bg-emerald-500/10 text-emerald-500/80',
@@ -4365,7 +4365,7 @@ export function VideoPlayer({
                                       </span>
                                       <span
                                         className={cn(
-                                          'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                          'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                           'bg-white/10 text-white/40',
                                         )}
                                       >
@@ -4375,7 +4375,7 @@ export function VideoPlayer({
                                   ) : (
                                     <span
                                       className={cn(
-                                        'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                                        'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                                         'bg-white/10 text-white/40',
                                       )}
                                     >
@@ -4404,7 +4404,7 @@ export function VideoPlayer({
                             <div>
                               <button
                                 onClick={() => setSettingsPanel('main')}
-                                className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                                className="mb-2 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                               >
                                 <svg
                                   width="14"
@@ -4418,7 +4418,7 @@ export function VideoPlayer({
                                 </svg>
                                 Subtitles
                               </button>
-                              <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                              <div className="max-h-56 space-y-0.5 overflow-y-auto pr-1">
                                 <button
                                   onClick={() => {
                                     setCaptionTouchedByUser(true);
@@ -4429,7 +4429,7 @@ export function VideoPlayer({
                                   className={cn(
                                     'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
                                     !activeCaption
-                                      ? 'bg-accent/20 text-accent font-bold'
+                                      ? 'bg-accent/20 font-bold text-accent'
                                       : 'text-white/60 hover:bg-white/10',
                                   )}
                                 >
@@ -4457,9 +4457,9 @@ export function VideoPlayer({
                                         }
                                       }}
                                       className={cn(
-                                        'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between',
+                                        'flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
                                         isActive
-                                          ? 'bg-accent/20 text-accent font-bold'
+                                          ? 'bg-accent/20 font-bold text-accent'
                                           : 'text-white/60 hover:bg-white/10',
                                       )}
                                     >
@@ -4473,13 +4473,13 @@ export function VideoPlayer({
                                             <img
                                               src={fUrl}
                                               alt={lang}
-                                              className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                              className="h-[18px] w-[18px] shrink-0 rounded-[2px] object-cover opacity-80 shadow-sm"
                                             />
                                           ) : (
                                             <img
                                               src={`https://flagsapi.com/${firstCap.language.toUpperCase()}/flat/64.png`}
                                               alt={lang}
-                                              className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                              className="h-[18px] w-[18px] shrink-0 rounded-[2px] object-cover opacity-80 shadow-sm"
                                             />
                                           );
                                         })()}
@@ -4496,7 +4496,7 @@ export function VideoPlayer({
                                           />
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-1 shrink-0">
+                                      <div className="flex shrink-0 items-center gap-1">
                                         {!multipleOptions && allHI && (
                                           <FaEarDeaf
                                             className="shrink-0 text-yellow-400"
@@ -4539,7 +4539,7 @@ export function VideoPlayer({
                                 })}
 
                                 {captions.length === 0 && (
-                                  <p className="px-3 py-2 text-[11px] text-white/40 italic">
+                                  <p className="px-3 py-2 text-[11px] italic text-white/40">
                                     No external subtitles found
                                   </p>
                                 )}
@@ -4547,7 +4547,7 @@ export function VideoPlayer({
                               <hr className="my-2 border-white/[0.06]" />
                               <button
                                 onClick={() => setSettingsPanel('subAppearance')}
-                                className="w-full rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                                className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] text-white/60 transition-colors hover:bg-white/5 hover:text-white"
                               >
                                 <svg
                                   width="14"
@@ -4583,7 +4583,7 @@ export function VideoPlayer({
                             <div>
                               <button
                                 onClick={() => setSettingsPanel('subtitles')}
-                                className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors"
+                                className="mb-2 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                               >
                                 <svg
                                   width="14"
@@ -4597,7 +4597,7 @@ export function VideoPlayer({
                                 </svg>
                                 {langLabel}
                               </button>
-                              <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                              <div className="max-h-56 space-y-0.5 overflow-y-auto pr-1">
                                 {caps.map((cap) => (
                                   <button
                                     key={cap.id}
@@ -4607,9 +4607,9 @@ export function VideoPlayer({
                                       setSettingsPanel('main');
                                     }}
                                     className={cn(
-                                      'w-full rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors flex items-center justify-between gap-2',
+                                      'flex w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
                                       activeCaption === cap.id
-                                        ? 'bg-accent/20 text-accent font-bold'
+                                        ? 'bg-accent/20 font-bold text-accent'
                                         : 'text-white/60 hover:bg-white/10',
                                     )}
                                   >
@@ -4620,19 +4620,19 @@ export function VideoPlayer({
                                           <img
                                             src={fUrl}
                                             alt={cap.language}
-                                            className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                            className="h-[18px] w-[18px] shrink-0 rounded-[2px] object-cover opacity-80 shadow-sm"
                                           />
                                         ) : (
                                           <img
                                             src={`https://flagsapi.com/${cap.language.toUpperCase()}/flat/64.png`}
                                             alt={cap.language}
-                                            className="w-[18px] h-[18px] object-cover rounded-[2px] shadow-sm opacity-80 shrink-0"
+                                            className="h-[18px] w-[18px] shrink-0 rounded-[2px] object-cover opacity-80 shadow-sm"
                                           />
                                         );
                                       })()}
                                       <span>{cap.label || cap.language.toUpperCase()}</span>
                                     </div>
-                                    <div className="flex items-center gap-1 shrink-0">
+                                    <div className="flex shrink-0 items-center gap-1">
                                       {cap.isHearingImpaired && (
                                         <FaEarDeaf
                                           className="shrink-0 text-yellow-400"
@@ -4671,7 +4671,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('subtitles')}
-                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-3 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -4688,7 +4688,7 @@ export function VideoPlayer({
 
                           {/* Font Size */}
                           <div className="mb-3">
-                            <p className="text-[11px] text-white/50 mb-1.5">Font Size</p>
+                            <p className="mb-1.5 text-[11px] text-white/50">Font Size</p>
                             <div className="flex gap-1.5">
                               {[
                                 { label: 'S', val: 14 },
@@ -4714,7 +4714,7 @@ export function VideoPlayer({
 
                           {/* Text Color */}
                           <div className="mb-3">
-                            <p className="text-[11px] text-white/50 mb-1.5">Text Color</p>
+                            <p className="mb-1.5 text-[11px] text-white/50">Text Color</p>
                             <div className="flex gap-1.5">
                               {[
                                 { label: 'White', val: '#ffffff' },
@@ -4741,7 +4741,7 @@ export function VideoPlayer({
 
                           {/* Background */}
                           <div>
-                            <p className="text-[11px] text-white/50 mb-1.5">Background</p>
+                            <p className="mb-1.5 text-[11px] text-white/50">Background</p>
                             <div className="flex gap-1.5">
                               {[
                                 { label: 'Dark', val: 'rgba(0,0,0,0.75)' },
@@ -4765,7 +4765,7 @@ export function VideoPlayer({
                           </div>
 
                           <div className="mt-3">
-                            <p className="text-[11px] text-white/50 mb-1.5">Vertical Position</p>
+                            <p className="mb-1.5 text-[11px] text-white/50">Vertical Position</p>
                             <input
                               type="range"
                               min="65"
@@ -4773,7 +4773,7 @@ export function VideoPlayer({
                               step="1"
                               value={subVertical}
                               onChange={(e) => setSubVertical(Number(e.target.value))}
-                              className="w-full accent-accent h-1"
+                              className="h-1 w-full accent-accent"
                             />
                             <div className="mt-1 flex justify-between text-[10px] text-white/35">
                               <span>Higher</span>
@@ -4782,7 +4782,7 @@ export function VideoPlayer({
                           </div>
 
                           <div className="mt-3">
-                            <p className="text-[11px] text-white/50 mb-1.5">Subtitle Delay</p>
+                            <p className="mb-1.5 text-[11px] text-white/50">Subtitle Delay</p>
                             <input
                               type="range"
                               min={String(SUB_DELAY_MIN_MS)}
@@ -4790,7 +4790,7 @@ export function VideoPlayer({
                               step="100"
                               value={subDelayMs}
                               onChange={(e) => setSubDelayMs(Number(e.target.value))}
-                              className="w-full accent-accent h-1"
+                              className="h-1 w-full accent-accent"
                             />
                             <div className="mt-1 flex items-center justify-between text-[10px] text-white/40">
                               <span>−10.0s</span>
@@ -4824,7 +4824,7 @@ export function VideoPlayer({
                           </div>
 
                           {/* Preview */}
-                          <div className="mt-3 rounded-[8px] bg-black/50 p-3 flex items-center justify-center">
+                          <div className="mt-3 flex items-center justify-center rounded-[8px] bg-black/50 p-3">
                             <span
                               style={{
                                 fontSize: `${subFontSize}px`,
@@ -4844,7 +4844,7 @@ export function VideoPlayer({
                         <div>
                           <button
                             onClick={() => setSettingsPanel('main')}
-                            className="flex items-center gap-2 mb-3 text-[11px] text-white/60 hover:text-white transition-colors"
+                            className="mb-3 flex items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
                           >
                             <svg
                               width="14"
@@ -4860,7 +4860,7 @@ export function VideoPlayer({
                           </button>
 
                           {/* Existing segments */}
-                          <div className="space-y-2 mb-3 max-h-36 overflow-y-auto">
+                          <div className="mb-3 max-h-36 space-y-2 overflow-y-auto">
                             {[
                               ...effectiveSegments.intro.map((s, i) => ({
                                 ...s,
@@ -4894,7 +4894,7 @@ export function VideoPlayer({
                                 <span className={cn('text-[11px] font-medium', seg.color)}>
                                   {seg.type}
                                 </span>
-                                <span className="text-[10px] text-white/50 tabular-nums">
+                                <span className="text-[10px] tabular-nums text-white/50">
                                   {formatTime(seg.startMs / 1000)} – {formatTime(seg.endMs / 1000)}
                                 </span>
                               </div>
@@ -4903,7 +4903,7 @@ export function VideoPlayer({
                               effectiveSegments.recap.length === 0 &&
                               effectiveSegments.credits.length === 0 &&
                               effectiveSegments.preview.length === 0 && (
-                                <p className="text-[11px] text-white/40 text-center py-2">
+                                <p className="py-2 text-center text-[11px] text-white/40">
                                   No segments found
                                 </p>
                               )}
@@ -4911,12 +4911,12 @@ export function VideoPlayer({
 
                           {/* Submit new segment */}
                           <hr className="my-2 border-white/[0.06]" />
-                          <p className="text-[11px] text-white/50 mb-2">Submit a segment</p>
+                          <p className="mb-2 text-[11px] text-white/50">Submit a segment</p>
                           <div className="space-y-2">
                             <select
                               value={submitType}
                               onChange={(e) => setSubmitType(e.target.value as any)}
-                              className="w-full rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white border-none outline-none"
+                              className="w-full rounded-[8px] border-none bg-white/10 px-2 py-1.5 text-[11px] text-white outline-none"
                             >
                               <option value="intro" className="bg-[#0a0a0f]">
                                 Intro
@@ -4937,11 +4937,11 @@ export function VideoPlayer({
                                 value={submitStart}
                                 onChange={(e) => setSubmitStart(e.target.value)}
                                 placeholder="Start (sec)"
-                                className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
+                                className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white outline-none placeholder:text-white/30"
                               />
                               <button
                                 onClick={() => setSubmitStart(String(Math.floor(currentTime)))}
-                                className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
+                                className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent transition-colors hover:bg-white/15"
                                 title="Use current time"
                               >
                                 Now
@@ -4953,11 +4953,11 @@ export function VideoPlayer({
                                 value={submitEnd}
                                 onChange={(e) => setSubmitEnd(e.target.value)}
                                 placeholder="End (sec)"
-                                className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 outline-none"
+                                className="flex-1 rounded-[8px] bg-white/10 px-2 py-1.5 text-[11px] text-white outline-none placeholder:text-white/30"
                               />
                               <button
                                 onClick={() => setSubmitEnd(String(Math.floor(currentTime)))}
-                                className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent hover:bg-white/15 transition-colors"
+                                className="rounded-[8px] bg-white/10 px-2 py-1.5 text-[10px] text-accent transition-colors hover:bg-white/15"
                                 title="Use current time"
                               >
                                 Now
@@ -4993,7 +4993,7 @@ export function VideoPlayer({
                                   ? 'bg-green-500/20 text-green-400'
                                   : submitStatus === 'error'
                                     ? 'bg-red-500/20 text-red-400'
-                                    : 'bg-accent/20 text-accent hover:bg-accent/30 disabled:opacity-40 disabled:cursor-not-allowed',
+                                    : 'bg-accent/20 hover:bg-accent/30 text-accent disabled:cursor-not-allowed disabled:opacity-40',
                               )}
                             >
                               {submitStatus === 'sending'
@@ -5016,7 +5016,7 @@ export function VideoPlayer({
                 {/* Fullscreen */}
                 <button
                   onClick={toggleFullscreen}
-                  className="rounded-[8px] p-2 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                  className="rounded-[8px] p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                   title="Fullscreen (F)"
                 >
                   {isFullscreen ? (
@@ -5055,18 +5055,18 @@ export function VideoPlayer({
                 exit={{ opacity: 0, y: 20, scale: 0.96, x: '-50%' }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                  'absolute bottom-24 left-1/2 z-40 flex items-center gap-4 px-4 py-2.5 rounded-full overflow-hidden min-w-[300px] max-w-[90vw] border',
+                  'absolute bottom-24 left-1/2 z-40 flex min-w-[300px] max-w-[90vw] items-center gap-4 overflow-hidden rounded-full border px-4 py-2.5',
                   glassEffect
-                    ? 'bg-white/10 backdrop-blur-[32px] backdrop-saturate-[180%] border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.5)]'
-                    : 'bg-zinc-900 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.8)]',
+                    ? 'border-white/20 bg-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-[32px] backdrop-saturate-[180%]'
+                    : 'border-white/10 bg-zinc-900 shadow-[0_8px_32px_rgba(0,0,0,0.8)]',
                 )}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="bg-accent/20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-accent">
                     <FastForward className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[12px] font-bold text-white truncate">
+                    <p className="truncate text-[12px] font-bold text-white">
                       {mediaType === 'movie'
                         ? 'Movie finishing'
                         : `Next: S${getNextEpisodeTarget()?.season} E${getNextEpisodeTarget()?.episode}`}
@@ -5085,7 +5085,7 @@ export function VideoPlayer({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 ml-auto shrink-0">
+                <div className="ml-auto flex shrink-0 items-center gap-2">
                   <button
                     onClick={() => {
                       nextPromptHandledForRef.current = promptKey;
@@ -5110,9 +5110,9 @@ export function VideoPlayer({
                         setShowNextPrompt(false);
                         setNextCountdown(10);
                       }}
-                      className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                      className="rounded-full p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
@@ -5136,10 +5136,10 @@ export function VideoPlayer({
 
           {/* End Screen / Finished Overlay */}
           {isFinished && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black animate-fade-in">
-              <div className="max-w-md px-4 text-center sm:max-w-lg sm:px-8 animate-scale-in">
+            <div className="absolute inset-0 z-50 flex animate-fade-in items-center justify-center bg-black">
+              <div className="max-w-md animate-scale-in px-4 text-center sm:max-w-lg sm:px-8">
                 <div className="mb-4 flex justify-center">
-                  <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
+                  <div className="bg-accent/20 flex h-12 w-12 animate-pulse items-center justify-center rounded-2xl text-accent shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
                     <svg
                       width="24"
                       height="24"
@@ -5153,16 +5153,16 @@ export function VideoPlayer({
                     </svg>
                   </div>
                 </div>
-                <h2 className="text-xl font-black text-white tracking-tighter mb-1 uppercase italic">
+                <h2 className="mb-1 text-xl font-black uppercase italic tracking-tighter text-white">
                   Finished
                 </h2>
-                <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
+                <p className="mb-4 px-4 text-xs font-medium leading-relaxed text-white/50">
                   {mediaType === 'show'
                     ? `Completed S${seasonNum}:E${episodeNum}`
                     : 'Movie finished'}
                 </p>
 
-                <div className="flex justify-center items-center gap-3 w-full mb-2">
+                <div className="mb-2 flex w-full items-center justify-center gap-3">
                   {mediaType === 'show' && Boolean(getNextEpisodeTarget()) && (
                     <button
                       onClick={() => {
@@ -5200,7 +5200,7 @@ export function VideoPlayer({
                       setIsFinished(false);
                       onBack();
                     }}
-                    className="mt-3 text-[10px] font-black text-white/30 uppercase tracking-[0.3em] hover:text-white/60 transition-colors"
+                    className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/30 transition-colors hover:text-white/60"
                   >
                     Go Back
                   </button>
@@ -5236,7 +5236,7 @@ export function VideoPlayer({
                 <p className="text-[13px] font-semibold uppercase tracking-wide text-white/60">
                   Now Watching
                 </p>
-                <h1 className="mt-2 text-5xl font-extrabold text-white leading-tight">
+                <h1 className="mt-2 text-5xl font-extrabold leading-tight text-white">
                   {title || media?.title || 'Now playing'}
                 </h1>
 
@@ -5254,13 +5254,13 @@ export function VideoPlayer({
                 {subtitle && <p className="mt-3 text-[13px] text-white/65">{subtitle}</p>}
 
                 {infoSummaryText && (
-                  <p className="mt-4 max-w-[60%] line-clamp-3 text-[14px] text-white/70">
+                  <p className="mt-4 line-clamp-3 max-w-[60%] text-[14px] text-white/70">
                     {infoSummaryText}
                   </p>
                 )}
               </div>
 
-              <div className="absolute right-6 bottom-6 text-[12px] text-white/70">Paused</div>
+              <div className="absolute bottom-6 right-6 text-[12px] text-white/70">Paused</div>
             </div>
           )}
 
@@ -5277,14 +5277,14 @@ export function VideoPlayer({
       {/* Global Modals */}
       {settingsPanel === 'info' && media && (
         <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-[4px] px-4"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 px-4 backdrop-blur-[4px]"
           onClick={() => setSettingsPanel(null)}
         >
           <div
-            className="w-full max-w-2xl overflow-hidden animate-scale-in max-h-[80vh] overflow-y-auto rounded-[20px] bg-black/85 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)]"
+            className="max-h-[80vh] w-full max-w-2xl animate-scale-in overflow-hidden overflow-y-auto rounded-[20px] bg-black/85 shadow-[0_24px_80px_rgba(0,0,0,0.9),0_0_0_0.5px_rgba(255,255,255,0.08)] backdrop-blur-[40px] backdrop-saturate-[180%]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-gradient-to-r from-accent/15 via-white/5 to-transparent px-5 py-4">
+            <div className="from-accent/15 bg-gradient-to-r via-white/5 to-transparent px-5 py-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-[14px] font-semibold text-white">About</p>
@@ -5381,7 +5381,7 @@ export function VideoPlayer({
                     <div className="relative">
                       <button
                         onClick={() => setShowInfoWatchlistMenu((value) => !value)}
-                        className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/20 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                        className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-colors hover:bg-white/20"
                       >
                         {infoWatchlistItem && infoWatchlistItem.status !== 'none' ? (
                           <>
@@ -5420,7 +5420,7 @@ export function VideoPlayer({
                         href={`https://www.themoviedb.org/${mediaType === 'show' ? 'tv' : 'movie'}/${tmdbId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-[10px] bg-teal-500/15 px-3 py-1.5 text-[11px] font-semibold text-teal-300 hover:bg-teal-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                        className="inline-flex items-center gap-1.5 rounded-[10px] bg-teal-500/15 px-3 py-1.5 text-[11px] font-semibold text-teal-300 shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-colors hover:bg-teal-500/25"
                       >
                         <svg
                           width="12"
@@ -5445,7 +5445,7 @@ export function VideoPlayer({
                           .replace(/^-|-$/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-500/15 px-3 py-1.5 text-[11px] font-semibold text-violet-300 hover:bg-violet-500/25 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                        className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-500/15 px-3 py-1.5 text-[11px] font-semibold text-violet-300 shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-colors hover:bg-violet-500/25"
                       >
                         <svg
                           width="12"
@@ -5489,7 +5489,7 @@ export function VideoPlayer({
                       key={status}
                       onClick={() => handleInfoWatchlistAction(status)}
                       className={cn(
-                        'w-full flex items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
+                        'flex w-full items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[12px] capitalize transition-colors',
                         infoWatchlistItem?.status === status
                           ? 'bg-accent/20 text-accent'
                           : 'text-white/80 hover:bg-white/10',
@@ -5508,15 +5508,15 @@ export function VideoPlayer({
 
       {stream?.type === 'embed' && settingsPanel === 'sources' && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm"
           onClick={() => setSettingsPanel(null)}
         >
           <div
-            className="w-[min(90vw,18rem)] overflow-hidden animate-scale-in max-h-[100%] overflow-y-auto rounded-[16px] bg-black/80 backdrop-blur-[24px] backdrop-saturate-[200%] shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] p-3 custom-scrollbar"
+            className="custom-scrollbar max-h-[100%] w-[min(90vw,18rem)] animate-scale-in overflow-hidden overflow-y-auto rounded-[16px] bg-black/80 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.08)] backdrop-blur-[24px] backdrop-saturate-[200%]"
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className="flex items-center gap-2 mb-2 text-[11px] text-white/60 hover:text-white transition-colors cursor-pointer"
+              className="mb-2 flex cursor-pointer items-center gap-2 text-[11px] text-white/60 transition-colors hover:text-white"
               onClick={() => setSettingsPanel(null)}
             >
               <svg
@@ -5531,7 +5531,7 @@ export function VideoPlayer({
               </svg>
               Sources
             </div>
-            <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar px-1 -mx-1">
+            <div className="custom-scrollbar -mx-1 max-h-60 space-y-1 overflow-y-auto px-1">
               {sourceResults
                 .filter((r) => r.stream.type !== 'embed')
                 .map((res) => {
@@ -5547,26 +5547,26 @@ export function VideoPlayer({
                         setSettingsPanel(null);
                       }}
                       className={cn(
-                        'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none',
+                        'flex w-full items-center justify-between gap-3 rounded-[10px] border-none px-3 py-2 text-left transition-all duration-300',
                         isSelected
                           ? 'bg-accent/20 text-accent'
                           : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <div
                           className={cn(
                             'flex items-center justify-center transition-all duration-500',
                             isSelected
-                              ? 'text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110'
-                              : 'text-white/40 scale-100',
+                              ? 'scale-110 text-accent drop-shadow-[0_0_8px_var(--accent-glow)]'
+                              : 'scale-100 text-white/40',
                           )}
                         >
                           {getSourceIcon(res.sourceId)}
                         </div>
                         <p
                           className={cn(
-                            'text-[12px] font-semibold truncate',
+                            'truncate text-[12px] font-semibold',
                             isSelected ? 'text-accent' : 'text-white',
                           )}
                         >
@@ -5577,7 +5577,7 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               isSelected
                                 ? 'bg-blue-500/20 text-blue-500'
                                 : 'bg-blue-500/10 text-blue-500/80',
@@ -5587,7 +5587,7 @@ export function VideoPlayer({
                           </span>
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               'bg-white/10 text-white/40',
                             )}
                           >
@@ -5597,7 +5597,7 @@ export function VideoPlayer({
                       ) : (
                         <span
                           className={cn(
-                            'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                            'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                             'bg-white/10 text-white/40',
                           )}
                         >
@@ -5625,26 +5625,26 @@ export function VideoPlayer({
                         setSettingsPanel(null);
                       }}
                       className={cn(
-                        'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-[10px] transition-all duration-300 text-left border-none',
+                        'flex w-full items-center justify-between gap-3 rounded-[10px] border-none px-3 py-2 text-left transition-all duration-300',
                         isSelected
                           ? 'bg-accent/20 text-accent'
                           : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white',
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <div
                           className={cn(
                             'flex items-center justify-center transition-all duration-500',
                             isSelected
-                              ? 'text-accent drop-shadow-[0_0_8px_var(--accent-glow)] scale-110'
-                              : 'text-white/40 scale-100',
+                              ? 'scale-110 text-accent drop-shadow-[0_0_8px_var(--accent-glow)]'
+                              : 'scale-100 text-white/40',
                           )}
                         >
                           {getSourceIcon(res.sourceId)}
                         </div>
                         <p
                           className={cn(
-                            'text-[12px] font-semibold truncate',
+                            'truncate text-[12px] font-semibold',
                             isSelected ? 'text-accent' : 'text-white',
                           )}
                         >
@@ -5655,7 +5655,7 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               isSelected
                                 ? 'bg-red-500/20 text-red-500'
                                 : 'bg-red-500/10 text-red-500/50',
@@ -5665,7 +5665,7 @@ export function VideoPlayer({
                           </span>
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               'bg-white/10 text-white/40',
                             )}
                           >
@@ -5676,7 +5676,7 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               isSelected
                                 ? 'bg-amber-500/20 text-amber-500'
                                 : 'bg-amber-500/10 text-amber-500/50',
@@ -5686,7 +5686,7 @@ export function VideoPlayer({
                           </span>
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               'bg-white/10 text-white/40',
                             )}
                           >
@@ -5697,7 +5697,7 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               isSelected
                                 ? 'bg-blue-500/20 text-blue-500'
                                 : 'bg-blue-500/10 text-blue-500/80',
@@ -5707,7 +5707,7 @@ export function VideoPlayer({
                           </span>
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               'bg-white/10 text-white/40',
                             )}
                           >
@@ -5718,7 +5718,7 @@ export function VideoPlayer({
                         <div className="flex items-center gap-1.5 hover:opacity-90">
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               isSelected
                                 ? 'bg-emerald-500/20 text-emerald-500'
                                 : 'bg-emerald-500/10 text-emerald-500/80',
@@ -5728,7 +5728,7 @@ export function VideoPlayer({
                           </span>
                           <span
                             className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                              'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                               'bg-white/10 text-white/40',
                             )}
                           >
@@ -5738,7 +5738,7 @@ export function VideoPlayer({
                       ) : (
                         <span
                           className={cn(
-                            'text-[9px] font-bold px-1.5 py-0.5 rounded uppercase',
+                            'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
                             'bg-white/10 text-white/40',
                           )}
                         >
@@ -5769,12 +5769,12 @@ function PlayerToggle({
   return (
     <button
       onClick={() => onChange(!checked)}
-      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[8px] hover:bg-white/5 transition-colors"
+      className="flex w-full items-center justify-between rounded-[8px] px-2.5 py-1.5 transition-colors hover:bg-white/5"
     >
       <span className="text-[11px] text-white/60">{label}</span>
       <div
         className={cn(
-          'relative w-7 h-4 rounded-full transition-colors',
+          'relative h-4 w-7 rounded-full transition-colors',
           checked ? 'bg-accent' : 'bg-white/15',
         )}
       >

@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <div className="min-h-screen">
       {/* ── Show Hero Skeleton ── */}
-      <section className="relative h-[55vh] min-h-[380px] bg-black animate-pulse">
+      <section className="relative h-[55vh] min-h-[380px] animate-pulse bg-black">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
       </section>
 
@@ -48,10 +48,10 @@ export default function Loading() {
 
       {/* ── Episode Selector Skeleton ── */}
       <div className="mt-20 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-        <div className="skeleton h-8 w-32 rounded-lg mb-6" />
-        <div className="flex gap-2 mb-8 overflow-hidden">
+        <div className="skeleton mb-6 h-8 w-32 rounded-lg" />
+        <div className="mb-8 flex gap-2 overflow-hidden">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="skeleton h-10 w-28 rounded-full flex-shrink-0" />
+            <div key={i} className="skeleton h-10 w-28 flex-shrink-0 rounded-full" />
           ))}
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

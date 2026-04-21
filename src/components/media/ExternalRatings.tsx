@@ -107,7 +107,7 @@ export default function ExternalRatings({
         <button
           onClick={fetchRatings}
           disabled={isLoading}
-          className="group flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/70 transition-all hover:bg-white/20 hover:text-white shadow-[0_1px_4px_rgba(0,0,0,0.3)]"
+          className="group flex items-center gap-2 rounded-full bg-white/5 px-3 py-1.5 text-[10px] font-medium text-white/70 shadow-[0_1px_4px_rgba(0,0,0,0.3)] transition-all hover:bg-white/20 hover:text-white"
         >
           {isLoading ? (
             <svg className="h-3 w-3 animate-spin text-accent" viewBox="0 0 24 24">

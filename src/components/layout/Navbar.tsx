@@ -346,7 +346,7 @@ export function Navbar() {
       pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
 
     const content = (
-      <div className="relative flex flex-col items-center flex-1 min-w-0 basis-0">
+      <div className="relative flex min-w-0 flex-1 basis-0 flex-col items-center">
         {/* Icon container */}
         <div
           className={cn(
@@ -364,7 +364,7 @@ export function Navbar() {
     return (
       <Link
         href={item.href}
-        className="flex flex-col items-center flex-1 min-w-0 basis-0"
+        className="flex min-w-0 flex-1 basis-0 flex-col items-center"
         aria-label={item.label}
       >
         {content}
@@ -391,12 +391,12 @@ export function Navbar() {
               animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
               exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="fixed left-1/2 top-1/2 z-[61] w-full max-w-[min(96vw,900px)] p-3 sm:p-4 outline-none"
+              className="fixed left-1/2 top-1/2 z-[61] w-full max-w-[min(96vw,900px)] p-3 outline-none sm:p-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div
                 className={cn(
-                  'relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
+                  'relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
                   glassEffect
                     ? 'bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl'
                     : 'bg-[#050608]/95',
@@ -429,9 +429,9 @@ export function Navbar() {
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-scroll custom-scrollbar">
+                <div className="custom-scrollbar flex-1 overflow-y-scroll">
                   <div className="px-5 pt-4 sm:px-6">
-                    <form className="relative group" onSubmit={(e) => e.preventDefault()}>
+                    <form className="group relative" onSubmit={(e) => e.preventDefault()}>
                       <div className="relative">
                         <svg
                           width="18"
@@ -456,7 +456,7 @@ export function Navbar() {
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="Search movies, shows..."
-                          className="h-12 w-full appearance-none rounded-xl border border-transparent bg-white/5 pl-11 pr-16 text-sm text-white shadow-inner outline-none transition-all placeholder:text-white/20 focus:border-accent/45 focus:outline-none focus:ring-0"
+                          className="focus:border-accent/45 h-12 w-full appearance-none rounded-xl border border-transparent bg-white/5 pl-11 pr-16 text-sm text-white shadow-inner outline-none transition-all placeholder:text-white/20 focus:outline-none focus:ring-0"
                           autoFocus
                         />
                         <kbd className="absolute right-4 top-1/2 -translate-y-1/2 rounded-lg bg-white/5 px-2 py-1 font-mono text-[10px] text-white/25">
@@ -479,7 +479,7 @@ export function Navbar() {
                           key={item.key}
                           type="button"
                           onClick={() => setSearchType(item.key)}
-                          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap outline-none ${searchType === item.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+                          className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider outline-none transition-all ${searchType === item.key ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
                         >
                           {item.label}
                         </button>
@@ -578,12 +578,12 @@ export function Navbar() {
       </AnimatePresence>
 
       {/* ── Floating Pill (Top) ── */}
-      <nav ref={dockRef} className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+      <nav ref={dockRef} className="fixed left-1/2 top-4 z-50 -translate-x-1/2">
         <div
           className={cn(
-            'flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-[24px] px-2 py-1.5 sm:gap-1 sm:rounded-[28px] sm:px-3 sm:py-2 transition-all duration-500 overflow-x-auto snap-x snap-mandatory touch-pan-x',
+            'flex max-w-[calc(100vw-16px)] touch-pan-x snap-x snap-mandatory items-center gap-0.5 overflow-x-auto rounded-[24px] px-2 py-1.5 transition-all duration-500 sm:gap-1 sm:rounded-[28px] sm:px-3 sm:py-2',
             glassEffect
-              ? 'bg-black/60 backdrop-blur-[40px] backdrop-saturate-[180%] shadow-[0_8px_40px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.06)]'
+              ? 'bg-black/60 shadow-[0_8px_40px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(255,255,255,0.06)] backdrop-blur-[40px] backdrop-saturate-[180%]'
               : 'bg-black/90 shadow-[0_8px_40px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.04)]',
           )}
         >
@@ -598,7 +598,7 @@ export function Navbar() {
               setIsSearchOpen(true);
               setTimeout(() => searchRef.current?.focus(), 100);
             }}
-            className="flex flex-col items-center flex-1 min-w-0 basis-0"
+            className="flex min-w-0 flex-1 basis-0 flex-col items-center"
             aria-label="Search (press /)"
           >
             <div
@@ -631,7 +631,7 @@ export function Navbar() {
           {(isLoggedIn || hasOwnAiKey) && (
             <button
               onClick={() => setIsAiOpen(true)}
-              className="flex flex-col items-center flex-1 min-w-0 basis-0"
+              className="flex min-w-0 flex-1 basis-0 flex-col items-center"
               aria-label="AI Assistant"
             >
               <div
@@ -668,7 +668,7 @@ export function Navbar() {
           {/* Settings always visible */}
           <Link
             href="/settings"
-            className="flex flex-col items-center flex-1 min-w-0 basis-0"
+            className="flex min-w-0 flex-1 basis-0 flex-col items-center"
             aria-label="Settings"
           >
             <div
@@ -700,7 +700,7 @@ export function Navbar() {
           {isLoggedIn && (
             <Link
               href="/contact"
-              className="flex flex-col items-center flex-1 min-w-0 basis-0"
+              className="flex min-w-0 flex-1 basis-0 flex-col items-center"
               aria-label="Contact"
             >
               <div
@@ -734,7 +734,7 @@ export function Navbar() {
             <>
               <Link
                 href="/admin"
-                className="flex flex-col items-center flex-1 min-w-0 basis-0"
+                className="flex min-w-0 flex-1 basis-0 flex-col items-center"
                 aria-label="Admin"
               >
                 <div
@@ -768,7 +768,7 @@ export function Navbar() {
           {isLoggedIn ? (
             <button
               onClick={() => logout()}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all duration-500 hover:scale-110 sm:h-11 sm:w-11"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/10 text-red-400 transition-all duration-500 hover:scale-110 hover:bg-red-500/20 sm:h-11 sm:w-11"
               aria-label="Log Out"
             >
               <svg
@@ -790,7 +790,7 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 bg-accent-muted text-accent border-accent-glow hover:bg-accent/20"
+              className="hover:bg-accent/20 flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-accent-glow bg-accent-muted px-3 py-2 text-[11px] font-black uppercase tracking-wider text-accent transition-all sm:px-4 sm:py-2"
               aria-label="Sign In"
             >
               <svg

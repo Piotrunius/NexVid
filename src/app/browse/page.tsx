@@ -189,18 +189,18 @@ export default function BrowsePage() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
+    <div className="relative min-h-screen overflow-hidden pb-10 pt-24">
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
-          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Browse</h1>
+        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 shadow-[0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-6">
+          <h1 className="text-[30px] font-bold tracking-tight text-text-primary">Browse</h1>
           <p className="mt-1 text-[13px] text-text-muted">
             Discover trending titles and explore by genre
           </p>
         </div>
 
         {/* Segmented control matching Admin Feedback style */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div className="flex gap-2 p-1 rounded-full bg-white/5 w-fit">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex w-fit gap-2 rounded-full bg-white/5 p-1">
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -208,7 +208,7 @@ export default function BrowsePage() {
                   setTab(t.key);
                   setFilter('popular');
                 }}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border ${tab === t.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+                className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all ${tab === t.key ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
               >
                 <span className="opacity-80">{t.icon}</span>
                 {t.label}
@@ -223,7 +223,7 @@ export default function BrowsePage() {
                 placeholder="Year"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="bg-white/[0.04] border border-white/10 rounded-full px-4 py-2 text-[13px] text-white focus:outline-none focus:ring-1 focus:ring-accent w-24 placeholder:text-white/20 hover:bg-white/[0.08] transition-colors"
+                className="w-24 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[13px] text-white transition-colors placeholder:text-white/20 hover:bg-white/[0.08] focus:outline-none focus:ring-1 focus:ring-accent"
               />
             )}
 
@@ -239,22 +239,22 @@ export default function BrowsePage() {
 
         {/* Sub-filters (Gatunki zawinięte, bez scrolla) */}
         {tab !== 'trending' && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
+          <div className="mb-6 flex flex-wrap items-center gap-2">
             {filters.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === f.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all ${filter === f.key ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
               >
                 {f.label}
               </button>
             ))}
-            <div className="w-px h-5 bg-white/10 self-center mx-1" />
+            <div className="mx-1 h-5 w-px self-center bg-white/10" />
             {genres.map((g) => (
               <button
                 key={g.id}
                 onClick={() => setFilter(String(g.id))}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${filter === String(g.id) ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all ${filter === String(g.id) ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
               >
                 {g.name}
               </button>
@@ -285,8 +285,8 @@ export default function BrowsePage() {
         )}
 
         {!isLoading && items.length === 0 && (
-          <div className="h-[40vh] flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-full bg-white/[0.02] flex items-center justify-center mb-4">
+          <div className="flex h-[40vh] flex-col items-center justify-center text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.02]">
               <svg
                 width="24"
                 height="24"
@@ -300,8 +300,8 @@ export default function BrowsePage() {
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </div>
-            <h3 className="text-white font-medium mb-1">No results found</h3>
-            <p className="text-white/40 text-[13px]">
+            <h3 className="mb-1 font-medium text-white">No results found</h3>
+            <p className="text-[13px] text-white/40">
               Try adjusting your filters or search criteria
             </p>
           </div>

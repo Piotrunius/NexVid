@@ -73,16 +73,16 @@ export function RecommendationRows() {
 
   const header = (
     <div className="flex flex-col gap-3 overflow-hidden">
-      <h2 className="text-[20px] font-semibold text-white tracking-tight break-words break-all">
+      <h2 className="break-words break-all text-[20px] font-semibold tracking-tight text-white">
         Because you watched <span className="text-accent">{selectedItem?.title}</span>
       </h2>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
+      <div className="scrollbar-none flex touch-pan-x items-center gap-2 overflow-x-auto overscroll-x-contain pb-1">
         {eligibleItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setSelectedId(item.id)}
-            className={`flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${selectedId === item.id ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+            className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all ${selectedId === item.id ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
           >
             {item.title}
           </button>
@@ -109,8 +109,8 @@ export function RecommendationRows() {
       ) : selectedItem ? (
         <div className="space-y-4 py-4">
           <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">{header}</div>
-          <div className="mx-4 sm:mx-6 lg:mx-10 xl:mx-14 2xl:mx-16 h-32 flex items-center justify-center rounded-[24px] bg-white/[0.02] border border-white/5 border-dashed">
-            <p className="text-white/30 text-[13px]">No recommendations found for this title</p>
+          <div className="mx-4 flex h-32 items-center justify-center rounded-[24px] border border-dashed border-white/5 bg-white/[0.02] sm:mx-6 lg:mx-10 xl:mx-14 2xl:mx-16">
+            <p className="text-[13px] text-white/30">No recommendations found for this title</p>
           </div>
         </div>
       ) : null}

@@ -106,8 +106,8 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
   const sizeClasses = { sm: 'w-[140px]', md: 'w-[180px]', lg: 'w-[220px]' };
 
   return (
-    <Link href={href} className={cn('media-card group media-grid-item', sizeClasses[size])}>
-      <div className="relative overflow-hidden rounded-[24px] aspect-[2/3] bg-black shadow-[0_4px_24px_rgba(0,0,0,0.6)] group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.1)] transition-all duration-600 ease-[var(--spring)]">
+    <Link href={href} className={cn('media-card media-grid-item group', sizeClasses[size])}>
+      <div className="duration-600 relative aspect-[2/3] overflow-hidden rounded-[24px] bg-black shadow-[0_4px_24px_rgba(0,0,0,0.6)] transition-all ease-[var(--spring)] group-hover:shadow-[0_12px_48px_rgba(0,0,0,0.8),0_0_0_0.5px_rgba(255,255,255,0.1)]">
         {item.posterPath ? (
           <Image
             src={tmdbImage(item.posterPath, size === 'lg' ? 'w500' : 'w342')}
@@ -147,12 +147,12 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
 
         {/* Watchlist Button */}
         {mounted && (
-          <div className="absolute bottom-3 right-3 opacity-80 group-hover:opacity-100 transition-opacity duration-200 z-10">
+          <div className="absolute bottom-3 right-3 z-10 opacity-80 transition-opacity duration-200 group-hover:opacity-100">
             <div className="relative">
               <button
                 onClick={handleToggleMenu}
                 className={cn(
-                  'flex items-center justify-center h-8 w-8 rounded-[12px] backdrop-blur-[20px] transition-all duration-400 ease-[var(--spring)] active:scale-90',
+                  'duration-400 flex h-8 w-8 items-center justify-center rounded-[12px] backdrop-blur-[20px] transition-all ease-[var(--spring)] active:scale-90',
                   isInWatchlist
                     ? 'bg-accent/80 text-white'
                     : 'bg-black/40 text-white/80 hover:bg-black/60',
@@ -162,15 +162,15 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
                 {isInWatchlist ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               </button>
               {showMenu && (
-                <div className="panel-glass absolute bottom-full right-0 mb-2 w-36 p-1.5 z-20 animate-scale-in">
+                <div className="panel-glass absolute bottom-full right-0 z-20 mb-2 w-36 animate-scale-in p-1.5">
                   {STATUSES.map((status) => (
                     <button
                       key={status}
                       onClick={(e) => handleWatchlistClick(e, status)}
                       className={cn(
-                        'w-full flex items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[12px] capitalize transition-all duration-300',
+                        'flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-[12px] capitalize transition-all duration-300',
                         watchlistItem?.status === status
-                          ? 'bg-accent/15 text-accent font-medium'
+                          ? 'bg-accent/15 font-medium text-accent'
                           : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80',
                       )}
                     >
@@ -186,7 +186,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
 
         {/* Rating badge */}
         {!hasProgress && item.rating > 0 && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-[20px] px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+          <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-[20px]">
             <svg
               width="10"
               height="10"
@@ -202,8 +202,8 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
 
         {/* Type badge */}
         {showType && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-[20px] px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-            <span className="text-[10px] font-bold uppercase text-white tracking-[0.12em]">
+          <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-[20px]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white">
               {canonicalType === 'movie' ? 'Movie' : 'TV'}
             </span>
           </div>
@@ -211,13 +211,13 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
       </div>
 
       {/* Title below card - Enhanced Info */}
-      <div className="mt-3 px-1 space-y-0.5">
+      <div className="mt-3 space-y-0.5 px-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[13px] font-bold text-white/90 line-clamp-1 flex-1 tracking-tight">
+          <p className="line-clamp-1 flex-1 text-[13px] font-bold tracking-tight text-white/90">
             {item.title}
           </p>
           {hasProgress && progress && (
-            <span className="text-[10px] font-black text-accent tracking-tighter bg-accent/10 px-1.5 py-0.5 rounded-md">
+            <span className="bg-accent/10 rounded-md px-1.5 py-0.5 text-[10px] font-black tracking-tighter text-accent">
               {Math.round(progress.percentage || 0)}%
             </span>
           )}
@@ -229,7 +229,7 @@ export function MediaCard({ item, size = 'md', showType = false }: MediaCardProp
               : item.releaseYear}
           </p>
           {hasProgress && progress && (
-            <p className="text-white/50 tracking-wide font-bold">
+            <p className="font-bold tracking-wide text-white/50">
               {isShow
                 ? `S${progress.season}:E${progress.episode}`
                 : formatTime(progress.timestamp || 0)}
@@ -324,20 +324,20 @@ export function MediaRow({
       {!noHeader && (
         <div
           className={cn(
-            'flex items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 w-full',
+            'flex w-full items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16',
             noPadding ? 'mb-3' : 'mb-5',
           )}
         >
-          <div className="flex-1 min-w-0 mr-4">
+          <div className="mr-4 min-w-0 flex-1">
             {typeof title === 'string' ? (
-              <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">
+              <h2 className="truncate text-[20px] font-semibold tracking-tight text-white">
                 {title}
               </h2>
             ) : (
               title
             )}
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
             {enableControls && (
               <div className="flex items-center gap-1.5">
                 <button
@@ -383,7 +383,7 @@ export function MediaRow({
                   'flex items-center gap-1 transition-all duration-300',
                   seeAllAsButton
                     ? 'rounded-full bg-white/[0.06] px-3.5 py-1.5 text-[12px] font-semibold text-white/85 hover:bg-white/[0.12] hover:text-white'
-                    : 'text-[13px] font-medium text-accent/70 hover:text-accent',
+                    : 'text-accent/70 text-[13px] font-medium hover:text-accent',
                 )}
               >
                 {seeAllLabel}
@@ -427,7 +427,7 @@ export function MediaCardSkeleton({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }
 
   return (
     <div className={cn('media-grid-item flex-shrink-0', sizeClasses[size])}>
-      <div className="skeleton rounded-[24px] aspect-[2/3] w-full" />
+      <div className="skeleton aspect-[2/3] w-full rounded-[24px]" />
       <div className="mt-3 space-y-2 px-1">
         <div className="skeleton h-3.5 w-3/4 rounded-[8px]" />
         <div className="skeleton h-3 w-1/3 rounded-[8px]" />
@@ -451,13 +451,13 @@ export function MediaRowSkeleton({
     <section className={cn(noPadding ? 'py-2' : 'py-8')}>
       <div
         className={cn(
-          'flex items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 w-full',
+          'flex w-full items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16',
           noPadding ? 'mb-3' : 'mb-5',
         )}
       >
-        <div className="flex-1 min-w-0 mr-4">
+        <div className="mr-4 min-w-0 flex-1">
           {title ? (
-            <h2 className="text-[20px] font-semibold text-white tracking-tight truncate">
+            <h2 className="truncate text-[20px] font-semibold tracking-tight text-white">
               {title}
             </h2>
           ) : (

@@ -930,10 +930,10 @@ export default function AdminPage() {
 
   if (!hasAdminPanelAccess) {
     return (
-      <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
+      <div className="relative min-h-screen overflow-hidden pb-12 pt-24">
         <div className="mx-auto max-w-3xl px-4">
-          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative border border-white/10">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-red-500/10">
+          <div className="glass-card glass-liquid relative rounded-[var(--glass-radius-lg)] border border-white/10 p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-red-500/10 bg-[var(--bg-glass-light)]">
               <svg
                 width="24"
                 height="24"
@@ -948,7 +948,7 @@ export default function AdminPage() {
                 <path d="m9.5 9.5 5 5" />
               </svg>
             </div>
-            <h1 className="text-[26px] font-bold text-text-primary tracking-tight">
+            <h1 className="text-[26px] font-bold tracking-tight text-text-primary">
               Access Denied
             </h1>
             <p className="mt-2 text-[14px] text-text-muted">
@@ -966,19 +966,19 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
-      <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative [&_button]:text-center [&_button]:justify-center">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="relative min-h-screen overflow-hidden pb-10 pt-24">
+      <div className="relative space-y-6 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 [&_button]:justify-center [&_button]:text-center">
+        <div className="flex flex-col justify-between gap-6 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 shadow-[0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-6 md:flex-row md:items-center">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-[30px] font-bold text-text-primary tracking-tight">
+              <h1 className="text-[30px] font-bold tracking-tight text-text-primary">
                 Admin Console
               </h1>
-              <span className="px-2 py-0.5 rounded-full bg-accent text-[11px] font-black uppercase tracking-widest text-white shadow-[0_0_10px_var(--accent-glow)]">
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-black uppercase tracking-widest text-white shadow-[0_0_10px_var(--accent-glow)]">
                 {userRole}
               </span>
             </div>
-            <p className="mt-1 text-[13px] text-text-muted max-w-xl">
+            <p className="mt-1 max-w-xl text-[13px] text-text-muted">
               System overview and administrative controls for NexVid infrastructure.
             </p>
           </div>
@@ -986,11 +986,11 @@ export default function AdminPage() {
             <button
               onClick={() => loadAll()}
               disabled={isLoading}
-              className="btn-glass p-2.5 rounded-full"
+              className="btn-glass rounded-full p-2.5"
               title="Refresh data"
             >
               <svg
-                className={cn('w-5 h-5', isLoading && 'animate-spin')}
+                className={cn('h-5 w-5', isLoading && 'animate-spin')}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1004,7 +1004,7 @@ export default function AdminPage() {
               <button
                 disabled={isSubmitting}
                 onClick={handleClearAllSessions}
-                className="btn-glass !text-red-400 px-4 font-bold border-red-500/20 hover:bg-red-500/10"
+                className="btn-glass border-red-500/20 px-4 font-bold !text-red-400 hover:bg-red-500/10"
               >
                 Clear All Sessions
               </button>
@@ -1024,13 +1024,13 @@ export default function AdminPage() {
         <div className="grid gap-6 xl:grid-cols-2">
           {canManageModeration && (
             <>
-              <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+              <section className="glass-card glass-liquid space-y-4 rounded-[var(--glass-radius-lg)] p-5">
                 <h2 className="text-[15px] font-semibold text-text-primary">
                   Moderation & account controls
                 </h2>
 
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm">
+                  <div className="space-y-2 rounded-[12px] bg-[var(--bg-glass-light)] p-3 backdrop-blur-sm">
                     <h3 className="text-[13px] font-semibold text-text-primary">Account bans</h3>
                     <p className="text-[11px] text-text-muted">Ban an account.</p>
                     <input
@@ -1052,25 +1052,25 @@ export default function AdminPage() {
                     >
                       Ban account
                     </button>
-                    <div className="max-h-40 overflow-auto space-y-1.5 pt-1">
+                    <div className="max-h-40 space-y-1.5 overflow-auto pt-1">
                       {bans.map((item) => (
                         <div
                           key={`${item.type}:${item.value}`}
-                          className="rounded-[10px] p-2 bg-white/5"
+                          className="rounded-[10px] bg-white/5 p-2"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-[11px] font-medium text-text-primary break-all">
+                              <p className="break-all text-[11px] font-medium text-text-primary">
                                 {item.type === 'ip' ? 'IP' : 'User'}: {item.value}
                               </p>
                               {item.userId && (
-                                <p className="text-[10px] font-mono text-white/35 break-all">
+                                <p className="break-all font-mono text-[10px] text-white/35">
                                   User ID: {item.userId}
                                 </p>
                               )}
                               {Array.isArray(item.linkedUserIds) &&
                                 item.linkedUserIds.length > 0 && (
-                                  <p className="text-[10px] font-mono text-white/35 break-all">
+                                  <p className="break-all font-mono text-[10px] text-white/35">
                                     Linked IDs: {item.linkedUserIds.join(', ')}
                                   </p>
                                 )}
@@ -1080,7 +1080,7 @@ export default function AdminPage() {
                               </p>
                             </div>
                             <button
-                              className="btn-glass text-red-400 text-[10px] shrink-0"
+                              className="btn-glass shrink-0 text-[10px] text-red-400"
                               disabled={isSubmitting}
                               onClick={() => handleUnban(item.type, item.value)}
                             >
@@ -1092,7 +1092,7 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 space-y-2 backdrop-blur-sm text-red-400/90 border border-red-500/10">
+                  <div className="space-y-2 rounded-[12px] border border-red-500/10 bg-[var(--bg-glass-light)] p-3 text-red-400/90 backdrop-blur-sm">
                     <h3 className="text-[13px] font-semibold">Danger Zone</h3>
                     <p className="text-[11px] text-red-400/60">
                       Wipe account data permanently or reset password.
@@ -1125,12 +1125,12 @@ export default function AdminPage() {
                 </div>
               </section>
 
-              <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
-                <h2 className="text-[15px] font-semibold text-text-primary flex items-center gap-2">
+              <section className="glass-card glass-liquid space-y-4 rounded-[var(--glass-radius-lg)] p-5">
+                <h2 className="flex items-center gap-2 text-[15px] font-semibold text-text-primary">
                   Create announcement
                 </h2>
                 <textarea
-                  className={`input w-full resize-none break-all whitespace-pre-wrap ${announcementFontClass}`}
+                  className={`input w-full resize-none whitespace-pre-wrap break-all ${announcementFontClass}`}
                   placeholder="Write announcement message..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -1166,7 +1166,7 @@ export default function AdminPage() {
                 <button
                   disabled={isSubmitting}
                   onClick={handleCreateAnnouncement}
-                  className="btn-accent w-full relative z-10"
+                  className="btn-accent relative z-10 w-full"
                 >
                   Create announcement
                 </button>
@@ -1178,24 +1178,24 @@ export default function AdminPage() {
                     <h2 className="text-[15px] font-semibold text-text-primary">Block content</h2>
 
                     <div className="mt-4 space-y-4">
-                      <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row">
                         <div className="flex-1">
-                          <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">
+                          <label className="mb-1 ml-1 block text-[10px] font-bold uppercase text-text-muted">
                             TMDB ID
                           </label>
                           <input
-                            className="input w-full min-h-[48px] text-[16px] text-text-primary bg-white/5 border-white/10 px-4 focus:bg-white/10"
+                            className="input min-h-[48px] w-full border-white/10 bg-white/5 px-4 text-[16px] text-text-primary focus:bg-white/10"
                             placeholder="e.g. 550"
                             value={blockedTmdbId}
                             onChange={(e) => setBlockedTmdbId(e.target.value)}
                           />
                         </div>
                         <div className="w-full sm:w-32">
-                          <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">
+                          <label className="mb-1 ml-1 block text-[10px] font-bold uppercase text-text-muted">
                             Type
                           </label>
                           <select
-                            className="input w-full min-h-[48px] text-text-primary bg-white/5"
+                            className="input min-h-[48px] w-full bg-white/5 text-text-primary"
                             value={blockedMediaType}
                             onChange={(e) => setBlockedMediaType(e.target.value as any)}
                           >
@@ -1205,11 +1205,11 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase font-bold text-text-muted ml-1 mb-1 block">
+                        <label className="mb-1 ml-1 block text-[10px] font-bold uppercase text-text-muted">
                           Reason (optional)
                         </label>
                         <input
-                          className="input w-full min-h-[48px] text-[15px] text-text-primary bg-white/5"
+                          className="input min-h-[48px] w-full bg-white/5 text-[15px] text-text-primary"
                           placeholder="Why is this blocked?"
                           value={blockedReason}
                           onChange={(e) => setBlockedReason(e.target.value)}
@@ -1230,7 +1230,7 @@ export default function AdminPage() {
                       <h2 className="text-[15px] font-semibold text-text-primary">Blocked IDs</h2>
                       <div className="flex w-full items-center gap-2 sm:w-auto">
                         <input
-                          className="input w-full min-h-[44px] text-[13px] bg-white/5"
+                          className="input min-h-[44px] w-full bg-white/5 text-[13px]"
                           placeholder="Search by ID or reason"
                           value={blockedSearch}
                           onChange={(e) => setBlockedSearch(e.target.value)}
@@ -1238,7 +1238,7 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 max-h-[420px] overflow-auto space-y-2 border-t border-white/5 pt-4">
+                    <div className="mt-3 max-h-[420px] space-y-2 overflow-auto border-t border-white/5 pt-4">
                       {isLoading ? (
                         <p className="text-[13px] text-text-muted">Loading...</p>
                       ) : filteredBlockedMedia.length === 0 ? (
@@ -1247,24 +1247,24 @@ export default function AdminPage() {
                         filteredBlockedMedia.map((item) => (
                           <div
                             key={`${item.mediaType}:${item.tmdbId}`}
-                            className="rounded-[12px] bg-[var(--bg-glass)] p-3 flex items-center justify-between gap-2"
+                            className="flex items-center justify-between gap-2 rounded-[12px] bg-[var(--bg-glass)] p-3"
                           >
                             <div className="min-w-0">
                               <p className="text-[12px] font-semibold text-text-primary">
-                                <span className="uppercase text-[10px] text-accent font-bold mr-1">
+                                <span className="mr-1 text-[10px] font-bold uppercase text-accent">
                                   {item.mediaType}
                                 </span>
                                 ID: {item.tmdbId}
                               </p>
-                              <p className="text-[11px] text-text-muted truncate">
+                              <p className="truncate text-[11px] text-text-muted">
                                 {item.reason || 'No reason provided'}
                               </p>
-                              <p className="text-[10px] text-text-muted/60 mt-0.5">
+                              <p className="text-text-muted/60 mt-0.5 text-[10px]">
                                 {new Date(item.createdAt).toLocaleDateString()}
                               </p>
                             </div>
                             <button
-                              className="btn-glass text-red-400 text-[11px]"
+                              className="btn-glass text-[11px] text-red-400"
                               disabled={isSubmitting}
                               onClick={() => handleUnblockMedia(item.tmdbId, item.mediaType as any)}
                             >
@@ -1282,7 +1282,7 @@ export default function AdminPage() {
         </div>
 
         {canManageAdmins && (
-          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+          <section className="glass-card glass-liquid space-y-4 rounded-[var(--glass-radius-lg)] p-5">
             <div>
               <h2 className="text-[15px] font-semibold text-text-primary">Staff permissions</h2>
             </div>
@@ -1364,7 +1364,7 @@ export default function AdminPage() {
                         <td className="px-3 py-2">
                           {item.userId === user?.id ? (
                             <button
-                              className="btn-glass text-text-muted text-[11px] cursor-default opacity-60"
+                              className="btn-glass cursor-default text-[11px] text-text-muted opacity-60"
                               disabled
                             >
                               You
@@ -1372,7 +1372,7 @@ export default function AdminPage() {
                           ) : (isAdminRole && (item.role === 'admin' || item.role === 'owner')) ||
                             isModerator ? (
                             <button
-                              className="btn-glass text-text-muted text-[11px] cursor-default opacity-40"
+                              className="btn-glass cursor-default text-[11px] text-text-muted opacity-40"
                               title="Insufficient permissions to revoke this role"
                               disabled
                             >
@@ -1380,7 +1380,7 @@ export default function AdminPage() {
                             </button>
                           ) : (
                             <button
-                              className="btn-glass text-red-400 text-[11px]"
+                              className="btn-glass text-[11px] text-red-400"
                               disabled={isSubmitting}
                               onClick={() => handleRevokeAdmin(item.userId, item.username)}
                             >
@@ -1397,7 +1397,7 @@ export default function AdminPage() {
           </section>
         )}
 
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+        <section className="glass-card glass-liquid space-y-4 rounded-[var(--glass-radius-lg)] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-[15px] font-semibold text-text-primary">Users</h2>
@@ -1405,7 +1405,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
               <div className="relative">
                 <input
-                  className="input w-full py-1.5 px-3 text-[12px] bg-[var(--bg-glass-light)] border border-white/10 rounded-[8px] focus:bg-white/10 transition-all"
+                  className="input w-full rounded-[8px] border border-white/10 bg-[var(--bg-glass-light)] px-3 py-1.5 text-[12px] transition-all focus:bg-white/10"
                   placeholder="Nick search..."
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
@@ -1437,7 +1437,7 @@ export default function AdminPage() {
               </select>
             </div>
           </div>
-          <div className="max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] custom-scrollbar">
+          <div className="custom-scrollbar max-h-96 overflow-auto rounded-[12px] bg-[var(--bg-glass-light)]">
             {isLoading && adminUsers.length === 0 ? (
               <p className="p-3 text-[13px] text-text-muted">Loading...</p>
             ) : filteredAndSortedUsers.length === 0 ? (
@@ -1446,13 +1446,13 @@ export default function AdminPage() {
               </p>
             ) : (
               <table className="w-full text-[13px]">
-                <thead className="bg-white/5 sticky top-0 z-10 backdrop-blur-md">
+                <thead className="sticky top-0 z-10 bg-white/5 backdrop-blur-md">
                   <tr className="text-left text-[11px] text-text-muted">
                     <th className="px-3 py-2.5 font-bold uppercase tracking-wider">Nick</th>
                     <th className="px-3 py-2.5 font-bold uppercase tracking-wider">User ID</th>
                     <th className="px-3 py-2.5 font-bold uppercase tracking-wider">Created</th>
                     <th className="px-3 py-2.5 font-bold uppercase tracking-wider">Last active</th>
-                    <th className="px-3 py-2.5 font-bold uppercase tracking-wider text-right">
+                    <th className="px-3 py-2.5 text-right font-bold uppercase tracking-wider">
                       Action
                     </th>
                   </tr>
@@ -1464,9 +1464,9 @@ export default function AdminPage() {
                     return (
                       <tr
                         key={item.id}
-                        className="border-t border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                        className="border-t border-white/[0.03] transition-colors hover:bg-white/[0.02]"
                       >
-                        <td className="px-3 py-3 text-text-primary font-medium">
+                        <td className="px-3 py-3 font-medium text-text-primary">
                           <div className="flex items-center gap-2">
                             {item.username}
                             {isLive && (
@@ -1479,7 +1479,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-3 py-3">
                           <button
-                            className="text-[11px] font-mono text-text-muted hover:text-accent transition-colors"
+                            className="font-mono text-[11px] text-text-muted transition-colors hover:text-accent"
                             onClick={() => {
                               navigator.clipboard.writeText(item.id);
                               toast('User ID copied', 'success');
@@ -1499,7 +1499,7 @@ export default function AdminPage() {
                           <div className="inline-flex items-center gap-2">
                             <button
                               onClick={() => handleCreateAdminChat(item.id, item.username)}
-                              className="btn-glass text-[10px] py-1.5 px-3 bg-white/5 border-white/5 hover:bg-white/10"
+                              className="btn-glass border-white/5 bg-white/5 px-3 py-1.5 text-[10px] hover:bg-white/10"
                             >
                               Chat
                             </button>
@@ -1507,7 +1507,7 @@ export default function AdminPage() {
                               <button
                                 onClick={() => handleClearUserSessions(item.id, item.username)}
                                 disabled={isSubmitting}
-                                className="btn-glass text-[10px] py-1.5 px-3 text-amber-300 border-amber-500/20 hover:bg-amber-500/10"
+                                className="btn-glass border-amber-500/20 px-3 py-1.5 text-[10px] text-amber-300 hover:bg-amber-500/10"
                               >
                                 Clear sessions
                               </button>
@@ -1524,7 +1524,7 @@ export default function AdminPage() {
         </section>
 
         {canManageModeration && (
-          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
+          <section className="glass-card glass-liquid space-y-3 rounded-[var(--glass-radius-lg)] p-5">
             <h2 className="text-[15px] font-semibold text-text-primary">Audit log</h2>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1562,7 +1562,7 @@ export default function AdminPage() {
                   <tbody>
                     {filteredAuditLogs.map((item) => (
                       <tr key={item.id} className="border-t border-[var(--border)]">
-                        <td className="px-3 py-2 text-text-muted whitespace-nowrap">
+                        <td className="whitespace-nowrap px-3 py-2 text-text-muted">
                           {new Date(item.createdAt).toLocaleString()}
                         </td>
                         <td className="px-3 py-2 text-text-primary">
@@ -1600,19 +1600,19 @@ export default function AdminPage() {
           </section>
         )}
 
-        <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-4">
+        <section className="glass-card glass-liquid space-y-4 rounded-[var(--glass-radius-lg)] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-[15px] font-semibold text-text-primary">Feedback inbox</h2>
             </div>
-            <div className="flex gap-2 p-1 rounded-full bg-white/5 w-fit">
+            <div className="flex w-fit gap-2 rounded-full bg-white/5 p-1">
               <button
                 onClick={() => setFeedbackInboxTab('active')}
                 className={cn(
-                  'px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border',
+                  'rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all',
                   feedbackInboxTab === 'active'
-                    ? 'bg-accent-muted text-accent border-accent-glow'
-                    : 'bg-transparent text-white/40 border-transparent hover:text-white',
+                    ? 'border-accent-glow bg-accent-muted text-accent'
+                    : 'border-transparent bg-transparent text-white/40 hover:text-white',
                 )}
               >
                 Active
@@ -1620,10 +1620,10 @@ export default function AdminPage() {
               <button
                 onClick={() => setFeedbackInboxTab('archive')}
                 className={cn(
-                  'px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border',
+                  'rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all',
                   feedbackInboxTab === 'archive'
-                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-                    : 'bg-transparent text-white/40 border-transparent hover:text-white',
+                    ? 'border-yellow-500/30 bg-yellow-500/20 text-yellow-300'
+                    : 'border-transparent bg-transparent text-white/40 hover:text-white',
                 )}
               >
                 Archive
@@ -1632,7 +1632,7 @@ export default function AdminPage() {
           </div>
 
           <div className="grid items-stretch gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-            <div className="h-[72vh] min-h-[460px] max-h-[760px] overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] p-2 backdrop-blur-sm">
+            <div className="h-[72vh] max-h-[760px] min-h-[460px] overflow-auto rounded-[12px] bg-[var(--bg-glass-light)] p-2 backdrop-blur-sm">
               {isLoading && feedbackThreads.length === 0 ? (
                 <p className="px-2 py-4 text-[13px] text-text-muted">Loading...</p>
               ) : sortedFeedbackThreads.length === 0 ? (
@@ -1649,7 +1649,7 @@ export default function AdminPage() {
                           : 'border-transparent hover:bg-[var(--bg-glass-light)]'
                       }`}
                     >
-                      <p className="text-[12px] font-semibold text-text-primary line-clamp-1">
+                      <p className="line-clamp-1 text-[12px] font-semibold text-text-primary">
                         {thread.subject}
                       </p>
                       <p className="mt-0.5 text-[11px] text-text-muted">
@@ -1670,7 +1670,7 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className="rounded-[12px] bg-[var(--bg-glass-light)] p-3 min-h-[460px] h-[72vh] max-h-[760px] overflow-hidden flex flex-col backdrop-blur-sm">
+            <div className="flex h-[72vh] max-h-[760px] min-h-[460px] flex-col overflow-hidden rounded-[12px] bg-[var(--bg-glass-light)] p-3 backdrop-blur-sm">
               {!selectedFeedbackThread ? (
                 <div className="flex h-full items-center justify-center text-[13px] text-text-muted">
                   Select a feedback thread to view details
@@ -1678,7 +1678,7 @@ export default function AdminPage() {
               ) : (
                 <>
                   <div className="border-b border-[var(--border)] pb-2">
-                    <p className="text-[13px] font-semibold text-text-primary line-clamp-1">
+                    <p className="line-clamp-1 text-[13px] font-semibold text-text-primary">
                       {selectedFeedbackThread.subject}
                     </p>
                     <p className="mt-0.5 text-[11px] text-text-muted">
@@ -1697,7 +1697,7 @@ export default function AdminPage() {
                     )}
                   </div>
 
-                  <div className="mt-3 flex-1 min-h-0 space-y-3 overflow-auto pr-1">
+                  <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-auto pr-1">
                     {feedbackMessages.length === 0 ? (
                       <p className="text-[13px] text-text-muted">No messages in this thread yet.</p>
                     ) : (
@@ -1713,13 +1713,13 @@ export default function AdminPage() {
                             className={cn(
                               'max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] leading-relaxed shadow-sm',
                               item.senderRole === 'admin'
-                                ? 'bg-accent text-white rounded-tr-[4px]'
-                                : 'bg-white/10 text-white/90 rounded-tl-[4px]',
+                                ? 'rounded-tr-[4px] bg-accent text-white'
+                                : 'rounded-tl-[4px] bg-white/10 text-white/90',
                             )}
                           >
                             <p className="whitespace-pre-wrap">{item.message}</p>
                           </div>
-                          <p className="text-[10px] text-white/30 px-1 font-medium">
+                          <p className="px-1 text-[10px] font-medium text-white/30">
                             {item.senderRole === 'admin'
                               ? 'Support'
                               : selectedFeedbackThread.username}{' '}
@@ -1730,10 +1730,10 @@ export default function AdminPage() {
                     )}
                   </div>
 
-                  <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
+                  <div className="mt-3 space-y-3 border-t border-[var(--border)] pt-3">
                     <div>
                       <textarea
-                        className="input min-h-12 max-h-32 w-full"
+                        className="input max-h-32 min-h-12 w-full"
                         value={feedbackReply}
                         onChange={(event) => setFeedbackReply(event.target.value)}
                         placeholder={
@@ -1755,7 +1755,7 @@ export default function AdminPage() {
                           !feedbackReply.trim()
                         }
                         onClick={handleSendFeedbackReply}
-                        className="btn-accent flex-1 min-w-[92px] justify-center px-3 py-2 text-center text-[12px]"
+                        className="btn-accent min-w-[92px] flex-1 justify-center px-3 py-2 text-center text-[12px]"
                       >
                         Send
                       </button>
@@ -1763,7 +1763,7 @@ export default function AdminPage() {
                         <button
                           disabled={isSubmitting}
                           onClick={handleArchiveFeedbackThread}
-                          className="btn-glass flex-1 min-w-[92px] justify-center px-3 py-2 text-center text-[12px] text-red-400 hover:bg-red-500/10"
+                          className="btn-glass min-w-[92px] flex-1 justify-center px-3 py-2 text-center text-[12px] text-red-400 hover:bg-red-500/10"
                         >
                           Archive
                         </button>
@@ -1771,7 +1771,7 @@ export default function AdminPage() {
                         <button
                           disabled={isSubmitting}
                           onClick={handleUnarchiveFeedbackThread}
-                          className="btn-glass flex-1 min-w-[92px] justify-center px-3 py-2 text-center text-[12px] text-emerald-400 hover:bg-emerald-500/10"
+                          className="btn-glass min-w-[92px] flex-1 justify-center px-3 py-2 text-center text-[12px] text-emerald-400 hover:bg-emerald-500/10"
                         >
                           Unarchive
                         </button>
@@ -1783,7 +1783,7 @@ export default function AdminPage() {
                         <button
                           disabled={isSubmitting}
                           onClick={handleForceDeleteFeedbackThread}
-                          className="btn-glass flex-1 min-w-[110px] justify-center px-3 py-2 text-center text-[12px] text-red-400"
+                          className="btn-glass min-w-[110px] flex-1 justify-center px-3 py-2 text-center text-[12px] text-red-400"
                         >
                           Delete
                         </button>
@@ -1797,7 +1797,7 @@ export default function AdminPage() {
         </section>
 
         {canManageModeration && (
-          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
+          <section className="glass-card glass-liquid space-y-3 rounded-[var(--glass-radius-lg)] p-5">
             <h2 className="text-[15px] font-semibold text-text-primary">Announcements list</h2>
             <div className="space-y-2">
               {isLoading && announcements.length === 0 ? (
@@ -1809,33 +1809,33 @@ export default function AdminPage() {
                   <div
                     key={item.id}
                     className={cn(
-                      'rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 transition-all duration-300',
+                      'flex flex-col justify-between gap-4 rounded-[18px] border bg-white/[0.03] p-4 transition-all duration-300',
                       item.isActive ? '!border-accent-glow shadow-lg' : 'border-white/5',
                     )}
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="mb-3 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5">
                           {item.isActive && (
-                            <span className="text-[8px] bg-accent-muted text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent-glow">
+                            <span className="flex items-center gap-1 rounded-full border border-accent-glow bg-accent-muted px-2 py-0.5 text-[8px] font-black uppercase text-accent">
                               Active
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <p className="break-all whitespace-pre-wrap text-[13px] font-medium text-text-primary leading-relaxed">
+                        <p className="whitespace-pre-wrap break-all text-[13px] font-medium leading-relaxed text-text-primary">
                           {item.message}
                         </p>
                       </div>
-                      <p className="text-[10px] text-white/20 mt-3 font-medium">
+                      <p className="mt-3 text-[10px] font-medium text-white/20">
                         {new Date(item.updatedAt).toLocaleString()}
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <button
                         className={cn(
-                          'btn-glass flex-1 text-[11px] py-2',
+                          'btn-glass flex-1 py-2 text-[11px]',
                           item.isActive && 'bg-white/10',
                         )}
                         disabled={isSubmitting}
@@ -1844,7 +1844,7 @@ export default function AdminPage() {
                         {item.isActive ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
-                        className="btn-glass text-red-400 text-[11px] p-2"
+                        className="btn-glass p-2 text-[11px] text-red-400"
                         disabled={isSubmitting}
                         onClick={() => handleDeleteAnnouncement(item.id)}
                       >
@@ -1867,7 +1867,7 @@ export default function AdminPage() {
           </section>
         )}
         {!isModerator && (
-          <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-3">
+          <section className="glass-card glass-liquid space-y-3 rounded-[var(--glass-radius-lg)] p-5">
             <AdminSurveys canDelete={isOwnerConfirmed} />
           </section>
         )}
@@ -1896,7 +1896,7 @@ function StatCard({
       >
         {value}
       </p>
-      {subValue && <p className="mt-1 text-[10px] text-text-muted/60 font-medium">{subValue}</p>}
+      {subValue && <p className="text-text-muted/60 mt-1 text-[10px] font-medium">{subValue}</p>}
     </div>
   );
 }
