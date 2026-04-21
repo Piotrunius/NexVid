@@ -1959,7 +1959,7 @@ export function VideoPlayer({
 
     if (shouldPrompt) {
       if (!showNextPrompt) setShowNextPrompt(true);
-      setNextCountdown(Math.max(0, Math.ceil(remaining)));
+      setNextCountdown(Math.max(0, remaining));
 
       // Trigger automatic transition if autoNext is on and we reached the effective end.
       if (autoNext && remaining <= 0.1 && nextPromptHandledForRef.current !== promptKey) {
@@ -5076,8 +5076,8 @@ export function VideoPlayer({
                         ? 'Loading...'
                         : autoNext
                           ? mediaType === 'movie'
-                            ? `Finishing in ${nextCountdown}s`
-                            : `Auto-Next in ${nextCountdown}s`
+                            ? `Finishing in ${Math.ceil(nextCountdown)}s`
+                            : `Auto-Next in ${Math.ceil(nextCountdown)}s`
                           : mediaType === 'movie'
                             ? 'About to finish'
                             : 'Ready to play'}
@@ -5123,10 +5123,10 @@ export function VideoPlayer({
                     <motion.div
                       initial={{ width: '0%' }}
                       animate={{
-                        width: `${((10 - nextCountdown) / 10) * 100}%`,
+                        width: `${Math.max(0, Math.min(100, ((10 - nextCountdown) / 10) * 100))}%`,
                       }}
                       className="h-full bg-accent shadow-[0_0_8px_var(--accent)]"
-                      transition={{ duration: 1, ease: 'linear' }}
+                      transition={{ duration: 0.3, ease: 'linear' }}
                     />
                   </div>
                 )}
