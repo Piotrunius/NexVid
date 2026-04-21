@@ -110,15 +110,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 pt-24 pb-20">
+    <div className="flex min-h-screen items-center justify-center px-4 pb-20 pt-24">
       <div className="w-full max-w-md">
         {/* Banner Logo */}
-        <div className="mb-8 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] text-center">
+        <div className="mb-8 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 text-center shadow-[0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-6">
           <Link href="/" className="text-[30px] font-extrabold tracking-tight">
             <span className="text-accent">Nex</span>
             <span className="text-text-primary">Vid</span>
           </Link>
-          <p className="text-[13px] text-text-muted mt-1">
+          <p className="mt-1 text-[13px] text-text-muted">
             {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
           </p>
         </div>
@@ -126,16 +126,16 @@ export default function LoginPage() {
         {/* Glass card */}
         <div className="glass-card glass-liquid p-8">
           {/* Segmented control matching Admin Feedback style */}
-          <div className="flex gap-2 p-1 rounded-full bg-white/5 mb-6 w-full">
+          <div className="mb-6 flex w-full gap-2 rounded-full bg-white/5 p-1">
             <button
               onClick={() => setMode('login')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === 'login' ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+              className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-[11px] font-black uppercase tracking-wider transition-all ${mode === 'login' ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
             >
               Sign In
             </button>
             <button
               onClick={() => setMode('register')}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${mode === 'register' ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+              className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-[11px] font-black uppercase tracking-wider transition-all ${mode === 'register' ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
             >
               Register
             </button>
@@ -143,7 +143,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
+              <label className="mb-1.5 block text-[12px] font-medium text-text-secondary">
                 Nickname
               </label>
               <input
@@ -158,7 +158,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
+              <label className="mb-1.5 block text-[12px] font-medium text-text-secondary">
                 Password
               </label>
               <input
@@ -174,7 +174,7 @@ export default function LoginPage() {
             </div>
             {mode === 'register' && (
               <div>
-                <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
+                <label className="mb-1.5 block text-[12px] font-medium text-text-secondary">
                   Confirm Password
                 </label>
                 <input
@@ -193,14 +193,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting || (hasTurnstile && !turnstileToken)}
-              className="btn-accent w-full !py-3 !rounded-full text-[14px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-center leading-none !gap-0 overflow-hidden"
+              className="btn-accent flex w-full items-center justify-center !gap-0 overflow-hidden !rounded-full !py-3 text-center text-[14px] leading-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
 
           {!hasBackendConfigured && (
-            <p className="text-[11px] text-text-muted text-center mt-4">
+            <p className="mt-4 text-center text-[11px] text-text-muted">
               Local accounts are stored in your browser. No server required.
             </p>
           )}

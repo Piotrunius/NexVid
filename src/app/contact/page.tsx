@@ -265,10 +265,10 @@ export default function ContactPage() {
 
   if (!isLoggedIn) {
     return (
-      <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
+      <div className="relative min-h-screen overflow-hidden pb-12 pt-24">
         <div className="mx-auto max-w-3xl px-4">
-          <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-8 text-center relative">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--bg-glass-light)] border border-white/5">
+          <div className="glass-card glass-liquid relative rounded-[var(--glass-radius-lg)] p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-white/5 bg-[var(--bg-glass-light)]">
               <svg
                 width="24"
                 height="24"
@@ -281,16 +281,16 @@ export default function ContactPage() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <h1 className="text-[26px] font-bold text-text-primary tracking-tight">
+            <h1 className="text-[26px] font-bold tracking-tight text-text-primary">
               Contact & Feedback
             </h1>
             <p className="mt-2 text-[14px] text-text-muted">
               Sign in to send bug reports, feedback and contact messages.
             </p>
 
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/5 pt-8">
-              <div className="p-4 rounded-[16px] bg-white/[0.03] border border-white/5 text-left">
-                <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
+            <div className="mt-8 grid grid-cols-1 gap-4 border-t border-white/5 pt-8 sm:grid-cols-2">
+              <div className="rounded-[16px] border border-white/5 bg-white/[0.03] p-4 text-left">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                   Direct Email
                 </p>
                 <a
@@ -300,8 +300,8 @@ export default function ContactPage() {
                   support@nexvid.online
                 </a>
               </div>
-              <div className="p-4 rounded-[16px] bg-white/[0.03] border border-white/5 text-left">
-                <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
+              <div className="rounded-[16px] border border-white/5 bg-white/[0.03] p-4 text-left">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                   Community
                 </p>
                 <a
@@ -335,14 +335,14 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden pt-24 pb-12">
-      <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 space-y-6 relative">
-        <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="relative min-h-screen overflow-hidden pb-12 pt-24">
+      <div className="relative space-y-6 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
+        <div className="flex flex-col justify-between gap-6 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 shadow-[0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-6 md:flex-row md:items-center">
           <div>
-            <h1 className="text-[30px] font-bold text-text-primary tracking-tight">
+            <h1 className="text-[30px] font-bold tracking-tight text-text-primary">
               Contact & Feedback
             </h1>
-            <p className="mt-1 text-[13px] text-text-muted max-w-lg">
+            <p className="mt-1 max-w-lg text-[13px] text-text-muted">
               Report bugs, send feedback, or contact support. Admin replies appear here.
             </p>
           </div>
@@ -350,17 +350,17 @@ export default function ContactPage() {
 
         <div className="grid items-start gap-5 xl:grid-cols-3">
           <div className="space-y-5">
-            <section className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 space-y-5">
+            <section className="glass-card glass-liquid space-y-5 rounded-[var(--glass-radius-lg)] p-5">
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-1 h-4 bg-accent rounded-full" />
+                <div className="mb-1 flex items-center gap-2">
+                  <div className="h-4 w-1 rounded-full bg-accent" />
                   <h2 className="text-[15px] font-semibold text-text-primary">Send a message</h2>
                 </div>
 
                 <div>
                   <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Category</p>
                   <select
-                    className="input w-full bg-white/[0.04] border-white/10"
+                    className="input w-full border-white/10 bg-white/[0.04]"
                     value={category}
                     onChange={(event) =>
                       setCategory(event.target.value as FeedbackThread['category'])
@@ -377,7 +377,7 @@ export default function ContactPage() {
                 <div>
                   <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Subject</p>
                   <input
-                    className="input w-full bg-white/[0.04] border-white/10"
+                    className="input w-full border-white/10 bg-white/[0.04]"
                     value={subject}
                     onChange={(event) => setSubject(event.target.value)}
                     placeholder="Short, descriptive title..."
@@ -389,7 +389,7 @@ export default function ContactPage() {
                 <div>
                   <p className="mb-1.5 text-[12px] font-semibold text-text-secondary">Message</p>
                   <textarea
-                    className="input min-h-[110px] w-full bg-white/[0.04] border-white/10 resize-none"
+                    className="input min-h-[110px] w-full resize-none border-white/10 bg-white/[0.04]"
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
                     placeholder="Describe your issue or feedback in detail..."
@@ -410,10 +410,10 @@ export default function ContactPage() {
                 <button
                   disabled={isSubmitting || (hasTurnstile && !feedbackTurnstileToken)}
                   onClick={handleCreateThread}
-                  className="btn-accent w-full flex items-center justify-center gap-2 py-3"
+                  className="btn-accent flex w-full items-center justify-center gap-2 py-3"
                 >
                   {isSubmitting ? (
-                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24">
                       <circle
                         className="opacity-25"
                         cx="12"
@@ -446,8 +446,8 @@ export default function ContactPage() {
                 </button>
               </div>
 
-              <div className="pt-3 border-t border-white/5 space-y-2">
-                <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest">
+              <div className="space-y-2 border-t border-white/5 pt-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-text-muted">
                   Support Directory
                 </p>
                 <div className="grid grid-cols-1 gap-2">
@@ -455,7 +455,7 @@ export default function ContactPage() {
                     <span className="text-text-muted">Support:</span>
                     <a
                       href="mailto:support@nexvid.online"
-                      className="text-accent hover:underline font-medium"
+                      className="font-medium text-accent hover:underline"
                     >
                       support@nexvid.online
                     </a>
@@ -464,7 +464,7 @@ export default function ContactPage() {
                     <span className="text-text-muted">Security:</span>
                     <a
                       href="mailto:security@nexvid.online"
-                      className="text-accent hover:underline font-medium"
+                      className="font-medium text-accent hover:underline"
                     >
                       security@nexvid.online
                     </a>
@@ -475,7 +475,7 @@ export default function ContactPage() {
                       href={DISCORD_INVITE_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-accent hover:underline font-medium"
+                      className="font-medium text-accent hover:underline"
                     >
                       Community Hub
                     </a>
@@ -487,13 +487,13 @@ export default function ContactPage() {
 
           <div className="glass-card glass-liquid rounded-[var(--glass-radius-lg)] p-5 xl:col-span-2">
             <div className="grid h-full gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-              <div className="rounded-[20px] bg-white/[0.03] border border-white/5 p-3 h-[70vh] min-h-[420px] max-h-[680px] overflow-auto backdrop-blur-sm">
-                <p className="px-3 py-2 text-[11px] font-bold text-text-muted uppercase tracking-widest border-b border-white/5 mb-3">
+              <div className="h-[70vh] max-h-[680px] min-h-[420px] overflow-auto rounded-[20px] border border-white/5 bg-white/[0.03] p-3 backdrop-blur-sm">
+                <p className="mb-3 border-b border-white/5 px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-text-muted">
                   Your Activity
                 </p>
                 {isLoading ? (
                   <div className="flex items-center justify-center py-10">
-                    <svg className="animate-spin h-5 w-5 text-text-muted" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5 animate-spin text-text-muted" viewBox="0 0 24 24">
                       <circle
                         className="opacity-25"
                         cx="12"
@@ -521,22 +521,22 @@ export default function ContactPage() {
                         key={thread.id}
                         onClick={() => setSelectedThreadId(thread.id)}
                         className={cn(
-                          'w-full rounded-[14px] px-4 py-3 text-left transition-all duration-200 border',
+                          'w-full rounded-[14px] border px-4 py-3 text-left transition-all duration-200',
                           selectedThreadId === thread.id
                             ? 'bg-accent/15 border-accent/30 shadow-[0_4px_12px_var(--accent-glow)]'
-                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.06] hover:border-white/10',
+                            : 'border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.06]',
                         )}
                       >
                         <p
                           className={cn(
-                            'text-[13px] font-semibold line-clamp-1',
+                            'line-clamp-1 text-[13px] font-semibold',
                             selectedThreadId === thread.id ? 'text-accent' : 'text-text-primary',
                           )}
                         >
                           {thread.subject}
                         </p>
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/5 text-text-muted capitalize">
+                          <span className="rounded-md bg-white/5 px-1.5 py-0.5 text-[11px] capitalize text-text-muted">
                             {thread.category}
                           </span>
                           <span
@@ -558,10 +558,10 @@ export default function ContactPage() {
                 )}
               </div>
 
-              <div className="rounded-[20px] bg-white/[0.03] border border-white/5 p-4 min-h-[420px] h-[70vh] max-h-[680px] overflow-hidden flex flex-col backdrop-blur-sm">
+              <div className="flex h-[70vh] max-h-[680px] min-h-[420px] flex-col overflow-hidden rounded-[20px] border border-white/5 bg-white/[0.03] p-4 backdrop-blur-sm">
                 {!selectedThread ? (
                   <div className="flex h-full flex-col items-center justify-center gap-4">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.03] border border-white/5">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/5 bg-white/[0.03]">
                       <svg
                         width="24"
                         height="24"
@@ -574,21 +574,21 @@ export default function ContactPage() {
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
                     </div>
-                    <p className="text-[14px] text-text-muted font-medium">
+                    <p className="text-[14px] font-medium text-text-muted">
                       Select a thread to view the conversation
                     </p>
                   </div>
                 ) : (
                   <>
-                    <div className="border-b border-white/10 pb-4 mb-4 flex items-center justify-between">
+                    <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
                       <div>
-                        <h3 className="text-[15px] font-bold text-text-primary line-clamp-1">
+                        <h3 className="line-clamp-1 text-[15px] font-bold text-text-primary">
                           {selectedThread.subject}
                         </h3>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="mt-1 flex items-center gap-2">
                           <span
                             className={cn(
-                              'text-[10px] font-black uppercase px-2 py-0.5 rounded-full',
+                              'rounded-full px-2 py-0.5 text-[10px] font-black uppercase',
                               selectedStatus === 'answered'
                                 ? 'bg-emerald-500/10 text-emerald-400'
                                 : selectedStatus === 'closed'
@@ -604,15 +604,15 @@ export default function ContactPage() {
                         </div>
                       </div>
                       {selectedStatus === 'closed' && (
-                        <div className="bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">
-                          <p className="text-[10px] text-red-400 font-bold uppercase">Archived</p>
+                        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5">
+                          <p className="text-[10px] font-bold uppercase text-red-400">Archived</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex-1 min-h-0 space-y-4 overflow-auto pr-2 custom-scrollbar">
+                    <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-auto pr-2">
                       {messages.length === 0 ? (
-                        <p className="text-[13px] text-text-muted text-center py-10">
+                        <p className="py-10 text-center text-[13px] text-text-muted">
                           Starting conversation...
                         </p>
                       ) : (
@@ -620,25 +620,25 @@ export default function ContactPage() {
                           <div
                             key={item.id}
                             className={cn(
-                              'flex flex-col gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-300',
+                              'animate-in fade-in slide-in-from-bottom-2 flex flex-col gap-1.5 duration-300',
                               item.senderRole === 'user' ? 'items-end' : 'items-start',
                             )}
                           >
                             <div
                               className={cn(
-                                'max-w-[85%] rounded-[20px] px-5 py-3 text-[13.5px] shadow-lg border',
+                                'max-w-[85%] rounded-[20px] border px-5 py-3 text-[13.5px] shadow-lg',
                                 item.senderRole === 'admin'
-                                  ? 'bg-accent border-white/20 text-white rounded-tr-[4px] shadow-[0_4px_15px_rgba(var(--accent-rgb),0.3)]'
-                                  : 'bg-white/[0.05] border-white/10 text-white/95 rounded-tl-[4px]',
+                                  ? 'rounded-tr-[4px] border-white/20 bg-accent text-white shadow-[0_4px_15px_rgba(var(--accent-rgb),0.3)]'
+                                  : 'rounded-tl-[4px] border-white/10 bg-white/[0.05] text-white/95',
                               )}
                             >
                               <p className="whitespace-pre-wrap leading-relaxed">{item.message}</p>
                             </div>
                             <div className="flex items-center gap-2 px-1">
-                              <p className="text-[10px] text-white/40 font-bold uppercase tracking-tight">
+                              <p className="text-[10px] font-bold uppercase tracking-tight text-white/40">
                                 {item.senderRole === 'admin' ? 'Support Agent' : 'You'}
                               </p>
-                              <span className="text-white/20 text-[10px]">•</span>
+                              <span className="text-[10px] text-white/20">•</span>
                               <p className="text-[10px] text-white/40">
                                 {new Date(item.createdAt).toLocaleTimeString([], {
                                   hour: '2-digit',
@@ -651,11 +651,11 @@ export default function ContactPage() {
                       )}
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                      <div className="flex items-end gap-3 glass-card bg-white/[0.02] p-1.5 rounded-[22px] border-white/5">
+                    <div className="mt-4 border-t border-white/10 pt-4">
+                      <div className="glass-card flex items-end gap-3 rounded-[22px] border-white/5 bg-white/[0.02] p-1.5">
                         <textarea
                           className={cn(
-                            'input min-h-[50px] max-h-32 flex-1 !bg-transparent !border-0 !shadow-none !ring-0 py-3 px-4 resize-none text-[14px]',
+                            'input max-h-32 min-h-[50px] flex-1 resize-none !border-0 !bg-transparent px-4 py-3 text-[14px] !shadow-none !ring-0',
                             isSelectedClosed && 'opacity-50',
                           )}
                           value={replyText}
@@ -685,11 +685,11 @@ export default function ContactPage() {
                         <button
                           disabled={isSubmitting || isSelectedClosed || !replyText.trim()}
                           onClick={handleReply}
-                          className="btn-accent !rounded-full p-3.5 mb-1 shrink-0 aspect-square flex items-center justify-center"
+                          className="btn-accent mb-1 flex aspect-square shrink-0 items-center justify-center !rounded-full p-3.5"
                           title="Send Message"
                         >
                           {isSubmitting ? (
-                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
                               <circle
                                 className="opacity-25"
                                 cx="12"
@@ -721,7 +721,7 @@ export default function ContactPage() {
                         </button>
                       </div>
                       {isSelectedClosed && (
-                        <p className="text-[11px] text-center text-text-muted mt-2">
+                        <p className="mt-2 text-center text-[11px] text-text-muted">
                           Closed threads are visible for 14 days and cannot be reopened.
                         </p>
                       )}

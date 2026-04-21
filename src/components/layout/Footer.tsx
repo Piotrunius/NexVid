@@ -42,13 +42,13 @@ export function Footer() {
         <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
       </div>
 
-      <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 py-8">
+      <div className="w-full px-6 py-8 sm:px-8 lg:px-12 xl:px-16">
         {/* ── Main Row ── */}
-        <div className="flex flex-col items-center md:flex-row md:items-center gap-6">
+        <div className="flex flex-col items-center gap-6 md:flex-row md:items-center">
           {/* Left – Brand */}
           <div className="flex flex-[1] items-center gap-2.5 md:justify-start">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-6 w-6 items-center justify-center rounded-[7px] shadow-[0_0_14px_var(--accent-glow)] bg-transparent p-0">
+              <div className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-transparent p-0 shadow-[0_0_14px_var(--accent-glow)]">
                 {isClient && (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <defs>
@@ -69,10 +69,10 @@ export function Footer() {
                   </svg>
                 )}
               </div>
-              <span className="text-[14px] font-semibold text-white tracking-tight">NexVid</span>
+              <span className="text-[14px] font-semibold tracking-tight text-white">NexVid</span>
             </div>
-            <span className="hidden md:inline text-white/10">·</span>
-            <p className="hidden md:inline text-[12px] text-white/25">
+            <span className="hidden text-white/10 md:inline">·</span>
+            <p className="hidden text-[12px] text-white/25 md:inline">
               Free streaming hub for movies and TV shows
             </p>
           </div>
@@ -83,7 +83,7 @@ export function Footer() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-[12px] text-white/25 hover:text-white/60 transition-colors duration-300"
+                className="text-[12px] text-white/25 transition-colors duration-300 hover:text-white/60"
               >
                 {link.label}
               </Link>
@@ -91,12 +91,12 @@ export function Footer() {
           </nav>
 
           {/* Right – Actions */}
-          <div className="flex flex-[1] items-center justify-center md:justify-end gap-2.5">
+          <div className="flex flex-[1] items-center justify-center gap-2.5 md:justify-end">
             <a
               href={DISCORD_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-1.5 rounded-full px-3 py-[6px] text-[11px] font-semibold transition-all duration-300 border border-[#5865F2]/15 bg-[#5865F2]/[0.04] text-[#5865F2]/60 hover:bg-[#5865F2]/[0.1] hover:text-[#5865F2] hover:border-[#5865F2]/25"
+              className="group flex items-center gap-1.5 rounded-full border border-[#5865F2]/15 bg-[#5865F2]/[0.04] px-3 py-[6px] text-[11px] font-semibold text-[#5865F2]/60 transition-all duration-300 hover:border-[#5865F2]/25 hover:bg-[#5865F2]/[0.1] hover:text-[#5865F2]"
             >
               <svg
                 width="13"
@@ -111,7 +111,7 @@ export function Footer() {
             </a>
             <Link
               href="/donate"
-              className="group flex items-center gap-1.5 rounded-full px-3 py-[6px] text-[11px] font-semibold transition-all duration-300 border border-[#f43f5e]/15 bg-[#f43f5e]/[0.04] text-[#f43f5e]/60 hover:bg-[#f43f5e]/[0.1] hover:text-[#f43f5e] hover:border-[#f43f5e]/25"
+              className="group flex items-center gap-1.5 rounded-full border border-[#f43f5e]/15 bg-[#f43f5e]/[0.04] px-3 py-[6px] text-[11px] font-semibold text-[#f43f5e]/60 transition-all duration-300 hover:border-[#f43f5e]/25 hover:bg-[#f43f5e]/[0.1] hover:text-[#f43f5e]"
             >
               <svg
                 width="11"
@@ -130,13 +130,13 @@ export function Footer() {
 
       {/* ── Bottom Bar ── */}
       <div className="w-full border-t border-white/[0.04]">
-        <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16 py-5 flex flex-col-reverse sm:flex-row items-center justify-center sm:justify-between gap-2">
+        <div className="flex w-full flex-col-reverse items-center justify-center gap-2 px-6 py-5 sm:flex-row sm:justify-between sm:px-8 lg:px-12 xl:px-16">
           <p className="text-[11px] text-white/15">© {year} NexVid · All rights reserved.</p>
           {isClient && (
-            <p className="text-[10px] text-white/10 flex items-center gap-1">
+            <p className="flex items-center gap-1 text-[10px] text-white/10">
               <span>Updated {lastUpdated}</span>
               <span
-                className="opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-default"
+                className="cursor-default opacity-0 transition-opacity duration-300 hover:opacity-100"
                 title={`Commit: ${buildInfo.commit}\nMessage: ${buildInfo.message}`}
               >
                 ·

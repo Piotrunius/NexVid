@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <div className="min-h-screen">
       {/* ── Hero Skeleton ── */}
-      <section className="relative h-[90vh] min-h-[640px] bg-black animate-pulse">
+      <section className="relative h-[90vh] min-h-[640px] animate-pulse bg-black">
         <div className="absolute inset-0 flex items-center justify-start pt-20">
           <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
             <div className="max-w-[40rem] space-y-6">
@@ -33,7 +33,7 @@ export default function Loading() {
         <MediaRowSkeleton title="Continue Watching" />
 
         <section className="py-2">
-          <div className="mb-3 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 w-full space-y-3">
+          <div className="mb-3 w-full space-y-3 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
             <div className="skeleton h-6 w-72 rounded-[8px]" />
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="skeleton h-8 w-28 rounded-full" />
@@ -44,7 +44,7 @@ export default function Loading() {
           <div className="scroll-row px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="media-grid-item w-[180px] flex-shrink-0">
-                <div className="skeleton rounded-[24px] aspect-[2/3] w-full" />
+                <div className="skeleton aspect-[2/3] w-full rounded-[24px]" />
                 <div className="mt-3 space-y-2 px-1">
                   <div className="skeleton h-3.5 w-3/4 rounded-[8px]" />
                   <div className="skeleton h-3 w-1/3 rounded-[8px]" />

@@ -143,7 +143,7 @@ export default function ShowPage({
     return (
       <div className="min-h-screen">
         {/* ── Show Hero Skeleton ── */}
-        <section className="relative h-[55vh] min-h-[380px] bg-black animate-pulse">
+        <section className="relative h-[55vh] min-h-[380px] animate-pulse bg-black">
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
         </section>
 
@@ -207,7 +207,7 @@ export default function ShowPage({
 
       {/* Content */}
       <div className="relative -mt-36 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-        <div className="flex gap-8 animate-slide-up">
+        <div className="flex animate-slide-up gap-8">
           {/* Poster */}
           <div className="hidden flex-shrink-0 md:block">
             <div className="relative h-[330px] w-[220px] overflow-hidden rounded-[var(--glass-radius-lg)] shadow-[var(--shadow-xl)]">
@@ -228,8 +228,8 @@ export default function ShowPage({
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[28px] font-bold text-text-primary tracking-tight sm:text-4xl">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[28px] font-bold tracking-tight text-text-primary sm:text-4xl">
               {show.title}
             </h1>
 
@@ -268,7 +268,7 @@ export default function ShowPage({
                 {show.status && (
                   <>
                     <span className="text-text-muted">&bull;</span>
-                    <span className="rounded-[8px] bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+                    <span className="bg-accent/10 rounded-[8px] px-2.5 py-0.5 text-[11px] font-medium text-accent">
                       {show.status}
                     </span>
                   </>
@@ -296,7 +296,7 @@ export default function ShowPage({
             <div className="mt-4">
               <p
                 className={cn(
-                  'text-[14px] text-text-secondary leading-relaxed',
+                  'text-[14px] leading-relaxed text-text-secondary',
                   !showFullOverview && 'line-clamp-4',
                 )}
               >
@@ -305,33 +305,33 @@ export default function ShowPage({
             </div>
 
             {/* Quick Facts */}
-            <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {creators.length > 0 && (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Creator
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     {creators.join(', ')}
                   </p>
                 </div>
               )}
               {show.networks && show.networks.length > 0 && (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Network
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     {show.networks.join(', ')}
                   </p>
                 </div>
               )}
               {show.originCountry && show.originCountry.length > 0 && (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Origin
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     {show.originCountry.join(', ')}
                   </p>
                 </div>
@@ -357,7 +357,7 @@ export default function ShowPage({
               {febboxApiKey && (
                 <button
                   onClick={() => setShowDownloadModal(true)}
-                  className="btn-glass !px-6 !py-3 group"
+                  className="btn-glass group !px-6 !py-3"
                 >
                   <svg
                     width="18"
@@ -366,7 +366,7 @@ export default function ShowPage({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="text-white group-hover:scale-110 transition-transform"
+                    className="text-white transition-transform group-hover:scale-110"
                   >
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                   </svg>
@@ -411,7 +411,7 @@ export default function ShowPage({
                     : 'Add to List'}
                 </button>
                 {showWatchlistMenu && (
-                  <div className="absolute top-full left-0 mt-2 w-44 panel-glass rounded-[12px] p-1.5 z-10 animate-scale-in">
+                  <div className="panel-glass absolute left-0 top-full z-10 mt-2 w-44 animate-scale-in rounded-[12px] p-1.5">
                     {(
                       [
                         'Planned',
@@ -428,7 +428,7 @@ export default function ShowPage({
                           setShowWatchlistMenu(false);
                         }}
                         className={cn(
-                          'w-full flex items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] capitalize transition-colors',
+                          'flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] capitalize transition-colors',
                           watchlistItem?.status === status
                             ? 'bg-accent/15 text-accent'
                             : 'text-text-secondary hover:bg-[var(--bg-glass-light)]',
@@ -498,12 +498,12 @@ export default function ShowPage({
           onClick={() => setShowTrailer(false)}
         >
           <div
-            className="relative w-full max-w-4xl mx-4 aspect-video animate-scale-in"
+            className="relative mx-4 aspect-video w-full max-w-4xl animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowTrailer(false)}
-              className="absolute -top-10 right-0 rounded-full bg-white/10 p-2 text-white/70 hover:text-white hover:bg-white/20 transition-all"
+              className="absolute -top-10 right-0 rounded-full bg-white/10 p-2 text-white/70 transition-all hover:bg-white/20 hover:text-white"
             >
               <svg
                 width="20"
@@ -518,7 +518,7 @@ export default function ShowPage({
             </button>
             <iframe
               src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1`}
-              className="w-full h-full rounded-[var(--glass-radius-lg)] shadow-[var(--shadow-xl)]"
+              className="h-full w-full rounded-[var(--glass-radius-lg)] shadow-[var(--shadow-xl)]"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
@@ -566,10 +566,10 @@ export default function ShowPage({
               </button>
             </div>
           </div>
-          <div ref={castRowRef} className="flex gap-3 overflow-x-auto pb-3 scroll-row">
+          <div ref={castRowRef} className="scroll-row flex gap-3 overflow-x-auto pb-3">
             {show.cast.slice(0, 15).map((person, index) => (
-              <div key={`${person.id}-${index}`} className="flex-shrink-0 w-[100px] text-center">
-                <div className="relative h-[100px] w-[100px] rounded-full overflow-hidden mx-auto bg-[var(--bg-tertiary)] shadow-[var(--shadow-sm)]">
+              <div key={`${person.id}-${index}`} className="w-[100px] flex-shrink-0 text-center">
+                <div className="relative mx-auto h-[100px] w-[100px] overflow-hidden rounded-full bg-[var(--bg-tertiary)] shadow-[var(--shadow-sm)]">
                   {person.profilePath ? (
                     <Image
                       src={tmdbImage(person.profilePath, 'w185')}
@@ -595,10 +595,10 @@ export default function ShowPage({
                     </div>
                   )}
                 </div>
-                <p className="mt-2 text-[11px] font-medium text-text-primary line-clamp-1">
+                <p className="mt-2 line-clamp-1 text-[11px] font-medium text-text-primary">
                   {person.name}
                 </p>
-                <p className="text-[10px] text-text-muted line-clamp-1">{person.character}</p>
+                <p className="line-clamp-1 text-[10px] text-text-muted">{person.character}</p>
               </div>
             ))}
           </div>
@@ -607,7 +607,7 @@ export default function ShowPage({
 
       {/* Season & Episode Selector */}
       <div className="mt-10 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-        <h2 className="text-[15px] font-semibold text-text-primary mb-4">Episodes</h2>
+        <h2 className="mb-4 text-[15px] font-semibold text-text-primary">Episodes</h2>
         {useSeasonDropdown ? (
           <div className="mb-5 w-full">
             <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -677,12 +677,12 @@ export default function ShowPage({
             </div>
           </div>
         ) : (
-          <div className="mb-5 inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-full bg-white/5 p-1 backdrop-blur-2xl custom-scrollbar">
+          <div className="custom-scrollbar mb-5 inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-full bg-white/5 p-1 backdrop-blur-2xl">
             {availableSeasons.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setSelectedSeason(s.seasonNumber)}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap shrink-0 ${selectedSeason === s.seasonNumber ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all ${selectedSeason === s.seasonNumber ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
               >
                 {s.name}
               </button>
@@ -702,7 +702,7 @@ export default function ShowPage({
               <Link
                 key={`${ep.id}-${ep.episodeNumber}-${index}`}
                 href={`/watch/show/${id}?s=${selectedSeason}&e=${ep.episodeNumber}${resumeTime ? `&t=${Math.floor(resumeTime)}` : ''}`}
-                className="glass-card glass-liquid flex gap-3 p-3 group hover:border-accent/30 transition-all"
+                className="glass-card glass-liquid hover:border-accent/30 group flex gap-3 p-3 transition-all"
               >
                 <div className="relative h-20 w-36 flex-shrink-0 overflow-hidden rounded-[10px] bg-[var(--bg-tertiary)]">
                   {ep.stillPath ? (
@@ -718,14 +718,14 @@ export default function ShowPage({
                       <Play className="h-6 w-6 fill-current stroke-[1.85] text-text-muted" />
                     </div>
                   )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-[10px]">
+                  <div className="absolute inset-0 flex items-center justify-center rounded-[10px] bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                     <Play className="h-6 w-6 fill-current stroke-[1.85] text-white" />
                   </div>
                 </div>
-                <div className="flex-1 min-w-0 py-1">
+                <div className="min-w-0 flex-1 py-1">
                   <p className="text-[11px] text-text-muted">Episode {ep.episodeNumber}</p>
-                  <p className="text-[13px] font-medium text-text-primary truncate">{ep.name}</p>
-                  <p className="mt-1 text-[11px] text-text-secondary line-clamp-2">{ep.overview}</p>
+                  <p className="truncate text-[13px] font-medium text-text-primary">{ep.name}</p>
+                  <p className="mt-1 line-clamp-2 text-[11px] text-text-secondary">{ep.overview}</p>
                 </div>
               </Link>
             );

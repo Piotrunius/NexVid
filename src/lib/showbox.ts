@@ -232,7 +232,6 @@ export interface FebBoxQuality {
   mime?: string;
   type?: string;
   label?: string;
-  headers?: Record<string, string>;
 }
 
 export interface FebBoxSubtitle {
@@ -370,6 +369,7 @@ export async function febboxGetLinks(
   if (cookieHeader) headers.cookie = cookieHeader;
 
   // Helpers
+
   const inferFormatFromUrl = (rawUrl: string): string => {
     const url = String(rawUrl || '').toLowerCase();
     if (!url) return '';
@@ -389,16 +389,19 @@ export async function febboxGetLinks(
       item?.file_url,
       item?.src,
     ];
+
     for (const candidate of candidates) {
       const value = String(candidate || '').trim();
       if (!value) continue;
       if (/^https?:\/\//i.test(value) && value.toLowerCase().includes('.m3u8')) return value;
     }
+
     for (const candidate of candidates) {
       const value = String(candidate || '').trim();
       if (!value) continue;
       if (/^https?:\/\//i.test(value)) return value;
     }
+
     return String(fallback || '').trim();
   };
 
@@ -427,6 +430,7 @@ export async function febboxGetLinks(
       const l = v.toLowerCase();
       if (l.includes('pol') || l.includes('pl')) return 'pl';
       if (l.includes('spa') || l.includes('es')) return 'es';
+
       return 'en';
     };
     return items
@@ -473,7 +477,7 @@ export async function febboxGetLinks(
         const u = pickQualityUrl(q, String(fileEntry?.download_url || ''));
         if (!u) return null;
 
-        const res: FebBoxQuality = {
+        return {
           url: u,
           quality: String(q?.quality || q?.label || 'ORG'),
           name: String(q?.label || q?.name || 'Original'),
@@ -481,13 +485,6 @@ export async function febboxGetLinks(
           size: q?.file_size ? `${q.file_size}` : '',
           format: inferFormatFromUrl(u),
         };
-
-        // Inject required referer for HLS links
-        if (u.toLowerCase().includes('.m3u8')) {
-          res.headers = { referer: 'https://www.febbox.com/' };
-        }
-
-        return res;
       })
       .filter((q): q is FebBoxQuality => !!q);
 
@@ -514,18 +511,14 @@ export async function febboxGetLinks(
     if (d1.data?.[0]?.download_url) {
       const u = d1.data[0].download_url;
       if (!allQualities.find((q) => q.url === u)) {
-        const quality: FebBoxQuality = {
+        allQualities.push({
           url: u,
           quality: 'ORG',
           name: 'Original',
           label: 'Original',
           size: d1.data[0].file_size || '',
           format: inferFormatFromUrl(u),
-        };
-        if (u.toLowerCase().includes('.m3u8')) {
-          quality.headers = { referer: 'https://www.febbox.com/' };
-        }
-        allQualities.push(quality);
+        });
       }
     }
   }
@@ -540,18 +533,14 @@ export async function febboxGetLinks(
       let m;
       while ((m = regex.exec(d2.html)) !== null) {
         if (!allQualities.find((q) => q.url === m![1])) {
-          const quality: FebBoxQuality = {
+          allQualities.push({
             url: m[1],
             quality: m[2],
             name: m[2],
             label: m[2],
             size: '',
             format: inferFormatFromUrl(m[1]),
-          };
-          if (m[1].toLowerCase().includes('.m3u8')) {
-            quality.headers = { referer: 'https://www.febbox.com/' };
-          }
-          allQualities.push(quality);
+          });
         }
       }
     } else {

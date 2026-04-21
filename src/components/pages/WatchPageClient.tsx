@@ -914,7 +914,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         <meta name="robots" content="noindex,follow" />
         <meta name="googlebot" content="noindex,follow,noimageindex" />
       </Head>
-      <div className="fixed inset-0 bg-black z-50">
+      <div className="fixed inset-0 z-50 bg-black">
         <VideoPlayer
           stream={stream}
           fullViewport
@@ -958,12 +958,12 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
         />
 
         {showResumeOverlay && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-fade-in">
-            <div className="mx-4 w-full max-w-xl rounded-[28px] border border-white/10 bg-white/[0.03] px-4 py-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl sm:px-8 sm:py-8 animate-scale-in">
+          <div className="absolute inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/95 backdrop-blur-2xl">
+            <div className="mx-4 w-full max-w-xl animate-scale-in rounded-[28px] border border-white/10 bg-white/[0.03] px-4 py-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl sm:px-8 sm:py-8">
               {resumeType === 'high' ? (
                 <>
                   <div className="mb-4 flex justify-center">
-                    <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
+                    <div className="bg-accent/20 flex h-12 w-12 animate-pulse items-center justify-center rounded-2xl text-accent shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
                       <svg
                         width="24"
                         height="24"
@@ -977,12 +977,12 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                       </svg>
                     </div>
                   </div>
-                  <h2 className="text-xl font-black text-white tracking-tighter mb-1 uppercase italic">
+                  <h2 className="mb-1 text-xl font-black uppercase italic tracking-tighter text-white">
                     You're almost done
                   </h2>
-                  <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
+                  <p className="mb-4 px-4 text-xs font-medium leading-relaxed text-white/50">
                     You've watched{' '}
-                    <span className="text-accent font-bold">
+                    <span className="font-bold text-accent">
                       {Math.round(resumeData?.percentage || 0)}%
                     </span>{' '}
                     of this {type === 'movie' ? 'movie' : 'episode'}.
@@ -992,13 +992,13 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleResumeChoice('watch')}
-                        className="btn-accent justify-center w-full"
+                        className="btn-accent w-full justify-center"
                       >
                         Watch ({Math.round(resumeData?.percentage || 0)}%)
                       </button>
                       <button
                         onClick={() => handleResumeChoice('rewatch')}
-                        className="btn-glass justify-center w-full"
+                        className="btn-glass w-full justify-center"
                       >
                         Rewatch
                       </button>
@@ -1007,7 +1007,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                     {type === 'show' && (
                       <button
                         onClick={() => handleResumeChoice('next')}
-                        className="btn-glass !bg-accent/10 !border-accent/20 !text-accent justify-center w-full hover:!bg-accent/20"
+                        className="btn-glass !bg-accent/10 !border-accent/20 hover:!bg-accent/20 w-full justify-center !text-accent"
                       >
                         Next Episode
                       </button>
@@ -1017,7 +1017,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
               ) : (
                 <>
                   <div className="mb-4 flex justify-center">
-                    <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent animate-pulse shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
+                    <div className="bg-accent/20 flex h-12 w-12 animate-pulse items-center justify-center rounded-2xl text-accent shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]">
                       <svg
                         width="24"
                         height="24"
@@ -1031,23 +1031,23 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                       </svg>
                     </div>
                   </div>
-                  <h2 className="text-xl font-black text-white tracking-tighter mb-1 uppercase italic">
+                  <h2 className="mb-1 text-xl font-black uppercase italic tracking-tighter text-white">
                     Welcome back
                   </h2>
-                  <p className="text-white/50 text-xs font-medium leading-relaxed mb-4 px-4">
+                  <p className="mb-4 px-4 text-xs font-medium leading-relaxed text-white/50">
                     You're just getting started. Resume from where you left off or start over.
                   </p>
 
                   <div className="mx-auto grid w-full max-w-[360px] grid-cols-2 gap-2">
                     <button
                       onClick={() => handleResumeChoice('watch')}
-                      className="btn-accent justify-center w-full"
+                      className="btn-accent w-full justify-center"
                     >
                       Resume ({formatTime(resumeData?.timestamp || 0)})
                     </button>
                     <button
                       onClick={() => handleResumeChoice('rewatch')}
-                      className="btn-glass justify-center w-full"
+                      className="btn-glass w-full justify-center"
                     >
                       Start Over
                     </button>
@@ -1060,7 +1060,7 @@ export default function WatchPageClient({ initialMedia }: { initialMedia?: Movie
                   setShowResumeOverlay(false);
                   router.back();
                 }}
-                className="mt-4 text-[10px] font-black text-white/30 uppercase tracking-[0.3em] hover:text-white/60 transition-colors"
+                className="mt-4 text-[10px] font-black uppercase tracking-[0.3em] text-white/30 transition-colors hover:text-white/60"
               >
                 Go Back
               </button>

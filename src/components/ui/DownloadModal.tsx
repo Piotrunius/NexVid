@@ -122,11 +122,11 @@ export function DownloadModal({
                 animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
                 exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-45%' }}
                 transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed left-1/2 top-1/2 z-[100] w-full max-w-xl p-3 sm:p-4 outline-none"
+                className="fixed left-1/2 top-1/2 z-[100] w-full max-w-xl p-3 outline-none sm:p-4"
               >
                 <div
                   className={cn(
-                    'relative flex w-full max-h-[95vh] flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
+                    'relative flex max-h-[95vh] w-full flex-col overflow-hidden rounded-[28px] shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition-all',
                     glassEffect
                       ? 'bg-[linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_40%,rgba(0,0,0,0.35)_100%)] backdrop-blur-2xl'
                       : 'bg-[#050608]/95',
@@ -134,25 +134,25 @@ export function DownloadModal({
                 >
                   <div className="relative z-10 flex shrink-0 items-center justify-between bg-black/25 px-5 py-4 sm:px-6">
                     <div className="flex flex-col">
-                      <Dialog.Title className="text-lg font-bold flex items-center gap-2 text-white">
-                        <Download className="w-5 h-5 text-accent" />
+                      <Dialog.Title className="flex items-center gap-2 text-lg font-bold text-white">
+                        <Download className="h-5 w-5 text-accent" />
                         Media Downloader
                       </Dialog.Title>
                       <p className="mt-0.5 text-[11px] text-white/45">{title}</p>
                     </div>
                     <button
                       onClick={onClose}
-                      className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                      className="rounded-full p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="h-5 w-5" />
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6">
+                  <div className="custom-scrollbar flex-1 overflow-y-auto p-5 sm:p-6">
                     {mediaType === 'show' && (
-                      <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="mb-6 grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-[11px] font-bold text-white/30 uppercase tracking-widest mb-2">
+                          <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/30">
                             Season
                           </label>
                           <select
@@ -161,7 +161,7 @@ export function DownloadModal({
                               setSeason(Number(e.target.value));
                               setEpisode(1);
                             }}
-                            className="w-full appearance-none rounded-xl border border-transparent bg-white/5 px-4 py-2 text-sm text-white shadow-inner outline-none transition-all focus:border-accent/45 focus:ring-0"
+                            className="focus:border-accent/45 w-full appearance-none rounded-xl border border-transparent bg-white/5 px-4 py-2 text-sm text-white shadow-inner outline-none transition-all focus:ring-0"
                           >
                             {seasons.map((s) => (
                               <option
@@ -175,13 +175,13 @@ export function DownloadModal({
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-white/30 uppercase tracking-widest mb-2">
+                          <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/30">
                             Episode
                           </label>
                           <select
                             value={episode}
                             onChange={(e) => setEpisode(Number(e.target.value))}
-                            className="w-full appearance-none rounded-xl border border-transparent bg-white/5 px-4 py-2 text-sm text-white shadow-inner outline-none transition-all focus:border-accent/45 focus:ring-0"
+                            className="focus:border-accent/45 w-full appearance-none rounded-xl border border-transparent bg-white/5 px-4 py-2 text-sm text-white shadow-inner outline-none transition-all focus:ring-0"
                           >
                             {Array.from({
                               length: currentSeasonData?.episodeCount || 1,
@@ -204,7 +204,7 @@ export function DownloadModal({
                           </p>
                         </div>
                       ) : error ? (
-                        <div className="py-12 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 py-12 text-center">
                           <p className="text-[13px] text-white/40">{error}</p>
                           <button
                             onClick={fetchLinks}
@@ -217,7 +217,7 @@ export function DownloadModal({
                         <>
                           {directLinks.length > 0 && (
                             <div>
-                              <h3 className="text-[11px] font-bold text-white/30 uppercase tracking-widest mb-3">
+                              <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-white/30">
                                 Available Links
                               </h3>
                               <div className="space-y-2">
@@ -231,17 +231,17 @@ export function DownloadModal({
                                           href={file?.url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/10 hover:bg-black/55 hover:border-white/20 transition-all group"
+                                          className="group flex items-center justify-between rounded-2xl border border-white/10 bg-black/40 p-4 transition-all hover:border-white/20 hover:bg-black/55"
                                         >
                                           <div>
-                                            <p className="text-[14px] font-bold text-white uppercase">
+                                            <p className="text-[14px] font-bold uppercase text-white">
                                               {res.sourceId}
                                             </p>
-                                            <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider">
+                                            <p className="text-[11px] font-medium uppercase tracking-wider text-white/40">
                                               {quality} Quality • MP4
                                             </p>
                                           </div>
-                                          <div className="h-10 w-10 flex items-center justify-center rounded-full bg-accent/10 text-accent group-hover:bg-accent group-hover:text-white transition-all">
+                                          <div className="bg-accent/10 flex h-10 w-10 items-center justify-center rounded-full text-accent transition-all group-hover:bg-accent group-hover:text-white">
                                             <svg
                                               width="18"
                                               height="18"
@@ -264,17 +264,17 @@ export function DownloadModal({
                                         href={stream.playlist}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center justify-between p-4 rounded-2xl bg-black/40 border border-white/10 hover:bg-black/55 hover:border-white/20 transition-all group"
+                                        className="group flex items-center justify-between rounded-2xl border border-white/10 bg-black/40 p-4 transition-all hover:border-white/20 hover:bg-black/55"
                                       >
                                         <div>
-                                          <p className="text-[14px] font-bold text-white uppercase">
+                                          <p className="text-[14px] font-bold uppercase text-white">
                                             {res.sourceId}
                                           </p>
-                                          <p className="text-[11px] text-white/40 font-medium uppercase tracking-wider">
+                                          <p className="text-[11px] font-medium uppercase tracking-wider text-white/40">
                                             HLS Playlist • Multi-Quality
                                           </p>
                                         </div>
-                                        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-white/5 text-white/40 group-hover:bg-white/10 group-hover:text-white transition-all">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/40 transition-all group-hover:bg-white/10 group-hover:text-white">
                                           <svg
                                             width="18"
                                             height="18"

@@ -276,25 +276,25 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* Survey List */}
-        <div className="space-y-4 min-w-0">
+        <div className="min-w-0 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-[15px] font-semibold text-text-primary">Manage Surveys</h2>
             <button
               onClick={() => setShowArchived((prev) => !prev)}
               className={cn(
-                'btn-glass text-[10px] px-3 py-1.5 tracking-wider',
+                'btn-glass px-3 py-1.5 text-[10px] tracking-wider',
                 showArchived && 'bg-accent/15 text-accent',
               )}
             >
               {showArchived ? 'Show Active' : 'Show Archived'}
             </button>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-6 scroll-row -mx-1 px-1 items-start">
+          <div className="scroll-row -mx-1 flex items-start gap-3 overflow-x-auto px-1 pb-6">
             {visibleSurveys.map((s) => (
               <div
                 key={s.id}
                 className={cn(
-                  'rounded-[18px] bg-white/[0.03] border p-4 flex flex-col justify-between gap-4 w-[260px] shrink-0 transition-all duration-300',
+                  'flex w-[260px] shrink-0 flex-col justify-between gap-4 rounded-[18px] border bg-white/[0.03] p-4 transition-all duration-300',
                   s.is_active
                     ? '!border-accent-glow shadow-lg'
                     : s.is_archived
@@ -303,25 +303,25 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                 )}
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <h3 className="font-bold text-white text-[14px] truncate">{s.title}</h3>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <h3 className="truncate text-[14px] font-bold text-white">{s.title}</h3>
                     <div className="flex items-center gap-1.5">
                       {s.is_active === 1 && (
-                        <span className="text-[8px] bg-accent-muted text-accent px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-accent-glow">
+                        <span className="flex items-center gap-1 rounded-full border border-accent-glow bg-accent-muted px-2 py-0.5 text-[8px] font-black uppercase text-accent">
                           Active
                         </span>
                       )}
                       {s.is_archived === 1 && (
-                        <span className="text-[8px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 border border-yellow-500/30">
+                        <span className="flex items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/20 px-2 py-0.5 text-[8px] font-black uppercase text-yellow-300">
                           Archived
                         </span>
                       )}
                     </div>
                   </div>
-                  <p className="text-[11px] text-white/40 line-clamp-1">
+                  <p className="line-clamp-1 text-[11px] text-white/40">
                     {s.description || 'No description'}
                   </p>
-                  <p className="text-[9px] text-white/20 mt-2 font-medium">
+                  <p className="mt-2 text-[9px] font-medium text-white/20">
                     {new Date(s.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -330,9 +330,9 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                     disabled={s.is_archived === 1}
                     onClick={() => toggleSurvey(s.id, s.is_active === 1)}
                     className={cn(
-                      'btn-glass text-[11px] py-2.5 px-3 font-semibold',
+                      'btn-glass px-3 py-2.5 text-[11px] font-semibold',
                       s.is_active === 1 ? 'bg-white/10' : 'bg-white/5',
-                      s.is_archived === 1 && 'opacity-40 cursor-not-allowed',
+                      s.is_archived === 1 && 'cursor-not-allowed opacity-40',
                     )}
                   >
                     {s.is_active === 1 ? 'Stop' : 'Start'}
@@ -340,7 +340,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                   <button
                     onClick={() => selectResults(s.id)}
                     className={cn(
-                      'btn-glass text-[11px] py-2.5 px-3 font-semibold',
+                      'btn-glass px-3 py-2.5 text-[11px] font-semibold',
                       viewingResults === s.id && 'bg-accent/20 text-accent',
                     )}
                   >
@@ -349,11 +349,11 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                   <button
                     onClick={() => setSurveyArchived(s.id, s.is_archived !== 1)}
                     className={cn(
-                      'btn-glass text-[11px] py-2.5 px-3 font-semibold',
+                      'btn-glass px-3 py-2.5 text-[11px] font-semibold',
                       canDelete ? 'col-span-1' : 'col-span-2',
                       s.is_archived === 1
-                        ? 'text-emerald-300/90 bg-emerald-500/10'
-                        : 'text-yellow-300/90 bg-yellow-500/10',
+                        ? 'bg-emerald-500/10 text-emerald-300/90'
+                        : 'bg-yellow-500/10 text-yellow-300/90',
                     )}
                     title={s.is_archived === 1 ? 'Restore survey' : 'Archive survey'}
                   >
@@ -362,7 +362,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                   {canDelete && (
                     <button
                       onClick={() => deleteSurvey(s.id)}
-                      className="btn-glass text-[11px] py-2.5 px-3 font-semibold text-red-300/90 bg-red-500/10"
+                      className="btn-glass bg-red-500/10 px-3 py-2.5 text-[11px] font-semibold text-red-300/90"
                     >
                       Delete
                     </button>
@@ -371,7 +371,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
               </div>
             ))}
             {visibleSurveys.length === 0 && (
-              <div className="w-full p-12 text-center text-white/10 border border-dashed border-white/5 rounded-2xl">
+              <div className="w-full rounded-2xl border border-dashed border-white/5 p-12 text-center text-white/10">
                 {showArchived ? 'No archived surveys' : 'No active surveys'}
               </div>
             )}
@@ -379,8 +379,8 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
 
           {/* Results Panel (Separate at the bottom) */}
           {viewingResults && (
-            <div className="glass-card p-4 animate-slide-up border-white/10 shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
-              <div className="flex items-center justify-between mb-4">
+            <div className="glass-card animate-slide-up border-white/10 p-4 shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
+              <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-[14px] font-bold text-white">
                     Results: {surveys.find((s) => s.id === viewingResults)?.title}
@@ -389,7 +389,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                 </div>
                 <button
                   onClick={() => setViewingResults(null)}
-                  className="text-white/30 hover:text-white transition-colors p-1"
+                  className="p-1 text-white/30 transition-colors hover:text-white"
                 >
                   <svg
                     width="16"
@@ -409,26 +409,26 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                   ([id, stat]: [string, any]) => (
                     <div
                       key={id}
-                      className="space-y-3 bg-white/[0.02] p-5 rounded-2xl border border-white/5 shadow-sm w-full"
+                      className="w-full space-y-3 rounded-2xl border border-white/5 bg-white/[0.02] p-5 shadow-sm"
                     >
                       <p
-                        className="text-[14px] font-bold text-white/90 leading-tight"
+                        className="text-[14px] font-bold leading-tight text-white/90"
                         title={stat.text}
                       >
                         {stat.text}
                       </p>
                       {stat.type === 'text' ? (
-                        <div className="space-y-2 max-h-64 overflow-auto pr-2 custom-scrollbar">
+                        <div className="custom-scrollbar max-h-64 space-y-2 overflow-auto pr-2">
                           {stat.data.list?.map((t: string, i: number) => (
                             <div
                               key={i}
-                              className="p-3 rounded-xl bg-white/5 text-[12px] text-white/60 border border-white/5"
+                              className="rounded-xl border border-white/5 bg-white/5 p-3 text-[12px] text-white/60"
                             >
                               {t}
                             </div>
                           ))}
                           {!stat.data.list?.length && (
-                            <p className="text-[11px] text-white/20 italic py-4 text-center">
+                            <p className="py-4 text-center text-[11px] italic text-white/20">
                               No responses yet
                             </p>
                           )}
@@ -441,13 +441,13 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                               const percent = Math.round((count / responses.length) * 100) || 0;
                               return (
                                 <div key={label} className="space-y-2">
-                                  <div className="flex justify-between text-[11px] uppercase font-black tracking-widest mb-1">
-                                    <span className="text-white/40 flex-1 mr-8">{label}</span>
-                                    <span className="text-accent shrink-0">
+                                  <div className="mb-1 flex justify-between text-[11px] font-black uppercase tracking-widest">
+                                    <span className="mr-8 flex-1 text-white/40">{label}</span>
+                                    <span className="shrink-0 text-accent">
                                       {count} ({percent}%)
                                     </span>
                                   </div>
-                                  <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                  <div className="h-2.5 w-full overflow-hidden rounded-full border border-white/5 bg-white/5">
                                     <div
                                       className="h-full bg-accent shadow-[0_0_12px_var(--accent-glow)] transition-all duration-1000"
                                       style={{ width: `${percent}%` }}
@@ -457,7 +457,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                               );
                             })}
                           {Object.keys(stat.data).length === 0 && (
-                            <p className="text-[11px] text-white/20 italic py-2 text-center">
+                            <p className="py-2 text-center text-[11px] italic text-white/20">
                               No responses yet
                             </p>
                           )}
@@ -472,17 +472,17 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
         </div>
 
         {/* Create Survey */}
-        <div className="glass-card p-5 space-y-4 h-fit sticky top-24 border-white/10 shadow-xl">
-          <h2 className="text-[15px] font-bold text-white flex items-center gap-2">New Survey</h2>
+        <div className="glass-card sticky top-24 h-fit space-y-4 border-white/10 p-5 shadow-xl">
+          <h2 className="flex items-center gap-2 text-[15px] font-bold text-white">New Survey</h2>
           <div className="space-y-3">
             <input
-              className="input w-full bg-white/5 border-white/5"
+              className="input w-full border-white/5 bg-white/5"
               placeholder="Title"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />
             <textarea
-              className="input w-full min-h-[60px] text-[13px] bg-white/5 border-white/5"
+              className="input min-h-[60px] w-full border-white/5 bg-white/5 text-[13px]"
               placeholder="Description"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
@@ -490,17 +490,17 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
               Questions
             </p>
-            <div className="space-y-3 max-h-[40vh] overflow-auto pr-1 custom-scrollbar">
+            <div className="custom-scrollbar max-h-[40vh] space-y-3 overflow-auto pr-1">
               {newQuestions.map((q, idx) => (
                 <div
                   key={q.id}
-                  className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-2"
+                  className="space-y-2 rounded-xl border border-white/5 bg-white/[0.03] p-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black text-accent uppercase tracking-tighter">
+                    <span className="text-[9px] font-black uppercase tracking-tighter text-accent">
                       {q.type} #{idx + 1}
                     </span>
                     <button
@@ -530,7 +530,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                     }}
                   />
                   {(q.type === 'single' || q.type === 'multiple') && (
-                    <div className="space-y-1.5 pl-2 border-l border-white/10 mt-1">
+                    <div className="mt-1 space-y-1.5 border-l border-white/10 pl-2">
                       {q.options?.map((opt, oIdx) => (
                         <div key={oIdx} className="flex gap-2">
                           <input
@@ -561,7 +561,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
                           qs[idx].options!.push('');
                           setNewQuestions(qs);
                         }}
-                        className="text-[10px] text-accent/60 font-black uppercase"
+                        className="text-accent/60 text-[10px] font-black uppercase"
                       >
                         + Add
                       </button>
@@ -574,28 +574,28 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => addQuestion('rating')}
-                className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
+                className="btn-glass flex items-center justify-center gap-1.5 bg-white/5 py-2 text-[10px]"
               >
                 <Star size={12} />
                 Rating
               </button>
               <button
                 onClick={() => addQuestion('single')}
-                className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
+                className="btn-glass flex items-center justify-center gap-1.5 bg-white/5 py-2 text-[10px]"
               >
                 <Circle size={12} />
                 Single
               </button>
               <button
                 onClick={() => addQuestion('multiple')}
-                className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
+                className="btn-glass flex items-center justify-center gap-1.5 bg-white/5 py-2 text-[10px]"
               >
                 <ListChecks size={12} />
                 Multiple
               </button>
               <button
                 onClick={() => addQuestion('text')}
-                className="btn-glass flex items-center justify-center gap-1.5 text-[10px] py-2 bg-white/5"
+                className="btn-glass flex items-center justify-center gap-1.5 bg-white/5 py-2 text-[10px]"
               >
                 <Type size={12} />
                 Text
@@ -606,7 +606,7 @@ export function AdminSurveys({ canDelete }: { canDelete: boolean }) {
           <button
             disabled={isSubmitting || !newTitle.trim() || newQuestions.length === 0}
             onClick={handleCreate}
-            className="btn-accent w-full py-3 mt-2 font-bold tracking-widest text-[11px]"
+            className="btn-accent mt-2 w-full py-3 text-[11px] font-bold tracking-widest"
           >
             {isSubmitting ? 'Creating...' : 'Launch Survey'}
           </button>

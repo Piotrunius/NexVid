@@ -140,8 +140,8 @@ export function SurveyModal() {
   if (!isVisible || !survey || !currentQuestion) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 bg-[#050608]/95 shadow-[0_24px_80px_rgba(0,0,0,0.75)] animate-scale-in">
+    <div className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-black/75 p-4 backdrop-blur-md">
+      <div className="w-full max-w-md animate-scale-in overflow-hidden rounded-[28px] border border-white/10 bg-[#050608]/95 shadow-[0_24px_80px_rgba(0,0,0,0.75)]">
         <div className="relative p-8 text-center">
           <h2 className="mb-3 text-[22px] font-black tracking-tight text-white">{survey.title}</h2>
           {survey.description && (
@@ -150,7 +150,7 @@ export function SurveyModal() {
 
           <div className="mb-8 space-y-4">
             <div className="flex items-center justify-between gap-2 px-2">
-              <span className="text-[10px] font-bold text-accent uppercase tracking-widest">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
                 Question {step + 1} of {survey.questions.length}
               </span>
               <div className="flex gap-1">
@@ -165,7 +165,7 @@ export function SurveyModal() {
                 ))}
               </div>
             </div>
-            <p className="text-center text-[15px] font-medium text-white/80 leading-tight">
+            <p className="text-center text-[15px] font-medium leading-tight text-white/80">
               {currentQuestion.text}
             </p>
           </div>
@@ -207,7 +207,7 @@ export function SurveyModal() {
                     className={cn(
                       'w-full rounded-xl border p-3 text-left text-[13px] font-medium transition-all',
                       answers[currentQuestion.id] === opt
-                        ? 'border-accent bg-accent/10 text-accent'
+                        ? 'bg-accent/10 border-accent text-accent'
                         : 'border-white/5 bg-white/5 text-white/60 hover:bg-white/10',
                     )}
                   >
@@ -234,7 +234,7 @@ export function SurveyModal() {
                       className={cn(
                         'w-full rounded-xl border p-3 text-left text-[13px] font-medium transition-all',
                         isSelected
-                          ? 'border-accent bg-accent/10 text-accent'
+                          ? 'bg-accent/10 border-accent text-accent'
                           : 'border-white/5 bg-white/5 text-white/60 hover:bg-white/10',
                       )}
                     >
@@ -285,14 +285,14 @@ export function SurveyModal() {
               {step > 0 && (
                 <button
                   onClick={() => setStep(step - 1)}
-                  className="btn-glass flex-1 flex items-center justify-center py-4 text-[13px] font-bold"
+                  className="btn-glass flex flex-1 items-center justify-center py-4 text-[13px] font-bold"
                 >
                   Back
                 </button>
               )}
               <button
                 onClick={handleSkip}
-                className="btn-glass flex-1 flex items-center justify-center py-4 text-[13px] font-bold"
+                className="btn-glass flex flex-1 items-center justify-center py-4 text-[13px] font-bold"
               >
                 Skip
               </button>

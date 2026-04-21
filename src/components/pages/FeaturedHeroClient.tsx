@@ -52,11 +52,11 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (featuredItems.length === 0) {
-    return <section className="relative h-[90vh] min-h-[640px] bg-black animate-pulse" />;
+    return <section className="relative h-[90vh] min-h-[640px] animate-pulse bg-black" />;
   }
 
   return (
-    <section className="relative h-[90vh] min-h-[640px] bg-black overflow-hidden">
+    <section className="relative h-[90vh] min-h-[640px] overflow-hidden bg-black">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -104,7 +104,7 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
       {/* Content */}
       <div className="absolute inset-0 flex items-center justify-start pt-20">
         <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-          <div className="relative max-w-[38rem] h-[260px] sm:h-[280px]">
+          <div className="relative h-[260px] max-w-[38rem] sm:h-[280px]">
             {featuredItems.map((item, index) => {
               const isActive = index === currentIndex;
               const featuredType = normalizeMediaType(item.mediaType);
@@ -112,7 +112,7 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
                 <div
                   key={`content-${item.tmdbId}`}
                   className={`absolute inset-0 flex flex-col justify-center gap-4 transition-opacity duration-700 ${
-                    isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                    isActive ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -129,11 +129,11 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
                     )}
                   </div>
 
-                  <h1 className="text-[34px] sm:text-[44px] lg:text-[52px] font-black leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+                  <h1 className="text-[34px] font-black leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:text-[44px] lg:text-[52px]">
                     {item.title}
                   </h1>
 
-                  <p className="text-[14px] sm:text-[15px] leading-[1.6] text-white/75 drop-shadow-md line-clamp-2">
+                  <p className="line-clamp-2 text-[14px] leading-[1.6] text-white/75 drop-shadow-md sm:text-[15px]">
                     {item.overview}
                   </p>
 
@@ -176,24 +176,24 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
           return (
             <>
               {/* Mobile: horizontal pill bars anchored near the bottom */}
-              <div className="sm:hidden absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 h-1.5">
+              <div className="absolute bottom-28 left-1/2 z-20 flex h-1.5 -translate-x-1/2 items-center gap-2 sm:hidden">
                 {dots.map(({ isActive, isPast, handleClick, index }) => (
                   <button
                     key={`mob-${index}`}
                     aria-label={`Go to slide ${index + 1}`}
                     onClick={handleClick}
-                    className={`h-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
+                    className={`h-1.5 cursor-pointer overflow-hidden rounded-full backdrop-blur-sm transition-all duration-500 ease-in-out ${
                       isActive ? 'w-7 bg-white/25' : 'w-3 bg-white/35 hover:bg-white/55'
                     }`}
                   >
                     {isActive ? (
                       <div
                         key={`mob-bar-${currentIndex}`}
-                        className="nx-bar-h w-full h-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]"
+                        className="nx-bar-h h-full w-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]"
                       />
                     ) : (
                       <div
-                        className="w-full h-full bg-white transition-opacity duration-300"
+                        className="h-full w-full bg-white transition-opacity duration-300"
                         style={{ opacity: isPast ? 0.85 : 0 }}
                       />
                     )}
@@ -202,24 +202,24 @@ export function FeaturedHeroClient({ items }: FeaturedHeroClientProps) {
               </div>
 
               {/* Desktop: vertical pills on right edge */}
-              <div className="hidden sm:flex absolute right-6 lg:right-10 xl:right-14 2xl:right-16 top-1/2 -translate-y-1/2 z-20 flex-col gap-2.5 h-48">
+              <div className="absolute right-6 top-1/2 z-20 hidden h-48 -translate-y-1/2 flex-col gap-2.5 sm:flex lg:right-10 xl:right-14 2xl:right-16">
                 {dots.map(({ isActive, isPast, handleClick, index }) => (
                   <button
                     key={`desk-${index}`}
                     aria-label={`Go to slide ${index + 1}`}
                     onClick={handleClick}
-                    className={`w-1.5 overflow-hidden rounded-full cursor-pointer backdrop-blur-sm transition-all duration-500 ease-in-out ${
+                    className={`w-1.5 cursor-pointer overflow-hidden rounded-full backdrop-blur-sm transition-all duration-500 ease-in-out ${
                       isActive ? 'flex-1 bg-white/20' : 'h-6 bg-white/30 hover:bg-white/50'
                     }`}
                   >
                     {isActive ? (
                       <div
                         key={`desk-bar-${currentIndex}`}
-                        className="nx-bar w-full h-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+                        className="nx-bar h-full w-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
                       />
                     ) : (
                       <div
-                        className="w-full h-full bg-white transition-opacity duration-300"
+                        className="h-full w-full bg-white transition-opacity duration-300"
                         style={{ opacity: isPast ? 0.85 : 0 }}
                       />
                     )}

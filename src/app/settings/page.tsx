@@ -322,26 +322,26 @@ export default function SettingsPage() {
   const getSourceIcon = (sourceId?: string) => {
     switch (sourceId) {
       case 'febbox':
-        return <Crown className="w-3.5 h-3.5" />;
+        return <Crown className="h-3.5 w-3.5" />;
       case 'pobreflix':
-        return <Gem className="w-3.5 h-3.5" />;
+        return <Gem className="h-3.5 w-3.5" />;
       case 'gamma':
       case 'zxcstream':
-        return <Zap className="w-3.5 h-3.5" />;
+        return <Zap className="h-3.5 w-3.5" />;
       case 'cinesrc':
-        return <Sparkles className="w-3.5 h-3.5" />;
+        return <Sparkles className="h-3.5 w-3.5" />;
       case 'vidking':
-        return <Award className="w-3.5 h-3.5" />;
+        return <Award className="h-3.5 w-3.5" />;
       case 'vidfast':
-        return <Rocket className="w-3.5 h-3.5" />;
+        return <Rocket className="h-3.5 w-3.5" />;
       case 'videasy':
-        return <Compass className="w-3.5 h-3.5" />;
+        return <Compass className="h-3.5 w-3.5" />;
       case 'vidsync':
-        return <Link className="w-3.5 h-3.5" />;
+        return <Link className="h-3.5 w-3.5" />;
       case 'vidlink':
-        return <InfinityIcon className="w-3.5 h-3.5" />;
+        return <InfinityIcon className="h-3.5 w-3.5" />;
       default:
-        return <Server className="w-3.5 h-3.5" />;
+        return <Server className="h-3.5 w-3.5" />;
     }
   };
 
@@ -359,11 +359,11 @@ export default function SettingsPage() {
   }, [settings.febboxApiKey, settings.enableUnsafeEmbeds]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden pt-24 pb-10">
+    <div className="relative min-h-screen overflow-hidden pb-10 pt-24">
       <div className="px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
         {/* Page header */}
-        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-[0_10px_28px_rgba(0,0,0,0.35)] sm:p-6">
-          <h1 className="text-[30px] font-bold text-text-primary tracking-tight">Settings</h1>
+        <div className="mb-5 rounded-[24px] border border-white/10 bg-white/[0.02] p-5 shadow-[0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-6">
+          <h1 className="text-[30px] font-bold tracking-tight text-text-primary">Settings</h1>
           <p className="mt-1 text-[13px] text-text-muted">Manage your preferences and account</p>
         </div>
 
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                 </svg>
               }
             >
-              <div className="flex items-center gap-4 mb-5">
+              <div className="mb-5 flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-hover text-lg font-bold text-white shadow-[0_2px_12px_var(--accent-glow)]">
                   {user?.username?.[0]?.toUpperCase() || 'U'}
                 </div>
@@ -492,7 +492,7 @@ export default function SettingsPage() {
                     <button
                       key={c.key}
                       onClick={() => store.updateSettings({ accentColor: c.key })}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase transition-all tracking-wider border whitespace-nowrap ${settings.accentColor === c.key ? 'bg-accent-muted text-accent border-accent-glow' : 'bg-transparent text-white/40 border-transparent hover:text-white'}`}
+                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all ${settings.accentColor === c.key ? 'border-accent-glow bg-accent-muted text-accent' : 'border-transparent bg-transparent text-white/40 hover:text-white'}`}
                     >
                       <div
                         className="h-3 w-3 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
@@ -514,20 +514,20 @@ export default function SettingsPage() {
                       enableUnsafeEmbeds: !settings.enableUnsafeEmbeds,
                     })
                   }
-                  className="w-full flex items-center justify-between gap-4 rounded-full bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.06]"
+                  className="flex w-full items-center justify-between gap-4 rounded-full bg-white/[0.04] px-4 py-3 transition-colors hover:bg-white/[0.06]"
                 >
-                  <div className="text-left flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-text-primary truncate">
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="truncate text-[13px] font-medium text-text-primary">
                       Enable unsafe embeds
                     </p>
-                    <p className="text-[11px] text-text-muted mt-0.5 line-clamp-2 sm:line-clamp-none">
+                    <p className="mt-0.5 line-clamp-2 text-[11px] text-text-muted sm:line-clamp-none">
                       Enables sources that are potentially unsafe. By default, only safe embeds and
                       direct streams are available.
                     </p>
                   </div>
                   <div
                     className={cn(
-                      'relative shrink-0 w-11 h-[24px] rounded-full transition-colors duration-200',
+                      'relative h-[24px] w-11 shrink-0 rounded-full transition-colors duration-200',
                       settings.enableUnsafeEmbeds ? 'bg-accent' : 'bg-white/10',
                     )}
                   >
@@ -653,12 +653,12 @@ export default function SettingsPage() {
               </svg>
             }
           >
-            <p className="text-[12px] text-text-muted mb-4">
+            <p className="mb-4 text-[12px] text-text-muted">
               Keys are saved in your account when logged in.
             </p>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <SettingsRow label="Groq AI API Key">
-                <p className="text-[11px] text-text-muted mb-1.5">
+                <p className="mb-1.5 text-[11px] text-text-muted">
                   Powers the AI Assistant. Get your own at{' '}
                   <a
                     href="https://console.groq.com/keys"
@@ -684,7 +684,7 @@ export default function SettingsPage() {
                   autoComplete="new-password"
                 />
                 <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                  <p className="text-[11px] text-text-muted leading-relaxed">
+                  <p className="text-[11px] leading-relaxed text-text-muted">
                     Public Groq key is available only for signed-in users.
                   </p>
                   {isLoggedIn && settings.groqApiKey !== PUBLIC_GROQ_API_KEY_PLACEHOLDER && (
@@ -715,7 +715,7 @@ export default function SettingsPage() {
               </SettingsRow>
 
               <SettingsRow label="OMDb API Key">
-                <p className="text-[11px] text-text-muted mb-1.5">
+                <p className="mb-1.5 text-[11px] text-text-muted">
                   Used for external ratings (IMDb, Rotten Tomatoes, Metacritic). Get your own at{' '}
                   <a
                     href="https://www.omdbapi.com/apikey.aspx"
@@ -741,7 +741,7 @@ export default function SettingsPage() {
                   autoComplete="new-password"
                 />
                 <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                  <p className="text-[11px] text-text-muted leading-relaxed">
+                  <p className="text-[11px] leading-relaxed text-text-muted">
                     Public OMDb key is available only for signed-in users.
                   </p>
                   {isLoggedIn && settings.omdbApiKey !== PUBLIC_OMDB_API_KEY_PLACEHOLDER && (
@@ -772,7 +772,7 @@ export default function SettingsPage() {
               </SettingsRow>
 
               <SettingsRow label="TheIntroDB">
-                <p className="text-[11px] text-text-muted mb-1.5">
+                <p className="mb-1.5 text-[11px] text-text-muted">
                   Required to submit timestamps. Get your own at{' '}
                   <a
                     href="https://theintrodb.org"
@@ -798,7 +798,7 @@ export default function SettingsPage() {
                   autoComplete="new-password"
                 />
                 <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                  <p className="text-[11px] text-text-muted leading-relaxed">
+                  <p className="text-[11px] leading-relaxed text-text-muted">
                     Public TheIntroDB key is available only for signed-in users.
                   </p>
                   {isLoggedIn && !isPublicTidbKeyActive && (
@@ -829,7 +829,7 @@ export default function SettingsPage() {
               </SettingsRow>
 
               <SettingsRow label="FebBox UI Token">
-                <p className="text-[11px] text-text-muted mb-1.5">
+                <p className="mb-1.5 text-[11px] text-text-muted">
                   Set up your own FebBox UI token by pasting the full cookie string or just the ui
                   token.
                 </p>
@@ -846,10 +846,10 @@ export default function SettingsPage() {
                   autoComplete="new-password"
                 />
                 <div className="mt-2 rounded-[10px] bg-[var(--bg-glass-light)] p-3 shadow-[0_0_0_0.5px_rgba(255,255,255,0.06)]">
-                  <p className="text-[11px] font-medium text-text-secondary mb-1.5">
+                  <p className="mb-1.5 text-[11px] font-medium text-text-secondary">
                     How to get your own FebBox token (Chromium / firefox)
                   </p>
-                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-text-muted leading-relaxed">
+                  <ol className="list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-text-muted">
                     <li>
                       Log in to{' '}
                       <a
@@ -863,7 +863,7 @@ export default function SettingsPage() {
                     </li>
                     <li>Open DevTools (F12) → Application/Storage → Cookies → www.febbox.com</li>
                     <li>
-                      Copy the <span className="text-text-secondary font-medium">ui</span> cookie
+                      Copy the <span className="font-medium text-text-secondary">ui</span> cookie
                       value
                     </li>
                   </ol>
@@ -894,10 +894,10 @@ export default function SettingsPage() {
             }
           >
             <div className="space-y-3">
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
+              <div className="xs:grid-cols-2 grid grid-cols-1 gap-2">
                 <button
                   onClick={handleExportWatchlist}
-                  className="btn-accent flex items-center justify-center gap-1.5 text-[13px] !shadow-[0_6px_16px_rgba(0,0,0,0.35)] hover:!shadow-[0_10px_22px_rgba(0,0,0,0.45)] py-2.5"
+                  className="btn-accent flex items-center justify-center gap-1.5 py-2.5 text-[13px] !shadow-[0_6px_16px_rgba(0,0,0,0.35)] hover:!shadow-[0_10px_22px_rgba(0,0,0,0.45)]"
                 >
                   <svg
                     width="14"
@@ -915,7 +915,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   onClick={handleImportWatchlist}
-                  className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5"
+                  className="btn-glass flex items-center justify-center gap-1.5 py-2.5 text-[13px]"
                 >
                   <svg
                     width="14"
@@ -936,7 +936,7 @@ export default function SettingsPage() {
                     store.resetSettings();
                     toast('Settings reset to defaults', 'success');
                   }}
-                  className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5"
+                  className="btn-glass flex items-center justify-center gap-1.5 py-2.5 text-[13px]"
                 >
                   <svg
                     width="14"
@@ -953,7 +953,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   onClick={handleLogoutOthers}
-                  className="btn-glass flex items-center justify-center gap-1.5 text-[13px] py-2.5"
+                  className="btn-glass flex items-center justify-center gap-1.5 py-2.5 text-[13px]"
                 >
                   <svg
                     width="14"
@@ -971,7 +971,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   onClick={handleClearEverything}
-                  className="btn-danger flex items-center justify-center gap-1.5 text-[13px] py-2.5"
+                  className="btn-danger flex items-center justify-center gap-1.5 py-2.5 text-[13px]"
                 >
                   <svg
                     width="14"
@@ -1013,7 +1013,7 @@ export default function SettingsPage() {
           >
             <div className="space-y-3 text-[12px] leading-relaxed">
               <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-                <p className="text-text-primary font-medium">
+                <p className="font-medium text-text-primary">
                   How can i get my own tokens? Are they paid?
                 </p>
                 <p className="mt-1 text-text-muted">
@@ -1022,14 +1022,14 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-                <p className="text-text-primary font-medium">Is my data synced?</p>
+                <p className="font-medium text-text-primary">Is my data synced?</p>
                 <p className="mt-1 text-text-muted">
                   If you are logged in, your settings, watchlist, and progress are securely synced
                   to your account across all your devices.
                 </p>
               </div>
               <div className="rounded-[10px] bg-[var(--bg-glass-light)] p-3">
-                <p className="text-text-primary font-medium">
+                <p className="font-medium text-text-primary">
                   Why is there no author in the credits?
                 </p>
                 <p className="mt-1 text-text-muted">
@@ -1061,7 +1061,7 @@ function SettingsCard({
   return (
     <div
       className={cn(
-        'glass-card glass-liquid rounded-[24px] border border-white/10 p-4 sm:p-5 shadow-[0_12px_34px_rgba(0,0,0,0.35)]',
+        'glass-card glass-liquid rounded-[24px] border border-white/10 p-4 shadow-[0_12px_34px_rgba(0,0,0,0.35)] sm:p-5',
         className,
       )}
     >

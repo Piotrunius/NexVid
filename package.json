@@ -6,7 +6,6 @@
     "dev": "next dev --turbopack",
     "build": "bun scripts/generate-build-info.mjs && next build",
     "start": "next start",
-    "lint": "next lint",
     "format": "prettier --write \"**/*.{js,ts,tsx,mjs,json,md,css,scss,html}\"",
     "format:check": "prettier --check \"**/*.{js,ts,tsx,mjs,json,md,css,scss,html}\"",
     "test": "vitest",
@@ -19,8 +18,7 @@
     "pages:build-output": "bun scripts/generate-build-info.mjs && bunx @cloudflare/next-on-pages@latest",
     "pages:prepare": "bun scripts/prepare-pages-output.mjs",
     "pages:deploy": "bun scripts/deploy-pages.mjs",
-    "ship": "bun run format && bun scripts/ship.mjs",
-    "prepare": "husky install"
+    "ship": "bun run format && bun scripts/ship.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -72,17 +70,14 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.5.0",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.15",
     "jsdom": "^25.0.1",
     "postcss": "^8.5.10",
+    "prettier": "^3.8.3",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^3.4.19",
     "typescript": "5.9.3",
     "vitest": "^4.1.4",
-    "wrangler": "^4.83.0",
-    "prettier": "^3.8.3",
-    "husky": "^8.0.3",
-    "lint-staged": "^14.0.1"
+    "wrangler": "^4.83.0"
   },
   "prettier": {
     "printWidth": 100,
@@ -93,11 +88,9 @@
     "trailingComma": "all",
     "bracketSpacing": true,
     "arrowParens": "always",
-    "endOfLine": "lf"
-  },
-  "lint-staged": {
-    "**/*.{js,ts,tsx,mjs,json,md,css,scss,html}": [
-      "prettier --write"
+    "endOfLine": "lf",
+    "plugins": [
+      "prettier-plugin-tailwindcss"
     ]
   }
 }

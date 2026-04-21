@@ -115,7 +115,7 @@ export default function MoviePage({
     return (
       <div className="min-h-screen">
         {/* ── Movie Hero Skeleton ── */}
-        <section className="relative h-[60vh] min-h-[400px] bg-black animate-pulse">
+        <section className="relative h-[60vh] min-h-[400px] animate-pulse bg-black">
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
         </section>
 
@@ -187,7 +187,7 @@ export default function MoviePage({
 
       {/* Content */}
       <div className="relative -mt-40 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-        <div className="flex gap-8 animate-slide-up">
+        <div className="flex animate-slide-up gap-8">
           {/* Poster */}
           <div className="hidden flex-shrink-0 md:block">
             <div className="relative h-[360px] w-[240px] overflow-hidden rounded-[var(--glass-radius-lg)] shadow-[var(--shadow-xl)]">
@@ -208,8 +208,8 @@ export default function MoviePage({
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[28px] font-bold text-text-primary tracking-tight sm:text-4xl">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[28px] font-bold tracking-tight text-text-primary sm:text-4xl">
               {movie.title}
             </h1>
 
@@ -250,7 +250,7 @@ export default function MoviePage({
                 {movie.status && (
                   <>
                     <span className="text-text-muted">&bull;</span>
-                    <span className="rounded-[8px] bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+                    <span className="bg-accent/10 rounded-[8px] px-2.5 py-0.5 text-[11px] font-medium text-accent">
                       {movie.status}
                     </span>
                   </>
@@ -278,7 +278,7 @@ export default function MoviePage({
             <div className="mt-4">
               <p
                 className={cn(
-                  'text-[14px] text-text-secondary leading-relaxed',
+                  'text-[14px] leading-relaxed text-text-secondary',
                   !showFullOverview && 'line-clamp-4',
                 )}
               >
@@ -287,63 +287,63 @@ export default function MoviePage({
             </div>
 
             {/* Quick Facts */}
-            <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {director && (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Director
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     {director.name}
                   </p>
                 </div>
               )}
               {writers.length > 0 && (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Writer
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     {writers.map((w) => w.name).join(', ')}
                   </p>
                 </div>
               )}
               {movie.budget && movie.budget > 0 ? (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Budget
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     ${(movie.budget / 1_000_000).toFixed(0)}M
                   </p>
                 </div>
               ) : null}
               {movie.revenue && movie.revenue > 0 ? (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Revenue
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     ${(movie.revenue / 1_000_000).toFixed(0)}M
                   </p>
                 </div>
               ) : null}
               {movie.spokenLanguages && movie.spokenLanguages.length > 0 && (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Languages
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     {movie.spokenLanguages.slice(0, 3).join(', ')}
                   </p>
                 </div>
               )}
               {movie.productionCompanies && movie.productionCompanies.length > 0 && (
                 <div className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                  <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Studio
                   </p>
-                  <p className="text-[13px] text-text-primary font-medium mt-0.5">
+                  <p className="mt-0.5 text-[13px] font-medium text-text-primary">
                     {movie.productionCompanies[0]}
                   </p>
                 </div>
@@ -367,7 +367,7 @@ export default function MoviePage({
               {febboxApiKey && (
                 <button
                   onClick={() => setShowDownloadModal(true)}
-                  className="btn-glass !px-6 !py-3 group"
+                  className="btn-glass group !px-6 !py-3"
                 >
                   <svg
                     width="18"
@@ -376,7 +376,7 @@ export default function MoviePage({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="text-white group-hover:scale-110 transition-transform"
+                    className="text-white transition-transform group-hover:scale-110"
                   >
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                   </svg>
@@ -422,7 +422,7 @@ export default function MoviePage({
                     : 'Add to List'}
                 </button>
                 {showWatchlistMenu && (
-                  <div className="absolute top-full left-0 mt-2 w-44 panel-glass rounded-[12px] p-1.5 z-10 animate-scale-in">
+                  <div className="panel-glass absolute left-0 top-full z-10 mt-2 w-44 animate-scale-in rounded-[12px] p-1.5">
                     {(
                       [
                         'Planned',
@@ -439,7 +439,7 @@ export default function MoviePage({
                           setShowWatchlistMenu(false);
                         }}
                         className={cn(
-                          'w-full flex items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] capitalize transition-colors',
+                          'flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] capitalize transition-colors',
                           watchlistItem?.status === status
                             ? 'bg-accent/15 text-accent'
                             : 'text-text-secondary hover:bg-[var(--bg-glass-light)]',
@@ -485,12 +485,12 @@ export default function MoviePage({
           onClick={() => setShowTrailer(false)}
         >
           <div
-            className="relative w-full max-w-4xl mx-4 aspect-video animate-scale-in"
+            className="relative mx-4 aspect-video w-full max-w-4xl animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowTrailer(false)}
-              className="absolute -top-10 right-0 rounded-full bg-white/10 p-2 text-white/70 hover:text-white hover:bg-white/20 transition-all"
+              className="absolute -top-10 right-0 rounded-full bg-white/10 p-2 text-white/70 transition-all hover:bg-white/20 hover:text-white"
             >
               <svg
                 width="20"
@@ -505,7 +505,7 @@ export default function MoviePage({
             </button>
             <iframe
               src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1`}
-              className="w-full h-full rounded-[var(--glass-radius-lg)] shadow-[var(--shadow-xl)]"
+              className="h-full w-full rounded-[var(--glass-radius-lg)] shadow-[var(--shadow-xl)]"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
@@ -553,10 +553,10 @@ export default function MoviePage({
               </button>
             </div>
           </div>
-          <div ref={castRowRef} className="flex gap-3 overflow-x-auto pb-3 scroll-row">
+          <div ref={castRowRef} className="scroll-row flex gap-3 overflow-x-auto pb-3">
             {movie.cast.slice(0, 15).map((person, index) => (
-              <div key={`${person.id}-${index}`} className="flex-shrink-0 w-[100px] text-center">
-                <div className="relative h-[100px] w-[100px] rounded-full overflow-hidden mx-auto bg-[var(--bg-tertiary)] shadow-[var(--shadow-sm)]">
+              <div key={`${person.id}-${index}`} className="w-[100px] flex-shrink-0 text-center">
+                <div className="relative mx-auto h-[100px] w-[100px] overflow-hidden rounded-full bg-[var(--bg-tertiary)] shadow-[var(--shadow-sm)]">
                   {person.profilePath ? (
                     <Image
                       src={tmdbImage(person.profilePath, 'w185')}
@@ -582,10 +582,10 @@ export default function MoviePage({
                     </div>
                   )}
                 </div>
-                <p className="mt-2 text-[11px] font-medium text-text-primary line-clamp-1">
+                <p className="mt-2 line-clamp-1 text-[11px] font-medium text-text-primary">
                   {person.name}
                 </p>
-                <p className="text-[10px] text-text-muted line-clamp-1">{person.character}</p>
+                <p className="line-clamp-1 text-[10px] text-text-muted">{person.character}</p>
               </div>
             ))}
           </div>
@@ -596,14 +596,14 @@ export default function MoviePage({
       {(producers.length > 0 ||
         (movie.productionCompanies && movie.productionCompanies.length > 1)) && (
         <div className="mt-8 px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16">
-          <h2 className="text-[15px] font-semibold text-text-primary mb-4">Production</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <h2 className="mb-4 text-[15px] font-semibold text-text-primary">Production</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {movie.productionCompanies?.map((company, i) => (
               <div key={i} className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]">
-                <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                   Company
                 </p>
-                <p className="text-[13px] text-text-primary font-medium mt-0.5">{company}</p>
+                <p className="mt-0.5 text-[13px] font-medium text-text-primary">{company}</p>
               </div>
             ))}
             {producers.slice(0, 4).map((p) => (
@@ -611,10 +611,10 @@ export default function MoviePage({
                 key={p.id}
                 className="rounded-[20px] bg-[var(--bg-glass)] p-4 backdrop-blur-[20px]"
               >
-                <p className="text-[10px] uppercase text-text-muted font-semibold tracking-wider">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                   Producer
                 </p>
-                <p className="text-[13px] text-text-primary font-medium mt-0.5">{p.name}</p>
+                <p className="mt-0.5 text-[13px] font-medium text-text-primary">{p.name}</p>
               </div>
             ))}
           </div>

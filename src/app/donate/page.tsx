@@ -77,12 +77,12 @@ export default function DonatePage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden pt-24 pb-16">
+    <div className="relative min-h-screen overflow-hidden pb-16 pt-24">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         {/* ── Hero Section ── */}
-        <header className="text-center mb-14">
+        <header className="mb-14 text-center">
           {/* Heart container */}
-          <div className="inline-flex items-center justify-center mb-5">
+          <div className="mb-5 inline-flex items-center justify-center">
             <svg
               width="42"
               height="42"
@@ -98,10 +98,10 @@ export default function DonatePage() {
             </svg>
           </div>
 
-          <h1 className="text-[34px] sm:text-[42px] font-bold text-text-primary tracking-tight leading-tight">
+          <h1 className="text-[34px] font-bold leading-tight tracking-tight text-text-primary sm:text-[42px]">
             Support NexVid
           </h1>
-          <p className="mt-3 text-[15px] text-text-secondary leading-relaxed max-w-lg mx-auto">
+          <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-text-secondary">
             NexVid is free and open for everyone. Your donation helps us keep the servers running
             and build new features.
           </p>
@@ -112,18 +112,18 @@ export default function DonatePage() {
           {GROUPS.map((group, groupIdx) => (
             <section key={group.title} className="">
               {/* Group Header */}
-              <div className="flex items-center gap-3 mb-4 px-1">
-                <div className="w-1 h-5 rounded-full bg-gradient-to-b from-[var(--accent)] to-transparent" />
+              <div className="mb-4 flex items-center gap-3 px-1">
+                <div className="h-5 w-1 rounded-full bg-gradient-to-b from-[var(--accent)] to-transparent" />
                 <div>
-                  <h2 className="text-[16px] font-bold text-text-primary tracking-tight">
+                  <h2 className="text-[16px] font-bold tracking-tight text-text-primary">
                     {group.title}
                   </h2>
-                  <p className="text-[12px] text-text-muted mt-0.5">{group.description}</p>
+                  <p className="mt-0.5 text-[12px] text-text-muted">{group.description}</p>
                 </div>
               </div>
 
               {/* Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {group.wallets.map((walletId) => {
                   const wallet = WALLETS.find((w) => w.id === walletId)!;
                   const isCopied = copiedId === wallet.id;
@@ -133,7 +133,7 @@ export default function DonatePage() {
                     <div
                       key={wallet.id}
                       id={`donate-${wallet.id}`}
-                      className="group relative rounded-[20px] border border-white/[0.06] bg-white/[0.03] p-5 transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.12] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+                      className="group relative rounded-[20px] border border-white/[0.06] bg-white/[0.03] p-5 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.06] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
                       onMouseEnter={() => setHoveredId(wallet.id)}
                       onMouseLeave={() => setHoveredId(null)}
                       style={{
@@ -144,7 +144,7 @@ export default function DonatePage() {
                     >
                       {/* Subtle colored top line */}
                       <div
-                        className="absolute top-0 left-6 right-6 h-[1px] rounded-full transition-opacity duration-300"
+                        className="absolute left-6 right-6 top-0 h-[1px] rounded-full transition-opacity duration-300"
                         style={{
                           background: `linear-gradient(90deg, transparent, ${wallet.color}40, transparent)`,
                           opacity: isHovered ? 1 : 0,
@@ -152,7 +152,7 @@ export default function DonatePage() {
                       />
 
                       {/* Header */}
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div
                             className="flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
@@ -166,14 +166,14 @@ export default function DonatePage() {
                               alt={wallet.name}
                               width={32}
                               height={32}
-                              className="w-8 h-8"
+                              className="h-8 w-8"
                             />
                           </div>
                           <div>
                             <h3 className="text-[15px] font-semibold text-text-primary">
                               {wallet.name}
                             </h3>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="mt-0.5 flex items-center gap-2">
                               <span
                                 className="text-[11px] font-bold tracking-wide"
                                 style={{ color: wallet.color }}
@@ -189,14 +189,14 @@ export default function DonatePage() {
 
                       {/* Address */}
                       <div className="flex items-stretch gap-2">
-                        <div className="flex-1 min-w-0 rounded-xl bg-black/40 border border-white/[0.06] px-4 py-3 flex items-center">
-                          <code className="text-[12px] sm:text-[13px] text-text-secondary font-mono truncate select-all">
+                        <div className="flex min-w-0 flex-1 items-center rounded-xl border border-white/[0.06] bg-black/40 px-4 py-3">
+                          <code className="select-all truncate font-mono text-[12px] text-text-secondary sm:text-[13px]">
                             {wallet.address}
                           </code>
                         </div>
                         <button
                           onClick={() => copyAddress(wallet.id, wallet.address)}
-                          className="shrink-0 flex items-center justify-center gap-1.5 rounded-xl px-4 text-[12px] font-semibold transition-all duration-200 active:scale-95"
+                          className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-[12px] font-semibold transition-all duration-200 active:scale-95"
                           style={{
                             background: isCopied ? `${wallet.color}20` : 'rgba(255,255,255,0.06)',
                             border: `1px solid ${isCopied ? `${wallet.color}40` : 'rgba(255,255,255,0.08)'}`,
@@ -245,7 +245,7 @@ export default function DonatePage() {
 
         {/* ── Bottom CTA / Note ── */}
         <div className="mt-14 text-center">
-          <div className="inline-flex items-center gap-3 rounded-2xl px-6 py-4 border border-white/[0.06] bg-white/[0.02]">
+          <div className="inline-flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-6 py-4">
             <svg
               width="18"
               height="18"
@@ -259,9 +259,9 @@ export default function DonatePage() {
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
             </svg>
-            <p className="text-[13px] text-text-muted leading-relaxed text-left">
+            <p className="text-left text-[13px] leading-relaxed text-text-muted">
               Always double-check the wallet address before sending. Crypto transactions are{' '}
-              <span className="text-text-secondary font-medium">irreversible</span>. Thank you for
+              <span className="font-medium text-text-secondary">irreversible</span>. Thank you for
               your generosity!
             </p>
           </div>

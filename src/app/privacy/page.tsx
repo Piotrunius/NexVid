@@ -9,14 +9,14 @@ const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_URL;
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-24">
-      <h1 className="text-[28px] font-bold text-text-primary tracking-tight">Privacy Policy</h1>
+      <h1 className="text-[28px] font-bold tracking-tight text-text-primary">Privacy Policy</h1>
       <p className="mt-2 text-[13px] text-text-muted">
         Last updated: {new Date().toLocaleDateString()}
       </p>
 
-      <div className="mt-8 space-y-6 text-text-secondary text-[13px] leading-relaxed">
+      <div className="mt-8 space-y-6 text-[13px] leading-relaxed text-text-secondary">
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">1. Overview</h2>
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">1. Overview</h2>
           <p>
             NexVid is designed to work primarily with data stored locally in your browser. If
             backend login/cloud sync is enabled for this deployment, selected account data is also
@@ -31,13 +31,13 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">2. Data We Process</h2>
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">2. Data We Process</h2>
           <p>
             By default, data is stored in your browser&apos;s{' '}
             <code className="text-accent">localStorage</code>. If cloud auth is enabled, the backend
             stores only data necessary to run account, security, and moderation features.
           </p>
-          <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
+          <ul className="mt-2 list-inside list-disc space-y-1 text-text-muted">
             <li>Account data: nickname, password hash, account creation date</li>
             <li>Session data: authentication tokens and session expiry</li>
             <li>App data: settings, watchlist, playback-related preferences</li>
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">
             3. Purposes and Legal Basis (GDPR)
           </h2>
           <p>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
             optional sync, and (c) security and abuse prevention.
           </p>
           <p className="mt-2">The legal basis is generally:</p>
-          <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
+          <ul className="mt-2 list-inside list-disc space-y-1 text-text-muted">
             <li>
               <strong>Article 6(1)(b) GDPR</strong> (performance of a contract) for account/service
               operation
@@ -74,11 +74,11 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">
             4. Third-Party Services
           </h2>
           <p>NexVid may connect to external services needed to render content and metadata:</p>
-          <ul className="mt-2 list-disc list-inside space-y-1 text-text-muted">
+          <ul className="mt-2 list-inside list-disc space-y-1 text-text-muted">
             <li>
               <strong>TMDB API</strong> &mdash; movie/show metadata, posters, and search data
             </li>
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">
             5. Cookies and Local Storage
           </h2>
           <p>
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">6. Retention</h2>
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">6. Retention</h2>
           <p>
             We keep data only as long as needed for account operation, service reliability, and
             abuse prevention. Retention may vary by data type (e.g., session records vs. moderation
@@ -136,7 +136,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">7. Analytics</h2>
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">7. Analytics</h2>
           <p>
             This deployment does not use behavioral advertising trackers. If operational telemetry
             is enabled by the infrastructure provider, it is used for reliability/security, not ad
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">
             8. Your Rights (EU/EEA)
           </h2>
           <p>
@@ -156,7 +156,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">9. Your Control</h2>
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">9. Your Control</h2>
           <p>
             You can delete all stored data at any time by clearing your browser&apos;s localStorage,
             or by using the &ldquo;Clear Everything&rdquo; option in the Settings page.
@@ -168,30 +168,30 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[15px] font-semibold text-text-primary mb-2">10. Contact</h2>
+          <h2 className="mb-2 text-[15px] font-semibold text-text-primary">10. Contact</h2>
           <p className="mb-2">
             For privacy requests related to this deployment (including account deletion, access
             requests, or security concerns), please contact our security team:
           </p>
           <a
             href="mailto:security@nexvid.online"
-            className="text-accent hover:underline font-medium"
+            className="font-medium text-accent hover:underline"
           >
             security@nexvid.online
           </a>
-          <p className="mt-4 mb-2">For general support and other inquiries:</p>
+          <p className="mb-2 mt-4">For general support and other inquiries:</p>
           <a
             href="mailto:support@nexvid.online"
-            className="text-accent hover:underline font-medium"
+            className="font-medium text-accent hover:underline"
           >
             support@nexvid.online
           </a>
-          <p className="mt-4 mb-2">Community and quick updates:</p>
+          <p className="mb-2 mt-4">Community and quick updates:</p>
           <a
             href={DISCORD_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-accent hover:underline font-medium"
+            className="font-medium text-accent hover:underline"
           >
             Join Discord
           </a>

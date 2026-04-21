@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <div className="min-h-screen">
       {/* ── Movie Hero Skeleton ── */}
-      <section className="relative h-[60vh] min-h-[400px] bg-black animate-pulse">
+      <section className="relative h-[60vh] min-h-[400px] animate-pulse bg-black">
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
       </section>
 
