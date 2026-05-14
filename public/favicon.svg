@@ -8,10 +8,13 @@
             y2="56"
             gradientUnits="userSpaceOnUse"
         >
-      <stop stop-color="#6366f1" />
-      <stop offset="1" stop-color="#8b5cf6" />
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#8b5cf6" />
     </linearGradient>
   </defs>
   <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#g)" />
-  <path d="M24 18L46 32L24 46V18Z" fill="white" />
+  <path
+        d="M26.2 21.6L41.3 30.3C42.8 31.1 42.8 32.9 41.3 33.7L26.2 42.4C24.8 43.3 23 42.3 23 40.7V23.3C23 21.7 24.8 20.7 26.2 21.6Z"
+        fill="white"
+    />
 </svg>
