@@ -1,4 +1,10 @@
-# NexVid
+> [!CAUTION]
+> # Project Archived / Unmaintained
+> **NexVid is no longer actively maintained.** 
+> 
+> Due to the nature of third-party streaming providers (frequent domain changes, dead links, and API updates), built-in scrapers and sources may no longer work out of the box. The codebase is kept here as an archive and reference. Feel free to fork the repository if you wish to maintain your own providers.
+
+## NexVid
 
 NexVid is a production-ready streaming frontend built with **Next.js 15 (App Router)**. It aggregates streams from multiple providers, offers a custom HLS player, and includes a Cloudflare Worker backend for proxying, authentication, and persistent user data.
 
